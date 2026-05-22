@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+  ADR-0004: registers the "Proton Contacts" account type. Both the
+  account-type string and the account label here must match what the
+  app uses in code (AccountConstants.PROTON_ACCOUNT_TYPE,
+  strings.xml#account_label) and what the SyncAdapter declares.
+
+  The accountType value is load-bearing: changing it orphans every
+  RawContacts row the app has ever written.
+-->
+<account-authenticator xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accountType="io.pcontacts.account"
+    android:icon="@mipmap/ic_launcher"
+    android:smallIcon="@mipmap/ic_launcher"
+    android:label="@string/account_label" />
