@@ -16,6 +16,7 @@ kotlin {
 }
 
 dependencies {
-    // BouncyCastle + ported SRP / bcrypt-SHA512 land here in a later commit (ADR-0002).
-    // implementation(libs.bundles.bouncycastle)
+    implementation(libs.bundles.bouncycastle)
+
+    testImplementation(libs.junit)
 }
