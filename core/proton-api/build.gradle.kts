@@ -17,11 +17,17 @@ kotlin {
 }
 
 dependencies {
-    // OkHttp + Retrofit + serialization land here in a later commit (ADR-0012).
-    // implementation(libs.bundles.okhttp)
-    // implementation(libs.retrofit)
-    // implementation(libs.retrofit.kotlinx.serialization.converter)
-    // implementation(libs.kotlinx.serialization.json)
-    // implementation(project(":core:crypto"))
-    // implementation(project(":core:logging"))
+    implementation(libs.okhttp)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization.converter)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
+
+    // ADR-0011: :core:proton-api stays Android-free. It uses the :core:logging
+    // surface only — never android.util.Log directly.
+    implementation(project(":core:logging"))
+
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

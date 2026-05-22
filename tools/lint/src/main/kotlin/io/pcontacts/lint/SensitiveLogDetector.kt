@@ -49,9 +49,15 @@ class SensitiveLogDetector : Detector(), SourceCodeScanner {
                 }
                 if (!isBanned) return
 
-                // Exempt :core:logging — the one place these calls are allowed.
+                // Exempt the two packages that own the logging surface:
+                //   io.pcontacts.core.logging   — pure-JVM Logger/Redactor/sinks
+                //   io.pcontacts.app.logging    — Android logcat sink (single
+                //                                  legitimate caller of Log.*)
                 val pkg = node.getContainingUFile()?.packageName.orEmpty()
-                if (pkg.startsWith("io.pcontacts.core.logging")) return
+                if (pkg.startsWith("io.pcontacts.core.logging") ||
+                    pkg.startsWith("io.pcontacts.app.logging")) {
+                    return
+                }
 
                 context.report(
                     issue = ISSUE,

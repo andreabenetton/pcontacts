@@ -2,39 +2,26 @@
 // SPDX-FileCopyrightText: 2026 pcontacts contributors
 
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.jvm)
 }
 
-android {
-    namespace = "io.pcontacts.core.logging"
-    compileSdk = libs.versions.android.compile.sdk.get().toInt()
-
-    defaultConfig {
-        minSdk = libs.versions.android.min.sdk.get().toInt()
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
+}
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    sourceSets {
-        getByName("main") {
-            java.srcDirs("src/main/kotlin")
-        }
-    }
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
     testImplementation(libs.junit)
-
-    // ADR-0015: enforce no direct Log / println / System.out.* calls.
-    // This module's own package (io.pcontacts.core.logging) is the single
-    // legitimate caller — the detector exempts it explicitly.
-    lintChecks(project(":tools:lint"))
 }
+
+// Pure-JVM module per ADR-0011 (testable without an emulator). The Android
+// logcat bridge lives in :app under io.pcontacts.app.logging; the
+// PcontactsSensitiveLog rule exempts both that package and this one.
+// Android Lint isn't run on pure-JVM modules; the detekt equivalent for
+// this module lands when its source surface grows beyond the redacting
+// logger.

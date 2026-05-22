@@ -59,6 +59,26 @@ class SensitiveLogDetectorTest : LintDetectorTest() {
                 """
                 package io.pcontacts.core.logging
                 import android.util.Log
+                class CoreSink {
+                    fun emit(tag: String, msg: String) {
+                        Log.d(tag, msg)
+                    }
+                }
+                """
+            ).indented()
+        )
+            .issues(SensitiveLogDetector.ISSUE)
+            .run()
+            .expectClean()
+    }
+
+    fun testAllowsAndroidLogCallInsideAppLogging() {
+        lint().files(
+            androidLogStub,
+            kotlin(
+                """
+                package io.pcontacts.app.logging
+                import android.util.Log
                 class AndroidLogcatSink {
                     fun emit(tag: String, msg: String) {
                         Log.d(tag, msg)

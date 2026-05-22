@@ -10,8 +10,8 @@
 [versions]
 # Build tooling
 agp                          = "8.7.0"
-kotlin                       = "1.9.25"
-ksp                          = "1.9.25-1.0.20"
+kotlin                       = "2.0.21"
+ksp                          = "2.0.21-1.0.28"
 java                         = "17"
 detekt                       = "1.23.7"
 android-lint                 = "31.7.0"
@@ -38,7 +38,6 @@ kotlinx-serialization        = "1.7.3"
 # Networking
 okhttp                       = "4.12.0"
 retrofit                     = "2.11.0"
-retrofit-kotlinx-serialization-converter = "1.0.0"
 
 # Crypto + vCard
 bouncycastle                 = "1.78.1"
@@ -79,7 +78,7 @@ okhttp                       = { group = "com.squareup.okhttp3",  name = "okhttp
 okhttp-logging               = { group = "com.squareup.okhttp3",  name = "logging-interceptor",           version.ref = "okhttp" }
 okhttp-mockwebserver         = { group = "com.squareup.okhttp3",  name = "mockwebserver",                 version.ref = "okhttp" }
 retrofit                     = { group = "com.squareup.retrofit2", name = "retrofit",                     version.ref = "retrofit" }
-retrofit-kotlinx-serialization-converter = { group = "com.jakewharton.retrofit", name = "retrofit2-kotlinx-serialization-converter", version.ref = "retrofit-kotlinx-serialization-converter" }
+retrofit-kotlinx-serialization-converter = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 
 # Crypto
 bouncycastle-bcpg            = { group = "org.bouncycastle",      name = "bcpg-jdk18on",                  version.ref = "bouncycastle" }
