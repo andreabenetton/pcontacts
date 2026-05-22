@@ -1,0 +1,65 @@
+# Built artifacts
+*.apk
+*.aar
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Gradle
+.gradle/
+build/
+captures/
+out/
+
+# IDE — IntelliJ / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+local.properties
+
+# IDE — VS Code
+.vscode/
+*.code-workspace
+
+# IDE — Eclipse
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kotlin / Native build caches
+.kotlin/
+.cxx/
+
+# Android signing — never commit
+*.jks
+*.keystore
+*.pem
+*.p12
+keystore.properties
+signing.properties
+
+# Local environment overrides
+.env
+.envrc
+
+# Logs and crash dumps
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# Generated/derived
+generated/
+gen/
+
+# OpenTimestamps proofs for source files (commit signatures already carry OTS)
+*.ots
+
+# Tool output excluded from APK
+tools/vectors/node_modules/
+tools/vectors/package-lock.json.bak
