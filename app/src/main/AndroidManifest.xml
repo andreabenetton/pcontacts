@@ -63,6 +63,19 @@
                 android:resource="@xml/authenticator" />
         </service>
 
+        <!-- ADR-0004: SyncAdapter surface for ContactsContract.AUTHORITY.
+             android:exported="true" is required for the sync framework to bind. -->
+        <service
+            android:name=".sync.ProtonSyncService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter" />
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/syncadapter" />
+        </service>
+
     </application>
 
 </manifest>

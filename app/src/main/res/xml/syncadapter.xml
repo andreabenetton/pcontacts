@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+  ADR-0004 SyncAdapter registration.
+
+  - contentAuthority must equal ContactsContract.AUTHORITY ("com.android.contacts").
+  - accountType must match res/xml/authenticator.xml#accountType.
+  - userVisible="true" makes the account togglable in Settings → Accounts → Sync.
+  - supportsUploading="false" — read-only sync per ADR-0006 (MVP scope).
+    Flipped to "true" when ADR-0009 phase 9 bidirectional sync lands.
+  - allowParallelSyncs="false" — single sync per account to avoid
+    interleaved writes against the same RawContacts rows.
+  - isAlwaysSyncable="true" — opts the account in to sync without the
+    user having to flip it on manually.
+-->
+<sync-adapter xmlns:android="http://schemas.android.com/apk/res/android"
+    android:contentAuthority="com.android.contacts"
+    android:accountType="io.pcontacts.account"
+    android:userVisible="true"
+    android:supportsUploading="false"
+    android:allowParallelSyncs="false"
+    android:isAlwaysSyncable="true" />

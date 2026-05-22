@@ -15,3 +15,8 @@ const val PROTON_ACCOUNT_TYPE: String = "io.pcontacts.account"
  * value is the Proton API AccessToken stored in `:core:storage`.
  */
 const val PROTON_AUTH_TOKEN_TYPE: String = "io.pcontacts.access_token"
+
+/**
+ * The ContactsContract authority. Hard-coded by AOSP; do not parameterize.
+ */
+const val CONTACTS_AUTHORITY: String = android.provider.ContactsContract.AUTHORITY
