@@ -32,4 +32,9 @@ android {
 
 dependencies {
     testImplementation(libs.junit)
+
+    // ADR-0015: enforce no direct Log / println / System.out.* calls.
+    // This module's own package (io.pcontacts.core.logging) is the single
+    // legitimate caller — the detector exempts it explicitly.
+    lintChecks(project(":tools:lint"))
 }

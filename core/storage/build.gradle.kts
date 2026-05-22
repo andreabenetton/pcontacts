@@ -37,4 +37,6 @@ dependencies {
     // ksp(libs.androidx.room.compiler)
     // implementation(libs.androidx.security.crypto)
     // implementation(project(":core:logging"))
+
+    lintChecks(project(":tools:lint"))
 }

@@ -14,6 +14,7 @@ kotlin                       = "1.9.25"
 ksp                          = "1.9.25-1.0.20"
 java                         = "17"
 detekt                       = "1.23.7"
+android-lint                 = "31.7.0"
 
 # Android platform
 android-compile-sdk          = "34"
@@ -87,6 +88,12 @@ bouncycastle-bcprov          = { group = "org.bouncycastle",      name = "bcprov
 # vCard
 ezvcard                      = { group = "com.googlecode.ez-vcard", name = "ez-vcard",                    version.ref = "ezvcard" }
 
+# Android Lint (for custom check module in :tools:lint)
+android-lint-api             = { group = "com.android.tools.lint", name = "lint-api",                     version.ref = "android-lint" }
+android-lint-checks          = { group = "com.android.tools.lint", name = "lint-checks",                  version.ref = "android-lint" }
+android-lint                 = { group = "com.android.tools.lint", name = "lint",                         version.ref = "android-lint" }
+android-lint-tests           = { group = "com.android.tools.lint", name = "lint-tests",                   version.ref = "android-lint" }
+
 # Test
 junit                        = { group = "junit",                 name = "junit",                         version.ref = "junit" }
 kotest-runner-junit5         = { group = "io.kotest",             name = "kotest-runner-junit5",          version.ref = "kotest" }
@@ -108,6 +115,7 @@ kotest                       = ["kotest-runner-junit5", "kotest-assertions-core"
 [plugins]
 android-application          = { id = "com.android.application",            version.ref = "agp" }
 android-library              = { id = "com.android.library",                version.ref = "agp" }
+android-lint                 = { id = "com.android.lint",                   version.ref = "agp" }
 kotlin-android               = { id = "org.jetbrains.kotlin.android",       version.ref = "kotlin" }
 kotlin-jvm                   = { id = "org.jetbrains.kotlin.jvm",           version.ref = "kotlin" }
 kotlin-serialization         = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

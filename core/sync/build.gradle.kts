@@ -39,4 +39,6 @@ dependencies {
     // implementation(project(":core:contacts-writer"))
     // implementation(project(":core:storage"))
     // implementation(project(":core:logging"))
+
+    lintChecks(project(":tools:lint"))
 }

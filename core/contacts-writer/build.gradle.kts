@@ -34,4 +34,6 @@ dependencies {
     // ContactsContract write helpers land here in a later commit (ADR-0010).
     // implementation(project(":core:proton-contacts"))
     // implementation(project(":core:logging"))
+
+    lintChecks(project(":tools:lint"))
 }

@@ -43,3 +43,5 @@ include(":core:logging")
 
 include(":feature:onboarding")
 include(":feature:settings")
+
+include(":tools:lint")

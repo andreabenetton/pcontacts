@@ -38,4 +38,6 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity)
     // implementation(project(":core:sync"))
+
+    lintChecks(project(":tools:lint"))
 }

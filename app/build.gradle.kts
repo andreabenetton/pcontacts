@@ -62,4 +62,7 @@ dependencies {
     implementation(project(":core:logging"))
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:settings"))
+
+    // ADR-0015: enforce no direct Log / println / System.out.* calls.
+    lintChecks(project(":tools:lint"))
 }
