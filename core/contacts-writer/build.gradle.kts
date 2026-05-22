@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+}
+
+android {
+    namespace = "io.pcontacts.core.contactswriter"
+    compileSdk = libs.versions.android.compile.sdk.get().toInt()
+
+    defaultConfig {
+        minSdk = libs.versions.android.min.sdk.get().toInt()
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("src/main/kotlin")
+        }
+    }
+}
+
+dependencies {
+    // ContactsContract write helpers land here in a later commit (ADR-0010).
+    // implementation(project(":core:proton-contacts"))
+    // implementation(project(":core:logging"))
+}

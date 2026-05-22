@@ -54,4 +54,12 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity)
+
+    // :app pulls in the orchestration + feature modules. Per ADR-0011 it does
+    // NOT depend on :core:crypto or :core:proton-api directly — those are
+    // reachable transitively through :core:sync.
+    implementation(project(":core:sync"))
+    implementation(project(":core:logging"))
+    implementation(project(":feature:onboarding"))
+    implementation(project(":feature:settings"))
 }

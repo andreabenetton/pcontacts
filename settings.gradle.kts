@@ -33,5 +33,13 @@ rootProject.name = "pcontacts"
 
 include(":app")
 
-// :core:* and :feature:* modules are added in subsequent commits per the
-// implementation plan (phase 1+).
+include(":core:crypto")
+include(":core:proton-api")
+include(":core:proton-contacts")
+include(":core:contacts-writer")
+include(":core:storage")
+include(":core:sync")
+include(":core:logging")
+
+include(":feature:onboarding")
+include(":feature:settings")
