@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">pcontacts</string>
+    <string name="account_label">Proton Contacts</string>
+    <string name="main_placeholder">pcontacts — login UI lands in a later commit.</string>
+</resources>

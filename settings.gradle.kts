@@ -31,5 +31,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "pcontacts"
 
-// Modules are added in subsequent commits per the implementation plan.
-// :app, :core:*, :feature:* will be wired in here once their build files exist.
+include(":app")
+
+// :core:* and :feature:* modules are added in subsequent commits per the
+// implementation plan (phase 1+).
