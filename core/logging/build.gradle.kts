@@ -31,5 +31,5 @@ android {
 }
 
 dependencies {
-    // RedactingLogger lands here in a later commit (ADR-0015 enforcement layer).
+    testImplementation(libs.junit)
 }
