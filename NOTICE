@@ -1,0 +1,87 @@
+pcontacts — Proton Mail contacts → Android system address book
+Copyright (C) 2026 pcontacts contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details. See LICENSE for the
+full text.
+
+----------------------------------------------------------------------
+Attribution
+----------------------------------------------------------------------
+
+This project studies and adapts source code from:
+
+  ProtonMail/WebClients
+  https://github.com/ProtonMail/WebClients
+  License: GNU General Public License v3.0
+
+Specifically, the following modules were used as the executable
+specification for this project's contacts, auth, and crypto layers
+(at the commit pinned in docs/API_RESEARCH.md):
+
+  packages/shared/lib/api/auth.ts
+  packages/shared/lib/api/contacts.ts
+  packages/shared/lib/api.ts
+  packages/shared/lib/api/createApi.ts
+  packages/shared/lib/api/helpers/refreshHandlers.ts
+  packages/shared/lib/api/helpers/withApiHandlers.ts
+  packages/shared/lib/authentication/persistedSessionStorage.ts
+  packages/shared/lib/keys/keys.ts
+  packages/shared/lib/keys/getDecryptedUserKeys.ts
+  packages/shared/lib/keys/getDecryptedAddressKeys.ts
+  packages/shared/lib/srp.ts
+  packages/shared/lib/contacts/encrypt.ts
+  packages/shared/lib/contacts/decrypt.ts
+  packages/shared/lib/contacts/vcard.ts
+  packages/shared/lib/contacts/properties.ts
+  packages/shared/lib/contacts/surgery.ts
+  packages/shared/lib/contacts/constants.ts
+  packages/shared/lib/interfaces/contacts/Contact.ts
+  packages/shared/lib/interfaces/contacts/VCard.ts
+
+Any file in this repository whose implementation is materially
+derived from a file in ProtonMail/WebClients carries an SPDX header
+of the form:
+
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+  SPDX-FileCopyrightText: Proton AG and contributors
+    (derived from ProtonMail/WebClients: <relative path>)
+
+----------------------------------------------------------------------
+Third-party runtime dependencies
+----------------------------------------------------------------------
+
+The build will pull the following libraries. Their licenses are
+recorded in docs/adr/0015-no-telemetry-no-google-services.md and
+checked at release time by a Gradle license-compatibility task.
+
+  Bouncy Castle (org.bouncycastle:bcpg-jdk18on, bcprov-jdk18on)
+    License: MIT
+  ez-vcard (com.googlecode.ez-vcard:ez-vcard)
+    License: New BSD
+  OkHttp (com.squareup.okhttp3:okhttp)
+    License: Apache 2.0
+  Retrofit (com.squareup.retrofit2:retrofit)
+    License: Apache 2.0
+  kotlinx.serialization
+    License: Apache 2.0
+  kotlinx.coroutines
+    License: Apache 2.0
+  AndroidX (security-crypto, room, work-manager, biometric, credentials)
+    License: Apache 2.0
+
+----------------------------------------------------------------------
+Trademarks
+----------------------------------------------------------------------
+
+"Proton", "Proton Mail", and related marks are trademarks of Proton AG.
+This project is not affiliated with, endorsed by, or sponsored by
+Proton AG. The Proton wordmark and Proton logos are not used in the
+app icon, splash screen, or store description.
