@@ -3,8 +3,6 @@
 ## Purpose
 Use this file as the default implementation context for this repo. Do not restate the architecture in every prompt — read it from ADRs and from the implementation plan. Optimize for correctness, security, reproducibility, and respect for the user's privacy stance.
 
-This file is shaped from the dcs project's CLAUDE.md, adapted for an Android single-app codebase. Where dcs's rules don't apply (multi-app monorepo, .NET backend, flow contracts, OpenAPI, podman) they were dropped, not silently translated.
-
 ---
 
 ## Repo stance
