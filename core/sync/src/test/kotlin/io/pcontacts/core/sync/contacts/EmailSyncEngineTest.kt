@@ -178,6 +178,13 @@ private class FakeContactsApi(vararg responses: ContactEmailsPageResponse) : Pro
 
     override suspend fun getContact(id: String): GetContactResponse =
         error("FakeContactsApi.getContact not used in email-only sync tests")
+
+    override suspend fun listContacts(
+        page: Int,
+        pageSize: Int,
+        labelIdFilter: String?
+    ): io.pcontacts.core.proton.api.contacts.ContactsPageResponse =
+        error("FakeContactsApi.listContacts not used in email-only sync tests")
 }
 
 private class FakeContactMapDao : ContactMapDao {

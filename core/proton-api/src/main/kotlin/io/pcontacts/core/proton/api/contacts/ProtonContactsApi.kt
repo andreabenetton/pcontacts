@@ -33,4 +33,17 @@ interface ProtonContactsApi {
      */
     @GET("contacts/v4/contacts/{id}")
     suspend fun getContact(@Path("id") id: String): GetContactResponse
+
+    /**
+     * Cheap per-contact metadata listing — no Cards[]. The sync engine
+     * uses this to enumerate ContactIDs and compare server-side
+     * `ModifyTime` against the locally stored `modify_time` before
+     * deciding to fetch + decrypt the full contact.
+     */
+    @GET("contacts/v4/contacts")
+    suspend fun listContacts(
+        @Query("Page") page: Int,
+        @Query("PageSize") pageSize: Int,
+        @Query("LabelID") labelIdFilter: String? = null
+    ): ContactsPageResponse
 }

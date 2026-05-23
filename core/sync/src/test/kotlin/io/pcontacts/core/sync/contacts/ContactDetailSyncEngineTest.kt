@@ -337,6 +337,13 @@ private class DetailFakeApi(
     ): ContactEmailsPageResponse =
         if (pageQueue.isEmpty()) ContactEmailsPageResponse(code = 1000) else pageQueue.removeFirst()
 
+    override suspend fun listContacts(
+        page: Int,
+        pageSize: Int,
+        labelIdFilter: String?
+    ): io.pcontacts.core.proton.api.contacts.ContactsPageResponse =
+        error("listContacts not used in this engine variant")
+
     override suspend fun getContact(id: String): GetContactResponse {
         val source = when {
             firstRoundDone && secondRoundContacts != null -> secondRoundContacts

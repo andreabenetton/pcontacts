@@ -85,3 +85,31 @@ data class GetContactResponse(
     @SerialName("Code") val code: Int = 0,
     @SerialName("Contact") val contact: ContactDto
 )
+
+/**
+ * Per-contact metadata row from `GET contacts/v4/contacts` (the
+ * cheap listing endpoint — no Cards[]). The sync engine uses
+ * `modifyTime` to cheap-skip unchanged contacts so it doesn't have
+ * to fetch + decrypt every contact on every run.
+ *
+ * Mirrors `ContactMetadata` from the web client — only the fields
+ * the engine actually needs are modeled; everything else is
+ * tolerated via `ignoreUnknownKeys`.
+ */
+@Serializable
+data class ContactMetadataDto(
+    @SerialName("ID") val id: String,
+    @SerialName("Name") val name: String = "",
+    @SerialName("UID") val uid: String = "",
+    @SerialName("Size") val size: Long = 0L,
+    @SerialName("CreateTime") val createTime: Long = 0L,
+    @SerialName("ModifyTime") val modifyTime: Long = 0L,
+    @SerialName("LabelIDs") val labelIds: List<String> = emptyList()
+)
+
+@Serializable
+data class ContactsPageResponse(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Contacts") val contacts: List<ContactMetadataDto> = emptyList(),
+    @SerialName("Total") val total: Int = 0
+)

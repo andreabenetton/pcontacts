@@ -137,6 +137,39 @@ class ProtonContactsApiTest {
         assertEquals("Bearer access-x", recorded.getHeader("Authorization"))
     }
 
+    @Test fun listContacts_returns_metadata_array_with_modifyTime() = runTest {
+        session.update(uid = "uid-x", accessToken = "access-x")
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                    "Code":1000,
+                    "Total":2,
+                    "Contacts":[
+                        {"ID":"c1","Name":"Alice","UID":"vcard-uid-a",
+                         "Size":256,"CreateTime":1700000000,"ModifyTime":1700000100,
+                         "LabelIDs":["l1"]},
+                        {"ID":"c2","Name":"Bob","UID":"vcard-uid-b",
+                         "Size":300,"CreateTime":1700000050,"ModifyTime":1700000200,
+                         "LabelIDs":[]}
+                    ]
+                }
+                """.trimIndent()
+            )
+        )
+
+        val response = api.listContacts(page = 0, pageSize = 1000)
+
+        assertEquals(2, response.contacts.size)
+        assertEquals("c1", response.contacts[0].id)
+        assertEquals(1_700_000_100L, response.contacts[0].modifyTime)
+        assertEquals(1_700_000_200L, response.contacts[1].modifyTime)
+
+        val recorded = server.takeRequest()
+        assertEquals("/contacts/v4/contacts?Page=0&PageSize=1000", recorded.path)
+        assertEquals("uid-x", recorded.getHeader("x-pm-uid"))
+    }
+
     @Test fun listContactEmails_ignores_unknown_server_fields() = runTest {
         // Server adds a field we don't model; deserialization must not blow up.
         server.enqueue(

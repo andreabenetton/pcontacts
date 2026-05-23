@@ -143,5 +143,12 @@ class ContactEmailsPagerTest {
 
         override suspend fun getContact(id: String): GetContactResponse =
             error("FakeContactsApi.getContact called unexpectedly in pager tests")
+
+        override suspend fun listContacts(
+            page: Int,
+            pageSize: Int,
+            labelIdFilter: String?
+        ): ContactsPageResponse =
+            error("FakeContactsApi.listContacts called unexpectedly in email pager tests")
     }
 }
