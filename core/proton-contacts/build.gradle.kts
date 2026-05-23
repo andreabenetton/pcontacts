@@ -3,7 +3,6 @@
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 java {
@@ -17,9 +16,15 @@ kotlin {
 }
 
 dependencies {
-    // ez-vcard + Card split/merge land here in a later commit (ADR-0005).
-    // implementation(libs.ezvcard)
-    // implementation(libs.kotlinx.serialization.json)
-    // implementation(project(":core:crypto"))
-    // implementation(project(":core:logging"))
+    // ADR-0005: vCard 4.0 parser/serializer. Apache 2.0 → GPL-3.0 compatible.
+    implementation(libs.ezvcard)
+
+    // ContactDto / ContactCardDto live here; pulling :core:proton-api in as
+    // an api dep so downstream callers (e.g. a future contact-decrypt sync
+    // engine) can name those types without re-declaring the dependency.
+    api(project(":core:proton-api"))
+
+    implementation(project(":core:logging"))
+
+    testImplementation(libs.junit)
 }
