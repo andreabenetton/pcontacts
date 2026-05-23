@@ -203,6 +203,102 @@ class ContactsContractOpsTest {
         assertTrue(ops.drop(1).all { it.isInsert })
     }
 
+    @Test fun create_with_full_field_set_emits_one_row_per_each() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice Doe",
+                    structuredName = StructuredName(given = "Alice", family = "Doe"),
+                    emails = listOf("alice@proton.me"),
+                    phones = listOf(PhoneEntry(number = "+1 555 0100", type = PhoneType.MOBILE)),
+                    addresses = listOf(
+                        PostalAddress(
+                            street = "100 Main St",
+                            city = "Springfield",
+                            region = "IL",
+                            postcode = "62704",
+                            country = "USA",
+                            type = PostalAddressType.HOME,
+                            isPrimary = true
+                        )
+                    ),
+                    organization = Organization(
+                        company = "Acme Inc.",
+                        department = "R&D",
+                        title = "Principal Engineer"
+                    ),
+                    notes = listOf("First note", "Second note"),
+                    imAccounts = listOf(
+                        ImAccount(handle = "alice@chat", protocol = ImProtocol.JABBER),
+                        ImAccount(handle = "alice.live", protocol = ImProtocol.SKYPE)
+                    ),
+                    photo = ContactPhoto(data = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47))
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 RawContacts + 1 StructuredName + 1 Email + 1 Phone + 1 Postal
+        //   + 1 Organization + 2 Note + 2 Im + 1 Photo = 11.
+        assertEquals(11, ops.size)
+        assertTrue("all ops in a Create batch must be inserts", ops.all { it.isInsert })
+    }
+
+    @Test fun update_with_full_field_set_emits_one_delete_plus_each_inserted_row() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.UpdateContact(
+                rawContactId = 100L,
+                row = ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = listOf("alice@proton.me"),
+                    addresses = listOf(PostalAddress(city = "Springfield")),
+                    notes = listOf("note-one"),
+                    imAccounts = listOf(ImAccount(handle = "alice@chat", protocol = ImProtocol.JABBER)),
+                    organization = Organization(company = "Acme")
+                )
+            )
+        )
+        // 1 Delete + 1 StructuredName + 1 Email + 1 Postal + 1 Organization
+        //   + 1 Note + 1 Im = 7.
+        assertEquals(7, ops.size)
+        assertTrue(ops[0].isDelete)
+        assertTrue(ops.drop(1).all { it.isInsert })
+    }
+
+    @Test fun contact_row_now_accepts_address_or_im_only_contacts() {
+        // Phone-only already covered; assert address-only and IM-only construct cleanly.
+        ContactRow(
+            sourceId = "c1",
+            displayName = "Alice",
+            emails = emptyList(),
+            addresses = listOf(PostalAddress(city = "Springfield"))
+        )
+        ContactRow(
+            sourceId = "c2",
+            displayName = "Bob",
+            emails = emptyList(),
+            imAccounts = listOf(ImAccount(handle = "bob@chat", protocol = ImProtocol.JABBER))
+        )
+    }
+
+    @Test fun contact_row_still_rejects_completely_actionless_rows() {
+        // No email, no phone, no address, no IM — must still be rejected.
+        // Note / org / photo alone aren't enough; the user can't do anything
+        // with a contact carrying just those.
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            ContactRow(
+                sourceId = "c1",
+                displayName = "Alice",
+                emails = emptyList(),
+                notes = listOf("alone"),
+                organization = Organization(company = "Acme")
+            )
+        }
+    }
+
     @Test fun baseIdx_does_not_change_op_count_for_create() {
         // Smoke check — confirming the API accepts non-zero baseIdx without
         // throwing or adding/removing ops. Back-reference correctness lives
