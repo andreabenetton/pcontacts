@@ -51,9 +51,8 @@ object ContactsContractOps {
         row: ContactRow,
         baseIdx: Int
     ): List<ContentProviderOperation> {
-        val ops = ArrayList<ContentProviderOperation>(3)
-        // The RawContacts insert lands at absolute position `baseIdx` in the
-        // assembled batch; child Data rows back-ref that index.
+        // 1 RawContacts insert + 1 StructuredName + N Email rows.
+        val ops = ArrayList<ContentProviderOperation>(2 + row.emails.size)
         val rawIdx = baseIdx
 
         ops += ContentProviderOperation.newInsert(
@@ -70,13 +69,9 @@ object ContactsContractOps {
             .withValue(StructuredName.DISPLAY_NAME, row.displayName)
             .build()
 
-        ops += ContentProviderOperation.newInsert(Data.CONTENT_URI)
-            .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
-            .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
-            .withValue(Email.ADDRESS, row.email)
-            .withValue(Email.TYPE, Email.TYPE_OTHER)
-            .build()
-
+        row.emails.forEachIndexed { idx, address ->
+            ops += newEmailInsertWithBackRef(rawIdx, address, isPrimary = idx == 0)
+        }
         return ops
     }
 
@@ -85,7 +80,7 @@ object ContactsContractOps {
         rawContactId: Long,
         row: ContactRow
     ): List<ContentProviderOperation> {
-        val ops = ArrayList<ContentProviderOperation>(3)
+        val ops = ArrayList<ContentProviderOperation>(2 + row.emails.size)
 
         // 1) Wipe existing Data rows for this RawContact.
         ops += ContentProviderOperation.newDelete(
@@ -101,15 +96,50 @@ object ContactsContractOps {
             .withValue(StructuredName.DISPLAY_NAME, row.displayName)
             .build()
 
-        ops += ContentProviderOperation.newInsert(Data.CONTENT_URI)
-            .withValue(Data.RAW_CONTACT_ID, rawContactId)
-            .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
-            .withValue(Email.ADDRESS, row.email)
-            .withValue(Email.TYPE, Email.TYPE_OTHER)
-            .build()
-
+        row.emails.forEachIndexed { idx, address ->
+            ops += newEmailInsertForExisting(rawContactId, address, isPrimary = idx == 0)
+        }
         return ops
     }
+
+    private fun newEmailInsertWithBackRef(
+        rawIdx: Int,
+        address: String,
+        isPrimary: Boolean
+    ): ContentProviderOperation =
+        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+            .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
+            .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
+            .withValue(Email.ADDRESS, address)
+            .withValue(Email.TYPE, Email.TYPE_OTHER)
+            .apply {
+                // Position 0 is the primary email; mark IS_PRIMARY +
+                // IS_SUPER_PRIMARY so the system Contacts UI surfaces it
+                // by default in "send email" affordances.
+                if (isPrimary) {
+                    withValue(Email.IS_PRIMARY, 1)
+                    withValue(Email.IS_SUPER_PRIMARY, 1)
+                }
+            }
+            .build()
+
+    private fun newEmailInsertForExisting(
+        rawContactId: Long,
+        address: String,
+        isPrimary: Boolean
+    ): ContentProviderOperation =
+        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+            .withValue(Data.RAW_CONTACT_ID, rawContactId)
+            .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
+            .withValue(Email.ADDRESS, address)
+            .withValue(Email.TYPE, Email.TYPE_OTHER)
+            .apply {
+                if (isPrimary) {
+                    withValue(Email.IS_PRIMARY, 1)
+                    withValue(Email.IS_SUPER_PRIMARY, 1)
+                }
+            }
+            .build()
 
     private fun deleteContactOp(account: Account, sourceId: String): ContentProviderOperation =
         ContentProviderOperation.newDelete(

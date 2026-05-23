@@ -34,7 +34,7 @@ class ContactsContractOpsTest {
         val ops = ContactsContractOps.build(
             account = account,
             intent = RawContactOpIntent.CreateContact(
-                ContactRow(sourceId = "c1", displayName = "Alice", email = "alice@proton.me")
+                ContactRow(sourceId = "c1", displayName = "Alice", emails = listOf("alice@proton.me"))
             ),
             baseIdx = 0
         )
@@ -59,7 +59,7 @@ class ContactsContractOpsTest {
             account = account,
             intent = RawContactOpIntent.UpdateContact(
                 rawContactId = 100L,
-                row = ContactRow(sourceId = "c1", displayName = "Alice", email = "alice@proton.me")
+                row = ContactRow(sourceId = "c1", displayName = "Alice", emails = listOf("alice@proton.me"))
             )
         )
         assertEquals(3, ops.size)
@@ -82,6 +82,54 @@ class ContactsContractOpsTest {
         assertEquals("true", ops[0].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
     }
 
+    @Test fun create_with_three_emails_emits_one_RawContacts_plus_StructuredName_plus_three_Email_rows() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = listOf(
+                        "alice@proton.me",     // position 0 → primary
+                        "alice.work@x.com",
+                        "alice.alt@x.com"
+                    )
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 RawContacts + 1 StructuredName + 3 Email = 5 ops.
+        assertEquals(5, ops.size)
+        assertTrue("op 0 must be RawContacts insert", ops[0].isInsert)
+        // Op 0 RawContacts, op 1 StructuredName, ops 2..4 Email — all inserts.
+        assertTrue(ops.all { it.isInsert })
+    }
+
+    @Test fun update_with_two_emails_emits_one_delete_plus_StructuredName_plus_two_Email_rows() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.UpdateContact(
+                rawContactId = 100L,
+                row = ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = listOf("primary@x.com", "alt@x.com")
+                )
+            )
+        )
+        assertEquals(4, ops.size)
+        assertTrue(ops[0].isDelete)        // wipe child Data rows
+        assertTrue(ops[1].isInsert)        // StructuredName
+        assertTrue(ops[2].isInsert)        // Email[0]
+        assertTrue(ops[3].isInsert)        // Email[1]
+    }
+
+    @Test fun contact_row_rejects_empty_email_list() {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            ContactRow(sourceId = "c1", displayName = "Alice", emails = emptyList())
+        }
+    }
+
     @Test fun baseIdx_does_not_change_op_count_for_create() {
         // Smoke check — confirming the API accepts non-zero baseIdx without
         // throwing or adding/removing ops. Back-reference correctness lives
@@ -89,7 +137,7 @@ class ContactsContractOpsTest {
         val ops = ContactsContractOps.build(
             account = account,
             intent = RawContactOpIntent.CreateContact(
-                ContactRow(sourceId = "c1", displayName = "Alice", email = "alice@proton.me")
+                ContactRow(sourceId = "c1", displayName = "Alice", emails = listOf("alice@proton.me"))
             ),
             baseIdx = 449
         )

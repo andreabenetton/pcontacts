@@ -117,6 +117,6 @@ class RawContactDifferTest {
     private fun row(sourceId: String) = ContactRow(
         sourceId = sourceId,
         displayName = "Name $sourceId",
-        email = "$sourceId@proton.me"
+        emails = listOf("$sourceId@proton.me")
     )
 }
