@@ -25,7 +25,7 @@ class HumanVerificationInterceptorTest {
     @Before fun setUp() { server = MockWebServer().apply { start() } }
     @After fun tearDown() { server.shutdown() }
 
-    @Test fun 9001_in_json_body_throws_HumanVerificationRequiredException() {
+    @Test fun `9001 in json body throws HumanVerificationRequiredException`() {
         server.enqueue(
             MockResponse()
                 .setResponseCode(422)
@@ -62,7 +62,7 @@ class HumanVerificationInterceptorTest {
         assertEquals(200, response.code)
     }
 
-    @Test fun 9001_with_extra_padding_or_whitespace_around_the_value_is_caught() {
+    @Test fun `9001 with extra padding or whitespace around the value is caught`() {
         // Marker is literal "Code":9001 with no space — verify it matches
         // when 9001 is followed by a delimiter (comma, brace).
         server.enqueue(

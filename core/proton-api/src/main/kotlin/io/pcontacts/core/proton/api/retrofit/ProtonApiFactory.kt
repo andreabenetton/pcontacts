@@ -11,6 +11,7 @@ import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.http.OkHttpClientFactory
 import io.pcontacts.core.proton.api.http.RefreshingAuthenticator
 import io.pcontacts.core.proton.api.http.TokenRefresher
+import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.proton.api.users.ProtonUsersApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -94,6 +95,7 @@ class ProtonApiFactory(
     val auth: ProtonAuthApi = retrofit.create(ProtonAuthApi::class.java)
     val contacts: ProtonContactsApi = retrofit.create(ProtonContactsApi::class.java)
     val users: ProtonUsersApi = retrofit.create(ProtonUsersApi::class.java)
+    val labels: ProtonLabelsApi = retrofit.create(ProtonLabelsApi::class.java)
 
     private fun buildRetrofit(config: ProtonApiConfig, client: OkHttpClient): Retrofit =
         Retrofit.Builder()
