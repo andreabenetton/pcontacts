@@ -27,6 +27,10 @@ import okhttp3.OkHttpClient
  *   - Authenticator (opt)  — RefreshingAuthenticator for 401 →
  *                            /auth/refresh → retry; null on the
  *                            refresh-only stage to avoid recursion.
+ *   - 429 backoff (net)    — FibonacciBackoffInterceptor retries
+ *                            rate-limited requests on the wire side
+ *                            so callers don't see 429s under normal
+ *                            transient load.
  *
  * Logging interceptor is intentionally absent. A debug-only redacting
  * logging interceptor lands in a follow-up commit; it will use
@@ -43,6 +47,11 @@ object OkHttpClientFactory {
         val builder = OkHttpClient.Builder()
             .addInterceptor(HeadersInterceptor(config))
             .addInterceptor(AuthInterceptor(session))
+            // Application-layer (not network) — network interceptors must
+            // proceed() exactly once. The request is stamped with headers
+            // + auth by the time backoff sees it, so retries replay the
+            // same authenticated request without re-stamping.
+            .addInterceptor(FibonacciBackoffInterceptor())
             .dns(ProtonHostDnsGuard())
             .certificatePinner(ProtonCertificatePins.buildPinner())
             .connectTimeout(15, TimeUnit.SECONDS)
