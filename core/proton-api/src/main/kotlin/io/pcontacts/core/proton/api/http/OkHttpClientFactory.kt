@@ -6,6 +6,7 @@ package io.pcontacts.core.proton.api.http
 import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.Session
 import java.util.concurrent.TimeUnit
+import okhttp3.Authenticator
 import okhttp3.OkHttpClient
 
 /**
@@ -23,6 +24,9 @@ import okhttp3.OkHttpClient
  *   - CertificatePinner    — SPKI pins from
  *                            resources/proton_certificate_pins.txt
  *                            (empty in source control; see README)
+ *   - Authenticator (opt)  — RefreshingAuthenticator for 401 →
+ *                            /auth/refresh → retry; null on the
+ *                            refresh-only stage to avoid recursion.
  *
  * Logging interceptor is intentionally absent. A debug-only redacting
  * logging interceptor lands in a follow-up commit; it will use
@@ -33,14 +37,18 @@ object OkHttpClientFactory {
 
     fun create(
         config: ProtonApiConfig,
-        session: Session
-    ): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(HeadersInterceptor(config))
-        .addInterceptor(AuthInterceptor(session))
-        .dns(ProtonHostDnsGuard())
-        .certificatePinner(ProtonCertificatePins.buildPinner())
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .callTimeout(60, TimeUnit.SECONDS)
-        .build()
+        session: Session,
+        authenticator: Authenticator? = null
+    ): OkHttpClient {
+        val builder = OkHttpClient.Builder()
+            .addInterceptor(HeadersInterceptor(config))
+            .addInterceptor(AuthInterceptor(session))
+            .dns(ProtonHostDnsGuard())
+            .certificatePinner(ProtonCertificatePins.buildPinner())
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(60, TimeUnit.SECONDS)
+        if (authenticator != null) builder.authenticator(authenticator)
+        return builder.build()
+    }
 }

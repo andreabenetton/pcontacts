@@ -87,7 +87,21 @@ object SyncBootstrap {
             val token = secretStore.accessToken()
             if (uid != null && token != null) update(uid = uid, accessToken = token)
         }
-        val apis = ProtonApiFactory(config = ProtonApiConfig(), session = session)
+        // 401 → /auth/refresh → retry wiring. Single-flight inside
+        // TokenRefresher; rotated tokens persist back into SecretStore.
+        val refreshConfig = ProtonApiFactory.RefreshConfig(
+            mutableSession = session,
+            getRefreshToken = { secretStore.refreshToken() },
+            onTokensRefreshed = { accessToken, refreshToken ->
+                secretStore.setAccessToken(accessToken)
+                secretStore.setRefreshToken(refreshToken)
+            }
+        )
+        val apis = ProtonApiFactory(
+            config = ProtonApiConfig(),
+            session = session,
+            refreshConfig = refreshConfig
+        )
         val openPgp = BouncyCastleOpenPgpService()
         val processor = ContactDecryptBootstrap.createProcessor(
             secretStore = secretStore,
