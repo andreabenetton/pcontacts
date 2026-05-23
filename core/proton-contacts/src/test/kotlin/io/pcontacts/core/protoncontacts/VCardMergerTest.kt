@@ -257,6 +257,163 @@ class VCardMergerTest {
         assertEquals(emptyList<Any>(), out.phones)
     }
 
+    @Test fun adr_surfaces_every_component_with_types_and_isPrimary() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                ADR;TYPE=home;PREF=1:PO Box 5;Suite 3;100 Main St;Springfield;IL;62704;USA
+                ADR;TYPE=work:;;200 Office Way;Chicago;IL;60601;USA
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertEquals(2, out.addresses.size)
+        val home = out.addresses.single { it.types.contains("home") }
+        assertEquals("PO Box 5", home.poBox)
+        assertEquals("Suite 3", home.extendedAddress)
+        assertEquals("100 Main St", home.street)
+        assertEquals("Springfield", home.locality)
+        assertEquals("IL", home.region)
+        assertEquals("62704", home.postalCode)
+        assertEquals("USA", home.country)
+        assertTrue("PREF=1 ADR must surface as primary", home.isPrimary)
+    }
+
+    @Test fun adr_drops_entries_with_no_usable_component() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                ADR:;;;;;;
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertEquals(emptyList<Any>(), out.addresses)
+    }
+
+    @Test fun org_company_department_and_first_title_surface() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                ORG:Acme Inc.;R&D
+                TITLE:Principal Engineer
+                TITLE:Founding member
+                END:VCARD
+            """.trimIndent()))
+        )
+        val o = out.organization
+        assertNotNull(o)
+        assertEquals("Acme Inc.", o!!.company)
+        assertEquals("R&D", o.department)
+        assertEquals("Principal Engineer", o.title)
+    }
+
+    @Test fun organization_is_null_when_neither_org_nor_title_present() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.CLEAR_TEXT, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertNull(out.organization)
+    }
+
+    @Test fun notes_collect_every_NOTE_property_dropping_blanks() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                NOTE:First note
+                NOTE:Second note
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertEquals(listOf("First note", "Second note"), out.notes)
+    }
+
+    @Test fun impp_parses_scheme_as_protocol_and_rest_as_handle() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                IMPP:xmpp:alice@chat.example
+                IMPP:skype:alice.live
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertEquals(2, out.imAccounts.size)
+        val xmpp = out.imAccounts.single { it.protocol == "xmpp" }
+        assertEquals("alice@chat.example", xmpp.handle)
+        val skype = out.imAccounts.single { it.protocol == "skype" }
+        assertEquals("alice.live", skype.handle)
+    }
+
+    @Test fun inline_photo_surfaces_as_byte_data_with_mime_type() {
+        // Tiny 1x1 transparent PNG so the test stays self-contained.
+        val pngBytes = byteArrayOf(
+            0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15.toByte(), 0xC4.toByte(),
+            0x89.toByte(), 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41,
+            0x54, 0x78, 0x9C.toByte(), 0x62, 0x00, 0x01, 0x00, 0x00,
+            0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4.toByte(), 0x00,
+            0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE.toByte(),
+            0x42, 0x60, 0x82.toByte()
+        )
+        val photoB64 = java.util.Base64.getEncoder().encodeToString(pngBytes)
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                PHOTO:data:image/png;base64,$photoB64
+                END:VCARD
+            """.trimIndent()))
+        )
+        val photo = out.photo
+        assertNotNull(photo)
+        assertTrue("photo bytes must survive the data: URI parse",
+            pngBytes.contentEquals(photo!!.data))
+        assertEquals("image/png", photo.mimeType)
+    }
+
+    @Test fun photo_is_null_when_no_inline_PHOTO_present() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.CLEAR_TEXT, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertNull(out.photo)
+    }
+
     private fun card(type: CardType, plaintext: String, verified: Boolean = true) =
         DecryptedCard(originalType = type, plaintext = plaintext, verified = verified)
 }

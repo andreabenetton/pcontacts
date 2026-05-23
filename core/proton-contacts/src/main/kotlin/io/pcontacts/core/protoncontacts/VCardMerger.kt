@@ -5,7 +5,9 @@ package io.pcontacts.core.protoncontacts
 
 import ezvcard.Ezvcard
 import ezvcard.VCard
+import ezvcard.parameter.AddressType
 import ezvcard.parameter.EmailType
+import ezvcard.parameter.ImppType
 import ezvcard.parameter.TelephoneType
 import ezvcard.property.Uid
 import io.pcontacts.core.logging.Logger
@@ -96,6 +98,12 @@ internal class VCardMerger(
             )
         }.filter { it.number.isNotBlank() }
 
+        val addresses = projectAddresses(merged)
+        val organization = projectOrganization(merged)
+        val notes = merged.notes.orEmpty().mapNotNull { n -> n.value?.takeIf { it.isNotBlank() } }
+        val imAccounts = projectImAccounts(merged)
+        val photo = projectPhoto(merged)
+
         // A contact is verified only if every card that should have been
         // signed actually verified.
         val unverified = sourceCards.count {
@@ -110,6 +118,11 @@ internal class VCardMerger(
             structuredName = structuredName,
             emails = emails,
             phones = phones,
+            addresses = addresses,
+            organization = organization,
+            notes = notes,
+            imAccounts = imAccounts,
+            photo = photo,
             verified = unverified == 0,
             cardCount = sourceCards.size,
             unverifiedCardCount = unverified
@@ -139,6 +152,62 @@ internal class VCardMerger(
             additionalNames = additional,
             prefixes = prefixes,
             suffixes = suffixes
+        )
+    }
+
+    private fun projectAddresses(merged: VCard): List<DecryptedAddress> =
+        merged.addresses.orEmpty().mapNotNull { addr ->
+            val out = DecryptedAddress(
+                poBox = addr.poBox?.takeIf { it.isNotBlank() },
+                extendedAddress = addr.extendedAddress?.takeIf { it.isNotBlank() },
+                street = addr.streetAddress?.takeIf { it.isNotBlank() },
+                locality = addr.locality?.takeIf { it.isNotBlank() },
+                region = addr.region?.takeIf { it.isNotBlank() },
+                postalCode = addr.postalCode?.takeIf { it.isNotBlank() },
+                country = addr.country?.takeIf { it.isNotBlank() },
+                types = addr.types.orEmpty().map(AddressType::getValue),
+                isPrimary = (addr.pref ?: Int.MAX_VALUE) == 1
+            )
+            // Drop address entries with no usable component.
+            if (listOfNotNull(
+                    out.poBox, out.extendedAddress, out.street,
+                    out.locality, out.region, out.postalCode, out.country
+                ).isEmpty()) null else out
+        }
+
+    private fun projectOrganization(merged: VCard): DecryptedOrganization? {
+        val org = merged.organization
+        val values = org?.values.orEmpty()
+        val company = values.getOrNull(0)?.takeIf { it.isNotBlank() }
+        val department = values.getOrNull(1)?.takeIf { it.isNotBlank() }
+        val title = merged.titles.orEmpty().firstOrNull()?.value?.takeIf { it.isNotBlank() }
+        if (company == null && department == null && title == null) return null
+        return DecryptedOrganization(company = company, department = department, title = title)
+    }
+
+    private fun projectImAccounts(merged: VCard): List<DecryptedIm> =
+        merged.impps.orEmpty().mapNotNull { impp ->
+            val uri = impp.uri ?: return@mapNotNull null
+            // URI form: <scheme>:<scheme-specific-part>. e.g. xmpp:alice@x.
+            val scheme = uri.scheme?.takeIf { it.isNotBlank() }
+            val handle = uri.schemeSpecificPart?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            DecryptedIm(
+                handle = handle,
+                protocol = scheme,
+                types = impp.types.orEmpty().map(ImppType::getValue)
+            )
+        }
+
+    private fun projectPhoto(merged: VCard): DecryptedPhoto? {
+        // Only the first PHOTO; ContactsContract has one inline photo slot
+        // per RawContact. URL-reference photos (no inline data) are skipped
+        // for MVP — fetching them is out of scope until task 19+.
+        val photo = merged.photos.orEmpty().firstOrNull { it.data?.isNotEmpty() == true } ?: return null
+        val data = photo.data ?: return null
+        return DecryptedPhoto(
+            data = data,
+            mimeType = photo.contentType?.mediaType?.takeIf { it.isNotBlank() }
         )
     }
 
