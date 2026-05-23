@@ -94,6 +94,10 @@ dependencies {
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:settings"))
 
+    // ProtonSyncAdapter.onPerformSync is blocking but EmailSyncEngine.sync is
+    // suspend; runBlocking{} bridges the two on the SyncAdapter's worker thread.
+    implementation(libs.bundles.kotlinx.coroutines)
+
     // ADR-0015: enforce no direct Log / println / System.out.* calls.
     lintChecks(project(":tools:lint"))
 }
