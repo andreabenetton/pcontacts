@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -113,8 +114,14 @@ fun LoginScreen(
                 Spacer(Modifier.height(8.dp))
                 CircularProgressIndicator()
             }
-            is LoginUiState.Success -> onSuccess(s.uid)
-            is LoginUiState.TwoFactorRequired -> onTwoFactorRequired(s.uid)
+            is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid) }
+            is LoginUiState.TwoFactorRequired -> LaunchedEffect(s.uid) { onTwoFactorRequired(s.uid) }
+            // The 2FA-side states belong to TwoFactorScreen; the host Activity
+            // is expected to have navigated there as soon as we crossed into
+            // TwoFactorRequired. If we still observe them here it's a stale
+            // recomposition — render nothing.
+            is LoginUiState.TwoFactorSubmitting,
+            is LoginUiState.TwoFactorFailed -> Unit
             is LoginUiState.Failed -> Text(
                 text = friendlyError(s.reason),
                 color = MaterialTheme.colorScheme.error,
@@ -131,4 +138,12 @@ private fun friendlyError(reason: String): String = when (reason) {
     "server_proof_decode_failed",
     "server_proof_mismatch" -> "Server proof mismatch. Your connection may be intercepted."
     else -> "Sign-in failed: $reason"
+}
+
+internal fun friendlyTotpError(reason: String): String = when (reason) {
+    "two_factor_failed" -> "Could not reach Proton. Check your connection and try again."
+    "two_factor_rejected" -> "Wrong code. Try again."
+    "no_session" -> "Sign-in session expired. Please start over."
+    "unexpected_state" -> "Unexpected response from server. Try again or restart sign-in."
+    else -> "Two-factor verification failed: $reason"
 }

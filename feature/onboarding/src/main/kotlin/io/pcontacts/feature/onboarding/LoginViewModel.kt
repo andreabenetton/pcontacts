@@ -21,12 +21,13 @@ import kotlinx.coroutines.withContext
  * class is testable as pure JVM (no Robolectric). The Activity hosts the
  * coroutine scope; tests can pass their own `TestScope`.
  *
- * `attemptLogin` is a function reference (not an interface) to keep the
- * test seam tight: a fake just supplies a lambda returning a canned
- * `LoginResult`, no mocking library required.
+ * `attemptLogin` / `submitTotp` are function references (not interfaces)
+ * to keep the test seam tight: a fake just supplies a lambda returning
+ * a canned `LoginResult`, no mocking library required.
  */
 class LoginViewModel(
     private val attemptLogin: suspend (username: String, password: CharArray) -> LoginResult,
+    private val submitTotp: suspend (code: String) -> LoginResult,
     private val scope: CoroutineScope = MainScope(),
     /**
      * Where the orchestrator runs. Production uses `Dispatchers.Default`
@@ -52,6 +53,35 @@ class LoginViewModel(
                 is LoginResult.Success -> LoginUiState.Success(result.uid)
                 is LoginResult.TwoFactorRequired -> LoginUiState.TwoFactorRequired(result.uid)
                 is LoginResult.Failed -> LoginUiState.Failed(result.reason)
+            }
+        }
+    }
+
+    /**
+     * Submit a TOTP code. Only valid while the state machine sits at
+     * `TwoFactorRequired` or `TwoFactorFailed` (retry). Any other state
+     * is a programmer error — silently ignored to keep the UI tap-safe.
+     */
+    fun submitTwoFactor(code: String) {
+        val current = _uiState.value
+        val uid = when (current) {
+            is LoginUiState.TwoFactorRequired -> current.uid
+            is LoginUiState.TwoFactorFailed -> current.uid
+            else -> return
+        }
+
+        _uiState.value = LoginUiState.TwoFactorSubmitting(uid)
+        pendingJob = scope.launch {
+            val result = withContext(workDispatcher) { submitTotp(code) }
+            _uiState.value = when (result) {
+                is LoginResult.Success -> LoginUiState.Success(result.uid)
+                is LoginResult.Failed -> LoginUiState.TwoFactorFailed(uid, result.reason)
+                is LoginResult.TwoFactorRequired -> {
+                    // Orchestrator should never bounce back to "needs 2FA" from
+                    // a 2FA submission. Treat as a soft failure so the UI is
+                    // still navigable.
+                    LoginUiState.TwoFactorFailed(uid, "unexpected_state")
+                }
             }
         }
     }
