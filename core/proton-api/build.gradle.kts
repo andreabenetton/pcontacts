@@ -17,7 +17,10 @@ kotlin {
 }
 
 dependencies {
-    implementation(libs.okhttp)
+    // 'api' because ProtonApiFactory's constructor exposes OkHttpClient as a
+    // parameter type; downstream modules (e.g. :core:sync's AuthBootstrap)
+    // need OkHttp on their compile classpath to call the constructor.
+    api(libs.okhttp)
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization.converter)
     implementation(libs.kotlinx.serialization.json)

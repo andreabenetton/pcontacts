@@ -49,6 +49,14 @@
             </intent-filter>
         </activity>
 
+        <!-- AccountAuthenticator.addAccount Intent target (ADR-0004). Exported
+             false because launching happens via AccountManager binding, not
+             external Intent dispatch. -->
+        <activity
+            android:name=".auth.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pcontacts" />
+
         <!-- ADR-0004: AccountAuthenticator surface. The android:exported="true"
              is required for AccountManager to bind across processes; the
              intent-filter restricts who can use the binding. -->

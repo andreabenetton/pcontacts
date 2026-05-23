@@ -10,7 +10,7 @@ import android.accounts.AccountManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import io.pcontacts.app.MainActivity
+import io.pcontacts.app.auth.LoginActivity
 
 /**
  * System integration per ADR-0004. Registers a "Proton Contacts" account
@@ -42,7 +42,7 @@ class ProtonAccountAuthenticator(
         requiredFeatures: Array<out String>?,
         options: Bundle?
     ): Bundle {
-        val intent = Intent(context, MainActivity::class.java).apply {
+        val intent = Intent(context, LoginActivity::class.java).apply {
             putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response)
             putExtra(EXTRA_ACCOUNT_TYPE, accountType)
             putExtra(EXTRA_AUTH_TOKEN_TYPE, authTokenType)
