@@ -126,6 +126,66 @@ class SrpLoginOrchestratorTest {
         assertTrue("missing SRPSession", body.contains("\"SRPSession\":\"session-id\""))
     }
 
+    @Test fun submitTwoFactorCode_success_returns_Success_and_carries_session_headers() = runTest {
+        // Bootstrap: full SRP login → TwoFactorRequired persists session.
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        val first = orchestrator.login("u", "p".toCharArray())
+        assertTrue("expected TwoFactorRequired, was $first", first is LoginResult.TwoFactorRequired)
+        server.takeRequest()    // /info
+        server.takeRequest()    // /auth
+
+        // Now the TOTP submission.
+        server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
+        val second = orchestrator.submitTwoFactorCode("654321")
+
+        assertEquals(LoginResult.Success(uid = "uid-2fa"), second)
+
+        val recorded = server.takeRequest()
+        assertEquals("/core/v4/auth/2fa", recorded.path)
+        assertEquals("uid-2fa", recorded.getHeader("x-pm-uid"))
+        assertEquals("Bearer access-token-XYZ", recorded.getHeader("Authorization"))
+        assertTrue(recorded.body.readUtf8().contains("\"TwoFactorCode\":\"654321\""))
+    }
+
+    @Test fun submitTwoFactorCode_without_session_returns_no_session() = runTest {
+        // No login() preceded; session is empty.
+        val result = newOrchestrator().submitTwoFactorCode("000000")
+        assertTrue("expected Failed(no_session), was $result",
+            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "no_session")
+    }
+
+    @Test fun submitTwoFactorCode_http_failure_returns_two_factor_failed() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-fail", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        server.takeRequest(); server.takeRequest()
+
+        server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":8002,"Error":"Invalid code"}"""))
+        val result = orchestrator.submitTwoFactorCode("999999")
+
+        assertTrue("expected Failed(two_factor_failed), was $result",
+            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "two_factor_failed")
+        assertEquals("uid-2fa-fail", (result as LoginResult.Failed).uid)
+    }
+
+    @Test fun submitTwoFactorCode_non_success_code_returns_two_factor_rejected() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-reject", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        server.takeRequest(); server.takeRequest()
+
+        // HTTP 200 but app-level Code is not 1000.
+        server.enqueue(MockResponse().setBody("""{"Code":9001,"Scopes":[]}"""))
+        val result = orchestrator.submitTwoFactorCode("111111")
+
+        assertTrue("expected Failed(two_factor_rejected), was $result",
+            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "two_factor_rejected")
+    }
+
     // --- helpers ---
 
     private fun newOrchestrator(): SrpLoginOrchestrator = SrpLoginOrchestrator(

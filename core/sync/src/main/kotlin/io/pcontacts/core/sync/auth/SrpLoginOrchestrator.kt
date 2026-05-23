@@ -12,6 +12,7 @@ import io.pcontacts.core.proton.api.auth.AuthRequest
 import io.pcontacts.core.proton.api.auth.AuthResponse
 import io.pcontacts.core.proton.api.auth.InfoRequest
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
+import io.pcontacts.core.proton.api.auth.TwoFactorRequest
 import java.math.BigInteger
 import java.util.Base64
 
@@ -126,6 +127,48 @@ class SrpLoginOrchestrator(
         }
     }
 
+    /**
+     * Second stage of a 2FA login. Call this after `login()` returned
+     * `TwoFactorRequired` and the user has entered their TOTP code.
+     *
+     * Preconditions:
+     *   - `login()` succeeded recently; the access token and UID it
+     *     persisted are still live (Proton's 2FA window is short — minutes,
+     *     not hours [A]).
+     *   - The `Session` carried into this orchestrator instance still
+     *     holds the post-SRP uid + access token; the OkHttp interceptor
+     *     stack relies on those to attach `x-pm-uid` and `Authorization`.
+     *
+     * `[V]` 1000 is Proton's app-level success Code on 2xx responses
+     * (`packages/shared/lib/api/helpers/apiErrorHelper.ts` treats anything
+     * else as a recoverable error). HTTP 422 / 401 surface as Retrofit
+     * `HttpException` and map to `two_factor_failed`.
+     */
+    suspend fun submitTwoFactorCode(code: String): LoginResult {
+        val uid = session.uid()
+        if (uid.isNullOrBlank()) {
+            logger.warn { "submitTwoFactorCode called without a live session" }
+            return LoginResult.Failed(reason = "no_session")
+        }
+
+        val response = try {
+            api.auth2FA(TwoFactorRequest(twoFactorCode = code))
+        } catch (t: Throwable) {
+            // Includes HttpException for 401/422 (wrong code, expired window)
+            // and IOException for network errors. Both collapse to a single
+            // non-sensitive reason; the user retypes the code or restarts login.
+            logger.error(t) { "auth2FA call failed" }
+            return LoginResult.Failed(reason = "two_factor_failed", uid = uid)
+        }
+
+        if (response.code != PROTON_SUCCESS_CODE) {
+            logger.warn { "auth2FA returned non-success Code=${response.code}" }
+            return LoginResult.Failed(reason = "two_factor_rejected", uid = uid)
+        }
+
+        return LoginResult.Success(uid = uid)
+    }
+
     private fun unsignedBytes(value: BigInteger, length: Int): ByteArray {
         val raw = value.toByteArray()
         val stripped = if (raw.isNotEmpty() && raw[0] == 0.toByte() && raw.size > 1) {
@@ -151,5 +194,6 @@ class SrpLoginOrchestrator(
     private companion object {
         const val BCRYPT_SALT_BYTES = 16
         const val TWO_FACTOR_TOTP_BIT = 1
+        const val PROTON_SUCCESS_CODE = 1000
     }
 }
