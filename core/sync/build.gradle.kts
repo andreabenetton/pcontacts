@@ -40,12 +40,17 @@ dependencies {
     // public constructor surface; downstream :app callers (SyncBootstrap) need
     // them on their compile classpath → api scope.
     api(project(":core:contacts-writer"))
-    // implementation(project(":core:proton-contacts"))   — added when full decrypt lands.
+    // ContactProcessor / CardCryptoOp appear in the decrypt orchestrator's
+    // public surface; same rationale as :core:contacts-writer above.
+    api(project(":core:proton-contacts"))
     // implementation(libs.androidx.work.runtime.ktx)     — added when WorkManager scheduling lands.
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
+    // ContactDecryptBootstrapTest builds real PGP keys inline so the
+    // end-to-end test exercises actual BouncyCastle crypto.
+    testImplementation(libs.bundles.bouncycastle)
 
     lintChecks(project(":tools:lint"))
 }
