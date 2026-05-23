@@ -52,6 +52,10 @@ object OkHttpClientFactory {
             // + auth by the time backoff sees it, so retries replay the
             // same authenticated request without re-stamping.
             .addInterceptor(FibonacciBackoffInterceptor())
+            // Human-verification (9001) detection — peeks the JSON body
+            // and throws HumanVerificationRequiredException so 9001 is
+            // never silently auto-retried.
+            .addInterceptor(HumanVerificationInterceptor())
             .dns(ProtonHostDnsGuard())
             .certificatePinner(ProtonCertificatePins.buildPinner())
             .connectTimeout(15, TimeUnit.SECONDS)

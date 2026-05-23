@@ -12,6 +12,7 @@ import android.os.Bundle
 import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
+import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
 import kotlinx.coroutines.runBlocking
@@ -67,6 +68,11 @@ class ProtonSyncAdapter(
             // until the user re-logs.
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
+        } catch (e: HumanVerificationRequiredException) {
+            // Proton wants the user to clear a captcha / recovery flow.
+            // Stop retrying until the user completes it in the app UI.
+            syncResult.stats.numAuthExceptions += 1
+            logger.warn { "sync paused — human verification required (Code 9001)" }
         } catch (t: Throwable) {
             syncResult.stats.numIoExceptions += 1
             logger.error(t) { "sync failed" }
