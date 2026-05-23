@@ -310,6 +310,92 @@ class ContactDetailSyncEngineTest {
         assertEquals(io.pcontacts.core.contactswriter.PhoneType.FAX_WORK, byNumber["+1 555 0102"]!!.type)
     }
 
+    @Test fun full_field_set_projects_addresses_org_notes_im_and_photo_into_the_create_intent() = runTest {
+        // Tiny 1×1 transparent PNG so the photo path is self-contained.
+        val pngBytes = byteArrayOf(
+            0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15.toByte(), 0xC4.toByte(),
+            0x89.toByte(), 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41,
+            0x54, 0x78, 0x9C.toByte(), 0x62, 0x00, 0x01, 0x00, 0x00,
+            0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4.toByte(), 0x00,
+            0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE.toByte(),
+            0x42, 0x60, 0x82.toByte()
+        )
+        val photoB64 = java.util.Base64.getEncoder().encodeToString(pngBytes)
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
+            contacts = mapOf(
+                "c1" to contact(
+                    "c1", 100L, """
+                        BEGIN:VCARD
+                        VERSION:4.0
+                        FN:Alice Doe
+                        EMAIL:alice@proton.me
+                        ADR;TYPE=home;PREF=1:;;100 Main St;Springfield;IL;62704;USA
+                        ADR;TYPE=work:;;200 Office Way;Chicago;IL;60601;USA
+                        ORG:Acme Inc.;R&D
+                        TITLE:Principal Engineer
+                        NOTE:First note
+                        NOTE:Second note
+                        IMPP:xmpp:alice@chat.example
+                        IMPP:matrix:@alice:matrix.example
+                        PHOTO:data:image/png;base64,$photoB64
+                        END:VCARD
+                    """.trimIndent()
+                )
+            )
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+
+        engine.sync(account)
+
+        val createIntent = applier.lastIntents.single() as RawContactOpIntent.CreateContact
+        val row = createIntent.row
+
+        // Addresses: 2 entries, primary first, types mapped.
+        assertEquals(2, row.addresses.size)
+        val home = row.addresses[0]
+        assertTrue("PREF=1 ADR must be primary", home.isPrimary)
+        assertEquals("100 Main St", home.street)
+        assertEquals("Springfield", home.city)
+        assertEquals(io.pcontacts.core.contactswriter.PostalAddressType.HOME, home.type)
+        assertEquals(
+            io.pcontacts.core.contactswriter.PostalAddressType.WORK,
+            row.addresses[1].type
+        )
+
+        // Organization.
+        val org = row.organization
+        assertNotNull(org)
+        assertEquals("Acme Inc.", org!!.company)
+        assertEquals("R&D", org.department)
+        assertEquals("Principal Engineer", org.title)
+
+        // Notes.
+        assertEquals(listOf("First note", "Second note"), row.notes)
+
+        // IM accounts: xmpp → JABBER (named tier), matrix → CUSTOM with the
+        // original scheme as customProtocol label.
+        assertEquals(2, row.imAccounts.size)
+        val byHandle = row.imAccounts.associateBy { it.handle }
+        assertEquals(
+            io.pcontacts.core.contactswriter.ImProtocol.JABBER,
+            byHandle["alice@chat.example"]!!.protocol
+        )
+        val matrix = byHandle["@alice:matrix.example"]!!
+        assertEquals(io.pcontacts.core.contactswriter.ImProtocol.CUSTOM, matrix.protocol)
+        assertEquals("matrix", matrix.customProtocol)
+
+        // Photo round-trips bit-exactly.
+        assertNotNull(row.photo)
+        assertTrue("photo bytes must survive the projection",
+            pngBytes.contentEquals(row.photo!!.data))
+    }
+
     @Test fun fetch_failure_for_one_contact_does_not_abort_the_run() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L))),

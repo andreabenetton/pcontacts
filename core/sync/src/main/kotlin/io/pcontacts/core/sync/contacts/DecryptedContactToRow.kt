@@ -3,36 +3,50 @@
 
 package io.pcontacts.core.sync.contacts
 
+import io.pcontacts.core.contactswriter.ContactPhoto
 import io.pcontacts.core.contactswriter.ContactRow
+import io.pcontacts.core.contactswriter.ImAccount
+import io.pcontacts.core.contactswriter.ImProtocol
+import io.pcontacts.core.contactswriter.ImProtocolMapper
+import io.pcontacts.core.contactswriter.Organization
 import io.pcontacts.core.contactswriter.PhoneEntry
 import io.pcontacts.core.contactswriter.PhoneTypeMapper
+import io.pcontacts.core.contactswriter.PostalAddress
+import io.pcontacts.core.contactswriter.PostalAddressTypeMapper
 import io.pcontacts.core.contactswriter.StructuredName
+import io.pcontacts.core.protoncontacts.DecryptedAddress
 import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.protoncontacts.DecryptedIm
+import io.pcontacts.core.protoncontacts.DecryptedOrganization
+import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.DecryptedStructuredName
 
 /**
  * Bridge from the rich `DecryptedContact` model (FN / N / EMAIL[] /
- * TEL[]) to the writer-shaped `ContactRow` (sourceId, displayName,
- * structuredName?, emails[], phones[]).
+ * TEL[] / ADR[] / ORG / NOTE[] / IMPP[] / PHOTO) to the writer-shaped
+ * `ContactRow`.
  *
  *   - structuredName: pieces from the decrypted N property; lists
  *     (additionalNames / prefixes / suffixes) collapsed to the first
  *     non-blank entry (ContactsContract surfaces one column per piece).
- *   - emails: ordered primary-first (the writer interprets position 0
- *     as IS_SUPER_PRIMARY).
- *   - phones: ordered primary-first too; type tokens mapped via
- *     `PhoneTypeMapper.fromTokens` to the MVP `PhoneType` enum.
+ *   - emails: ordered primary-first.
+ *   - phones: ordered primary-first; types mapped via PhoneTypeMapper.
+ *   - addresses: ordered primary-first; types mapped via
+ *     PostalAddressTypeMapper.
+ *   - organization: passed through 1:1.
+ *   - notes: passed through 1:1.
+ *   - imAccounts: URI scheme → ImProtocol via ImProtocolMapper;
+ *     unknown schemes ride as CUSTOM with the scheme as label.
+ *   - photo: passed through with the bytes copied verbatim.
  *
- * Returns null when the decrypted contact has no email AND no phone —
- * the writer can't represent name-only contacts. Such contacts are
- * also absent from `/contacts/v4/contacts/emails` (the email path's
- * enumeration source), so this branch is mostly defensive.
+ * Returns null when the contact has nothing user-actionable —
+ * emails AND phones AND addresses AND imAccounts all empty. The
+ * writer's init guard rejects the same condition; this branch is
+ * an early return that avoids a no-op throw.
  */
 internal object DecryptedContactToRow {
 
     fun convert(decrypted: DecryptedContact): ContactRow? {
-        // Primary-first ordering for both emails and phones — same
-        // partition pattern; relative order within each side is stable.
         val (emailPrimary, emailOthers) = decrypted.emails.partition { it.isPrimary }
         val emails = (emailPrimary + emailOthers).map { it.address }.filter { it.isNotBlank() }
 
@@ -47,27 +61,35 @@ internal object DecryptedContactToRow {
             }
             .filter { it.number.isNotBlank() }
 
-        if (emails.isEmpty() && phones.isEmpty()) return null
+        val (addressPrimary, addressOthers) = decrypted.addresses.partition { it.isPrimary }
+        val addresses = (addressPrimary + addressOthers).map(::toWriterPostal)
+
+        val imAccounts = decrypted.imAccounts.map(::toWriterImAccount)
+
+        if (emails.isEmpty() && phones.isEmpty() && addresses.isEmpty() && imAccounts.isEmpty()) {
+            return null
+        }
 
         val displayName = decrypted.fullName?.takeIf { it.isNotBlank() }
             ?: emails.firstOrNull()
-            ?: phones.first().number
+            ?: phones.firstOrNull()?.number
+            ?: addresses.firstOrNull()?.let { it.city ?: it.street }
+            ?: imAccounts.first().handle
 
         return ContactRow(
             sourceId = decrypted.protonContactId,
             displayName = displayName,
             structuredName = toWriterStructured(decrypted.structuredName),
             emails = emails,
-            phones = phones
+            phones = phones,
+            addresses = addresses,
+            organization = toWriterOrganization(decrypted.organization),
+            notes = decrypted.notes.filter { it.isNotBlank() },
+            imAccounts = imAccounts,
+            photo = toWriterPhoto(decrypted.photo)
         )
     }
 
-    /**
-     * Collapses the multi-element vCard pieces to the single-column
-     * ContactsContract shape. Returns null when nothing usable remains
-     * after collapsing — keeps the writer's "null = no pieces" contract
-     * tight.
-     */
     private fun toWriterStructured(decrypted: DecryptedStructuredName?): StructuredName? {
         if (decrypted == null) return null
         val given = decrypted.given?.takeIf { it.isNotBlank() }
@@ -85,5 +107,43 @@ internal object DecryptedContactToRow {
             prefix = prefix,
             suffix = suffix
         )
+    }
+
+    private fun toWriterPostal(decrypted: DecryptedAddress): PostalAddress = PostalAddress(
+        poBox = decrypted.poBox,
+        neighborhood = decrypted.extendedAddress,
+        street = decrypted.street,
+        city = decrypted.locality,
+        region = decrypted.region,
+        postcode = decrypted.postalCode,
+        country = decrypted.country,
+        type = PostalAddressTypeMapper.fromTokens(decrypted.types),
+        isPrimary = decrypted.isPrimary
+    )
+
+    private fun toWriterOrganization(decrypted: DecryptedOrganization?): Organization? {
+        if (decrypted == null) return null
+        return Organization(
+            company = decrypted.company,
+            department = decrypted.department,
+            title = decrypted.title
+        )
+    }
+
+    private fun toWriterImAccount(decrypted: DecryptedIm): ImAccount {
+        val protocol = ImProtocolMapper.fromScheme(decrypted.protocol)
+        return ImAccount(
+            handle = decrypted.handle,
+            protocol = protocol,
+            // For CUSTOM, surface the original scheme as the label so the
+            // user-visible chip shows "Matrix" / "Signal" / etc. rather
+            // than the generic "im" fallback the writer hands out.
+            customProtocol = if (protocol == ImProtocol.CUSTOM) decrypted.protocol else null
+        )
+    }
+
+    private fun toWriterPhoto(decrypted: DecryptedPhoto?): ContactPhoto? {
+        if (decrypted == null || decrypted.data.isEmpty()) return null
+        return ContactPhoto(data = decrypted.data)
     }
 }
