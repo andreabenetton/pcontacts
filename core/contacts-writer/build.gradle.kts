@@ -27,13 +27,25 @@ android {
         getByName("main") {
             java.srcDirs("src/main/kotlin")
         }
+        getByName("test") {
+            java.srcDirs("src/test/kotlin")
+        }
+    }
+
+    // Robolectric needs the merged manifest + resources to construct
+    // android.net.Uri / ContentProviderOperation under unit tests.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
 dependencies {
-    // ContactsContract write helpers land here in a later commit (ADR-0010).
-    // implementation(project(":core:proton-contacts"))
-    // implementation(project(":core:logging"))
+    // ADR-0011: stays Android-bound (ContactsContract is in android.jar).
+    implementation(project(":core:logging"))
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.junit)
 
     lintChecks(project(":tools:lint"))
 }
