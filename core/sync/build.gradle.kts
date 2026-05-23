@@ -31,14 +31,18 @@ android {
 }
 
 dependencies {
-    // SyncEngine orchestration lands here in a later commit.
-    // implementation(libs.androidx.work.runtime.ktx)
-    // implementation(libs.bundles.kotlinx.coroutines)
-    // implementation(project(":core:proton-api"))
-    // implementation(project(":core:proton-contacts"))
-    // implementation(project(":core:contacts-writer"))
-    // implementation(project(":core:storage"))
-    // implementation(project(":core:logging"))
+    implementation(libs.bundles.kotlinx.coroutines)
+    implementation(project(":core:proton-api"))
+    implementation(project(":core:crypto"))
+    implementation(project(":core:storage"))
+    implementation(project(":core:logging"))
+    // implementation(project(":core:proton-contacts"))   — added when ContactSync lands.
+    // implementation(project(":core:contacts-writer"))   — added when ContactSync lands.
+    // implementation(libs.androidx.work.runtime.ktx)     — added when WorkManager scheduling lands.
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 
     lintChecks(project(":tools:lint"))
 }
