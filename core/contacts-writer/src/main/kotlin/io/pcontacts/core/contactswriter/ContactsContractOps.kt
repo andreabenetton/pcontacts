@@ -124,7 +124,10 @@ object ContactsContractOps {
         row.organization?.let { ops += newOrganizationInsertWithBackRef(rawIdx, it) }
         row.notes.forEach { note -> ops += newNoteInsertWithBackRef(rawIdx, note) }
         row.imAccounts.forEach { im -> ops += newImInsertWithBackRef(rawIdx, im) }
-        row.photo?.let { ops += newPhotoInsertWithBackRef(rawIdx, it) }
+        row.photo?.let { photo ->
+            val fitted = PhotoDownscaler.downscale(photo.data)
+            if (fitted != null) ops += newPhotoInsertWithBackRef(rawIdx, ContactPhoto(fitted))
+        }
     }
 
     private fun appendChildDataInsertsForExisting(
@@ -146,7 +149,10 @@ object ContactsContractOps {
         row.organization?.let { ops += newOrganizationInsertForExisting(rawContactId, it) }
         row.notes.forEach { note -> ops += newNoteInsertForExisting(rawContactId, note) }
         row.imAccounts.forEach { im -> ops += newImInsertForExisting(rawContactId, im) }
-        row.photo?.let { ops += newPhotoInsertForExisting(rawContactId, it) }
+        row.photo?.let { photo ->
+            val fitted = PhotoDownscaler.downscale(photo.data)
+            if (fitted != null) ops += newPhotoInsertForExisting(rawContactId, ContactPhoto(fitted))
+        }
     }
 
     private fun estimateOps(row: ContactRow): Int =
