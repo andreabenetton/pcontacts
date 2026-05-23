@@ -16,7 +16,7 @@ import android.provider.ContactsContract.CommonDataKinds.Phone
  * Token recognition is case-insensitive — Proton's web client emits
  * lower-case tokens but some imported vCards arrive upper-case.
  */
-internal object PhoneTypeMapper {
+object PhoneTypeMapper {
 
     fun fromTokens(rawTokens: List<String>): PhoneType {
         val tokens = rawTokens.asSequence().map { it.lowercase() }.toSet()

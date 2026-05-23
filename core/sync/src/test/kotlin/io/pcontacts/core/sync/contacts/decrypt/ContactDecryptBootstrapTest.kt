@@ -40,12 +40,13 @@ class ContactDecryptBootstrapTest {
         }
         val usersApi = FakeUsersApi(armoredPrivateKey = armored)
 
-        // SIGNED card carries the vCard UID + FN.
+        // SIGNED card carries the vCard UID + FN + structured N pieces.
         val signedPlaintext = """
             BEGIN:VCARD
             VERSION:4.0
             UID:urn:uuid:trusted-alice
             FN:Alice Doe
+            N:Doe;Alice;Marie;Dr;PhD
             END:VCARD
         """.trimIndent()
         val signature = openPgp.signDetached(
@@ -54,11 +55,13 @@ class ContactDecryptBootstrapTest {
         )
         val signedCard = ContactCardDto(type = 2, data = signedPlaintext, signature = signature)
 
-        // ENCRYPTED_AND_SIGNED card carries the email.
+        // ENCRYPTED_AND_SIGNED card carries the email + a couple of phones.
         val encryptedPlaintext = """
             BEGIN:VCARD
             VERSION:4.0
             EMAIL;TYPE=work:alice.work@proton.me
+            TEL;TYPE=home:+1 555 0100
+            TEL;TYPE=cell;PREF=1:+1 555 0101
             END:VCARD
         """.trimIndent()
         val encrypted = openPgp.encryptAndSignDetached(
@@ -82,6 +85,20 @@ class ContactDecryptBootstrapTest {
         assertEquals("urn:uuid:trusted-alice", out.protonUid)
         assertEquals("Alice Doe", out.fullName)
         assertEquals(setOf("alice.work@proton.me"), out.emails.map { it.address }.toSet())
+
+        // Structured-name pieces from the SIGNED card survive the
+        // real decrypt → merge → project chain.
+        val sn = out.structuredName
+        assertNotNull(sn)
+        assertEquals("Alice", sn!!.given)
+        assertEquals("Doe", sn.family)
+
+        // Phones from the ENCRYPTED_AND_SIGNED card decrypted successfully
+        // and surfaced with primary-flag intact.
+        assertEquals(2, out.phones.size)
+        val byNumber = out.phones.associateBy { it.number }
+        assertTrue("cell + PREF=1 is primary", byNumber["+1 555 0101"]!!.isPrimary)
+
         assertTrue("both cards must verify under real keys", out.verified)
         assertEquals(2, out.cardCount)
         assertEquals(0, out.unverifiedCardCount)

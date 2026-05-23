@@ -7,29 +7,41 @@ import io.pcontacts.core.contactswriter.ContactRow
 import java.security.MessageDigest
 
 /**
- * Content hash for the email-only MVP. Storing this in
+ * Content hash for the writer's MVP shape. Storing this in
  * `contact_map.content_hash` (ADR-0008) lets the next sync run skip
  * rewriting RawContacts whose underlying data hasn't changed — the
  * load-bearing piece for the §17 task-16 idempotency requirement.
  *
- * Covers the fields that land in ContactsContract: sourceId,
- * displayName, and every email (in their order; ContactRow's order is
- * itself stable — primary first). When the complete version (task 18)
- * adds Phone / structured-name pieces, this hash MUST be extended in
- * lockstep, paired with a content_hash invalidation pass so existing
- * rows are rewritten on the next sync.
+ * Covers every field that lands in ContactsContract:
+ *   sourceId | displayName | structuredName pieces | emails | phones
+ *
+ * Hash format is private to the engine — bumping it invalidates every
+ * existing `contact_map.content_hash`, so the first sync after a hash
+ * change writes every contact once. Acceptable one-shot cost; the
+ * commit landing the bump calls it out.
+ *
+ * Future-version note: when ADR / NOTE / ORG fields are added to
+ * ContactRow, this hash MUST be extended in lockstep — a stale hash
+ * function silently masks real changes.
  */
 object EmailSyncHash {
 
     fun compute(row: ContactRow): String {
-        // Pipe is fine as a separator: contact ids are URL-safe base64,
-        // emails always contain '@', and a literal '|' inside a display
-        // name would be unusual enough that a collision is not worth
-        // designing around for change detection.
+        // Pipe-separated, with structured field markers so empties at
+        // adjacent positions can't be confused with a single populated one.
         val payload = buildString {
             append(row.sourceId).append('|')
             append(row.displayName).append('|')
+            val sn = row.structuredName
+            append(sn?.given.orEmpty()).append('/')
+            append(sn?.family.orEmpty()).append('/')
+            append(sn?.middle.orEmpty()).append('/')
+            append(sn?.prefix.orEmpty()).append('/')
+            append(sn?.suffix.orEmpty())
+            append('|')
             row.emails.joinTo(this, separator = ",")
+            append('|')
+            row.phones.joinTo(this, separator = ",") { "${it.number};${it.type.name}" }
         }
         val digest = MessageDigest.getInstance("SHA-256").digest(payload.toByteArray(Charsets.UTF_8))
         return digest.joinToString("") { "%02x".format(it) }

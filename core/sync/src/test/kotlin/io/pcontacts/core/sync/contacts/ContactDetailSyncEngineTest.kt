@@ -261,6 +261,55 @@ class ContactDetailSyncEngineTest {
             mapping!!.isVerified)
     }
 
+    @Test fun structured_name_pieces_and_phones_project_into_the_create_intent() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
+            contacts = mapOf(
+                "c1" to contact(
+                    "c1", 100L, """
+                        BEGIN:VCARD
+                        VERSION:4.0
+                        FN:Alice Doe
+                        N:Doe;Alice;Marie;Dr;PhD
+                        EMAIL:alice@proton.me
+                        TEL;TYPE=home:+1 555 0100
+                        TEL;TYPE=cell;PREF=1:+1 555 0101
+                        TEL;TYPE=fax,work:+1 555 0102
+                        END:VCARD
+                    """.trimIndent()
+                )
+            )
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+
+        engine.sync(account)
+
+        val createIntent = applier.lastIntents.single() as RawContactOpIntent.CreateContact
+        val row = createIntent.row
+
+        assertEquals("Alice Doe", row.displayName)
+        // Structured-name pieces collapsed to single columns.
+        val sn = row.structuredName
+        assertNotNull(sn)
+        assertEquals("Alice", sn!!.given)
+        assertEquals("Doe", sn.family)
+        assertEquals("Marie", sn.middle)
+        assertEquals("Dr", sn.prefix)
+        assertEquals("PhD", sn.suffix)
+
+        // Phones ordered primary-first (cell with PREF=1 leads).
+        assertEquals(3, row.phones.size)
+        assertEquals("+1 555 0101", row.phones[0].number)
+        assertTrue("the PREF=1 cell entry must surface as primary", row.phones[0].isPrimary)
+        assertEquals(io.pcontacts.core.contactswriter.PhoneType.MOBILE, row.phones[0].type)
+        // Fax + work maps to FAX_WORK; the home line stays HOME.
+        val byNumber = row.phones.associateBy { it.number }
+        assertEquals(io.pcontacts.core.contactswriter.PhoneType.HOME, byNumber["+1 555 0100"]!!.type)
+        assertEquals(io.pcontacts.core.contactswriter.PhoneType.FAX_WORK, byNumber["+1 555 0102"]!!.type)
+    }
+
     @Test fun fetch_failure_for_one_contact_does_not_abort_the_run() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L))),
