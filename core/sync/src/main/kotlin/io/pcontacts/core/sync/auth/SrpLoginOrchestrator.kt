@@ -4,6 +4,7 @@
 package io.pcontacts.core.sync.auth
 
 import io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword
+import io.pcontacts.core.crypto.srp.ProtonModulusEnvelope
 import io.pcontacts.core.crypto.srp.SrpClient
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
@@ -69,9 +70,16 @@ class SrpLoginOrchestrator(
 
         val x = SrpXDerivation.deriveX(password, saltB64Padded)
 
-        // [A] modulus is currently treated as raw base64; OpenPGP-envelope
-        //     decoding + signature verification land with ADR-0014 pinning.
-        val nBytes = Base64.getDecoder().decode(info.modulus)
+        // Real Proton ships Modulus as an OpenPGP cleartext-signed envelope;
+        // peel off the envelope here. The detached signature it carries is
+        // captured for the ADR-0014 pinned-key verification step (deferred
+        // until the pinned Proton SRP signing key lands in the resources).
+        val modulusDecoded = ProtonModulusEnvelope.decode(info.modulus)
+        if (modulusDecoded.armoredSignature == null) {
+            logger.warn { "modulus arrived without an OpenPGP envelope — verification cannot run" }
+        }
+        // [A] signature not yet verified — see ADR-0014 follow-up.
+        val nBytes = Base64.getDecoder().decode(modulusDecoded.cleartextBase64)
         val n = BigInteger(1, nBytes)
         val bBytes = Base64.getDecoder().decode(info.serverEphemeral)
         val b = BigInteger(1, bBytes)
