@@ -98,6 +98,10 @@ dependencies {
     // suspend; runBlocking{} bridges the two on the SyncAdapter's worker thread.
     implementation(libs.bundles.kotlinx.coroutines)
 
+    // WorkManager — periodic sync belt-and-suspenders for vendor power profiles
+    // where the SyncAdapter scheduling is unreliable (plan §3.5).
+    implementation(libs.androidx.work.runtime.ktx)
+
     // ADR-0015: enforce no direct Log / println / System.out.* calls.
     lintChecks(project(":tools:lint"))
 }
