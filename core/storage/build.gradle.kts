@@ -4,7 +4,6 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 android {
@@ -32,11 +31,16 @@ android {
 }
 
 dependencies {
-    // Room + EncryptedSharedPreferences land here in a later commit (ADR-0008, ADR-0009).
+    // ADR-0009: SecretStore — EncryptedSharedPreferences + Keystore AEAD.
+    implementation(libs.androidx.security.crypto)
+
+    // Room (ADR-0008) wired in the commit that lands the contact-mapping schema.
     // implementation(libs.bundles.room)
     // ksp(libs.androidx.room.compiler)
-    // implementation(libs.androidx.security.crypto)
-    // implementation(project(":core:logging"))
+
+    implementation(project(":core:logging"))
+
+    testImplementation(libs.junit)
 
     lintChecks(project(":tools:lint"))
 }
