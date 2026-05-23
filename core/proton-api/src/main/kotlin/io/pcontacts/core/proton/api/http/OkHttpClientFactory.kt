@@ -9,11 +9,20 @@ import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 
 /**
- * The single `OkHttpClient` factory the rest of the app uses. Per ADR-0015
- * there must be exactly one OkHttpClient in the codebase, constructed here
- * — that's how we enforce "no request leaves `:core:proton-api` for hosts
- * other than `*.proton.me`" (DNS restriction lands with the certificate
- * pinning commit).
+ * The single `OkHttpClient` factory the rest of the app uses. Per
+ * ADR-0015 there must be exactly one OkHttpClient in the codebase,
+ * constructed here — that's how we enforce "no request leaves
+ * `:core:proton-api` for hosts other than `*.proton.me`".
+ *
+ * Layers applied to every request:
+ *   - HeadersInterceptor   — `accept`, `x-pm-appversion`,
+ *                            conditional `x-pm-uid`+`Authorization`
+ *   - AuthInterceptor      — attaches the live Session's tokens
+ *   - ProtonHostDnsGuard   — refuses DNS for hosts outside *.proton.me
+ *                            (localhost allowed for MockWebServer tests)
+ *   - CertificatePinner    — SPKI pins from
+ *                            resources/proton_certificate_pins.txt
+ *                            (empty in source control; see README)
  *
  * Logging interceptor is intentionally absent. A debug-only redacting
  * logging interceptor lands in a follow-up commit; it will use
@@ -28,6 +37,8 @@ object OkHttpClientFactory {
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(HeadersInterceptor(config))
         .addInterceptor(AuthInterceptor(session))
+        .dns(ProtonHostDnsGuard())
+        .certificatePinner(ProtonCertificatePins.buildPinner())
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .callTimeout(60, TimeUnit.SECONDS)
