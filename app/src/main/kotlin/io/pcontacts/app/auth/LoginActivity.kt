@@ -15,12 +15,16 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.feature.onboarding.LoginScreen
+import io.pcontacts.feature.onboarding.LoginUiState
 import io.pcontacts.feature.onboarding.LoginViewModel
+import io.pcontacts.feature.onboarding.TwoFactorScreen
 
 /**
  * AccountAuthenticator's addAccount Intent target. The system Settings →
@@ -28,11 +32,21 @@ import io.pcontacts.feature.onboarding.LoginViewModel
  * Android `Account` and signal completion back to AccountManager via the
  * AccountAuthenticatorResponse so the framework returns the user to
  * Settings without our process having to navigate it manually.
+ *
+ * Holds both LoginScreen and TwoFactorScreen behind the same
+ * LoginViewModel — TOTP is a sub-state of the same flow, not a separate
+ * Activity, so configuration changes and Activity recreation can't strand
+ * the in-flight auth on a dead Activity.
  */
 class LoginActivity : ComponentActivity() {
 
     private val orchestrator by lazy { AuthBootstrap.createLoginOrchestrator(this) }
-    private val viewModel by lazy { LoginViewModel(orchestrator::login) }
+    private val viewModel by lazy {
+        LoginViewModel(
+            attemptLogin = orchestrator::login,
+            submitTotp = orchestrator::submitTwoFactorCode
+        )
+    }
     private var response: AccountAuthenticatorResponse? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,15 +56,24 @@ class LoginActivity : ComponentActivity() {
         setContent {
             PcontactsTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    LoginScreen(
-                        viewModel = viewModel,
-                        onSuccess = { uid -> finishWithAccount(uid) },
-                        // TOTP screen lands in a follow-up commit; for now
-                        // the account is still registered (tokens persisted)
-                        // and the system flow returns to Settings — the user
-                        // can complete TOTP from the app proper next launch.
-                        onTwoFactorRequired = { uid -> finishWithAccount(uid) }
-                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    when (state) {
+                        is LoginUiState.TwoFactorRequired,
+                        is LoginUiState.TwoFactorSubmitting,
+                        is LoginUiState.TwoFactorFailed -> TwoFactorScreen(
+                            viewModel = viewModel,
+                            onSuccess = { uid -> finishWithAccount(uid) },
+                            onCancel = { viewModel.reset() }
+                        )
+                        else -> LoginScreen(
+                            viewModel = viewModel,
+                            onSuccess = { uid -> finishWithAccount(uid) },
+                            // No-op: navigating into TwoFactorRequired flips
+                            // the state, which flips the branch above on the
+                            // next recomposition.
+                            onTwoFactorRequired = { /* handled by state-driven branch */ }
+                        )
+                    }
                 }
             }
         }
