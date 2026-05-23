@@ -36,8 +36,11 @@ dependencies {
     implementation(project(":core:crypto"))
     implementation(project(":core:storage"))
     implementation(project(":core:logging"))
-    // implementation(project(":core:proton-contacts"))   — added when ContactSync lands.
-    // implementation(project(":core:contacts-writer"))   — added when ContactSync lands.
+    // ContactRow / RawContactOpIntent / ApplyResult appear in EmailSyncEngine's
+    // public constructor surface; downstream :app callers (SyncBootstrap) need
+    // them on their compile classpath → api scope.
+    api(project(":core:contacts-writer"))
+    // implementation(project(":core:proton-contacts"))   — added when full decrypt lands.
     // implementation(libs.androidx.work.runtime.ktx)     — added when WorkManager scheduling lands.
 
     testImplementation(libs.junit)

@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+package io.pcontacts.core.sync.contacts
+
+import android.content.ContentProviderClient
+import android.content.Context
+import io.pcontacts.core.contactswriter.BatchApplier
+import io.pcontacts.core.contactswriter.RawContactReader
+import io.pcontacts.core.proton.api.InMemorySession
+import io.pcontacts.core.proton.api.ProtonApiConfig
+import io.pcontacts.core.proton.api.contacts.ContactEmailsPager
+import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
+import io.pcontacts.core.storage.EncryptedSecretStore
+import io.pcontacts.core.storage.db.DatabaseFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * Single composition root for the email-only sync path. The SyncAdapter
+ * in :app provides a `ContentProviderClient` (its only privileged
+ * resource) and gets back a fully wired `EmailSyncEngine`. Mirrors
+ * `AuthBootstrap` for the login flow.
+ *
+ * Session is hydrated from the persisted SecretStore tokens: post-login,
+ * `secretStore.uid()` + `secretStore.accessToken()` are populated; the
+ * OkHttp interceptor stack then attaches `x-pm-uid` + `Authorization`
+ * to every contacts request automatically. If either is missing the
+ * engine's sync() call will fail at the first network hop with a
+ * non-sensitive error (401) — which is the desired outcome ("re-login
+ * required") rather than a silent zero-contact sync.
+ */
+object SyncBootstrap {
+
+    fun createEmailSyncEngine(
+        context: Context,
+        provider: ContentProviderClient
+    ): EmailSyncEngine {
+        val appContext = context.applicationContext
+        val secretStore = EncryptedSecretStore.create(appContext)
+        val session = InMemorySession().apply {
+            val uid = secretStore.uid()
+            val token = secretStore.accessToken()
+            if (uid != null && token != null) update(uid = uid, accessToken = token)
+        }
+        val api = ProtonApiFactory(config = ProtonApiConfig(), session = session)
+        val pager = ContactEmailsPager(api = api.contacts)
+        val db = DatabaseFactory.create(appContext)
+        val reader = RawContactReader(provider)
+        val applier = BatchApplier(provider)
+        return EmailSyncEngine(
+            pager = pager,
+            contactMapDao = db.contactMapDao(),
+            // The ContactsContract calls under reader/applier are blocking;
+            // park them on Dispatchers.IO so the engine's suspend chain
+            // doesn't pin the calling thread.
+            readExisting = { account -> withContext(Dispatchers.IO) { reader.readExisting(account) } },
+            applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } }
+        )
+    }
+}

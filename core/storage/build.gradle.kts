@@ -52,7 +52,10 @@ dependencies {
     implementation(libs.androidx.security.crypto)
 
     // ADR-0008: Room mapping store (ProtonID ↔ RawContactID, sync state).
-    implementation(libs.bundles.room)
+    // 'api' because PcontactsDatabase extends RoomDatabase; downstream
+    // consumers (e.g. :core:sync's SyncBootstrap) need that supertype
+    // on their compile classpath even to *call* a DAO method.
+    api(libs.bundles.room)
     ksp(libs.androidx.room.compiler)
 
     implementation(project(":core:logging"))
