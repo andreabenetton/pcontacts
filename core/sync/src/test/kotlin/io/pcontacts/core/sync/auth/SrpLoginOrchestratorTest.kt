@@ -14,6 +14,7 @@ import java.util.Base64
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.QueueDispatcher
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -37,13 +38,25 @@ class SrpLoginOrchestratorTest {
 
     private val saltBytes = ByteArray(16) { it.toByte() }
     private val serverEphemeralBytes = ByteArray(128) { ((it * 7) and 0xFF).toByte() }
+    // Base64 of [0..15] — a valid 16-byte bcrypt salt.
+    private val SAMPLE_SALT_B64 = "AAECAwQFBgcICQoLDA0ODw=="
 
     private lateinit var server: MockWebServer
     private lateinit var secretStore: InMemorySecretStore
     private lateinit var session: InMemorySession
 
     @Before fun setUp() {
-        server = MockWebServer().apply { start() }
+        server = MockWebServer().apply {
+            // Default MockWebServer queue blocks until a response is enqueued.
+            // The orchestrator now makes optional post-auth /users + /keys/salts
+            // calls; tests that don't drive the key-password path shouldn't
+            // hang waiting for those — return a 404 by default so those calls
+            // throw and are swallowed by the orchestrator's catch.
+            dispatcher = QueueDispatcher().apply {
+                setFailFast(MockResponse().setResponseCode(404))
+            }
+            start()
+        }
         secretStore = InMemorySecretStore()
         session = InMemorySession()
     }
@@ -95,6 +108,7 @@ class SrpLoginOrchestratorTest {
 
         val orchestrator = SrpLoginOrchestrator(
             api = api(),
+            usersApi = usersApi(),
             srp = SrpClient(random = seededRandom()),
             secretStore = secretStore,
             session = session,
@@ -135,6 +149,7 @@ class SrpLoginOrchestratorTest {
         assertTrue("expected TwoFactorRequired, was $first", first is LoginResult.TwoFactorRequired)
         server.takeRequest()    // /info
         server.takeRequest()    // /auth
+        server.takeRequest()    // /users — best-effort key-password fetch, 404 by failFast
 
         // Now the TOTP submission.
         server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
@@ -161,7 +176,7 @@ class SrpLoginOrchestratorTest {
         enqueueAuthResponse(uid = "uid-2fa-fail", twoFactor = 1)
         val orchestrator = newOrchestrator()
         orchestrator.login("u", "p".toCharArray())
-        server.takeRequest(); server.takeRequest()
+        server.takeRequest(); server.takeRequest(); server.takeRequest()  // /info, /auth, /users (best-effort, 404)
 
         server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":8002,"Error":"Invalid code"}"""))
         val result = orchestrator.submitTwoFactorCode("999999")
@@ -176,7 +191,7 @@ class SrpLoginOrchestratorTest {
         enqueueAuthResponse(uid = "uid-2fa-reject", twoFactor = 1)
         val orchestrator = newOrchestrator()
         orchestrator.login("u", "p".toCharArray())
-        server.takeRequest(); server.takeRequest()
+        server.takeRequest(); server.takeRequest(); server.takeRequest()  // /info, /auth, /users (best-effort, 404)
 
         // HTTP 200 but app-level Code is not 1000.
         server.enqueue(MockResponse().setBody("""{"Code":9001,"Scopes":[]}"""))
@@ -186,10 +201,46 @@ class SrpLoginOrchestratorTest {
             result is LoginResult.Failed && (result as LoginResult.Failed).reason == "two_factor_rejected")
     }
 
+    @Test fun login_success_derives_and_persists_keyPassword_from_primary_key_salt() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-key", twoFactor = 0)
+        // Post-auth, the orchestrator fetches /users then /keys/salts.
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
+
+        val result = newOrchestrator().login("u", "p4ssw0rd".toCharArray())
+
+        assertEquals(LoginResult.Success(uid = "uid-key"), result)
+        val stored = secretStore.keyPassword()
+        assertNotNull("keyPassword must be persisted on successful login", stored)
+        // Format check: ComputeKeyPassword returns an OpenBSD bcrypt string;
+        // the UTF-8 bytes start with the well-known "$2y$10$" prefix.
+        assertTrue(
+            "keyPassword bytes must encode a bcrypt string starting with \$2y\$10\$",
+            String(stored!!, Charsets.UTF_8).startsWith("\$2y\$10\$")
+        )
+    }
+
+    @Test fun login_success_when_users_endpoint_fails_still_succeeds_without_keyPassword() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-no-key", twoFactor = 0)
+        // No /users response enqueued — MockWebServer's default dispatcher
+        // returns 404 → Retrofit throws → orchestrator swallows.
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertEquals(LoginResult.Success(uid = "uid-no-key"), result)
+        // Tokens still persisted; keyPassword absent — sync will refuse
+        // to run loudly until the user re-logs.
+        assertEquals("uid-no-key", secretStore.uid())
+        assertNull(secretStore.keyPassword())
+    }
+
     // --- helpers ---
 
     private fun newOrchestrator(): SrpLoginOrchestrator = SrpLoginOrchestrator(
         api = api(),
+        usersApi = usersApi(),
         srp = SrpClient(random = seededRandom()),
         secretStore = secretStore,
         session = session,
@@ -198,12 +249,47 @@ class SrpLoginOrchestratorTest {
         serverProofVerifier = { _, _ -> true }
     )
 
-    private fun api() = ProtonApiFactory(
+    private fun apiFactory() = ProtonApiFactory(
         config = ProtonApiConfig(baseUrl = server.url("/").toString()),
         session = session
-    ).auth
+    )
+
+    private fun api() = apiFactory().auth
+
+    private fun usersApi() = apiFactory().users
 
     private fun seededRandom() = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(7, 7, 7)) }
+
+    private fun enqueueUserResponse(primaryKeyId: String) {
+        server.enqueue(MockResponse().setBody(
+            """
+            {
+                "Code":1000,
+                "User":{
+                    "ID":"user-1",
+                    "Keys":[
+                        {"ID":"$primaryKeyId","Version":3,"Primary":1,"Active":1,
+                         "PrivateKey":"-----BEGIN PGP PRIVATE KEY BLOCK-----...",
+                         "Fingerprint":"deadbeef","Flags":3}
+                    ]
+                }
+            }
+            """.trimIndent()
+        ))
+    }
+
+    private fun enqueueKeySaltsResponse(primaryKeyId: String, saltB64: String) {
+        server.enqueue(MockResponse().setBody(
+            """
+            {
+                "Code":1000,
+                "KeySalts":[
+                    {"ID":"$primaryKeyId","KeySalt":"$saltB64"}
+                ]
+            }
+            """.trimIndent()
+        ))
+    }
 
     private fun enqueueInfoResponse() {
         val modulusB64 = Base64.getEncoder().encodeToString(N1024.toByteArray().let {

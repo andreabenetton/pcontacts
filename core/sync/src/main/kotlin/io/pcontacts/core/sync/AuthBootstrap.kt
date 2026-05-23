@@ -33,12 +33,13 @@ object AuthBootstrap {
         val appContext = context.applicationContext
         val secretStore: SecretStore = EncryptedSecretStore.create(appContext)
         val session = InMemorySession()
-        val api = ProtonApiFactory(
+        val apis = ProtonApiFactory(
             config = ProtonApiConfig(),
             session = session
-        ).auth
+        )
         return SrpLoginOrchestrator(
-            api = api,
+            api = apis.auth,
+            usersApi = apis.users,
             srp = SrpClient(),
             secretStore = secretStore,
             session = session

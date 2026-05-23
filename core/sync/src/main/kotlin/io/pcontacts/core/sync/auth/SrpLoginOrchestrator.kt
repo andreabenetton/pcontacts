@@ -3,6 +3,7 @@
 
 package io.pcontacts.core.sync.auth
 
+import io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword
 import io.pcontacts.core.crypto.srp.SrpClient
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
@@ -13,6 +14,7 @@ import io.pcontacts.core.proton.api.auth.AuthResponse
 import io.pcontacts.core.proton.api.auth.InfoRequest
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.proton.api.auth.TwoFactorRequest
+import io.pcontacts.core.proton.api.users.ProtonUsersApi
 import java.math.BigInteger
 import java.util.Base64
 
@@ -39,6 +41,7 @@ import java.util.Base64
  */
 class SrpLoginOrchestrator(
     private val api: ProtonAuthApi,
+    private val usersApi: ProtonUsersApi,
     private val srp: SrpClient,
     private val secretStore: io.pcontacts.core.storage.SecretStore,
     private val session: InMemorySession,
@@ -119,12 +122,47 @@ class SrpLoginOrchestrator(
         secretStore.setRefreshToken(authResp.refreshToken)
         session.update(uid = authResp.uid, accessToken = authResp.accessToken)
 
+        // Plan §2.7 steps 11-13: with the session live, derive and persist
+        // the keyPassword. Sync needs it to unlock User.Keys[0] later.
+        // Failure here doesn't abort login — the user can still finish
+        // 2FA / land on the home screen — but any decrypt-aware sync will
+        // refuse to run until keyPassword is available (logged loudly).
+        try {
+            deriveAndPersistKeyPassword(password)
+        } catch (t: Throwable) {
+            logger.error(t) { "keyPassword derivation failed; sync will require re-login" }
+        }
+
         // [V] TwoFactor bit semantics from packages/shared/lib/authentication/twoFactor.ts.
         return if (authResp.twoFactor and TWO_FACTOR_TOTP_BIT != 0) {
             LoginResult.TwoFactorRequired(uid = authResp.uid)
         } else {
             LoginResult.Success(uid = authResp.uid)
         }
+    }
+
+    /**
+     * Fetches User + KeySalts, computes `keyPassword = bcrypt-SHA-512(
+     * password, primaryKeySalt)` (Plan §2.7 step 12), and stores the
+     * bcrypt string bytes under the Keystore AEAD key (ADR-0009).
+     *
+     * `[A]` — the PGP key is unlocked with the bcrypt string itself
+     * (matching the Proton web client's `decryptPrivateKey(armored,
+     * keyPassword)` call); ADR-0013 vectors will flip this to `[V]`.
+     */
+    private suspend fun deriveAndPersistKeyPassword(password: CharArray) {
+        val user = usersApi.getUser().user
+        val primary = user.keys.firstOrNull { it.primary == 1 && it.active == 1 }
+            ?: throw IllegalStateException("no active primary key in /users")
+
+        val saltDto = usersApi.getKeySalts().keySalts
+            .firstOrNull { it.keyId == primary.id }
+            ?: throw IllegalStateException("no /keys/salts entry for primary key id (hash-redacted)")
+        val saltB64 = saltDto.keySalt
+            ?: throw IllegalStateException("primary key has null KeySalt — key activation pending")
+
+        val bcryptString = ComputeKeyPassword.derive(password, saltB64)
+        secretStore.setKeyPassword(bcryptString.toByteArray(Charsets.UTF_8))
     }
 
     /**
