@@ -53,6 +53,20 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            // BouncyCastle (bcpg + bcprov + bcutil) each ship an identical
+            // META-INF/versions/9/OSGI-INF/MANIFEST.MF; the APK packager
+            // refuses to pick one without an explicit rule.
+            excludes += setOf(
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                "META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/INDEX.LIST",
+                "META-INF/io.netty.versions.properties"
+            )
+        }
+    }
 }
 
 dependencies {
