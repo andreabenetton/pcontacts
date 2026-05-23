@@ -3,8 +3,10 @@
 
 package io.pcontacts.core.crypto.openpgp
 
+import java.io.ByteArrayOutputStream
 import java.security.KeyPairGenerator
 import java.util.Date
+import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.HashAlgorithmTags
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags
 import org.bouncycastle.bcpg.sig.KeyFlags
@@ -12,6 +14,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPKeyPair
 import org.bouncycastle.openpgp.PGPKeyRingGenerator
 import org.bouncycastle.openpgp.PGPPublicKey
+import org.bouncycastle.openpgp.PGPSecretKeyRing
 import org.bouncycastle.openpgp.PGPSignature
 import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder
@@ -75,5 +78,44 @@ internal object TestKeyGen {
             pub = PgpPublicKeyHandle(pgpKeyPair.publicKey),
             priv = PgpPrivateKeyHandle(pgpPrivateKey, pgpKeyPair.publicKey)
         )
+    }
+
+    /**
+     * Generates an RSA-2048 keypair encrypted under `passphrase` and
+     * returns the ASCII-armored secret key block — the same shape
+     * `core/v4/users` ships in `User.Keys[i].PrivateKey`.
+     */
+    fun rsa2048Armored(passphrase: CharArray, identity: String = "pcontacts-test"): String {
+        val rsa = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME)
+        rsa.initialize(2048)
+        val rsaKeyPair = rsa.generateKeyPair()
+        val now = Date()
+        val pgpKeyPair: PGPKeyPair = JcaPGPKeyPair(PGPPublicKey.RSA_GENERAL, rsaKeyPair, now)
+
+        val checksumCalc = BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA1)
+        val signSubpacket = PGPSignatureSubpacketGenerator().apply {
+            setKeyFlags(false, KeyFlags.SIGN_DATA or KeyFlags.CERTIFY_OTHER or KeyFlags.ENCRYPT_COMMS or KeyFlags.ENCRYPT_STORAGE)
+            setPreferredSymmetricAlgorithms(false, intArrayOf(SymmetricKeyAlgorithmTags.AES_256))
+            setPreferredHashAlgorithms(false, intArrayOf(HashAlgorithmTags.SHA512))
+        }
+
+        val keyRingGen = PGPKeyRingGenerator(
+            PGPSignature.POSITIVE_CERTIFICATION,
+            pgpKeyPair,
+            identity,
+            checksumCalc,
+            signSubpacket.generate(),
+            null,
+            BcPGPContentSignerBuilder(pgpKeyPair.publicKey.algorithm, HashAlgorithmTags.SHA512),
+            BcPBESecretKeyEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256, checksumCalc)
+                .build(passphrase)
+        )
+
+        val secretRing: PGPSecretKeyRing = keyRingGen.generateSecretKeyRing()
+        val out = ByteArrayOutputStream()
+        ArmoredOutputStream(out).use { armored ->
+            secretRing.encode(armored)
+        }
+        return out.toString(Charsets.US_ASCII)
     }
 }
