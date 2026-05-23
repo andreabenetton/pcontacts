@@ -7,6 +7,7 @@ import android.accounts.Account
 import android.content.ContentProviderClient
 import android.content.ContentProviderResult
 import android.provider.ContactsContract
+import android.provider.ContactsContract.RawContacts
 
 /**
  * Applies a list of intents to the system ContactsContract provider.
@@ -41,6 +42,26 @@ class BatchApplier(private val provider: ContentProviderClient) {
         val updated = intents.count { it is RawContactOpIntent.UpdateContact }
         val deleted = intents.count { it is RawContactOpIntent.DeleteContact }
         return ApplyResult(inserted, updated, deleted, totalOpsApplied = totalResults)
+    }
+
+    /**
+     * Deletes every RawContact this account owns. Used by the logout
+     * flow — the user expects their Proton contacts to vanish from
+     * the system Contacts app when they sign out.
+     *
+     * Returns the row count the provider reports as deleted; 0 when
+     * the account was empty (or the provider returned null for any
+     * reason). Caller-IS-SYNCADAPTER is set on the URI so the rows
+     * don't leave tombstones (a tombstoned RawContact would resurrect
+     * as a duplicate if the user signs back in with the same account).
+     */
+    fun deleteAllForAccount(account: Account): Int {
+        val uri = SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
+        return provider.delete(
+            uri,
+            "${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+            arrayOf(account.type, account.name)
+        )
     }
 }
 
