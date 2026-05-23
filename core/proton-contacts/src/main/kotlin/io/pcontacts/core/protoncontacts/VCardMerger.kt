@@ -6,6 +6,7 @@ package io.pcontacts.core.protoncontacts
 import ezvcard.Ezvcard
 import ezvcard.VCard
 import ezvcard.parameter.EmailType
+import ezvcard.parameter.TelephoneType
 import ezvcard.property.Uid
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
@@ -69,6 +70,7 @@ internal class VCardMerger(
         merged: VCard
     ): DecryptedContact {
         val vCardUid: String? = merged.uid?.value?.takeIf { it.isNotBlank() }
+        val structuredName = projectStructuredName(merged)
         val fullName: String? = merged.formattedName?.value?.takeIf { it.isNotBlank() }
             ?: deriveFnFromN(merged)
 
@@ -82,6 +84,18 @@ internal class VCardMerger(
             )
         }.filter { it.address.isNotBlank() }
 
+        val phones = merged.telephoneNumbers.orEmpty().map { t ->
+            // ez-vcard's Telephone.text is the standard string form (RFC 6350
+            // §6.4.1). Telephone.uri is set for the "uri-style" form (tel:);
+            // we fall back to it when text is absent.
+            val number = t.text?.takeIf { it.isNotBlank() } ?: t.uri?.toString().orEmpty()
+            DecryptedPhone(
+                number = number,
+                types = t.types.orEmpty().map(TelephoneType::getValue),
+                isPrimary = (t.pref ?: Int.MAX_VALUE) == 1
+            )
+        }.filter { it.number.isNotBlank() }
+
         // A contact is verified only if every card that should have been
         // signed actually verified.
         val unverified = sourceCards.count {
@@ -93,10 +107,38 @@ internal class VCardMerger(
             protonContactId = protonContactId,
             protonUid = vCardUid,
             fullName = fullName,
+            structuredName = structuredName,
             emails = emails,
+            phones = phones,
             verified = unverified == 0,
             cardCount = sourceCards.size,
             unverifiedCardCount = unverified
+        )
+    }
+
+    /**
+     * Reads `N` from the merged vCard. Returns null if N is absent
+     * OR every component is blank — the writer treats null as "no
+     * structured-name columns to write".
+     */
+    private fun projectStructuredName(merged: VCard): DecryptedStructuredName? {
+        val n = merged.structuredName ?: return null
+        val given = n.given?.takeIf { it.isNotBlank() }
+        val family = n.family?.takeIf { it.isNotBlank() }
+        val additional = n.additionalNames.orEmpty().filter { it.isNotBlank() }
+        val prefixes = n.prefixes.orEmpty().filter { it.isNotBlank() }
+        val suffixes = n.suffixes.orEmpty().filter { it.isNotBlank() }
+        if (given == null && family == null &&
+            additional.isEmpty() && prefixes.isEmpty() && suffixes.isEmpty()
+        ) {
+            return null
+        }
+        return DecryptedStructuredName(
+            given = given,
+            family = family,
+            additionalNames = additional,
+            prefixes = prefixes,
+            suffixes = suffixes
         )
     }
 

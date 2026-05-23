@@ -184,6 +184,79 @@ class VCardMergerTest {
         assertEquals("Alice", out.fullName)
     }
 
+    @Test fun structured_name_pieces_surface_when_N_property_present() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                N:Doe;Alice;Marie,Jane;Dr;PhD
+                FN:Alice Doe
+                EMAIL:alice@proton.me
+                END:VCARD
+            """.trimIndent()))
+        )
+        val sn = out.structuredName
+        assertNotNull(sn)
+        assertEquals("Alice", sn!!.given)
+        assertEquals("Doe", sn.family)
+        // ez-vcard splits additionalNames on comma per RFC 6350.
+        assertEquals(listOf("Marie", "Jane"), sn.additionalNames)
+        assertEquals(listOf("Dr"), sn.prefixes)
+        assertEquals(listOf("PhD"), sn.suffixes)
+    }
+
+    @Test fun structured_name_is_null_when_all_components_are_blank() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                N:;;;;
+                FN:Alice
+                EMAIL:alice@proton.me
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertNull("an N with all-blank components must collapse to null", out.structuredName)
+    }
+
+    @Test fun phones_surface_with_types_and_isPrimary_from_TEL_PREF() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.ENCRYPTED_AND_SIGNED, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                TEL;TYPE=home:+1 555 0100
+                TEL;TYPE=cell;PREF=1:+1 555 0101
+                TEL;TYPE=fax,work:+1 555 0102
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertEquals(3, out.phones.size)
+        val byNumber = out.phones.associateBy { it.number }
+        assertEquals(setOf("home"), byNumber["+1 555 0100"]!!.types.toSet())
+        assertTrue("cell + PREF=1 must be primary", byNumber["+1 555 0101"]!!.isPrimary)
+        assertEquals(setOf("cell"), byNumber["+1 555 0101"]!!.types.toSet())
+        assertEquals(setOf("fax", "work"), byNumber["+1 555 0102"]!!.types.toSet())
+    }
+
+    @Test fun phones_default_to_empty_list_when_no_TEL_property() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(card(CardType.CLEAR_TEXT, """
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Alice
+                EMAIL:alice@proton.me
+                END:VCARD
+            """.trimIndent()))
+        )
+        assertEquals(emptyList<Any>(), out.phones)
+    }
+
     private fun card(type: CardType, plaintext: String, verified: Boolean = true) =
         DecryptedCard(originalType = type, plaintext = plaintext, verified = verified)
 }

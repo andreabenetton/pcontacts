@@ -15,15 +15,17 @@ package io.pcontacts.core.protoncontacts
  * `contact_map.is_verified` (ADR-0008) so a future settings screen can
  * surface "X contacts could not be verified" without exposing which.
  *
- * Fields beyond `fullName` / `emails` (Phone, Address, Organization,
- * etc.) land with the complete version (Plan §6); the data class
- * holds the MVP shape today.
+ * Fields beyond `fullName` / `structuredName` / `emails` / `phones`
+ * (Address, Organization, Note, etc.) land with the complete version
+ * (Plan §6); the data class holds the MVP shape today.
  */
 data class DecryptedContact(
     val protonContactId: String,
     val protonUid: String?,
     val fullName: String?,
+    val structuredName: DecryptedStructuredName? = null,
     val emails: List<DecryptedEmail>,
+    val phones: List<DecryptedPhone> = emptyList(),
     val verified: Boolean,
     val cardCount: Int,
     val unverifiedCardCount: Int
@@ -33,7 +35,9 @@ data class DecryptedContact(
             protonContactId = protonContactId,
             protonUid = null,
             fullName = null,
+            structuredName = null,
             emails = emptyList(),
+            phones = emptyList(),
             verified = true,
             cardCount = 0,
             unverifiedCardCount = 0
@@ -41,8 +45,34 @@ data class DecryptedContact(
     }
 }
 
+/**
+ * vCard `N` projection. All fields optional; merger sets null /
+ * empty when the source vCard omits the corresponding component.
+ * The writer collapses each list to its first non-blank entry
+ * (ContactsContract surfaces only one MIDDLE_NAME / PREFIX /
+ * SUFFIX column per StructuredName Data row).
+ */
+data class DecryptedStructuredName(
+    val given: String? = null,
+    val family: String? = null,
+    val additionalNames: List<String> = emptyList(),
+    val prefixes: List<String> = emptyList(),
+    val suffixes: List<String> = emptyList()
+)
+
 data class DecryptedEmail(
     val address: String,
+    val types: List<String> = emptyList(),
+    val isPrimary: Boolean = false
+)
+
+/**
+ * vCard `TEL` projection. `types` carries the raw vCard TYPE tokens
+ * ("home", "work", "cell", "fax", ...) — the writer maps these to
+ * Android's Phone.TYPE_* constants via PhoneTypeMapper.
+ */
+data class DecryptedPhone(
+    val number: String,
     val types: List<String> = emptyList(),
     val isPrimary: Boolean = false
 )
