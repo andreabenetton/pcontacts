@@ -4,7 +4,10 @@
 package io.pcontacts.core.sync.auth
 
 import io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword
+import io.pcontacts.core.crypto.srp.BouncyCastleProtonModulusVerifier
 import io.pcontacts.core.crypto.srp.ProtonModulusEnvelope
+import io.pcontacts.core.crypto.srp.ProtonModulusVerification
+import io.pcontacts.core.crypto.srp.ProtonModulusVerifier
 import io.pcontacts.core.crypto.srp.SrpClient
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
@@ -52,6 +55,17 @@ class SrpLoginOrchestrator(
      * pass `{ _, _ -> true }`.
      */
     private val serverProofVerifier: (server: ByteArray, expected: ByteArray) -> Boolean = srp::verifyServerProof,
+    /**
+     * ADR-0014 — verifies the OpenPGP detached signature on the SRP
+     * Modulus. Default loads Proton's pinned public key from the
+     * classpath; when the resource is absent (current state, see
+     * `core:crypto/.../resources/README_proton_srp_signing_key.md`),
+     * verification returns `NO_SIGNER_KEY` and the orchestrator
+     * proceeds with a warning. Tests inject `NoOpProtonModulusVerifier`.
+     */
+    private val modulusVerifier: ProtonModulusVerifier = BouncyCastleProtonModulusVerifier(
+        pinnedPublicKeyArmored = BouncyCastleProtonModulusVerifier.loadPinnedKeyFromClasspath()
+    ),
     private val logger: Logger = RedactingLogger(tag = "SrpLogin", sink = NoOpSink)
 ) {
 
@@ -71,14 +85,30 @@ class SrpLoginOrchestrator(
         val x = SrpXDerivation.deriveX(password, saltB64Padded)
 
         // Real Proton ships Modulus as an OpenPGP cleartext-signed envelope;
-        // peel off the envelope here. The detached signature it carries is
-        // captured for the ADR-0014 pinned-key verification step (deferred
-        // until the pinned Proton SRP signing key lands in the resources).
+        // peel off the envelope here, then verify the detached signature
+        // against Proton's pinned SRP signing public key (ADR-0014).
         val modulusDecoded = ProtonModulusEnvelope.decode(info.modulus)
-        if (modulusDecoded.armoredSignature == null) {
+        val armoredSig = modulusDecoded.armoredSignature
+        if (armoredSig != null) {
+            when (modulusVerifier.verify(modulusDecoded.cleartextBase64, armoredSig)) {
+                ProtonModulusVerification.VALID -> {
+                    // proceed
+                }
+                ProtonModulusVerification.INVALID -> {
+                    logger.warn { "modulus signature INVALID — treating as MITM, aborting login" }
+                    return LoginResult.Failed(reason = "modulus_signature_invalid")
+                }
+                ProtonModulusVerification.NO_SIGNER_KEY -> {
+                    // No pinned key in the classpath resource yet. The
+                    // README at .../resources/README_proton_srp_signing_key.md
+                    // explains how to source + drop in the real key; until
+                    // then we log and continue.
+                    logger.warn { "modulus signature NOT verified — no pinned Proton SRP key configured (ADR-0014)" }
+                }
+            }
+        } else {
             logger.warn { "modulus arrived without an OpenPGP envelope — verification cannot run" }
         }
-        // [A] signature not yet verified — see ADR-0014 follow-up.
         val nBytes = Base64.getDecoder().decode(modulusDecoded.cleartextBase64)
         val n = BigInteger(1, nBytes)
         val bBytes = Base64.getDecoder().decode(info.serverEphemeral)
