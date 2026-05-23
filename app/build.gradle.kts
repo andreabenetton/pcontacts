@@ -26,7 +26,11 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
-            isMinifyEnabled = false
+            // R8 + proguard-rules.pro. Minification on so the BouncyCastle /
+            // kotlinx-serialization / Retrofit / Room reflection-keep rules
+            // get exercised by `:app:assembleRelease` in CI.
+            isMinifyEnabled = true
+            isShrinkResources = false   // resource shrinking off until we audit
             isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
