@@ -8,9 +8,10 @@ import io.pcontacts.core.contactswriter.ApplyResult
 import io.pcontacts.core.contactswriter.RawContactOpIntent
 import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import io.pcontacts.core.proton.api.contacts.ContactDto
-import io.pcontacts.core.proton.api.contacts.ContactEmailDto
 import io.pcontacts.core.proton.api.contacts.ContactEmailsPageResponse
-import io.pcontacts.core.proton.api.contacts.ContactEmailsPager
+import io.pcontacts.core.proton.api.contacts.ContactMetadataDto
+import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
+import io.pcontacts.core.proton.api.contacts.ContactsPageResponse
 import io.pcontacts.core.proton.api.contacts.GetContactResponse
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.protoncontacts.CardCryptoOutcome
@@ -37,13 +38,11 @@ class ContactDetailSyncEngineTest {
     private val account = Account("alice@proton.me", "io.pcontacts.account")
 
     @Test fun first_run_decrypts_writes_inserts_with_FN_from_signed_card_and_email_from_decrypt() = runTest {
-        val emails = DetailFakeApi(
-            pages = listOf(page(emailRow("c1", "alice@proton.me"))),
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
             contacts = mapOf(
                 "c1" to contact(
-                    "c1",
-                    modifyTime = 100L,
-                    clearTextVCard = """
+                    "c1", 100L, """
                         BEGIN:VCARD
                         VERSION:4.0
                         FN:Alice Doe
@@ -55,7 +54,7 @@ class ContactDetailSyncEngineTest {
         )
         val dao = DetailFakeContactMapDao()
         val applier = DetailFakeApplier(base = 1000L)
-        val engine = newEngine(emails, dao, applier)
+        val engine = newEngine(api, dao, applier)
 
         val report = engine.sync(account)
 
@@ -74,98 +73,119 @@ class ContactDetailSyncEngineTest {
         assertEquals("alice@proton.me", createIntent.row.email)
     }
 
-    @Test fun second_run_with_unchanged_content_skips_writes_but_refreshes_mapping_metadata() = runTest {
-        val emails = DetailFakeApi(
-            pages = listOf(
-                page(emailRow("c1", "alice@proton.me")),
-                page(emailRow("c1", "alice@proton.me"))   // identical second pager pass
+    @Test fun second_run_with_unchanged_modifyTime_cheap_skips_without_fetching_contact() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(
+                metaPage(meta("c1", 100L)),
+                metaPage(meta("c1", 100L))   // identical modifyTime — engine must cheap-skip
             ),
             contacts = mapOf(
-                "c1" to contact(
-                    "c1",
-                    modifyTime = 100L,
-                    clearTextVCard = """
-                        BEGIN:VCARD
-                        VERSION:4.0
-                        FN:Alice
-                        EMAIL:alice@proton.me
-                        END:VCARD
-                    """.trimIndent()
-                )
+                "c1" to contact("c1", 100L, """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice
+                    EMAIL:alice@proton.me
+                    END:VCARD
+                """.trimIndent())
             ),
             repeatContacts = true
         )
         val dao = DetailFakeContactMapDao()
         val applier = DetailFakeApplier(base = 1L)
-        val engine = newEngine(emails, dao, applier)
-
+        val engine = newEngine(api, dao, applier)
         engine.sync(account)
+        val firstFetchCount = api.getContactCallCount
+
         val secondReport = engine.sync(account)
 
         assertEquals(
             SyncReport(totalServer = 1, inserted = 0, updated = 0, deleted = 0, unchanged = 1),
             secondReport
         )
-        // The applier must NOT be invoked the second time.
-        assertEquals("applier must not be invoked when no content changed",
-            1, applier.applyCallCount)
+        // No applier on the second run, AND no getContact call — cheap-skip
+        // via modifyTime works without paying the fetch + decrypt cost.
+        assertEquals("applier must not be invoked on unchanged second run", 1, applier.applyCallCount)
+        assertEquals("getContact must not be called when modifyTime is unchanged",
+            firstFetchCount, api.getContactCallCount)
+    }
+
+    @Test fun bumped_modifyTime_with_unchanged_content_skips_writes_but_refreshes_mapping() = runTest {
+        // Server bumps modifyTime (e.g. a /contacts/label call) but the
+        // user-visible content hasn't changed. Engine must fetch (because
+        // modifyTime increased) but the hash-skip path must avoid the write.
+        val sameVCard = """
+            BEGIN:VCARD
+            VERSION:4.0
+            FN:Alice
+            EMAIL:alice@proton.me
+            END:VCARD
+        """.trimIndent()
+        val api = DetailFakeApi(
+            metadataPages = listOf(
+                metaPage(meta("c1", 100L)),
+                metaPage(meta("c1", 200L))   // bumped
+            ),
+            contacts = mapOf("c1" to contact("c1", 100L, sameVCard)),
+            secondRoundContacts = mapOf("c1" to contact("c1", 200L, sameVCard))
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+        engine.sync(account)
+
+        val secondReport = engine.sync(account)
+
+        assertEquals(0, secondReport.inserted)
+        assertEquals(0, secondReport.updated)
+        assertEquals("hash matched — no ContactsContract write", 1, applier.applyCallCount)
+        // Mapping's modifyTime got refreshed to 200 even though we skipped the write.
+        assertEquals(200L, dao.snapshot()["c1"]!!.modifyTime)
     }
 
     @Test fun content_change_triggers_update_with_same_rawContactId() = runTest {
-        val emails = DetailFakeApi(
-            pages = listOf(
-                page(emailRow("c1", "alice@proton.me")),
-                page(emailRow("c1", "alice@proton.me"))
+        val api = DetailFakeApi(
+            metadataPages = listOf(
+                metaPage(meta("c1", 100L)),
+                metaPage(meta("c1", 200L))
             ),
             contacts = mapOf(
-                "c1" to contact(
-                    "c1",
-                    modifyTime = 100L,
-                    clearTextVCard = """
-                        BEGIN:VCARD
-                        VERSION:4.0
-                        FN:Alice
-                        EMAIL:alice@proton.me
-                        END:VCARD
-                    """.trimIndent()
-                )
+                "c1" to contact("c1", 100L, """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice
+                    EMAIL:alice@proton.me
+                    END:VCARD
+                """.trimIndent())
             ),
             secondRoundContacts = mapOf(
-                "c1" to contact(
-                    "c1",
-                    modifyTime = 200L,
-                    clearTextVCard = """
-                        BEGIN:VCARD
-                        VERSION:4.0
-                        FN:Alice Doe
-                        EMAIL:alice@proton.me
-                        END:VCARD
-                    """.trimIndent()
-                )
+                "c1" to contact("c1", 200L, """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice Doe
+                    EMAIL:alice@proton.me
+                    END:VCARD
+                """.trimIndent())
             )
         )
         val dao = DetailFakeContactMapDao()
         val applier = DetailFakeApplier(base = 500L)
-        val engine = newEngine(emails, dao, applier)
+        val engine = newEngine(api, dao, applier)
         engine.sync(account)
 
         val secondReport = engine.sync(account)
 
         assertEquals(1, secondReport.updated)
-        assertEquals(0, secondReport.inserted)
         val updateIntent = applier.lastIntents.single() as RawContactOpIntent.UpdateContact
         assertEquals("Alice Doe", updateIntent.row.displayName)
-        assertEquals(500L, updateIntent.rawContactId)    // stable across runs
-
-        val mapping = dao.snapshot()["c1"]
-        assertEquals(200L, mapping!!.modifyTime)         // refreshed
+        assertEquals(500L, updateIntent.rawContactId)
+        assertEquals(200L, dao.snapshot()["c1"]!!.modifyTime)
     }
 
     @Test fun server_side_deletion_triggers_delete_and_removes_mapping() = runTest {
-        val emails = DetailFakeApi(
-            pages = listOf(
-                page(emailRow("c1", "alice@proton.me"), emailRow("c2", "bob@proton.me")),
-                page(emailRow("c1", "alice@proton.me"))     // bob disappears
+        val api = DetailFakeApi(
+            metadataPages = listOf(
+                metaPage(meta("c1", 100L), meta("c2", 100L)),
+                metaPage(meta("c1", 100L))     // bob disappears
             ),
             contacts = mapOf(
                 "c1" to contact("c1", 100L, """
@@ -183,32 +203,22 @@ class ContactDetailSyncEngineTest {
                     END:VCARD
                 """.trimIndent())
             ),
-            secondRoundContacts = mapOf(
-                "c1" to contact("c1", 100L, """
-                    BEGIN:VCARD
-                    VERSION:4.0
-                    FN:Alice
-                    EMAIL:alice@proton.me
-                    END:VCARD
-                """.trimIndent())
-            )
+            repeatContacts = true
         )
         val dao = DetailFakeContactMapDao()
         val applier = DetailFakeApplier(base = 1L)
-        val engine = newEngine(emails, dao, applier)
+        val engine = newEngine(api, dao, applier)
         engine.sync(account)
-
         val report = engine.sync(account)
 
         assertEquals(1, report.deleted)
-        assertNull("bob's mapping must be gone after delete", dao.snapshot()["c2"])
-        assertNotNull("alice's mapping must remain", dao.snapshot()["c1"])
+        assertNull("bob's mapping must be gone", dao.snapshot()["c2"])
+        assertNotNull(dao.snapshot()["c1"])
     }
 
     @Test fun signature_failure_propagates_to_is_verified_false() = runTest {
-        // SIGNED card with verified=false (canned crypto rejects).
-        val emails = DetailFakeApi(
-            pages = listOf(page(emailRow("c1", "alice@proton.me"))),
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
             contacts = mapOf(
                 "c1" to ContactDto(
                     id = "c1",
@@ -227,15 +237,16 @@ class ContactDetailSyncEngineTest {
         )
         val dao = DetailFakeContactMapDao()
         val applier = DetailFakeApplier(base = 1L)
-
-        // Build a processor whose crypto op rejects every signature.
         val rejectingProcessor = ContactProcessor(ContactDecrypter(cryptoOp = { req ->
-            CardCryptoOutcome(plaintext = (req as? io.pcontacts.core.protoncontacts.CardCryptoRequest.VerifyOnly)?.data ?: "", verified = false)
+            CardCryptoOutcome(
+                plaintext = (req as? io.pcontacts.core.protoncontacts.CardCryptoRequest.VerifyOnly)?.data ?: "",
+                verified = false
+            )
         }))
 
         val engine = ContactDetailSyncEngine(
-            pager = ContactEmailsPager(api = emails, pageSize = 1000),
-            contactsApi = emails,
+            metadataPager = ContactsMetadataPager(api = api, pageSize = 1000),
+            contactsApi = api,
             processor = rejectingProcessor,
             contactMapDao = dao,
             readExisting = { _ -> applier.knownRawIds() },
@@ -251,8 +262,8 @@ class ContactDetailSyncEngineTest {
     }
 
     @Test fun fetch_failure_for_one_contact_does_not_abort_the_run() = runTest {
-        val emails = DetailFakeApi(
-            pages = listOf(page(emailRow("c1", "a@x"), emailRow("c2", "b@x"))),
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L))),
             contacts = mapOf(
                 "c1" to contact("c1", 100L, """
                     BEGIN:VCARD
@@ -261,22 +272,18 @@ class ContactDetailSyncEngineTest {
                     EMAIL:a@x
                     END:VCARD
                 """.trimIndent())
-                // c2 intentionally missing → DetailFakeApi throws on getContact
+                // c2 missing → DetailFakeApi.getContact throws
             )
         )
         val dao = DetailFakeContactMapDao()
         val applier = DetailFakeApplier(base = 1L)
-        val engine = newEngine(emails, dao, applier)
+        val engine = newEngine(api, dao, applier)
 
         val report = engine.sync(account)
 
-        // c1 still gets inserted; c2 is skipped (server says it exists, fetch failed).
         assertEquals(1, report.inserted)
         assertNotNull(dao.snapshot()["c1"])
         assertNull(dao.snapshot()["c2"])
-        // c2 is in serverSourceIds AND existing was empty before, so no delete
-        // intent fires for it — the right call (we don't know yet if c2 is
-        // really gone or just transiently unreadable).
     }
 
     // --- helpers ---
@@ -290,7 +297,7 @@ class ContactDetailSyncEngineTest {
             error("CLEAR_TEXT-only cards must not invoke crypto op")
         }))
         return ContactDetailSyncEngine(
-            pager = ContactEmailsPager(api = api, pageSize = 1000),
+            metadataPager = ContactsMetadataPager(api = api, pageSize = 1000),
             contactsApi = api,
             processor = processor,
             contactMapDao = dao,
@@ -300,13 +307,9 @@ class ContactDetailSyncEngineTest {
         )
     }
 
-    private fun emailRow(contactId: String, address: String) = ContactEmailDto(
-        id = "e-$contactId", email = address, contactId = contactId, name = ""
-    )
-
-    private fun page(vararg rows: ContactEmailDto) =
-        ContactEmailsPageResponse(code = 1000, contactEmails = rows.toList(), total = rows.size)
-
+    private fun meta(id: String, modifyTime: Long) = ContactMetadataDto(id = id, modifyTime = modifyTime)
+    private fun metaPage(vararg rows: ContactMetadataDto) =
+        ContactsPageResponse(code = 1000, contacts = rows.toList(), total = rows.size)
     private fun contact(id: String, modifyTime: Long, clearTextVCard: String) = ContactDto(
         id = id,
         modifyTime = modifyTime,
@@ -315,19 +318,29 @@ class ContactDetailSyncEngineTest {
 }
 
 /**
- * One fake serves both ProtonContactsApi roles (pager source + getContact).
- * `secondRoundContacts` swaps the contact set after the first `getContact`
- * call cycle — used by the update/delete tests.
+ * Serves the two endpoints the detail engine uses: listContacts and getContact.
+ * `secondRoundContacts` swaps the contact map after the first round; the
+ * "round" boundary fires when every contact in the initial map has been
+ * fetched at least once.
  */
 private class DetailFakeApi(
-    pages: List<ContactEmailsPageResponse>,
+    metadataPages: List<ContactsPageResponse>,
     private val contacts: Map<String, ContactDto>,
     private val secondRoundContacts: Map<String, ContactDto>? = null,
     private val repeatContacts: Boolean = false
 ) : ProtonContactsApi {
-    private val pageQueue = ArrayDeque(pages)
+    private val metadataQueue = ArrayDeque(metadataPages)
     private var firstRoundDone = false
     private val firstRoundFetched = HashSet<String>()
+    var getContactCallCount = 0
+        private set
+
+    override suspend fun listContacts(
+        page: Int,
+        pageSize: Int,
+        labelIdFilter: String?
+    ): ContactsPageResponse =
+        if (metadataQueue.isEmpty()) ContactsPageResponse(code = 1000) else metadataQueue.removeFirst()
 
     override suspend fun listContactEmails(
         page: Int,
@@ -335,16 +348,10 @@ private class DetailFakeApi(
         emailFilter: String?,
         labelIdFilter: String?
     ): ContactEmailsPageResponse =
-        if (pageQueue.isEmpty()) ContactEmailsPageResponse(code = 1000) else pageQueue.removeFirst()
-
-    override suspend fun listContacts(
-        page: Int,
-        pageSize: Int,
-        labelIdFilter: String?
-    ): io.pcontacts.core.proton.api.contacts.ContactsPageResponse =
-        error("listContacts not used in this engine variant")
+        error("ContactDetailSyncEngine does not use /emails")
 
     override suspend fun getContact(id: String): GetContactResponse {
+        getContactCallCount += 1
         val source = when {
             firstRoundDone && secondRoundContacts != null -> secondRoundContacts
             else -> contacts
@@ -353,9 +360,6 @@ private class DetailFakeApi(
 
         if (!firstRoundDone) {
             firstRoundFetched += id
-            // The "first round" is over once we've fetched every contact in the
-            // initial contacts map. After that, getContact serves the second
-            // round's fixtures (if any).
             if (firstRoundFetched.size == contacts.size) {
                 firstRoundDone = true
                 if (repeatContacts) firstRoundFetched.clear()

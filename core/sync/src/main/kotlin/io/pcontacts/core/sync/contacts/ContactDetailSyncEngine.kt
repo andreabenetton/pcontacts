@@ -11,7 +11,7 @@ import io.pcontacts.core.contactswriter.RawContactOpIntent
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
-import io.pcontacts.core.proton.api.contacts.ContactEmailsPager
+import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.storage.db.dao.ContactMapDao
@@ -21,15 +21,17 @@ import kotlinx.coroutines.flow.toList
 /**
  * Full-decrypt sync engine (plan §17 task 17, end-to-end). Per-contact
  * flow:
- *   1. Enumerate ContactIDs server-side via the email pager.
- *   2. For each ID, GET /contacts/v4/contacts/{id} → full Cards[].
- *   3. ContactProcessor decrypts + merges Cards → DecryptedContact.
- *   4. DecryptedContactToRow projects to the MVP ContactRow shape.
- *   5. Hash-compare against the stored content_hash; skip writes when
+ *   1. Walk /contacts/v4/contacts → Map<sourceId, server modifyTime>.
+ *   2. For each ID, cheap-skip if storedMapping.modifyTime ≥ server's
+ *      (no fetch, no decrypt — just refresh `last_synced_at`).
+ *   3. Otherwise GET /contacts/v4/contacts/{id} → full Cards[].
+ *   4. ContactProcessor decrypts + merges Cards → DecryptedContact.
+ *   5. DecryptedContactToRow projects to the MVP ContactRow shape.
+ *   6. Hash-compare against the stored content_hash; skip writes when
  *      unchanged. Mapping rows still get a `last_synced_at` /
  *      `is_verified` / `proton_uid` refresh.
- *   6. RawContactDiffer + applier produce + apply ContactsContract ops.
- *   7. Reconcile the Room mapping with the post-apply RawContacts._IDs.
+ *   7. RawContactDiffer + applier produce + apply ContactsContract ops.
+ *   8. Reconcile the Room mapping with the post-apply RawContacts._IDs.
  *
  * Sibling to EmailSyncEngine — same IO seams, same idempotency
  * contract. Differs in that the displayName written to
@@ -37,13 +39,12 @@ import kotlinx.coroutines.flow.toList
  * than the email row's denormalised Name, and the per-contact
  * `is_verified` flag reflects whether every signed card verified.
  *
- * Per-contact fetch is unconditional in MVP — there's no metadata
- * listing endpoint here yet, so we can't cheap-skip by ModifyTime
- * before fetching. The content_hash check still avoids redundant
- * ContactsContract writes; the network cost is the open follow-up.
+ * The two-tier skip (modifyTime first, content_hash second) means
+ * second-run cost on an unchanged account is one /contacts listing
+ * call — no per-contact fetches, no decrypt cycles.
  */
 class ContactDetailSyncEngine(
-    private val pager: ContactEmailsPager,
+    private val metadataPager: ContactsMetadataPager,
     private val contactsApi: ProtonContactsApi,
     private val processor: ContactProcessor,
     private val contactMapDao: ContactMapDao,
@@ -56,24 +57,33 @@ class ContactDetailSyncEngine(
     suspend fun sync(account: Account): SyncReport {
         logger.info { "contact-detail sync start account=${account.name}" }
 
-        // 1. Enumerate server-side ContactIDs (cheapest: one /emails listing).
-        val emails = pager.emails().toList()
-        val serverSourceIds = emails.map { it.contactId }.toSet()
+        // 1. Cheap metadata enumeration → ID + ModifyTime.
+        val metadata = metadataPager.metadata().toList()
+        val serverModifyTimes: Map<String, Long> = metadata.associate { it.id to it.modifyTime }
+        val serverSourceIds = serverModifyTimes.keys
 
         // 2. Local state.
         val existing = readExisting(account)
         val storedMappings: Map<String, ContactMapEntity> = contactMapDao.listLive()
             .associateBy { it.protonContactId }
 
-        // 3. For each server ID, fetch + decrypt + project. Track per-id
-        //    metadata (modify_time, verified, proton_uid) so the post-apply
-        //    mapping refresh has everything it needs.
+        // 3. Per-ID: cheap-skip (modifyTime) → fetch → decrypt → project →
+        //    hash-skip (content_hash) → target list.
         val target = ArrayList<ContactRow>(serverSourceIds.size)
         val perContactMeta = HashMap<String, PerContactMeta>(serverSourceIds.size)
         val now = clock()
         var fetchFailures = 0
+        var modifyTimeSkips = 0
 
-        for (sourceId in serverSourceIds) {
+        for ((sourceId, serverModifyTime) in serverModifyTimes) {
+            val stored = storedMappings[sourceId]
+            if (stored != null && stored.modifyTime >= serverModifyTime && serverModifyTime > 0L) {
+                // Cheap-skip: server says unchanged. Just refresh bookkeeping.
+                modifyTimeSkips += 1
+                contactMapDao.upsert(stored.copy(lastSyncedAt = now))
+                continue
+            }
+
             val response = try {
                 contactsApi.getContact(sourceId)
             } catch (t: Throwable) {
@@ -97,22 +107,19 @@ class ContactDetailSyncEngine(
             )
             perContactMeta[sourceId] = meta
 
-            val storedHash = storedMappings[sourceId]?.contentHash
-            if (storedHash == newHash) {
-                // No ContactsContract write needed; refresh the mapping
-                // bookkeeping (modify_time, verified, last_synced_at).
-                storedMappings[sourceId]?.let { existingMap ->
-                    contactMapDao.upsert(
-                        existingMap.copy(
-                            modifyTime = meta.modifyTime,
-                            isVerified = meta.verified,
-                            protonUid = meta.protonUid,
-                            syncStatus = ContactMapEntity.Status.CLEAN,
-                            lastError = null,
-                            lastSyncedAt = now
-                        )
+            if (stored?.contentHash == newHash) {
+                // ModifyTime bumped but visible content unchanged. Refresh
+                // bookkeeping; no ContactsContract write needed.
+                contactMapDao.upsert(
+                    stored.copy(
+                        modifyTime = meta.modifyTime,
+                        isVerified = meta.verified,
+                        protonUid = meta.protonUid,
+                        syncStatus = ContactMapEntity.Status.CLEAN,
+                        lastError = null,
+                        lastSyncedAt = now
                     )
-                }
+                )
                 continue
             }
 
@@ -127,17 +134,17 @@ class ContactDetailSyncEngine(
         )
 
         if (intents.isEmpty()) {
-            val unchanged = serverSourceIds.size - target.size - fetchFailures
+            val unchanged = (serverSourceIds.size - target.size - fetchFailures).coerceAtLeast(0)
             logger.info {
-                "contact-detail sync done — no ContactsContract writes; " +
-                    "unchanged=$unchanged fetchFailures=$fetchFailures"
+                "contact-detail sync done — no writes; " +
+                    "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures"
             }
             return SyncReport(
                 totalServer = serverSourceIds.size,
                 inserted = 0,
                 updated = 0,
                 deleted = 0,
-                unchanged = unchanged.coerceAtLeast(0)
+                unchanged = unchanged
             )
         }
 
@@ -177,7 +184,7 @@ class ContactDetailSyncEngine(
         logger.info {
             "contact-detail sync done — inserted=${applyResult.insertedContacts} " +
                 "updated=${applyResult.updatedContacts} deleted=$deletedCount " +
-                "unchanged=$unchanged fetchFailures=$fetchFailures"
+                "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures"
         }
         return SyncReport(
             totalServer = serverSourceIds.size,

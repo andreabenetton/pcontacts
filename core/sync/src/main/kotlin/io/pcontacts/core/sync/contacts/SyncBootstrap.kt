@@ -11,6 +11,7 @@ import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.contacts.ContactEmailsPager
+import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
 import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.db.DatabaseFactory
@@ -94,12 +95,12 @@ object SyncBootstrap {
             openPgp = openPgp
         )
 
-        val pager = ContactEmailsPager(api = apis.contacts)
+        val metadataPager = ContactsMetadataPager(api = apis.contacts)
         val db = DatabaseFactory.create(appContext)
         val reader = RawContactReader(provider)
         val applier = BatchApplier(provider)
         return ContactDetailSyncEngine(
-            pager = pager,
+            metadataPager = metadataPager,
             contactsApi = apis.contacts,
             processor = processor,
             contactMapDao = db.contactMapDao(),
