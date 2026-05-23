@@ -41,7 +41,14 @@ data class ContactRow(
     val organization: Organization? = null,
     val notes: List<String> = emptyList(),
     val imAccounts: List<ImAccount> = emptyList(),
-    val photo: ContactPhoto? = null
+    val photo: ContactPhoto? = null,
+    /**
+     * Local Android Groups._ID values this contact belongs to.
+     * The engine pre-resolves Proton LabelIDs to local row IDs
+     * via LocalGroupsWriter before constructing the ContactRow;
+     * this keeps the writer oblivious to Proton's label taxonomy.
+     */
+    val groupRowIds: List<Long> = emptyList()
 ) {
     init {
         require(

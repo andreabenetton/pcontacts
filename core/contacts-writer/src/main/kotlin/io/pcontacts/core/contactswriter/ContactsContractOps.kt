@@ -6,6 +6,7 @@ package io.pcontacts.core.contactswriter
 import android.accounts.Account
 import android.content.ContentProviderOperation
 import android.provider.ContactsContract.CommonDataKinds.Email
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
@@ -128,6 +129,7 @@ object ContactsContractOps {
             val fitted = PhotoDownscaler.downscale(photo.data)
             if (fitted != null) ops += newPhotoInsertWithBackRef(rawIdx, ContactPhoto(fitted))
         }
+        row.groupRowIds.forEach { gid -> ops += newGroupMembershipInsertWithBackRef(rawIdx, gid) }
     }
 
     private fun appendChildDataInsertsForExisting(
@@ -153,11 +155,12 @@ object ContactsContractOps {
             val fitted = PhotoDownscaler.downscale(photo.data)
             if (fitted != null) ops += newPhotoInsertForExisting(rawContactId, ContactPhoto(fitted))
         }
+        row.groupRowIds.forEach { gid -> ops += newGroupMembershipInsertForExisting(rawContactId, gid) }
     }
 
     private fun estimateOps(row: ContactRow): Int =
         2 + row.emails.size + row.phones.size + row.addresses.size +
-            row.notes.size + row.imAccounts.size +
+            row.notes.size + row.imAccounts.size + row.groupRowIds.size +
             (if (row.organization != null) 1 else 0) +
             (if (row.photo != null) 1 else 0)
 
@@ -454,6 +457,22 @@ object ContactsContractOps {
             .build()
 
     // ---- Delete ----
+
+    // ---- GroupMembership ----
+
+    private fun newGroupMembershipInsertWithBackRef(rawIdx: Int, groupRowId: Long): ContentProviderOperation =
+        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+            .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
+            .withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE)
+            .withValue(GroupMembership.GROUP_ROW_ID, groupRowId)
+            .build()
+
+    private fun newGroupMembershipInsertForExisting(rawContactId: Long, groupRowId: Long): ContentProviderOperation =
+        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+            .withValue(Data.RAW_CONTACT_ID, rawContactId)
+            .withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE)
+            .withValue(GroupMembership.GROUP_ROW_ID, groupRowId)
+            .build()
 
     private fun deleteContactOp(account: Account, sourceId: String): ContentProviderOperation =
         ContentProviderOperation.newDelete(
