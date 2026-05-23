@@ -8,6 +8,7 @@ import io.pcontacts.core.proton.api.Session
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.http.OkHttpClientFactory
+import io.pcontacts.core.proton.api.users.ProtonUsersApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -39,4 +40,5 @@ class ProtonApiFactory(
 
     val auth: ProtonAuthApi = retrofit.create(ProtonAuthApi::class.java)
     val contacts: ProtonContactsApi = retrofit.create(ProtonContactsApi::class.java)
+    val users: ProtonUsersApi = retrofit.create(ProtonUsersApi::class.java)
 }
