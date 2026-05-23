@@ -83,6 +83,60 @@ class ProtonContactsApiTest {
             recorded.path!!.contains("Email=alice%40proton.me"))
     }
 
+    @Test fun getContact_parses_full_payload_including_Cards_and_signature() = runTest {
+        session.update(uid = "uid-x", accessToken = "access-x")
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                    "Code":1000,
+                    "Contact":{
+                        "ID":"c1",
+                        "Name":"Alice",
+                        "UID":"vcard-uid-abc",
+                        "Size":512,
+                        "CreateTime":1700000000,
+                        "ModifyTime":1700000100,
+                        "Cards":[
+                            {"Type":0,"Data":"BEGIN:VCARD\nVERSION:4.0\nEND:VCARD","Signature":null},
+                            {"Type":2,"Data":"FN:Alice","Signature":"-----BEGIN PGP SIGNATURE-----..."},
+                            {"Type":3,"Data":"-----BEGIN PGP MESSAGE-----...",
+                             "Signature":"-----BEGIN PGP SIGNATURE-----..."}
+                        ],
+                        "ContactEmails":[],
+                        "LabelIDs":[]
+                    }
+                }
+                """.trimIndent()
+            )
+        )
+
+        val response = api.getContact("c1")
+
+        assertEquals(1000, response.code)
+        assertEquals("c1", response.contact.id)
+        assertEquals(1_700_000_100L, response.contact.modifyTime)
+        assertEquals(3, response.contact.cards.size)
+
+        val clear = response.contact.cards[0]
+        assertEquals(0, clear.type)
+        assertEquals(null, clear.signature)
+
+        val signed = response.contact.cards[1]
+        assertEquals(2, signed.type)
+        assertTrue("signed card must carry a signature", !signed.signature.isNullOrBlank())
+
+        val encryptedSigned = response.contact.cards[2]
+        assertEquals(3, encryptedSigned.type)
+        assertTrue(encryptedSigned.data.startsWith("-----BEGIN PGP MESSAGE-----"))
+
+        val recorded = server.takeRequest()
+        assertEquals("GET", recorded.method)
+        assertEquals("/contacts/v4/contacts/c1", recorded.path)
+        assertEquals("uid-x", recorded.getHeader("x-pm-uid"))
+        assertEquals("Bearer access-x", recorded.getHeader("Authorization"))
+    }
+
     @Test fun listContactEmails_ignores_unknown_server_fields() = runTest {
         // Server adds a field we don't model; deserialization must not blow up.
         server.enqueue(

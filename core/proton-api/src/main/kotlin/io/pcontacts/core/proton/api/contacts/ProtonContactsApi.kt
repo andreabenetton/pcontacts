@@ -4,6 +4,7 @@
 package io.pcontacts.core.proton.api.contacts
 
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -23,4 +24,13 @@ interface ProtonContactsApi {
         @Query("Email") emailFilter: String? = null,
         @Query("LabelID") labelIdFilter: String? = null
     ): ContactEmailsPageResponse
+
+    /**
+     * Fetches the full Cards[] payload for one contact. The sync engine
+     * calls this once per ContactID flagged for update — never speculatively
+     * for the entire contact list (full export endpoint is forbidden per
+     * ADR-0007).
+     */
+    @GET("contacts/v4/contacts/{id}")
+    suspend fun getContact(@Path("id") id: String): GetContactResponse
 }

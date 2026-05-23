@@ -9,6 +9,7 @@ import io.pcontacts.core.contactswriter.RawContactOpIntent
 import io.pcontacts.core.proton.api.contacts.ContactEmailDto
 import io.pcontacts.core.proton.api.contacts.ContactEmailsPageResponse
 import io.pcontacts.core.proton.api.contacts.ContactEmailsPager
+import io.pcontacts.core.proton.api.contacts.GetContactResponse
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
@@ -174,6 +175,9 @@ private class FakeContactsApi(vararg responses: ContactEmailsPageResponse) : Pro
         labelIdFilter: String?
     ): ContactEmailsPageResponse =
         if (queue.isEmpty()) ContactEmailsPageResponse(code = 1000) else queue.removeFirst()
+
+    override suspend fun getContact(id: String): GetContactResponse =
+        error("FakeContactsApi.getContact not used in email-only sync tests")
 }
 
 private class FakeContactMapDao : ContactMapDao {

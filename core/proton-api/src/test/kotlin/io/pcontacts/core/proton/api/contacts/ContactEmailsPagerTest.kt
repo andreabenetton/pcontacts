@@ -140,5 +140,8 @@ class ContactEmailsPagerTest {
                 queue.removeFirst()
             }
         }
+
+        override suspend fun getContact(id: String): GetContactResponse =
+            error("FakeContactsApi.getContact called unexpectedly in pager tests")
     }
 }

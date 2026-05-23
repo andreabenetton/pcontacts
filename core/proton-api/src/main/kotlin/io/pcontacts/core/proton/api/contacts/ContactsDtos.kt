@@ -38,3 +38,50 @@ data class ContactEmailsPageResponse(
     @SerialName("ContactEmails") val contactEmails: List<ContactEmailDto> = emptyList(),
     @SerialName("Total") val total: Int = 0
 )
+
+/**
+ * One element of the `Cards[]` array on a full Contact response.
+ *
+ * `Type` semantics ([V] from
+ * packages/shared/lib/contacts/constants.ts CONTACT_CARD_TYPE):
+ *   0 = CLEAR_TEXT            — Data is plaintext, no Signature.
+ *   1 = ENCRYPTED             — Data is an ASCII-armored OpenPGP message; no Signature.
+ *   2 = SIGNED                — Data is plaintext; Signature is a detached OpenPGP signature.
+ *   3 = ENCRYPTED_AND_SIGNED  — Data is OpenPGP message; Signature is detached signature over the plaintext.
+ *
+ * Signature is null exactly for Type 0 and Type 1; a SIGNED or
+ * ENCRYPTED_AND_SIGNED card with `Signature == null` is server-side
+ * malformed and the decrypter rejects it.
+ */
+@Serializable
+data class ContactCardDto(
+    @SerialName("Type") val type: Int,
+    @SerialName("Data") val data: String,
+    @SerialName("Signature") val signature: String? = null
+)
+
+/**
+ * Full Contact payload returned by `GET contacts/v4/contacts/{id}`.
+ * The fields beyond `ID` + `Cards` are denormalised metadata also
+ * available via the listing endpoint; we keep them here so the sync
+ * engine can populate `contact_map.modify_time` without a second
+ * round-trip. [A] envelope confirmed from web-client consumption.
+ */
+@Serializable
+data class ContactDto(
+    @SerialName("ID") val id: String,
+    @SerialName("Name") val name: String = "",
+    @SerialName("UID") val uid: String = "",
+    @SerialName("Size") val size: Long = 0L,
+    @SerialName("CreateTime") val createTime: Long = 0L,
+    @SerialName("ModifyTime") val modifyTime: Long = 0L,
+    @SerialName("Cards") val cards: List<ContactCardDto> = emptyList(),
+    @SerialName("ContactEmails") val contactEmails: List<ContactEmailDto> = emptyList(),
+    @SerialName("LabelIDs") val labelIds: List<String> = emptyList()
+)
+
+@Serializable
+data class GetContactResponse(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Contact") val contact: ContactDto
+)
