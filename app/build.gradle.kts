@@ -4,6 +4,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -48,12 +49,28 @@ android {
             java.srcDirs("src/main/kotlin")
         }
     }
+
+    buildFeatures {
+        compose = true
+    }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.appcompat)         // kept for Theme.AppCompat parent on Activity manifest theme
     implementation(libs.androidx.activity)
+    implementation(libs.androidx.activity.compose)
+
+    // Compose + Material3 (matches the ProtonVPN/android-app stack).
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     // :app pulls in the orchestration + feature modules. Per ADR-0011 it does
     // NOT depend on :core:crypto or :core:proton-api directly — those are
