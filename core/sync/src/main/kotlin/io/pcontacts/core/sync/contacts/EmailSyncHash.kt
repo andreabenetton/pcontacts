@@ -57,6 +57,7 @@ object EmailSyncHash {
 
         write(row.notes.joinToString("\n")); sep()
         write(row.imAccounts.joinToString(",", transform = ::imFingerprint)); sep()
+        write(row.groupRowIds.joinToString(",")); sep()
 
         // Photo bytes hashed bit-exactly — any change in pixels triggers
         // a rewrite on the next sync.

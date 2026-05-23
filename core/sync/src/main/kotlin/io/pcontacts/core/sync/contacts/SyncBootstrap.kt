@@ -6,6 +6,7 @@ package io.pcontacts.core.sync.contacts
 import android.content.ContentProviderClient
 import android.content.Context
 import io.pcontacts.core.contactswriter.BatchApplier
+import io.pcontacts.core.contactswriter.LocalGroupsWriter
 import io.pcontacts.core.contactswriter.RawContactReader
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
 import io.pcontacts.core.proton.api.InMemorySession
@@ -113,13 +114,18 @@ object SyncBootstrap {
         val db = DatabaseFactory.create(appContext)
         val reader = RawContactReader(provider)
         val applier = BatchApplier(provider)
+        val groupsWriter = LocalGroupsWriter(provider)
         return ContactDetailSyncEngine(
             metadataPager = metadataPager,
             contactsApi = apis.contacts,
+            labelsApi = apis.labels,
             processor = processor,
             contactMapDao = db.contactMapDao(),
             readExisting = { account -> withContext(Dispatchers.IO) { reader.readExisting(account) } },
-            applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } }
+            applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } },
+            reconcileGroups = { account, labels ->
+                withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
+            }
         )
     }
 }

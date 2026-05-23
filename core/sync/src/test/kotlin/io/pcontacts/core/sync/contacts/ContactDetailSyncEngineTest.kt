@@ -14,6 +14,8 @@ import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.contacts.ContactsPageResponse
 import io.pcontacts.core.proton.api.contacts.GetContactResponse
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
+import io.pcontacts.core.proton.api.labels.GetLabelsResponse
+import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.protoncontacts.CardCryptoOutcome
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
@@ -247,6 +249,7 @@ class ContactDetailSyncEngineTest {
         val engine = ContactDetailSyncEngine(
             metadataPager = ContactsMetadataPager(api = api, pageSize = 1000),
             contactsApi = api,
+            labelsApi = NoLabelsApi,
             processor = rejectingProcessor,
             contactMapDao = dao,
             readExisting = { _ -> applier.knownRawIds() },
@@ -434,6 +437,7 @@ class ContactDetailSyncEngineTest {
         return ContactDetailSyncEngine(
             metadataPager = ContactsMetadataPager(api = api, pageSize = 1000),
             contactsApi = api,
+            labelsApi = NoLabelsApi,
             processor = processor,
             contactMapDao = dao,
             readExisting = { _ -> applier.knownRawIds() },
@@ -458,6 +462,12 @@ class ContactDetailSyncEngineTest {
  * "round" boundary fires when every contact in the initial map has been
  * fetched at least once.
  */
+/** Returns an empty label set for engine tests that don't care about groups. */
+private object NoLabelsApi : ProtonLabelsApi {
+    override suspend fun listLabels(type: Int): GetLabelsResponse =
+        GetLabelsResponse(code = 1000, labels = emptyList())
+}
+
 private class DetailFakeApi(
     metadataPages: List<ContactsPageResponse>,
     private val contacts: Map<String, ContactDto>,
