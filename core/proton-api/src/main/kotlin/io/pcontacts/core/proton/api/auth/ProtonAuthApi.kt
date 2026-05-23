@@ -22,7 +22,7 @@ interface ProtonAuthApi {
     suspend fun auth(@Body request: AuthRequest): AuthResponse
 
     @POST("core/v4/auth/2fa")
-    suspend fun auth2FA(@Body request: TwoFactorRequest): AuthResponse
+    suspend fun auth2FA(@Body request: TwoFactorRequest): TwoFactorResponse
 
     @POST("auth/refresh")
     suspend fun refresh(@Body request: RefreshRequest): RefreshResponse

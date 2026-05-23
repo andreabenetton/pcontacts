@@ -101,6 +101,35 @@ class ProtonAuthApiTest {
         assertEquals("/core/v4/auth", recorded.path)
     }
 
+    @Test fun auth2fa_posts_code_and_parses_scopes() = runTest {
+        session.update(uid = "uid-2fa", accessToken = "access-2fa")
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                    "Code":1000,
+                    "Scopes":["self","payments","full"]
+                }
+                """.trimIndent()
+            )
+        )
+
+        val response = api.auth2FA(TwoFactorRequest(twoFactorCode = "123456"))
+
+        assertEquals(1000, response.code)
+        assertEquals(listOf("self", "payments", "full"), response.scopes)
+
+        val recorded = server.takeRequest()
+        assertEquals("POST", recorded.method)
+        assertEquals("/core/v4/auth/2fa", recorded.path)
+        // Session headers must travel — without them the server has no way
+        // to associate the TOTP code with the in-flight login.
+        assertEquals("uid-2fa", recorded.getHeader("x-pm-uid"))
+        assertEquals("Bearer access-2fa", recorded.getHeader("Authorization"))
+        val body = recorded.body.readUtf8()
+        assertTrue("missing TwoFactorCode: $body", body.contains("\"TwoFactorCode\":\"123456\""))
+    }
+
     @Test fun authenticated_call_carries_session_headers() = runTest {
         session.update(uid = "live-uid", accessToken = "live-access")
         server.enqueue(MockResponse().setResponseCode(200))

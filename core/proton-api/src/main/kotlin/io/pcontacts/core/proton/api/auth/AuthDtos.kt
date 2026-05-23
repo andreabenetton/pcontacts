@@ -69,6 +69,20 @@ data class TwoFactorRequest(
     @SerialName("TwoFactorCode") val twoFactorCode: String
 )
 
+/**
+ * Response to `core/v4/auth/2fa`. The server does not re-issue tokens —
+ * it elevates the existing session's scope (the access token gains the
+ * "full" scope on success) and returns only `{Code, Scopes}`.
+ *   [V] shape confirmed in packages/shared/lib/api/auth.ts (`submitTOTP`,
+ *       `submitFido2`) — the response is consumed for its scope set, not
+ *       its tokens.
+ */
+@Serializable
+data class TwoFactorResponse(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Scopes") val scopes: List<String> = emptyList()
+)
+
 @Serializable
 data class RefreshRequest(
     @SerialName("RefreshToken") val refreshToken: String,
