@@ -124,10 +124,83 @@ class ContactsContractOpsTest {
         assertTrue(ops[3].isInsert)        // Email[1]
     }
 
-    @Test fun contact_row_rejects_empty_email_list() {
+    @Test fun contact_row_rejects_empty_email_AND_empty_phone_list() {
         org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
-            ContactRow(sourceId = "c1", displayName = "Alice", emails = emptyList())
+            ContactRow(
+                sourceId = "c1",
+                displayName = "Alice",
+                emails = emptyList(),
+                phones = emptyList()
+            )
         }
+    }
+
+    @Test fun phone_only_contact_is_allowed_and_emits_RawContacts_StructuredName_plus_Phone_rows() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = emptyList(),
+                    phones = listOf(PhoneEntry(number = "+1 555 0100", type = PhoneType.MOBILE))
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 RawContacts + 1 StructuredName + 1 Phone = 3 ops (no emails).
+        assertEquals(3, ops.size)
+        assertTrue(ops.all { it.isInsert })
+    }
+
+    @Test fun create_with_structured_name_pieces_and_two_phones_emits_full_data_row_set() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "c1",
+                    displayName = "Dr. Alice Marie Doe PhD",
+                    structuredName = StructuredName(
+                        given = "Alice",
+                        family = "Doe",
+                        middle = "Marie",
+                        prefix = "Dr",
+                        suffix = "PhD"
+                    ),
+                    emails = listOf("alice@proton.me"),
+                    phones = listOf(
+                        PhoneEntry(number = "+1 555 0100", type = PhoneType.HOME),
+                        PhoneEntry(number = "+1 555 0101", type = PhoneType.MOBILE, isPrimary = true)
+                    )
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 RawContacts + 1 StructuredName + 1 Email + 2 Phone = 5 ops.
+        assertEquals(5, ops.size)
+        assertTrue(ops.all { it.isInsert })
+    }
+
+    @Test fun update_with_phones_emits_one_delete_plus_StructuredName_plus_Email_plus_two_Phone_rows() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.UpdateContact(
+                rawContactId = 100L,
+                row = ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = listOf("alice@proton.me"),
+                    phones = listOf(
+                        PhoneEntry(number = "+1 555 0100", type = PhoneType.HOME),
+                        PhoneEntry(number = "+1 555 0101", type = PhoneType.MOBILE)
+                    )
+                )
+            )
+        )
+        // 1 Delete + 1 StructuredName + 1 Email + 2 Phone = 5 ops.
+        assertEquals(5, ops.size)
+        assertTrue(ops[0].isDelete)
+        assertTrue(ops.drop(1).all { it.isInsert })
     }
 
     @Test fun baseIdx_does_not_change_op_count_for_create() {

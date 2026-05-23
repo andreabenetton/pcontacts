@@ -55,8 +55,8 @@ class BatchPlannerTest {
 
     @Test fun mixed_intent_kinds_pack_within_limit() {
         val intents = listOf(
-            RawContactOpIntent.CreateContact(ContactRow("c1", "Alice", listOf("a@x"))),         // 3 ops
-            RawContactOpIntent.UpdateContact(rawContactId = 100L, row = ContactRow("c2", "Bob", listOf("b@x"))), // 3 ops
+            RawContactOpIntent.CreateContact(ContactRow("c1", "Alice", emails = listOf("a@x"))),         // 3 ops
+            RawContactOpIntent.UpdateContact(rawContactId = 100L, row = ContactRow("c2", "Bob", emails = listOf("b@x"))), // 3 ops
             RawContactOpIntent.DeleteContact(sourceId = "c3"),                          // 1 op
             RawContactOpIntent.DeleteContact(sourceId = "c4")                           // 1 op
         )
@@ -97,7 +97,7 @@ class BatchPlannerTest {
     @Test fun rejects_intent_that_would_alone_exceed_max() {
         // Single Create intent emits 3 ops; with max=2 we can't fit it.
         val intents = listOf(
-            RawContactOpIntent.CreateContact(ContactRow("c1", "Alice", listOf("a@x")))
+            RawContactOpIntent.CreateContact(ContactRow("c1", "Alice", emails = listOf("a@x")))
         )
         assertThrows(IllegalArgumentException::class.java) {
             BatchPlanner.plan(account, intents, maxOpsPerBatch = 2)
