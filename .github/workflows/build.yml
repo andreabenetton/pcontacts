@@ -81,6 +81,11 @@ jobs:
       - name: Lint debug
         run: ./gradlew --no-daemon --stacktrace :app:lintDebug
 
+      - name: ADR-0015 forbidden-dependency check
+        # Fails if any module's release classpath pulls in Google Play
+        # Services, Firebase, analytics SDKs, etc.
+        run: ./gradlew --no-daemon --stacktrace checkForbiddenDependencies
+
       - name: Upload lint report on failure
         if: failure()
         uses: actions/upload-artifact@v4
