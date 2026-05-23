@@ -1,0 +1,13 @@
+{
+  "name": "pcontacts-vectors",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Captures @protontech/crypto test vectors for :core:crypto's Kotlin port. NOT shipped in the APK.",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "capture": "node capture.js"
+  },
+  "dependencies": {
+    "@protontech/crypto": "*"
+  }
+}
