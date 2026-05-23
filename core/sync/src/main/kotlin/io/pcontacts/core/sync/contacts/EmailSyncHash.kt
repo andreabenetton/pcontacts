@@ -12,21 +12,25 @@ import java.security.MessageDigest
  * rewriting RawContacts whose underlying data hasn't changed — the
  * load-bearing piece for the §17 task-16 idempotency requirement.
  *
- * Covers only the fields that land in ContactsContract for MVP
- * (sourceId, displayName, email). When the complete version adds
- * Phone/Address/Note/etc, this hash MUST be extended in lockstep — a
- * stale hash function silently masks real changes. The bump should
- * also be paired with a content_hash invalidation pass so existing
+ * Covers the fields that land in ContactsContract: sourceId,
+ * displayName, and every email (in their order; ContactRow's order is
+ * itself stable — primary first). When the complete version (task 18)
+ * adds Phone / structured-name pieces, this hash MUST be extended in
+ * lockstep, paired with a content_hash invalidation pass so existing
  * rows are rewritten on the next sync.
  */
 object EmailSyncHash {
 
     fun compute(row: ContactRow): String {
         // Pipe is fine as a separator: contact ids are URL-safe base64,
-        // emails always contain '@' (not '|'), and a literal '|' inside
-        // a display name would be unusual enough that a collision is
-        // not worth designing around for change detection.
-        val payload = "${row.sourceId}|${row.displayName}|${row.email}"
+        // emails always contain '@', and a literal '|' inside a display
+        // name would be unusual enough that a collision is not worth
+        // designing around for change detection.
+        val payload = buildString {
+            append(row.sourceId).append('|')
+            append(row.displayName).append('|')
+            row.emails.joinTo(this, separator = ",")
+        }
         val digest = MessageDigest.getInstance("SHA-256").digest(payload.toByteArray(Charsets.UTF_8))
         return digest.joinToString("") { "%02x".format(it) }
     }

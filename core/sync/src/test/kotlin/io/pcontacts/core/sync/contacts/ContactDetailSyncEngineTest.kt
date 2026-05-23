@@ -70,7 +70,7 @@ class ContactDetailSyncEngineTest {
 
         val createIntent = applier.lastIntents.single() as RawContactOpIntent.CreateContact
         assertEquals("Alice Doe", createIntent.row.displayName)
-        assertEquals("alice@proton.me", createIntent.row.email)
+        assertEquals(listOf("alice@proton.me"), createIntent.row.emails)
     }
 
     @Test fun second_run_with_unchanged_modifyTime_cheap_skips_without_fetching_contact() = runTest {

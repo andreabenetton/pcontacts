@@ -8,12 +8,15 @@ import io.pcontacts.core.protoncontacts.DecryptedContact
 
 /**
  * Bridge from the rich `DecryptedContact` model (FN/N/EMAIL[]/TEL/...)
- * to the MVP-shaped `ContactRow` (sourceId, displayName, email) that
- * :core:contacts-writer currently understands.
+ * to the writer-shaped `ContactRow` (sourceId, displayName, emails[]).
  *
- * Task 18 expands the writer surface to multi-email + TEL + N pieces;
- * this translator collapses to a single email row for now. Picking
- * order mirrors EmailPageReducer (primary first, then first).
+ * Emits ALL of the contact's emails. Order: primary (`isPrimary == true`)
+ * first, then the remainder in their original sequence. The writer
+ * interprets position 0 as IS_SUPER_PRIMARY.
+ *
+ * Task 18 will grow this to also project StructuredName (FN + N
+ * pieces), phones, etc.; for now the additional fields land on
+ * future ContactRow extensions and the projection grows in lockstep.
  *
  * Returns null when the decrypted contact has no email at all — the
  * MVP writer can't represent name-only contacts. Such contacts are
@@ -23,17 +26,21 @@ import io.pcontacts.core.protoncontacts.DecryptedContact
 internal object DecryptedContactToRow {
 
     fun convert(decrypted: DecryptedContact): ContactRow? {
-        val primary = decrypted.emails.firstOrNull { it.isPrimary }
-            ?: decrypted.emails.firstOrNull()
-            ?: return null
+        if (decrypted.emails.isEmpty()) return null
+
+        // Stable order: primary first, then the rest in their original
+        // position. partition() keeps relative order within each side.
+        val (primary, others) = decrypted.emails.partition { it.isPrimary }
+        val ordered = (primary + others).map { it.address }.filter { it.isNotBlank() }
+        if (ordered.isEmpty()) return null
 
         val displayName = decrypted.fullName?.takeIf { it.isNotBlank() }
-            ?: primary.address    // fall back to the email address itself
+            ?: ordered.first()
 
         return ContactRow(
             sourceId = decrypted.protonContactId,
             displayName = displayName,
-            email = primary.address
+            emails = ordered
         )
     }
 }

@@ -7,31 +7,29 @@ import io.pcontacts.core.contactswriter.ContactRow
 import io.pcontacts.core.proton.api.contacts.ContactEmailDto
 
 /**
- * Groups a flat list of `ContactEmailDto` by ContactID and projects each
- * group to the single `ContactRow` that the email-only MVP writes. One
- * Proton contact can have many emails; for MVP we ship the "most
- * prominent" one (Defaults DESC, then Order ASC — Proton's own
- * convention for picking a contact's default email in
- * packages/shared/lib/contacts/properties.ts [V]).
+ * Groups a flat list of `ContactEmailDto` by ContactID and projects
+ * each group to the `ContactRow` the email-only engine writes. One
+ * Proton contact can have many emails; we emit ALL of them, with
+ * the primary at position 0 (the writer interprets position 0 as
+ * IS_SUPER_PRIMARY per ContactsContractOps).
  *
- * The complete version (plan §6) writes one Email Data row per email
- * under the same RawContact and stops needing this reducer.
+ * Primary-pick order ([V] from packages/shared/lib/contacts/properties.ts):
+ * Defaults DESC, then Order ASC.
  */
 object EmailPageReducer {
 
     fun reduce(emails: List<ContactEmailDto>): Map<String, ContactRow> =
         emails.groupBy { it.contactId }
             .mapValues { (_, group) ->
-                val primary = group
-                    .sortedWith(
-                        compareByDescending<ContactEmailDto> { it.defaults }
-                            .thenBy { it.order }
-                    )
-                    .first()
+                val sorted = group.sortedWith(
+                    compareByDescending<ContactEmailDto> { it.defaults }
+                        .thenBy { it.order }
+                )
+                val primary = sorted.first()
                 ContactRow(
                     sourceId = primary.contactId,
                     displayName = primary.name.ifBlank { primary.email },
-                    email = primary.email
+                    emails = sorted.map { it.email }
                 )
             }
 }

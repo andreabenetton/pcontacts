@@ -116,7 +116,7 @@ class EmailSyncEngineTest {
         assertNotNull("alice's mapping row must remain", dao.snapshot()["c1"])
     }
 
-    @Test fun multiple_email_rows_per_contact_collapse_to_one_create_using_primary_address() = runTest {
+    @Test fun multiple_email_rows_per_contact_emit_one_create_with_all_emails_primary_first() = runTest {
         val api = FakeContactsApi(
             page(
                 email("e1a", "c1", "alice.work@proton.me", "Alice", defaults = 0, order = 2),
@@ -132,7 +132,12 @@ class EmailSyncEngineTest {
 
         val createIntent = applier.lastIntents.single() as RawContactOpIntent.CreateContact
         assertEquals("c1", createIntent.row.sourceId)
-        assertEquals("alice@proton.me", createIntent.row.email)
+        // Primary (Defaults=1, Order=0) lands first; secondary order
+        // follows the Defaults DESC then Order ASC sort.
+        assertEquals(
+            listOf("alice@proton.me", "alice.alt@proton.me", "alice.work@proton.me"),
+            createIntent.row.emails
+        )
     }
 
     // --- helpers ---
