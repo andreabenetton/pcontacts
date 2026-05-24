@@ -8,6 +8,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 # Cancel in-progress runs for the same branch when a new push arrives.
 concurrency:
