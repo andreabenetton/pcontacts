@@ -3,68 +3,53 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 
-# Proton SPKI certificate pins — pinned resource slot
+# Proton SPKI certificate pins — pinned resource (ADR-0012)
 
-## What goes here
+## What is here
 
-A file named **`proton_certificate_pins.txt`** in *this directory*
-(`core/proton-api/src/main/resources/`) containing the SHA-256
-SPKI pins of `api.proton.me`'s leaf certificate chain, one pin per
-line. The expected line format matches OkHttp's
-`CertificatePinner` syntax:
+**`proton_certificate_pins.txt`** — SHA-256 SPKI pins for the ISRG
+trust anchors that sign `api.proton.me`'s TLS chain.
 
-```
-# Comments start with '#' and blank lines are ignored.
-sha256/BASE64_SPKI_HASH_OF_LEAF=
-sha256/BASE64_SPKI_HASH_OF_INTERMEDIATE=
-```
+| Pin | Subject | Expiry |
+|-----|---------|--------|
+| `C5+lpZ7tc…` | ISRG Root X1 (RSA 4096) | 2035-06-04 |
+| `diGVwiVYb…` | ISRG Root X2 (EC P-384) | 2040-09-17 |
 
-Two pins are the recommended minimum (current leaf + backup) so
-cert rotation doesn't brick installed clients.
+## Pinning strategy
 
-## Why the file isn't here yet
+We pin the two ISRG **root** certificates rather than the leaf or
+intermediate:
 
-The real pins need to be sourced from a verified
-Proton-controlled channel — their published security
-documentation, their key-transparency log, or a known-good cert
-chain captured out-of-band. Embedding placeholder pins would
-either (a) cause every HTTPS handshake to fail, or (b) cause
-pinning to silently no-op (the empty-pin path documented below).
-Either is worse than the explicit "no pins yet" state.
+- **Leaf pins** break every ~90 days when Let's Encrypt rotates
+  certificates.
+- **Intermediate pins** break when Let's Encrypt cycles intermediate
+  keys (R3 → R10 → R11 → R13 — this has happened several times).
+- **Root pins** survive both rotations. The app only breaks if Proton
+  migrates away from the ISRG chain entirely — a deliberate CA
+  change, which is extremely rare and worth an app update.
 
-## How to compute a pin
+## How the pins were captured
 
 ```bash
-openssl s_client -servername api.proton.me -connect api.proton.me:443 < /dev/null 2>/dev/null \
+# ISRG Root X1
+curl -s https://letsencrypt.org/certs/isrgrootx1.pem \
   | openssl x509 -pubkey -noout \
-  | openssl rsa -pubin -outform der 2>/dev/null \
-  | openssl dgst -sha256 -binary \
-  | openssl base64
+  | openssl pkey -pubin -outform DER \
+  | openssl dgst -sha256 -binary | base64
+
+# ISRG Root X2
+curl -s https://letsencrypt.org/certs/isrg-root-x2.pem \
+  | openssl x509 -pubkey -noout \
+  | openssl pkey -pubin -outform DER \
+  | openssl dgst -sha256 -binary | base64
 ```
 
-Verify the resulting hash against an out-of-band-trusted copy of
-Proton's published pin set before committing.
+Cross-verified against the live `api.proton.me` chain (2026-05-24):
+leaf is `CN=proton.me`, signed by `CN=R13` (Let's Encrypt
+intermediate), which chains to ISRG Root X1.
 
-## How to add the pins (release engineering)
+## Rotation
 
-1. Capture the leaf + intermediate SPKI pins from Proton.
-2. Independently verify the hashes match Proton's published list.
-3. Save them at
-   `core/proton-api/src/main/resources/proton_certificate_pins.txt`.
-4. Add a row to `docs/adr/0014-*.md` (or open a follow-up ADR)
-   noting the pin source + rotation policy.
-5. Update `ProtonCertificatePinsTest` to assert the resource loads.
-6. Consider a release-build gate that fails CI when this resource
-   is empty (defence against an accidental "ship without pinning"
-   commit).
-
-## What the pinner does today (without the file)
-
-`ProtonCertificatePins.loadFromClasspath()` returns an empty list
-when the file is absent. `ProtonCertificatePins.buildPinner()`
-then constructs an OkHttp `CertificatePinner` with NO entries for
-`api.proton.me` — effectively unpinned. The DNS guard
-(`ProtonHostDnsGuard`) still refuses non-`*.proton.me` hosts, so a
-compromise narrows to "Proton's cert chain trusted by Android's
-system store". Pinning closes that gap; until the resource lands
-the trust boundary is the system store.
+If Proton migrates to a non-ISRG CA, the app will refuse TLS
+handshakes until updated with the new CA's pin. This is by design
+(fail-closed). Ship both old + new pins in the transitional release.

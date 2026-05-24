@@ -1,0 +1,19 @@
+# SPKI SHA-256 pins for api.proton.me TLS chain (ADR-0012).
+# Format: one "sha256/<base64>" pin per line.
+#
+# Pinning strategy: pin the two ISRG trust anchors (Root X1 + Root X2).
+# This survives both leaf rotation (~90 days, Let's Encrypt) and
+# intermediate rotation (R3→R10→R11→R13 etc.) within the ISRG chain.
+#
+# Captured 2026-05-24 from:
+#   - ISRG Root X1 (RSA): https://letsencrypt.org/certs/isrgrootx1.pem
+#   - ISRG Root X2 (EC):  https://letsencrypt.org/certs/isrg-root-x2.pem
+#
+# If Proton migrates to a non-ISRG CA, the app will fail TLS until
+# updated with the new CA's pin. This is by design (ADR-0012).
+
+# ISRG Root X1 (RSA 4096, expires 2035-06-04)
+sha256/C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=
+
+# ISRG Root X2 (EC P-384, expires 2040-09-17)
+sha256/diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=

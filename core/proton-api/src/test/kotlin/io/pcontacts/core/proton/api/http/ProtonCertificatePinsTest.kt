@@ -5,14 +5,15 @@ package io.pcontacts.core.proton.api.http
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProtonCertificatePinsTest {
 
-    @Test fun loadFromClasspath_returns_empty_when_resource_absent() {
-        // No proton_certificate_pins.txt is committed; README documents
-        // that real pins are user-supplied.
-        assertEquals(emptyList<String>(), ProtonCertificatePins.loadFromClasspath())
+    @Test fun loadFromClasspath_returns_two_isrg_root_pins() {
+        val pins = ProtonCertificatePins.loadFromClasspath()
+        assertEquals("expected 2 ISRG root pins", 2, pins.size)
+        assertTrue("each pin must start with sha256/", pins.all { it.startsWith("sha256/") })
     }
 
     @Test fun buildPinner_with_empty_pin_list_returns_a_no_constraint_pinner() {
