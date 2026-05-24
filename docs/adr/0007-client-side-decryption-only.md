@@ -7,7 +7,7 @@
 
 ## Context
 
-Proton exposes `GET contacts/v4/contacts/export` which `[A]` returns already-decrypted vCards in some form (we have not validated the exact behavior; the parameter and path are present in `packages/shared/lib/api/contacts.ts`). The fact that the endpoint exists raises a design question: should the app use it (cheap, no on-device crypto needed) or always pull encrypted Cards and decrypt locally?
+Proton exposes `GET contacts/v4/contacts/export` which `[D]` likely returns already-decrypted vCards in some form (the parameter and path are present in `packages/shared/lib/api/contacts.ts`; we deliberately do not call it and have not validated its behavior). The fact that the endpoint exists raises a design question: should the app use it (cheap, no on-device crypto needed) or always pull encrypted Cards and decrypt locally?
 
 Threat-model considerations:
 
