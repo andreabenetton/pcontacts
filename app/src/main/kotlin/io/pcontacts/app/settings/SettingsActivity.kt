@@ -19,7 +19,9 @@ import androidx.compose.ui.Modifier
 import io.pcontacts.app.MainActivity
 import io.pcontacts.app.account.LogoutHelper
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
+import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.app.ui.PcontactsTheme
+import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsScreen
@@ -38,11 +40,14 @@ import io.pcontacts.feature.settings.VerificationStats
 class SettingsActivity : ComponentActivity() {
 
     private val logoutHelper by lazy { LogoutHelper(applicationContext) }
+    private val userPrefs by lazy { SharedPreferencesUserPreferences(applicationContext) }
     private val viewModel by lazy {
         SettingsViewModel(
             syncNow = ::performSyncNow,
             signOut = ::performSignOut,
-            queryVerificationStats = ::queryVerificationStats
+            queryVerificationStats = ::queryVerificationStats,
+            onSyncIntervalChanged = ::handleSyncIntervalChanged,
+            initialSyncIntervalHours = userPrefs.syncIntervalHours
         )
     }
 
@@ -96,6 +101,11 @@ class SettingsActivity : ComponentActivity() {
     private suspend fun queryVerificationStats(): VerificationStats {
         val (total, unverified) = SyncBootstrap.countVerificationStats(applicationContext)
         return VerificationStats(totalContacts = total, unverifiedContacts = unverified)
+    }
+
+    private fun handleSyncIntervalChanged(hours: Long) {
+        userPrefs.syncIntervalHours = hours
+        SyncScheduler.reschedule(applicationContext, hours)
     }
 
     private fun currentAccount(): Account? =

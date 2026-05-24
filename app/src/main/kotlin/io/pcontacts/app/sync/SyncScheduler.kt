@@ -18,22 +18,34 @@ import java.util.concurrent.TimeUnit
  */
 object SyncScheduler {
 
-    /** WorkManager's documented minimum is 15 minutes; 12h fits MVP plan §5. */
-    private const val PERIOD_HOURS = 12L
-
-    fun schedulePeriodic(context: Context) {
+    fun schedulePeriodic(context: Context, periodHours: Long = DEFAULT_PERIOD_HOURS) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .setRequiresBatteryNotLow(true)
             .build()
-        val request = PeriodicWorkRequestBuilder<PeriodicSyncWorker>(PERIOD_HOURS, TimeUnit.HOURS)
+        val request = PeriodicWorkRequestBuilder<PeriodicSyncWorker>(periodHours, TimeUnit.HOURS)
             .setConstraints(constraints)
             .build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             PeriodicSyncWorker.UNIQUE_NAME,
-            // KEEP so re-scheduling on every app start doesn't reset the
-            // backoff clock; UPDATE would re-arm the period from now.
+            // KEEP on first install; REPLACE when interval changes
+            // (reschedule picks up user preference from caller).
             ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
+
+    fun reschedule(context: Context, periodHours: Long) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
+            .build()
+        val request = PeriodicWorkRequestBuilder<PeriodicSyncWorker>(periodHours, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            PeriodicSyncWorker.UNIQUE_NAME,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request
         )
     }
@@ -41,4 +53,6 @@ object SyncScheduler {
     fun cancelPeriodic(context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork(PeriodicSyncWorker.UNIQUE_NAME)
     }
+
+    private const val DEFAULT_PERIOD_HOURS = 12L
 }

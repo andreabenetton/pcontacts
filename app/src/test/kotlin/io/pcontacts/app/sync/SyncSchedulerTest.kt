@@ -64,4 +64,15 @@ class SyncSchedulerTest {
 
         assertEquals("KEEP policy should prevent duplicate", 1, infos.size)
     }
+
+    @Test fun reschedule_replaces_existing_work() {
+        SyncScheduler.schedulePeriodic(context)
+        SyncScheduler.reschedule(context, 6)
+
+        val wm = WorkManager.getInstance(context)
+        val infos = wm.getWorkInfosForUniqueWork(PeriodicSyncWorker.UNIQUE_NAME).get()
+            .filter { it.state == WorkInfo.State.ENQUEUED }
+
+        assertEquals("reschedule should produce exactly one enqueued work", 1, infos.size)
+    }
 }

@@ -98,6 +98,7 @@ dependencies {
     // NOT depend on :core:crypto or :core:proton-api directly — those are
     // reachable transitively through :core:sync.
     implementation(project(":core:sync"))
+    implementation(project(":core:storage"))      // UserPreferences for sync interval setting
     api(project(":core:logging"))                // 'api' so :app classes (incl. ProtonSyncAdapter, AndroidLogcatSink) can name Logger types directly
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:settings"))
