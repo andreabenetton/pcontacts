@@ -5,7 +5,7 @@
 
 # pcontacts threat model
 
-Date: 2026-05-23. Owners: project owner (single-maintainer at this
+Date: 2026-05-24 (amended for ADR-0017/0018). Owners: project owner (single-maintainer at this
 stage). This document is the STRIDE pass plan §15 / §17 task 20
 calls for. It is **deliberately conservative**: when in doubt we
 assume the threat exists, document the mitigation we have today,
@@ -67,9 +67,10 @@ PR.
 | **AccessToken** | ~24h (Proton's `ExpiresIn`) | `EncryptedSharedPreferences` | `Authorization: Bearer …` header | Full read+write access to Proton REST API as the user until expiry. |
 | **RefreshToken** | until revoked | `EncryptedSharedPreferences` | request body to `/auth/refresh` only | Long-lived foothold; equivalent to password-less re-login indefinitely. |
 | **keyPassword** (bcrypt-SHA-512 string) | indefinite (until logout) | wrapped under Keystore AEAD KEK in EncryptedSharedPreferences | never on the wire | Offline decrypt of every Proton-encrypted Card on the device. |
-| Unlocked **PGP user private key** | sync-run lifetime (seconds) | NEVER persisted; constructed from armored block + keyPassword on demand | never on the wire | As above. |
+| Unlocked **PGP user private key** | sync-run lifetime (seconds); re-unlocked for outbox push retries (ADR-0017/0018) | NEVER persisted; constructed from armored block + keyPassword on demand | never on the wire | As above. |
 | Decrypted **vCard plaintext** | sync-run lifetime (seconds, per-contact) | NEVER persisted; lives only on the heap during ContactDecryptBootstrap → VCardMerger | never on the wire | Discloses contact list, emails, phones, addresses, notes. |
 | Local **Room mapping** (`contact_map`, `group_map`, `sync_state`) | until logout / data wipe | plaintext SQLite (no decrypted content stored) | never on the wire | Discloses contact IDs + sync timestamps; no plaintext content. |
+| **Outbox** (`outbox` table in Room) | until push succeeds or is discarded | plaintext SQLite; stores `op_type`, `payload_hash`, attempt metadata — no decrypted content. If three-way merge stores last-known server payloads, those are encrypted under the Keystore AEAD KEK before writing (ADR-0018). | never on the wire | Without payload: contact IDs + operation types (low sensitivity). With encrypted payload: protected at the same level as `keyPassword`. |
 | Local **ContactsContract** rows under our account | until logout | plaintext (Android provider does its own at-rest encryption per filesystem class) | shared with other apps via READ_CONTACTS permission | Full contact disclosure to any app the user has granted READ_CONTACTS. |
 
 ---
@@ -168,6 +169,8 @@ write-side artefacts are ContactsContract rows owned by us
 | I4 | Android auto-backup exfiltrates `EncryptedSharedPreferences` to Google Drive. | `android:allowBackup="false"` in the manifest + a `data_extraction_rules` XML that excludes the secret-bearing prefs. Asserted via a manifest-merger test (TODO — currently asserted by the manifest file itself). | Low. |
 | I5 | Sync log + ContactsContract rows exfiltrated by another app holding `READ_CONTACTS`. | Standard Android permission model — user grants `READ_CONTACTS` to the apps they trust. We don't have a stronger boundary. | **Medium by design.** This is the whole *point* — pcontacts puts contacts in the system address book so other apps (SMS, Phone, Mail) can use them. The user opts in when they grant READ_CONTACTS to a given app. |
 | I6 | Contact photo bytes (the inline `Photo.PHOTO` column) leak via `READ_CONTACTS` to other apps. | Same as I5 — by design. The photo is downscaled to ≤96KB JPEG before storing. | Acceptable. |
+| I7 | Outbox stores decrypted contact content at rest (if three-way merge requires last-known server payload). | ADR-0018 mandates: if the payload is stored, it MUST be encrypted under the Keystore AEAD KEK (`pcontacts.kekv1`) before writing to Room. If the implementation avoids storing payloads (re-fetches on demand), this threat is moot. | **Low** if encrypted; **Medium** if the implementation stores plaintext payloads (which ADR-0018 forbids). |
+| I8 | Unlocked signing key lingers in heap between outbox push retries. | The key is re-unlocked from `keyPassword` on demand for each push attempt; it is not held between retries. The per-attempt window is the same as a sync run (seconds). | Low — same exposure as I3, no worse. |
 
 ### Denial of service
 
@@ -281,6 +284,11 @@ Implemented:
 - R8 enabled for release builds with ProGuard rules covering BC, Room,
   Retrofit, kotlinx-serialization, ez-vcard, WorkManager,
   AbstractAccountAuthenticator, AbstractThreadedSyncAdapter.
+
+Planned (ADR-0017/0018):
+- Outbox payloads (if stored) encrypted under Keystore AEAD KEK.
+- Signing key re-unlocked per push attempt, not held between retries.
+- Outbox wiped on logout alongside SecretStore and Room mapping.
 
 Deferred (tracked):
 - Instrumented ContactsContract tests on an emulator pipeline

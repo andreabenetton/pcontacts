@@ -1,6 +1,6 @@
 # ADR-0006: MVP scope — read-only, single account
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0018
 - **Date:** 2026-05-22
 - **Deciders:** project owner
 

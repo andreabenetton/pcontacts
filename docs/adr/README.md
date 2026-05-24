@@ -15,7 +15,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0003](0003-distribution-fdroid-first.md) | Distribution — F-Droid first, sideload-friendly | Accepted |
 | [0004](0004-account-authenticator-sync-adapter.md) | System integration — AccountAuthenticator + SyncAdapter (+ WorkManager) | Accepted |
 | [0005](0005-vcard-library-ezvcard.md) | vCard library — ez-vcard, no ical.js port | Accepted |
-| [0006](0006-mvp-read-only-single-account.md) | MVP scope — read-only, single account | Accepted |
+| [0006](0006-mvp-read-only-single-account.md) | MVP scope — read-only, single account | Superseded by ADR-0018 |
 | [0007](0007-client-side-decryption-only.md) | Decrypt client-side only — never use server-side export | Accepted |
 | [0008](0008-room-mapping-database.md) | Local mapping store — Room for ProtonID ↔ RawContactID | Accepted |
 | [0009](0009-secrets-storage.md) | Secrets storage — EncryptedSharedPreferences + Keystore AEAD; no backup | Accepted |
@@ -27,6 +27,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0015](0015-no-telemetry-no-google-services.md) | No telemetry, no Google Services, no proprietary deps | Accepted |
 | [0016](0016-no-accountmanager-token-retrieval.md) | No AccountManager token retrieval — getAuthToken returns re-auth intent | Accepted |
 | [0017](0017-bidirectional-sync-scope-and-policies.md) | Bidirectional sync — scope and policies | Accepted |
+| [0018](0018-scope-expansion-bidirectional-sync.md) | Scope expansion — bidirectional sync (supersedes ADR-0006) | Accepted |
 
 ## Template
 
