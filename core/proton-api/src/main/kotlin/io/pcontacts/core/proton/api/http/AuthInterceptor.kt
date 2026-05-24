@@ -13,9 +13,8 @@ import okhttp3.Response
  * are reached before `Session` is populated and travel without these
  * headers, matching the Proton web client behavior.
  *
- * The 401 → refresh dance is handled by a separate `Authenticator` (the
- * OkHttp Authenticator API, not this Interceptor), implemented in a
- * follow-up commit.
+ * The 401 → refresh dance is handled by `RefreshingAuthenticator` (the
+ * OkHttp Authenticator API, not this Interceptor).
  */
 class AuthInterceptor(
     private val session: Session

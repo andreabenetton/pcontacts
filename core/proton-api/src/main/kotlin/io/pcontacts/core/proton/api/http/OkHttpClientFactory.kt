@@ -32,10 +32,9 @@ import okhttp3.OkHttpClient
  *                            so callers don't see 429s under normal
  *                            transient load.
  *
- * Logging interceptor is intentionally absent. A debug-only redacting
- * logging interceptor lands in a follow-up commit; it will use
- * `:core:logging`'s `Logger` and never emit request/response bodies for
- * `/auth*` or `/contacts/v4/contacts*` paths.
+ * Logging interceptor is intentionally absent. If one is added it must
+ * use `:core:logging`'s `Logger` and never emit request/response bodies
+ * for `/auth*` or `/contacts/v4/contacts*` paths.
  */
 object OkHttpClientFactory {
 
