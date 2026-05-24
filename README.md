@@ -20,9 +20,8 @@ What works in code (verified by unit tests + live integration test):
 
 ### Known gaps
 
-1. **No instrumented tests.** `ContactsContract` round-trip semantics (aggregation, tombstones, photo round-trip) are validated by Robolectric structural tests only. Add an emulator-backed pipeline before claiming end-to-end correctness.
-2. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
-3. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
+1. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
+2. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
 
 ## Why this exists
 
@@ -98,9 +97,12 @@ Reproducible-build instructions will land in `docs/BUILD.md` when the diffoscope
 
 # ADR-0015 forbidden-dependency check:
 ./gradlew checkForbiddenDependencies
+
+# Instrumented tests (requires connected device or emulator):
+./gradlew :core:contacts-writer:connectedDebugAndroidTest
 ```
 
-GitHub Actions runs all three plus `:app:assembleRelease` on every push / PR.
+GitHub Actions runs all of the above plus `:app:assembleRelease` on every push / PR. Instrumented tests run on API 26 and 33 emulators.
 
 ## Threat model
 
