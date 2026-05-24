@@ -42,6 +42,7 @@ class HumanVerificationInterceptor(
         val snippet = try {
             response.peekBody(maxPeekBytes).string()
         } catch (t: Throwable) {
+            logger.warn { "peekBody failed on ${chain.request().url.encodedPath}; skipping 9001 check" }
             return response
         }
         if (isCode9001(snippet)) {
