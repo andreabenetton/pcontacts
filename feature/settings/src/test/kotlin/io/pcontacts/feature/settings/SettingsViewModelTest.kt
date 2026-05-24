@@ -140,7 +140,7 @@ class SettingsViewModelTest {
         val vm = SettingsViewModel(
             syncNow = { error("not used") },
             signOut = { error("not used") },
-            queryVerificationStats = { throw RuntimeException("db error") },
+            queryVerificationStats = { error("db error") },
             scope = TestScope(dispatcher),
             workDispatcher = dispatcher
         )
