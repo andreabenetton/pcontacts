@@ -50,4 +50,23 @@ object ImProtocolMapper {
         ImAccountType.WORK -> Im.TYPE_WORK
         ImAccountType.OTHER -> Im.TYPE_OTHER
     }
+
+    fun fromAndroid(protocol: Int): ImProtocol = when (protocol) {
+        Im.PROTOCOL_JABBER -> ImProtocol.JABBER
+        Im.PROTOCOL_AIM -> ImProtocol.AIM
+        Im.PROTOCOL_MSN -> ImProtocol.MSN
+        Im.PROTOCOL_YAHOO -> ImProtocol.YAHOO
+        Im.PROTOCOL_SKYPE -> ImProtocol.SKYPE
+        Im.PROTOCOL_QQ -> ImProtocol.QQ
+        Im.PROTOCOL_GOOGLE_TALK -> ImProtocol.GOOGLE_TALK
+        Im.PROTOCOL_ICQ -> ImProtocol.ICQ
+        Im.PROTOCOL_NETMEETING -> ImProtocol.NETMEETING
+        else -> ImProtocol.CUSTOM
+    }
+
+    fun typeFromAndroid(type: Int): ImAccountType = when (type) {
+        Im.TYPE_HOME -> ImAccountType.HOME
+        Im.TYPE_WORK -> ImAccountType.WORK
+        else -> ImAccountType.OTHER
+    }
 }

@@ -46,4 +46,15 @@ object PhoneTypeMapper {
         PhoneType.MAIN -> Phone.TYPE_MAIN
         PhoneType.OTHER -> Phone.TYPE_OTHER
     }
+
+    fun fromAndroid(type: Int): PhoneType = when (type) {
+        Phone.TYPE_HOME -> PhoneType.HOME
+        Phone.TYPE_WORK -> PhoneType.WORK
+        Phone.TYPE_MOBILE -> PhoneType.MOBILE
+        Phone.TYPE_FAX_HOME -> PhoneType.FAX_HOME
+        Phone.TYPE_FAX_WORK -> PhoneType.FAX_WORK
+        Phone.TYPE_PAGER -> PhoneType.PAGER
+        Phone.TYPE_MAIN -> PhoneType.MAIN
+        else -> PhoneType.OTHER
+    }
 }

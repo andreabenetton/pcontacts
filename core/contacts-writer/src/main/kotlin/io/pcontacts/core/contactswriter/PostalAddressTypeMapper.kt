@@ -28,4 +28,10 @@ object PostalAddressTypeMapper {
         PostalAddressType.WORK -> StructuredPostal.TYPE_WORK
         PostalAddressType.OTHER -> StructuredPostal.TYPE_OTHER
     }
+
+    fun fromAndroid(type: Int): PostalAddressType = when (type) {
+        StructuredPostal.TYPE_HOME -> PostalAddressType.HOME
+        StructuredPostal.TYPE_WORK -> PostalAddressType.WORK
+        else -> PostalAddressType.OTHER
+    }
 }
