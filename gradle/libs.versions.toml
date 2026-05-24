@@ -44,7 +44,7 @@ retrofit                     = "2.11.0"
 
 # Crypto + vCard
 bouncycastle                 = "1.84"
-ezvcard                      = "0.12.1"
+ezvcard                      = "0.12.2"
 
 # Test
 junit                        = "4.13.2"
