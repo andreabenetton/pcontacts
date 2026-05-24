@@ -36,12 +36,10 @@ import java.util.Base64
  *     server-side computation
  *
  * Verification markers across this file:
- *   `[V]` endpoint paths, DTO shapes, two-factor bit semantics.
- *   `[A]` SRP `x` derivation (see SrpXDerivation), modulus arrives as raw
- *         base64 (real Proton ships an OpenPGP-signed cleartext envelope —
- *         decoder + ADR-0014 signature pinning land in a follow-up).
- *   `[U]` ChallengePayload — sent empty for now; if Proton's anti-bot layer
- *         rejects empty payloads this surfaces immediately at integration time.
+ *   `[V]` endpoint paths, DTO shapes, two-factor bit semantics,
+ *         SRP `x` derivation, ChallengePayload (empty map accepted),
+ *         modulus OpenPGP envelope + signature verification.
+ *         All validated against live Proton API on 2026-05-24.
  */
 class SrpLoginOrchestrator(
     private val api: ProtonAuthApi,
@@ -131,7 +129,7 @@ class SrpLoginOrchestrator(
                     clientEphemeral = Base64.getEncoder().encodeToString(toLittleEndianBytes(proof.clientEphemeralA, padLen)),
                     clientProof = Base64.getEncoder().encodeToString(proof.clientProofM1),
                     srpSession = info.srpSession,
-                    payload = emptyMap()    // [U] ChallengePayload
+                    payload = emptyMap()    // [V] ChallengePayload — empty map accepted (2026-05-24)
                 )
             )
         } catch (t: Throwable) {
@@ -181,7 +179,7 @@ class SrpLoginOrchestrator(
      * password, primaryKeySalt)` (Plan §2.7 step 12), and stores the
      * bcrypt string bytes under the Keystore AEAD key (ADR-0009).
      *
-     * `[A]` — the PGP key is unlocked with the bcrypt string itself
+     * `[A]` — the PGP key unlock with the bcrypt string itself
      * (matching the Proton web client's `decryptPrivateKey(armored,
      * keyPassword)` call); ADR-0013 vectors will flip this to `[V]`.
      */
