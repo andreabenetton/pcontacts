@@ -31,16 +31,29 @@ import kotlinx.coroutines.withContext
 class SettingsViewModel(
     private val syncNow: suspend () -> SettingsActionResult,
     private val signOut: suspend () -> SettingsActionResult,
+    private val queryVerificationStats: suspend () -> VerificationStats? = { null },
     private val scope: CoroutineScope = MainScope(),
     private val workDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Idle)
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    private val _verificationStats = MutableStateFlow<VerificationStats?>(null)
+    val verificationStats: StateFlow<VerificationStats?> = _verificationStats.asStateFlow()
+
     private var pendingJob: Job? = null
 
+    init {
+        scope.launch { refreshVerificationStats() }
+    }
+
+    private suspend fun refreshVerificationStats() {
+        _verificationStats.value = withContext(workDispatcher) {
+            try { queryVerificationStats() } catch (_: Exception) { null }
+        }
+    }
+
     fun triggerSyncNow() {
-        // Coalesce: ignore a second tap while busy.
         if (_uiState.value is SettingsUiState.Syncing) return
         _uiState.value = SettingsUiState.Syncing
         pendingJob = scope.launch {
@@ -51,6 +64,7 @@ class SettingsViewModel(
                 is SettingsActionResult.Failure ->
                     SettingsUiState.SyncFailed(result.reason)
             }
+            refreshVerificationStats()
         }
     }
 
@@ -82,3 +96,8 @@ sealed interface SettingsActionResult {
     data class Success(val message: String? = null) : SettingsActionResult
     data class Failure(val reason: String) : SettingsActionResult
 }
+
+data class VerificationStats(
+    val totalContacts: Int,
+    val unverifiedContacts: Int
+)

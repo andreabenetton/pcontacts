@@ -99,4 +99,52 @@ class SettingsViewModelTest {
         vm.reset()
         assertEquals(SettingsUiState.Idle, vm.uiState.value)
     }
+
+    @Test fun verification_stats_loaded_on_init() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val stats = VerificationStats(totalContacts = 10, unverifiedContacts = 2)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryVerificationStats = { stats },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(stats, vm.verificationStats.value)
+    }
+
+    @Test fun verification_stats_refreshed_after_sync() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var callCount = 0
+        val vm = SettingsViewModel(
+            syncNow = { SettingsActionResult.Success("done") },
+            signOut = { error("not used") },
+            queryVerificationStats = {
+                callCount += 1
+                VerificationStats(totalContacts = 10, unverifiedContacts = callCount)
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(1, vm.verificationStats.value?.unverifiedContacts)
+
+        vm.triggerSyncNow()
+        advanceUntilIdle()
+        assertEquals(2, vm.verificationStats.value?.unverifiedContacts)
+    }
+
+    @Test fun verification_stats_null_when_query_fails() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryVerificationStats = { throw RuntimeException("db error") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(null, vm.verificationStats.value)
+    }
 }
