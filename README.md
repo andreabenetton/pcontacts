@@ -6,7 +6,7 @@ A GPL-3.0 Android app that signs in to a Proton Mail account, decrypts the user'
 
 ## Status
 
-Pre-release. The full plan §17 task list (1–20) is implemented in source and exercised by unit tests; plan phase 10 hardening (refresh mutex, 429 backoff, 9001 handling, ProGuard + R8, CI, threat model, license-check task) is also in. **Validated against the live Proton production API** on 2026-05-24 — full SRP handshake, token persistence, keyPassword derivation, and logout all succeed. See [`docs/API_RESEARCH.md`](docs/API_RESEARCH.md) for protocol details.
+Pre-release. All plan phases through phase 9 (bidirectional sync) are implemented and exercised by unit tests. **Validated against the live Proton production API** on 2026-05-24 — full SRP handshake, token persistence, keyPassword derivation, and logout all succeed. See [`docs/API_RESEARCH.md`](docs/API_RESEARCH.md) for protocol details.
 
 What works in code (verified by unit tests + live integration test):
 
@@ -14,14 +14,17 @@ What works in code (verified by unit tests + live integration test):
 - Per-card decrypt: CLEAR_TEXT / SIGNED / ENCRYPTED / ENCRYPTED_AND_SIGNED dispatch via `:core:proton-contacts`, integrated end-to-end against real BouncyCastle in `ContactDecryptBootstrapTest`.
 - Full vCard projection: FN / N pieces / multiple EMAIL / multiple TEL / multiple ADR / ORG / NOTE / IMPP / inline PHOTO / CATEGORIES + LabelIDs → GroupMembership.
 - Two-tier sync skip: server `ModifyTime` first (cheap, no fetch), then content hash (avoids no-op writes when ModifyTime bumps but content didn't change).
+- **Bidirectional sync** (ADR-0017, ADR-0018): local edits pushed to Proton via a persistent outbox. Change detection reads DIRTY/DELETED flags from `ContactsContract`, computes content hashes to skip no-ops. Push-before-pull ordering. Per-field conflict detection with user-facing resolution UI. Soft-delete with 1-hour grace period and cancel support.
+- Per-card encrypt + sign for write-back: `ContactSerializer` produces SIGNED (FN + UID) and ENCRYPTED_AND_SIGNED (all remaining fields) cards. Full encrypt→decrypt round-trip verified with real BouncyCastle keys.
 - 401 → `/auth/refresh` → retry under a single-flight mutex; 429 → Fibonacci backoff (1s, 2s, 3s, 5s, 8s) honouring `Retry-After`; 9001 (human verification) surfaced as a typed exception that stops the sync framework from retrying.
-- Logout: server-side revoke + ContactsContract wipe + Room mapping wipe + `SecretStore.logout()` (zeroes secrets + deletes Keystore AEAD KEK alias) + Android Account removal.
-- Periodic sync every 12h via `PeriodicSyncWorker` (NetworkType.CONNECTED + battery-not-low) plus the system `SyncAdapter`. "Sync now" + "Sign out" UI in the in-app Settings screen.
+- Logout: server-side revoke + ContactsContract wipe + Room mapping wipe + outbox wipe + `SecretStore.logout()` (zeroes secrets + deletes Keystore AEAD KEK alias) + Android Account removal.
+- Periodic sync every 12h via `PeriodicSyncWorker` (NetworkType.CONNECTED + battery-not-low) plus the system `SyncAdapter`. Settings screen with sync interval selector, outbox status, pending-delete banner, and conflict resolution UI.
 
 ### Known gaps
 
 1. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
 2. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
+3. **Bidirectional sync is not yet validated against the live API.** The encrypt/decrypt round-trip is proven by unit tests with real BouncyCastle keys, but the full CREATE/UPDATE/DELETE flow has not been exercised against a real Proton account.
 
 ## Why this exists
 
@@ -46,7 +49,7 @@ This project studies and adapts code from [ProtonMail/WebClients](https://github
 
 ## Architecture decisions
 
-See [`docs/adr/README.md`](docs/adr/README.md) for the index of all 15 ADRs.
+See [`docs/adr/README.md`](docs/adr/README.md) for the index of all ADRs.
 
 The load-bearing calls:
 
@@ -54,7 +57,7 @@ The load-bearing calls:
 - **F-Droid first**, sideload-friendly. No Google Play Services, no telemetry, no closed-source binaries. Enforced by a `checkForbiddenDependencies` Gradle task that fails CI on any forbidden group landing in a release classpath. (ADRs 0003, 0015)
 - **`AbstractAccountAuthenticator` + `SyncAdapter`** for system integration; `WorkManager` as the belt-and-suspenders periodic scheduler. (ADR 0004)
 - **Client-side decrypt only.** The app never calls `GET contacts/v4/contacts/export` (server-side decrypt); a CI grep fails on the path. (ADR 0007)
-- **Read-only, single-account MVP.** Bidirectional write-back is plan phase 9 work. (ADR 0006)
+- **Bidirectional sync** with persistent outbox, per-field three-way merge, soft-delete with 1-hour grace, and push-before-pull ordering. Supersedes the read-only MVP scope. (ADRs 0017, 0018; supersedes ADR 0006)
 - **Delete-and-reinsert child Data rows on update**, never the parent RawContact (preserves user-owned aggregate state — starred, custom ringtone, custom photo). (ADR 0010)
 - **Modulus signature verification** against a pinned Proton SRP signing key. Verified against live API. (ADR 0014)
 
@@ -116,6 +119,7 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the STRIDE pass. Highligh
 
 The SRP auth flow is validated against the live API. PRs welcome for:
 
+- Live-API validation of the bidirectional sync path (CREATE / UPDATE / DELETE round-trip).
 - Instrumented `ContactsContract` round-trip tests on an emulator pipeline.
 - Compose UI tests for the login + settings screens.
 - OpenPGP vector capture extension in `tools/vectors/capture.js`.
