@@ -80,6 +80,7 @@ object AuthBootstrap {
             secretStore = secretStore,
             session = session,
             contactMapDao = db.contactMapDao(),
+            outboxDao = db.outboxDao(),
             syncStateDao = db.syncStateDao(),
             deleteAllContactsFor = { account ->
                 withContext(Dispatchers.IO) { applier.deleteAllForAccount(account) }

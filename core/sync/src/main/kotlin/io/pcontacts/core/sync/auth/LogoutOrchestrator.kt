@@ -11,6 +11,7 @@ import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.storage.SecretStore
 import io.pcontacts.core.storage.db.dao.ContactMapDao
+import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.dao.SyncStateDao
 
 /**
@@ -47,6 +48,7 @@ class LogoutOrchestrator(
     private val secretStore: SecretStore,
     private val session: InMemorySession,
     private val contactMapDao: ContactMapDao,
+    private val outboxDao: OutboxDao,
     private val syncStateDao: SyncStateDao,
     /** Deletes every RawContact owned by `account`; returns the row count. */
     private val deleteAllContactsFor: suspend (Account) -> Int,
@@ -76,9 +78,10 @@ class LogoutOrchestrator(
             0
         }
 
-        // 3) Clear Room mapping + per-account sync state.
+        // 3) Clear Room mapping + per-account sync state + outbox.
         try {
             contactMapDao.deleteAll()
+            outboxDao.deleteAll()
             syncStateDao.delete(account.name)
         } catch (t: Throwable) {
             logger.error(t) { "clear Room mapping failed" }
