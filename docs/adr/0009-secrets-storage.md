@@ -74,3 +74,20 @@ Defenses available on modern Android (API 26+):
 - Instrumented test: logout, then assert `auth_prefs` file is absent and Keystore alias does not exist.
 - Static check: no `SharedPreferences` constructor in any module other than `:core:storage`.
 - Manifest review on release: `allowBackup="false"`, `debuggable="false"`, no `tools:replace` overriding either.
+
+## Implementation status
+
+Shipped:
+
+- `SecretStore` interface + `InMemorySecretStore` (tests) + `EncryptedSecretStore` (production) in `core/storage/src/main/kotlin/io/pcontacts/core/storage/`.
+- `KeystoreAesGcmKek` wraps the keyPassword under the Keystore alias `pcontacts.kekv1` (AES-256-GCM, StrongBox where available). Wire format `[IV 12B][ciphertext+tag]`. Alias deleted on `SecretStore.logout()`.
+- `EncryptedSecretStore` reads/writes UID / AccessToken / RefreshToken via EncryptedSharedPreferences (AES256_SIV key / AES256_GCM value). keyPassword is double-wrapped (KEK → EncryptedSharedPreferences).
+- Manifest: `android:allowBackup="false"`, `android:dataExtractionRules` excludes the secret-bearing prefs; release build is `android:debuggable="false"` (the `release` buildType in `app/build.gradle.kts` pins it).
+- `LogoutOrchestrator` calls `SecretStore.logout()` as step 4 of the sign-out chain; on success every secret is zeroed and the Keystore alias is deleted.
+- Custom `PcontactsSensitiveLog` Lint rule enforces no `android.util.Log` / `println` / `System.out.*` calls outside `:core:logging` and the sanctioned bridge in `:app.logging.AndroidLogcatSink`.
+
+Deferred:
+
+- The instrumented "force-kill + restart, value matches" round-trip needs an emulator pipeline (no such CI lane yet).
+- Manifest-merger golden-file test asserting `allowBackup=false` + `debuggable=false` on the release variant.
+- Static check that flags direct `SharedPreferences` constructors outside `:core:storage` (currently only the lint rule for `Log.*` exists; detekt is declared in libs but not yet wired).

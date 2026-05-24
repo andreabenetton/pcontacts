@@ -90,3 +90,13 @@ data class SyncState(
 - Migration test scaffold present from day one (even if there's only v1).
 - After a clean reinstall, the first sync produces correct counts (queried directly via `ContentResolver` and compared to server).
 - "Clear app data" scenario: simulate by wiping Room only, then run sync, assert reconciliation with existing `RawContacts`.
+
+## Implementation status
+
+Schema v1 is shipped:
+
+- Entities live at `core/storage/src/main/kotlin/io/pcontacts/core/storage/db/entity/` — `ContactMapEntity`, `GroupMapEntity`, `SyncStateEntity`. `ContactMapEntity.Status` int-constants companion keeps the sync_status column enum-free for migration safety.
+- DAOs at `core/storage/src/main/kotlin/io/pcontacts/core/storage/db/dao/` — `ContactMapDao`, `GroupMapDao`, `SyncStateDao`. `ContactMapDao` covers the hot-path lookups (`findByProtonId`, `findByRawContactId`, `findByProtonUid`, `listLive`, `markDeleted`, `deleteByProtonId`).
+- `PcontactsDatabase` + `DatabaseFactory` at `core/storage/src/main/kotlin/io/pcontacts/core/storage/db/`. Schema JSON exported to `core/storage/schemas/io.pcontacts.core.storage.db.PcontactsDatabase/1.json` — input for the `MigrationTestHelper`-driven test when v2 ships.
+- Robolectric `PcontactsDatabaseTest` covers: upsert/replace, both secondary-index lookups, soft-delete tombstones, hard delete, multi-entity round-trips.
+- Engine consumption: `ContactDetailSyncEngine` queries `listLive()` + per-row `contentHash` for the two-tier sync skip (modifyTime then content_hash); `EmailSyncHash` covers every writer-visible field so any contact change invalidates the cached hash. Logout drives `deleteAll()` on contact_map + per-account `delete(accountName)` on sync_state.

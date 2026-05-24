@@ -73,3 +73,26 @@ These vectors live in `tools/vectors/` as JSON files (committed to the repo), an
 - `./gradlew :core:crypto:test` loads every JSON file in `tools/vectors/` and runs assertions against it. Test count > 0 enforced.
 - A canary test loads an unknown file from `tools/vectors/` and fails the build if any new vector files are added without test coverage.
 - The Node script runs cleanly on a fresh `npm ci` from the repo root.
+
+## Implementation status
+
+Scaffolding shipped, vectors not yet captured:
+
+- `tools/vectors/capture.js` (CommonJS, not `.mjs`) — the runnable script. Three bcrypt-SHA-512 inputs wired today (ASCII short, ASCII long, UTF-8 unicode); SRP + OpenPGP capture functions stubbed for the maintainer to extend against the pinned `@protontech/crypto` version.
+- `tools/vectors/README.md` documents the `npm install && node capture.js` flow + when to re-run.
+- `tools/vectors/.gitignore` keeps `node_modules/` and `package-lock.json` out of source control.
+- `CapturedVectorsTest` in `:core:crypto` test sources loads `/proton-crypto-vectors.json` from the classpath; when the resource is absent (current state — needs a Node runtime + npm to produce) the test JUnit-Assumes its way to a no-op so CI stays green. The moment the JSON lands the assertion against `ComputeKeyPassword.derive(...)` goes live for every vector.
+
+Run procedure for the maintainer:
+
+```bash
+cd tools/vectors
+npm install
+node capture.js
+git add core/crypto/src/test/resources/proton-crypto-vectors.json
+git commit -m "test(crypto): capture @protontech/crypto vectors"
+```
+
+Flips multiple `[A]` markers in `:core:crypto` to `[V]` (bcrypt cost factor, pre-hash form, SRP `x` derivation once the SRP capture is extended).
+
+Output path resolved by the script is `core/crypto/src/test/resources/proton-crypto-vectors.json` — not `tools/vectors/` itself — so the test reads it from the JVM classpath without a brittle relative-file dance.

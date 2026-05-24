@@ -74,8 +74,31 @@ checked at release time by a Gradle license-compatibility task.
     License: Apache 2.0
   kotlinx.coroutines
     License: Apache 2.0
-  AndroidX (security-crypto, room, work-manager, biometric, credentials)
+  AndroidX (security-crypto, room, work-manager, biometric, credentials,
+            activity, activity-compose, lifecycle-runtime-compose,
+            appcompat, core-ktx)
     License: Apache 2.0
+  Jetpack Compose (ui, material3, foundation, ui-tooling-preview,
+                   compose-bom)
+    License: Apache 2.0
+
+Test-only (not packaged in the APK):
+
+  JUnit 4, Kotest, Robolectric, OkHttp MockWebServer,
+  AndroidX test-junit / test-runner / test-rules, Room testing
+    Licenses: EPL 1.0 / Apache 2.0 / various permissive
+  Android Lint API (com.android.tools.lint) — for the custom
+    PcontactsSensitiveLog rule module in :tools:lint
+    License: Apache 2.0
+
+Dev-time only (not packaged, not imported at runtime):
+
+  @protontech/crypto — used solely by the vector-capture script
+    in tools/vectors/ to derive bcrypt-SHA-512 / SRP / OpenPGP
+    reference vectors. The Kotlin port in :core:crypto verifies
+    itself against the captured JSON; nothing from the npm
+    package reaches the APK.
+    License: GPL-3.0
 
 ----------------------------------------------------------------------
 Trademarks

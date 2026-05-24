@@ -66,3 +66,21 @@ The redacting-logger requirement (no `Log.*` of tokens, passwords, signatures, v
 - CI job: lint runs the `pcontacts.SensitiveLog` rule; non-zero exit on any violation.
 - CI job: manifest-merger output for release flavor is asserted against a golden file that contains no GMS/Firebase entries.
 - Manual: `apkanalyzer files list app-release.apk` shows no `META-INF/.*\.firebase\b` or `assets/google_*` resources.
+
+## Implementation status
+
+Three of the four structural enforcement gates are shipped:
+
+1. **Forbidden-dependency Gradle task** — `checkForbiddenDependencies` in the root `build.gradle.kts` walks every sub-project's resolved release runtime classpath and fails on any artifact whose group is in the blocklist (Google Play Services, Firebase, Play Integrity, Ads, Sentry, Bugsnag, AppsFlyer, Crashlytics, Fabric, Google Places). Marked `notCompatibleWithConfigurationCache` because it walks resolved configurations at execution time. Wired into the CI `assemble-debug` job so every PR exercises it. **This is not a full license-scan**; it doesn't catch non-GPL-3-compatible licenses on otherwise allowed groups. A real license-scan plugin (e.g. `com.github.jk1.dependency-license-report`) is a tracked follow-up.
+2. **`PcontactsSensitiveLog` Lint rule** — `tools/lint/.../SensitiveLogDetector.kt` (UAST detector) flags any `android.util.Log.*`, `println`, or `System.out.*` call outside the sanctioned bridge package `io.pcontacts.app.logging` and `:core:logging`. Wired into every Android module via `lintChecks(project(":tools:lint"))`. Failed Lint = failed build.
+3. **DNS allowlist for the single OkHttpClient** — `ProtonHostDnsGuard` in `:core:proton-api` refuses to resolve hosts that don't match `*.proton.me` (localhost allowed for MockWebServer tests). Mechanical enforcement of CLAUDE.md's "no host outside *.proton.me" rule.
+
+Plus R8 + ProGuard rules in `app/proguard-rules.pro` cover BouncyCastle reflection, kotlinx-serialization, Retrofit, Room KSP-generated impls, WorkManager, AbstractAccountAuthenticator, AbstractThreadedSyncAdapter. `isMinifyEnabled = true` on the release buildType so every assembleRelease exercises them.
+
+Deferred:
+
+- Manifest-merger golden-file test asserting no GMS/Firebase services or receivers slip in.
+- Network-capture CI gate asserting startup makes zero DNS queries for non-`proton.me` hosts on a fresh emulator.
+- `apkanalyzer files list` post-build assertion against a forbidden-file pattern list.
+
+The CI workflow (`.github/workflows/build.yml`) runs `checkForbiddenDependencies` + `:app:lintDebug` (which includes the Sensitive-Log rule) + `:app:assembleRelease` (R8) on every push / PR.

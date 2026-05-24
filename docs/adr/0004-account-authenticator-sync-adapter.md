@@ -49,3 +49,13 @@ For phase 9 (bidirectional sync) we set `supportsUploading="true"` and register 
 - System Contacts app shows our contacts under the account filter.
 - Pull-to-refresh in system Contacts triggers our SyncAdapter (logged in debug build).
 - Removing the account via Settings deletes all our `RawContacts` (Android does this automatically when the account type is unregistered).
+
+## Implementation status
+
+All three surfaces are shipped:
+
+- `ProtonAccountAuthenticator` + `ProtonAuthenticatorService` in `app/src/main/kotlin/io/pcontacts/app/account/`. `authenticator.xml` registers the `io.pcontacts.account` type. `addAccount` returns an Intent that opens `LoginActivity`.
+- `ProtonSyncAdapter` + `ProtonSyncService` in `app/src/main/kotlin/io/pcontacts/app/sync/`. `syncadapter.xml` binds to `ContactsContract.AUTHORITY`. `onPerformSync` builds a `ContactDetailSyncEngine` via `SyncBootstrap.createContactDetailSyncEngine` and bridges its suspend `sync()` via `runBlocking`. Maps `DecryptUnavailableException` and `HumanVerificationRequiredException` to `syncResult.stats.numAuthExceptions` so the framework stops retrying.
+- `PeriodicSyncWorker` + `SyncScheduler` in `app/src/main/kotlin/io/pcontacts/app/sync/`. Schedules a 12-hour periodic job (NetworkType.CONNECTED + battery-not-low + KEEP policy). `PcontactsApplication.onCreate` enqueues it idempotently.
+- In-app `SettingsActivity` (Compose surface from `:feature:settings`) wires the user-facing "Sync now" (`ContentResolver.requestSync` expedited + manual) and "Sign out" (`LogoutHelper` → `LogoutOrchestrator`) actions.
+- `LogoutHelper` runs the full server-revoke + ContactsContract wipe + Room wipe + SecretStore wipe + AccountManager removal chain.

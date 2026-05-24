@@ -61,3 +61,16 @@ The `Modulus` field in the response is a clearsigned OpenPGP message: the cleart
 - Negative test: feed a signed-modulus fixture signed by a different key → verification fails, login aborts with a security error.
 - Negative test: tamper one byte of the modulus content → signature verification fails.
 - Code review checklist: any change to `proton_srp_signing_key.asc` or `BuildConfig.PROTON_SRP_KEY_FINGERPRINT` requires two reviewers and a link to the upstream Proton source for the new key.
+
+## Implementation status
+
+Verifier machinery is shipped and tested; the pinned key resource is not. Concretely:
+
+- `ProtonModulusEnvelope.decode(serverValue)` in `:core:crypto/srp/` peels the OpenPGP cleartext envelope (raw base64 passthrough for unenveloped fallbacks). 6 tests.
+- `BouncyCastleProtonModulusVerifier` reads the armored key from `/proton_srp_signing_key.asc` on the classpath at construction, verifies detached signatures via `OpenPgpService.verifyDetached`, returns one of `VALID` / `INVALID` / `NO_SIGNER_KEY`. 6 tests including tamper + attacker-key paths.
+- `SrpLoginOrchestrator` calls the verifier on every `auth/info` response. On `VALID` → proceed. On `INVALID` → `LoginResult.Failed(reason = "modulus_signature_invalid")` (aborts login as this ADR's Decision requires). On `NO_SIGNER_KEY` → log warn + proceed.
+- The pinned-key resource at `core/crypto/src/main/resources/proton_srp_signing_key.asc` is intentionally absent in source control. A README at the same path documents the source-and-pin procedure + the production-gate flip (change the `NO_SIGNER_KEY` branch from warn-and-proceed to abort once the key lands).
+
+Production-gating policy mismatch: this ADR's Decision says "abort the login flow with a security error" on verification failure, which the code does for `INVALID`. For `NO_SIGNER_KEY` (no pinned key configured), today's code warns and proceeds — a tactical deviation while the pinned key is being sourced. The next commit that drops the key in **must** flip that branch to abort; tracked as part of [`docs/THREAT_MODEL.md §5.1`](../THREAT_MODEL.md).
+
+`BuildConfig.PROTON_SRP_KEY_FINGERPRINT` is not wired yet — the current verifier accepts the resource's first PGPPublicKeyRing without a separate fingerprint cross-check. Add the constant in the same commit that lands the resource.

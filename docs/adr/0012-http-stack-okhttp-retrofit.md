@@ -88,3 +88,22 @@ Use **OkHttp 4.x + Retrofit 2.x + kotlinx.serialization** in `:core:proton-api`.
 - MockWebServer test: 9001 surfaces a `HumanVerificationChallenge` event and does not auto-replay.
 - Log scrape test: under `assembleDebug`, run a sync against MockWebServer, capture `Log.*` output, assert no `Bearer`/`Password`/`Signature`/JSON-body strings appear.
 - Pinning test: a MockWebServer with a wrong leaf SPKI is rejected at the TLS layer.
+
+## Implementation status
+
+Shipped:
+
+- `OkHttpClientFactory.create(config, session, authenticator?)` — the single OkHttp constructor in the codebase. Two-stage instantiation in `ProtonApiFactory` keeps the `/auth/refresh` call itself OUT of the authenticator chain (no recursion).
+- `HeadersInterceptor` (accept, x-pm-appversion, x-pm-locale) + `AuthInterceptor` (x-pm-uid, Authorization).
+- `ProtonHostDnsGuard` — DNS resolver that refuses non-`*.proton.me` hosts (localhost allowed for MockWebServer tests). 7 tests including lookalike-domain rejection.
+- `ProtonCertificatePins` — `CertificatePinner` driven by `/proton_certificate_pins.txt` on the classpath. Resource file is intentionally absent in source control; README at `core/proton-api/src/main/resources/README_proton_certificate_pins.md` documents the openssl one-liner + the production-gate flip. Today's behavior is unpinned (DNS guard still active).
+- `RefreshingAuthenticator` + `TokenRefresher` — 401 → `/auth/refresh` → retry. Single-flight via `ReentrantLock`; bounded retry (`responseCount > 1 → null`) prevents loops. Persistence callbacks (refresh_token getter + onTokensRefreshed) keep :core:proton-api independent of :core:storage. 5 + 2 tests.
+- `FibonacciBackoffInterceptor` — 429 with 1s/2s/3s/5s/8s schedule (cap 5 retries), `Retry-After` honoured. Application-layer interceptor (network interceptors must proceed exactly once; can't retry). 5 tests.
+- `HumanVerificationInterceptor` — peeks JSON response body for `"Code":9001`, throws `HumanVerificationRequiredException` (extends `IOException` so Retrofit propagates it from suspend functions). 4 tests including non-JSON-body bypass.
+- Settings UI carries Sign Out + Sync Now actions; the SyncAdapter maps `HumanVerificationRequiredException` and `DecryptUnavailableException` to `syncResult.stats.numAuthExceptions` so the sync framework stops retrying.
+
+Deferred:
+
+- `LoggingInterceptor` with body redaction (the custom `PcontactsSensitiveLog` Lint rule already covers the static-call surface).
+- `BuildConfig.PROTON_SRP_KEY_FINGERPRINT` for the cert-pin-rotation companion to ADR-0014.
+- Captcha / human-verification submission UI — today's `HumanVerificationRequiredException` reaches the SyncAdapter but the in-app surface that would post `submitChallengeToken(token, type)` is not built yet.

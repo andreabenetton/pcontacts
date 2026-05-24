@@ -92,3 +92,34 @@ ops += newDelete(RawContacts.CONTENT_URI.buildUpon()
 - Update-shape instrumented test: write rows from vCard A, then from vCard B, query and assert the row set matches B exactly (no leftovers).
 - Aggregator test: insert one local contact with the same email, run sync, assert system `Contacts` row count is 1 (aggregated) and both `RawContacts` are present underneath.
 - Delete-tombstone test: delete a synced contact, run another sync, assert it doesn't reappear.
+
+## Implementation status
+
+Writer module shipped end-to-end:
+
+- `SyncAdapterUri.decorate(uri, accountName, accountType)` is the single helper that decorates every write URI with `caller_is_syncadapter=true` + the account params. No other code in the repo builds a ContactsContract write URI directly.
+- `RawContactDiffer` (pure-JVM) classifies Create / Update / Delete intents from `(target, existing, serverSourceIds)`.
+- `ContactsContractOps.build(account, intent, baseIdx)` emits the per-intent ContentProviderOperation list. Update path is delete-then-reinsert child Data rows under a stable `RawContacts._ID` per this ADR's Decision.
+- `BatchPlanner.plan(...)` chunks ops to ≤450 per batch AND re-anchors back-references when a Create intent straddles a chunk boundary (so back-ref indices stay correct after chunking).
+- `BatchApplier` is the only legitimate caller of `provider.applyBatch` in the repo. Adds `deleteAllForAccount(account)` for the logout path.
+- `RawContactReader` queries existing RawContacts by `ACCOUNT_TYPE` + `ACCOUNT_NAME`; cursor parser split out for MatrixCursor-backed tests.
+- `LocalGroupsWriter.reconcile(account, labels)` runs the ContactsContract.Groups lifecycle (create new, delete vanished, return Map<protonLabelId, localGroupsId>).
+- `PhotoDownscaler` fits inline-Photo bytes into ContactsContract's ~96KB soft cap (quality slide then dimension halving; returns null and the writer drops the photo if even 64×64 doesn't fit).
+
+Data row coverage in `ContactRow` (and emitted by `ContactsContractOps`):
+
+- StructuredName: DISPLAY_NAME + per-piece columns (GIVEN, FAMILY, MIDDLE, PREFIX, SUFFIX).
+- Email: one row per address; position 0 marked IS_PRIMARY + IS_SUPER_PRIMARY.
+- Phone: one row per number with PhoneType enum → Phone.TYPE_* via `PhoneTypeMapper`.
+- StructuredPostal: one row per address with all 7 RFC 6350 components; PostalAddressType enum → StructuredPostal.TYPE_*.
+- Organization: company + department + title.
+- Note: one row per note.
+- Im: handle + protocol + customProtocol via `ImProtocolMapper` (named tiers → `Im.PROTOCOL_*`, unknowns fall back to PROTOCOL_CUSTOM + the original scheme as label).
+- Photo: inline BLOB, downscaled if needed.
+- GroupMembership: one row per resolved group row id from `LocalGroupsWriter`.
+
+Init guard widened from "≥ 1 email" to "≥ 1 of {email, phone, address, im}" so phone-only / address-only / IM-only Proton contacts surface.
+
+Deferred:
+
+- The four Validation instrumented tests (idempotency, update-shape, aggregator, delete-tombstone) need an emulator pipeline. Robolectric `ContactsContractOpsTest` / `BatchPlannerTest` / `RawContactDifferTest` / `LocalGroupsWriterTest` cover structural assertions; the provider-hitting paths land with the device-validation chain.
