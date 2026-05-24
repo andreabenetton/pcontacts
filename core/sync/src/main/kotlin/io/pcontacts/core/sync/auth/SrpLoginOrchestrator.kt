@@ -179,9 +179,10 @@ class SrpLoginOrchestrator(
      * password, primaryKeySalt)` (Plan §2.7 step 12), and stores the
      * bcrypt string bytes under the Keystore AEAD key (ADR-0009).
      *
-     * `[A]` — the PGP key unlock with the bcrypt string itself
+     * `[V]` — the PGP key unlock with the bcrypt string itself
      * (matching the Proton web client's `decryptPrivateKey(armored,
-     * keyPassword)` call); ADR-0013 vectors will flip this to `[V]`.
+     * keyPassword)` call); validated against live Proton account
+     * (2026-05-24): key unlocks, cards decrypt + verify.
      */
     private suspend fun deriveAndPersistKeyPassword(password: CharArray) {
         val user = usersApi.getUser().user

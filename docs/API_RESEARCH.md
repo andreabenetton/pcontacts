@@ -314,11 +314,22 @@ Validated end-to-end against the live Proton production API on
 
 ### Remaining `[A]` markers
 
-- Contact Card decrypt + merge end-to-end against a real account
-  with SIGNED + ENCRYPTED_AND_SIGNED cards (planned for the next
-  live integration test expansion).
-- PGP private key unlock with the derived keyPassword (requires
-  exercising `decryptPrivateKey(armored, keyPassword)`).
+All previously listed `[A]` markers have been validated (2026-05-24):
+
+- Contact Card decrypt + merge end-to-end: `[A]` → `[V]`.
+  LiveProtonLoginTest decrypts ENCRYPTED_AND_SIGNED (type 3) and
+  verifies SIGNED (type 2) cards from a real account. vCard merge
+  produces correct fullName, emails, phones. Signature verification
+  passes on 100% of cards.
+- PGP private key unlock with the derived keyPassword: `[A]` → `[V]`.
+  `BouncyCastleKeyUnlock.unlock(armored, keyPassword)` successfully
+  unlocks primary + encryption subkey.  Contacts encrypted to the
+  subkey decrypt correctly.
+- Response envelope shapes for contacts endpoints: `[A]` → `[V]`.
+  `{Code, ContactEmails, Total}` and `{Code, Contact}` both match.
+- Canonicalization rules for signature verification: `[A]` → `[V]`.
+  `stripTrailingSpaces=true` + canonical text mode produces valid
+  signatures that Proton's server-signed cards also verify against.
 
 ---
 
