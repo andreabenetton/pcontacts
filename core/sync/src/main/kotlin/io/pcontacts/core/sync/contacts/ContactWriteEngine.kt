@@ -120,6 +120,15 @@ class ContactWriteEngine(
         }
 
         val protonId = dc.sourceId!!
+
+        // Cancel pending DELETE if the contact is now dirty (re-edited
+        // during grace period) — ADR-0017 §6A.
+        val pendingDeletes = outboxDao.findByContact(protonId)
+            .filter { it.opType == OutboxEntity.OpType.DELETE }
+        for (del in pendingDeletes) {
+            outboxDao.deleteById(del.id)
+        }
+
         val row = readContactRow(dc.rawContactId, protonId) ?: return false
         val hash = EmailSyncHash.compute(row)
         val mapping = contactMapDao.findByProtonId(protonId)

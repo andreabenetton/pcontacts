@@ -545,6 +545,34 @@ class ContactWriteEngineTest {
         assertEquals(0, report.conflicted)
     }
 
+    @Test fun detectChanges_cancels_pending_delete_when_contact_updated() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val row = sampleRow("ct-1", email = "alice-updated@proton.me")
+        val rows = mutableMapOf(100L to row)
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.DELETE,
+            payloadHash = "",
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(1, count)
+        val entries = outbox.entries.values.toList()
+        assertEquals(1, entries.size)
+        assertEquals(OutboxEntity.OpType.UPDATE, entries[0].opType)
+    }
+
     @Test fun detectChanges_clears_dirty_flag_even_when_skipped() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
