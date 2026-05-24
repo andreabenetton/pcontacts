@@ -10,7 +10,7 @@
 [versions]
 # Build tooling
 agp                          = "8.7.0"
-kotlin                       = "2.0.21"
+kotlin                       = "2.3.21"
 ksp                          = "2.0.21-1.0.28"
 java                         = "17"
 detekt                       = "1.23.7"
