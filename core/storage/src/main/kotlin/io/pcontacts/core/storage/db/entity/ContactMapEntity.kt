@@ -36,7 +36,9 @@ data class ContactMapEntity(
     @ColumnInfo(name = "deleted") val deleted: Boolean,
     @ColumnInfo(name = "sync_status") val syncStatus: Int,
     @ColumnInfo(name = "last_error") val lastError: String?,
-    @ColumnInfo(name = "last_synced_at") val lastSyncedAt: Long
+    @ColumnInfo(name = "last_synced_at") val lastSyncedAt: Long,
+    @ColumnInfo(name = "last_known_server_payload_hash", defaultValue = "NULL")
+    val lastKnownServerPayloadHash: String? = null
 ) {
     /**
      * `sync_status` is stored as an Int rather than an enum so future
