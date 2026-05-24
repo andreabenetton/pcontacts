@@ -77,7 +77,6 @@ androidx-appcompat           = { group = "androidx.appcompat",    name = "appcom
 androidx-biometric           = { group = "androidx.biometric",    name = "biometric-ktx",                 version.ref = "androidx-biometric" }
 androidx-core-ktx            = { group = "androidx.core",         name = "core-ktx",                      version.ref = "androidx-core" }
 androidx-credentials         = { group = "androidx.credentials",  name = "credentials",                   version.ref = "androidx-credentials" }
-androidx-credentials-play-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "androidx-credentials" } # placeholder; F-Droid build excludes this
 androidx-room-runtime        = { group = "androidx.room",         name = "room-runtime",                  version.ref = "androidx-room" }
 androidx-room-ktx            = { group = "androidx.room",         name = "room-ktx",                      version.ref = "androidx-room" }
 androidx-room-compiler       = { group = "androidx.room",         name = "room-compiler",                 version.ref = "androidx-room" }
