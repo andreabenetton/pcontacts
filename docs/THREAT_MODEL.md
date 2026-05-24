@@ -112,8 +112,8 @@ The three crossings:
 
 1. **App ↔ Proton API** — every HTTPS request. Guarded by
    `ProtonHostDnsGuard` (rejects non-`*.proton.me`),
-   `CertificatePinner` (SPKI pin slot — real pins land with a
-   user-supplied resource), `HeadersInterceptor` +
+   `CertificatePinner` (ISRG Root X1 + X2 SPKI pins, release-gated),
+   `HeadersInterceptor` +
    `AuthInterceptor` (header sanitisation),
    `RefreshingAuthenticator` (401 → /auth/refresh under a
    single-flight mutex), `FibonacciBackoffInterceptor` (429
@@ -139,7 +139,7 @@ The three crossings:
 
 | # | Threat | Mitigation today | Residual risk |
 |---|---|---|---|
-| S1 | Attacker impersonates Proton's `mail-api.proton.me` to harvest credentials / inject malicious modulus. | TLS via Android system trust store; SPKI pinning slot wired (`ProtonCertificatePins`); DNS guard restricts to `*.proton.me`. | **Medium until the real SPKI pins land in the resource file.** Today we trust the system store; an attacker controlling a trusted CA + DNS can MITM. Modulus pinning (S2) provides a second layer. |
+| S1 | Attacker impersonates Proton's `mail-api.proton.me` to harvest credentials / inject malicious modulus. | TLS via Android system trust store; SPKI pins for ISRG Root X1 + X2 enforced via `CertificatePinner` (captured 2026-05-24, release-gated); DNS guard restricts to `*.proton.me`. | **Low.** An attacker must compromise the ISRG root CA itself or install a rogue CA on the device. Modulus pinning (S2) provides a second layer independent of TLS. |
 | S2 | Attacker swaps the SRP `Modulus` to a backdoored value, defeating SRP entirely. | OpenPGP cleartext-envelope decoder peels the modulus; `BouncyCastleProtonModulusVerifier` verifies against the pinned Proton SRP signing key (`proton_srp_signing_key.asc`). On `INVALID` or `NO_SIGNER_KEY`, login aborts. Validated against live API on 2026-05-24. | **Low.** Attacker must also defeat TLS (S1) to inject a fake modulus. |
 | S3 | Malicious app on the device registers an `AccountAuthenticator` with the same type and prompts the user for credentials. | `android:accountType="io.pcontacts.account"` is unique to our installation; AccountManager enforces uniqueness per (package, type). | Low — Android system blocks the duplicate registration. Verify with `adb dumpsys account`. |
 
@@ -267,7 +267,7 @@ Implemented:
 - SecretStore with double-wrapping (Keystore AEAD KEK + EncryptedSharedPreferences).
 - Keystore alias deletion on `SecretStore.logout()`.
 - `android:allowBackup="false"` + data_extraction_rules XML.
-- DNS guard (`ProtonHostDnsGuard`), pinning slot (`ProtonCertificatePins`).
+- DNS guard (`ProtonHostDnsGuard`), SPKI certificate pinning (`ProtonCertificatePins` — ISRG Root X1 + X2, release-gated).
 - Per-Card signature verification with `is_verified=false` on failure
   (no silent drops).
 - `caller_is_syncadapter=true` on every ContactsContract write URI.
@@ -283,8 +283,6 @@ Implemented:
   AbstractAccountAuthenticator, AbstractThreadedSyncAdapter.
 
 Deferred (tracked):
-- SPKI pins for `mail-api.proton.me` — pinner is wired, pin set
-  needs to be captured and committed.
 - Instrumented ContactsContract tests on an emulator pipeline
   (aggregation behaviour, deletion tombstones, photo round-trip).
 - Reproducible-build CI gate (diffoscope).
@@ -297,8 +295,10 @@ Deferred (tracked):
   non-GPL-3-compatible licenses on allowed groups).
 
 Accepted residual risks:
-- No defence against malicious enterprise-installed CA on the
-  device prior to SPKI pins landing.
+- Enterprise-installed CAs on the device can still MITM if they
+  chain to a trusted root outside ISRG. The SPKI pins reject
+  non-ISRG chains, but Android 7+ user-installed CAs are not
+  trusted by default for release builds (network_security_config).
 - No defence against heap memory exfiltration on a rooted device.
 - No defence against other READ_CONTACTS-holding apps reading
   synced contacts (by design).

@@ -20,11 +20,9 @@ What works in code (verified by unit tests + live integration test):
 
 ### Known gaps
 
-1. **Contact Card decrypt not yet validated against a live account.** SRP login, token persistence, and keyPassword derivation are validated end-to-end (see `docs/API_RESEARCH.md` §7). Remaining: decrypt SIGNED + ENCRYPTED_AND_SIGNED Cards and PGP private key unlock with the derived keyPassword.
-2. **SPKI certificate pins for `mail-api.proton.me` are absent.** The pinner is wired (`ProtonCertificatePins`); the pin set needs to be captured and committed. README at `core/proton-api/src/main/resources/README_proton_certificate_pins.md` documents the procedure.
-3. **No instrumented tests.** `ContactsContract` round-trip semantics (aggregation, tombstones, photo round-trip) are validated by Robolectric structural tests only. Add an emulator-backed pipeline before claiming end-to-end correctness.
-4. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
-5. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
+1. **No instrumented tests.** `ContactsContract` round-trip semantics (aggregation, tombstones, photo round-trip) are validated by Robolectric structural tests only. Add an emulator-backed pipeline before claiming end-to-end correctness.
+2. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
+3. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
 
 ## Why this exists
 
@@ -110,13 +108,12 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the STRIDE pass. Highligh
 
 - ContactsContract is shared by design — every app the user grants `READ_CONTACTS` to can read synced contacts. That's the point.
 - Heap-memory exposure on rooted devices is an accepted residual risk; the JVM can't guarantee memory zeroization.
-- Until SPKI cert pins land (see Known gaps), transport security depends on Android's system trust store. SRP modulus signature verification is active against the pinned key.
+- SPKI certificate pins (ISRG Root X1 + X2) are enforced via OkHttp's `CertificatePinner`. Release builds gate on non-empty pins. SRP modulus signature verification provides a second TLS-independent layer.
 
 ## Contributing
 
 The SRP auth flow is validated against the live API. PRs welcome for:
 
-- Sourcing + pinning SPKI certificates for `mail-api.proton.me`.
 - Instrumented `ContactsContract` round-trip tests on an emulator pipeline.
 - Compose UI tests for the login + settings screens.
 - OpenPGP vector capture extension in `tools/vectors/capture.js`.
