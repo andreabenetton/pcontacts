@@ -259,6 +259,14 @@ object SyncBootstrap {
             },
             clearDirtyFlag = { account, rawContactId ->
                 withContext(Dispatchers.IO) { dirtyClearer.clearDirty(account, rawContactId) }
+            },
+            fetchServerContact = { protonContactId ->
+                try {
+                    val response = apis.contacts.getContact(protonContactId)
+                    processor.process(response.contact)
+                } catch (_: Exception) {
+                    null
+                }
             }
         )
 
