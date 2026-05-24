@@ -41,7 +41,7 @@ class OpenPgpCardCryptoOpTest {
 
     @Test fun verify_only_calls_verifyDetached_and_maps_SIGNED_AND_VALID_to_verified_true() {
         fake.verifyResult = VerificationStatus.SIGNED_AND_VALID
-        val op = OpenPgpCardCryptoOp.build(fake, dummyPriv, listOf(dummyPub))
+        val op = OpenPgpCardCryptoOp.build(fake, listOf(dummyPriv), listOf(dummyPub))
 
         val outcome = op(CardCryptoRequest.VerifyOnly(data = "FN:Alice", signature = "armored-sig"))
 
@@ -53,7 +53,7 @@ class OpenPgpCardCryptoOpTest {
 
     @Test fun verify_only_maps_SIGNED_INVALID_to_verified_false() {
         fake.verifyResult = VerificationStatus.SIGNED_INVALID
-        val op = OpenPgpCardCryptoOp.build(fake, dummyPriv, listOf(dummyPub))
+        val op = OpenPgpCardCryptoOp.build(fake, listOf(dummyPriv), listOf(dummyPub))
 
         val outcome = op(CardCryptoRequest.VerifyOnly("FN:Alice", "tampered"))
 
@@ -66,7 +66,7 @@ class OpenPgpCardCryptoOpTest {
             plaintext = "TEL:+1 555 0000".toByteArray(),
             verificationStatus = VerificationStatus.NOT_SIGNED
         )
-        val op = OpenPgpCardCryptoOp.build(fake, dummyPriv, listOf(dummyPub))
+        val op = OpenPgpCardCryptoOp.build(fake, listOf(dummyPriv), listOf(dummyPub))
 
         val outcome = op(CardCryptoRequest.DecryptOnly(armored = "-----BEGIN PGP MESSAGE-----..."))
 
@@ -82,7 +82,7 @@ class OpenPgpCardCryptoOpTest {
             plaintext = "EMAIL:alice@proton.me".toByteArray(),
             verificationStatus = VerificationStatus.SIGNED_AND_VALID
         )
-        val op = OpenPgpCardCryptoOp.build(fake, dummyPriv, listOf(dummyPub))
+        val op = OpenPgpCardCryptoOp.build(fake, listOf(dummyPriv), listOf(dummyPub))
 
         val outcome = op(CardCryptoRequest.DecryptAndVerify(
             armored = "-----BEGIN PGP MESSAGE-----...",
@@ -99,7 +99,7 @@ class OpenPgpCardCryptoOpTest {
             plaintext = "EMAIL:alice@proton.me".toByteArray(),
             verificationStatus = VerificationStatus.SIGNED_INVALID
         )
-        val op = OpenPgpCardCryptoOp.build(fake, dummyPriv, listOf(dummyPub))
+        val op = OpenPgpCardCryptoOp.build(fake, listOf(dummyPriv), listOf(dummyPub))
 
         val outcome = op(CardCryptoRequest.DecryptAndVerify("msg", "sig"))
 
@@ -130,7 +130,7 @@ class OpenPgpCardCryptoOpTest {
         override fun decryptAndVerify(
             armoredMessage: String,
             detachedSignature: String?,
-            decryptionKey: PgpPrivateKeyHandle,
+            decryptionKeys: List<PgpPrivateKeyHandle>,
             verificationKeys: List<PgpPublicKeyHandle>
         ): VerifiedDecryptResult {
             decryptCalls += 1

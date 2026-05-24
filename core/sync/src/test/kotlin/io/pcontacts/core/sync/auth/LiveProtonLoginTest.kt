@@ -3,12 +3,20 @@
 
 package io.pcontacts.core.sync.auth
 
+import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
+import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
 import io.pcontacts.core.crypto.srp.SrpClient
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
+import io.pcontacts.core.protoncontacts.ContactDecrypter
+import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.storage.InMemorySecretStore
+import io.pcontacts.core.sync.contacts.decrypt.OpenPgpCardCryptoOp
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.security.SecureRandom
@@ -19,18 +27,19 @@ import java.security.SecureRandom
  * Skipped by default — runs only when the env var
  * `PCONTACTS_LIVE_TEST` is set to `true`.
  *
- * This test validates:
- *   - auth/info DTO shape (salt, modulus, serverEphemeral, srpSession)
- *   - Modulus OpenPGP envelope parsing + signature verification against
- *     the pinned key
- *   - SRP hashPassword v4 derivation + proof generation
+ * This test validates end-to-end:
+ *   - auth/info DTO shape + modulus OpenPGP signature verification
+ *   - SRP hashPassword v4 + proof generation (go-srp variant)
  *   - Little-endian byte encoding for all SRP BigInteger values
  *   - Server accepts the SRP proof (ServerProof round-trip)
  *   - auth response DTO shape (tokens, UID, twoFactor)
- *   - If login succeeds: /users + /keys/salts DTO shapes
  *   - ChallengePayload empty-map acceptance
- *
- * On success, flips remaining [A]/[U] markers to [V].
+ *   - /users + /keys/salts DTO shapes
+ *   - keyPassword derivation (computeKeyPassword)
+ *   - PGP private key unlock with derived keyPassword
+ *   - contacts/v4/contacts/emails DTO shape + pagination
+ *   - contacts/v4/contacts/{id} full Cards[] fetch
+ *   - Card decrypt + signature verification + vCard merge
  */
 class LiveProtonLoginTest {
 
@@ -72,6 +81,8 @@ class LiveProtonLoginTest {
                 println("  refreshToken stored: ${secretStore.refreshToken() != null}")
                 println("  keyPassword stored: ${secretStore.keyPassword() != null}")
 
+                validateKeyUnlockAndContacts(apiFactory, secretStore, password)
+
                 try {
                     apiFactory.auth.revoke()
                     println("  logout: OK")
@@ -108,5 +119,79 @@ class LiveProtonLoginTest {
                 throw AssertionError("Live login failed: ${result.reason}")
             }
         }
+    }
+
+    /**
+     * Post-login validation: unlock PGP key, fetch contacts, decrypt.
+     * Exercises the full chain from keyPassword → unlocked key →
+     * contact fetch → card decrypt → vCard merge → DecryptedContact.
+     */
+    private suspend fun validateKeyUnlockAndContacts(
+        apiFactory: ProtonApiFactory,
+        secretStore: InMemorySecretStore,
+        password: CharArray
+    ) {
+        // --- Step 1: PGP key unlock ---
+        val keyPasswordBytes = secretStore.keyPassword()
+        assertNotNull("keyPassword must be stored after login", keyPasswordBytes)
+        val keyPassword = String(keyPasswordBytes!!, Charsets.UTF_8).toCharArray()
+
+        val userResponse = apiFactory.users.getUser()
+        val primaryKey = userResponse.user.keys.firstOrNull { it.primary == 1 && it.active == 1 }
+        assertNotNull("user must have an active primary key", primaryKey)
+
+        println("  --- PGP key unlock ---")
+        println("  primary key ID: ${primaryKey!!.id.take(8)}...")
+
+        val unlockedKey = BouncyCastleKeyUnlock.unlock(primaryKey.privateKey, keyPassword)
+        println("  key unlock: OK")
+
+        // --- Step 2: List contact emails ---
+        println("  --- Contact emails ---")
+        val emailsPage = apiFactory.contacts.listContactEmails(page = 0, pageSize = 50)
+        println("  total contacts with emails: ${emailsPage.total}")
+        println("  emails on page 0: ${emailsPage.contactEmails.size}")
+
+        assertTrue("account should have at least one contact email", emailsPage.contactEmails.isNotEmpty())
+
+        val firstEmail = emailsPage.contactEmails.first()
+        println("  first contact: name=${firstEmail.name}, contactId=${firstEmail.contactId.take(8)}...")
+
+        // --- Step 3: Fetch full contact + decrypt ---
+        println("  --- Full contact fetch + decrypt ---")
+        val contactResponse = apiFactory.contacts.getContact(firstEmail.contactId)
+        val contact = contactResponse.contact
+        println("  contact ID: ${contact.id.take(8)}...")
+        println("  cards count: ${contact.cards.size}")
+        println("  card types: ${contact.cards.map { it.type }}")
+
+        assertFalse("contact must have at least one Card", contact.cards.isEmpty())
+
+        val openPgp = BouncyCastleOpenPgpService()
+        println("  unlocked keys: ${unlockedKey.allPrivateKeys.size} (primary + subkeys)")
+        val cryptoOp = OpenPgpCardCryptoOp.build(
+            openPgp = openPgp,
+            decryptionKeys = unlockedKey.allPrivateKeys,
+            verificationKeys = listOf(unlockedKey.public)
+        )
+        val processor = ContactProcessor(ContactDecrypter(cryptoOp))
+        val decrypted = processor.process(contact)
+
+        println("  decrypted fullName: ${decrypted.fullName}")
+        println("  decrypted emails: ${decrypted.emails.size}")
+        println("  decrypted phones: ${decrypted.phones.size}")
+        println("  decrypted verified: ${decrypted.verified}")
+        println("  decrypted cardCount: ${decrypted.cardCount}")
+        println("  decrypted unverifiedCardCount: ${decrypted.unverifiedCardCount}")
+
+        assertTrue(
+            "contact must have a name or at least one email",
+            decrypted.fullName != null || decrypted.emails.isNotEmpty()
+        )
+        assertTrue(
+            "all cards should verify against the user's own key",
+            decrypted.verified
+        )
+        println("  contact decrypt: OK — full chain validated")
     }
 }

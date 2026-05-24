@@ -22,11 +22,10 @@ import io.pcontacts.core.protoncontacts.CardCryptoRequest
  *   - DecryptOnly       → openPgp.decryptAndVerify with no signature
  *   - DecryptAndVerify  → openPgp.decryptAndVerify with detached signature
  *
- * The same `decryptionKey` + `verificationKeys` are used for every
- * card from a contact — Proton issues one user-key pair that handles
- * both signing/verification and encryption/decryption for the user's
- * own contacts ([V] in the web-client key flag set; key-rotation
- * support lands with the complete version).
+ * The same `decryptionKeys` + `verificationKeys` are used for every
+ * card from a contact. `[V]` Real Proton key rings have a signing
+ * primary key and an encryption subkey — contacts are encrypted to
+ * the subkey, so all ring keys must be available for decryption.
  */
 object OpenPgpCardCryptoOp {
 
@@ -39,7 +38,7 @@ object OpenPgpCardCryptoOp {
      */
     fun build(
         openPgp: OpenPgpService,
-        decryptionKey: PgpPrivateKeyHandle,
+        decryptionKeys: List<PgpPrivateKeyHandle>,
         verificationKeys: List<PgpPublicKeyHandle>
     ): CardCryptoOp = { request ->
         when (request) {
@@ -58,12 +57,9 @@ object OpenPgpCardCryptoOp {
                 val result = openPgp.decryptAndVerify(
                     armoredMessage = request.armored,
                     detachedSignature = null,
-                    decryptionKey = decryptionKey,
+                    decryptionKeys = decryptionKeys,
                     verificationKeys = emptyList()
                 )
-                // ENCRYPTED-only cards have no signature path; the
-                // dispatcher upstream marks them verified=true by virtue
-                // of having decrypted under the user's own key.
                 CardCryptoOutcome(
                     plaintext = String(result.plaintext, Charsets.UTF_8),
                     verified = true
@@ -73,7 +69,7 @@ object OpenPgpCardCryptoOp {
                 val result = openPgp.decryptAndVerify(
                     armoredMessage = request.armored,
                     detachedSignature = request.signature,
-                    decryptionKey = decryptionKey,
+                    decryptionKeys = decryptionKeys,
                     verificationKeys = verificationKeys
                 )
                 CardCryptoOutcome(
