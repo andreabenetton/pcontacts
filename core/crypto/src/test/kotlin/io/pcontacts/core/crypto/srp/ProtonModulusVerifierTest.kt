@@ -9,6 +9,8 @@ import java.io.ByteArrayOutputStream
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.openpgp.PGPPublicKeyRing
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProtonModulusVerifierTest {
@@ -85,10 +87,33 @@ class ProtonModulusVerifierTest {
         )
     }
 
-    @Test fun loadPinnedKeyFromClasspath_returns_null_when_resource_absent() {
-        // No resource file is committed at /proton_srp_signing_key.asc;
-        // README documents that the real key lands in a follow-up commit.
-        assertEquals(null, BouncyCastleProtonModulusVerifier.loadPinnedKeyFromClasspath())
+    @Test fun loadPinnedKeyFromClasspath_returns_armored_key() {
+        // proton_srp_signing_key.asc is committed — sourced from
+        // ProtonMail/go-srp and cross-checked against emersion/hydroxide.
+        val armored = BouncyCastleProtonModulusVerifier.loadPinnedKeyFromClasspath()
+        assertNotNull("pinned key resource must be present on the classpath", armored)
+        assertTrue(
+            "must be an armored PGP key block",
+            armored!!.contains("-----BEGIN PGP PUBLIC KEY BLOCK-----")
+        )
+    }
+
+    @Test fun pinned_key_parses_as_ed25519_with_expected_uid() {
+        val armored = BouncyCastleProtonModulusVerifier.loadPinnedKeyFromClasspath()!!
+        // Constructing the verifier parses the key — if it's malformed the
+        // verifier falls back to null internally and returns NO_SIGNER_KEY.
+        val verifier = BouncyCastleProtonModulusVerifier(
+            pinnedPublicKeyArmored = armored,
+            openPgp = openPgp
+        )
+        // Verify it doesn't silently fall back to NO_SIGNER_KEY.
+        // We can't test VALID without a real Proton-signed modulus, but
+        // we can confirm the key is loaded (INVALID beats NO_SIGNER_KEY
+        // for arbitrary input — a loaded key that fails verification is
+        // different from no key at all).
+        val result = verifier.verify("test", "-----BEGIN PGP SIGNATURE-----\n\niHUEARYIAB0WIQRbjk8xQkVnUqFUQOM1BYXE6VGPJgUCXAHLgwAKCRA1BYXE\n6VGPJnrhAP9G/vQjY7gOI0nnrBYmAGIuVMhh0AAAAAAA\n=AAAA\n-----END PGP SIGNATURE-----")
+        // With a garbage signature against the real key, expect INVALID (not NO_SIGNER_KEY).
+        assertEquals(ProtonModulusVerification.INVALID, result)
     }
 
     private fun armoredPublicKeyOf(testKey: TestKeyGen.TestKey): String {

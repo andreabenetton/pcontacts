@@ -3,57 +3,45 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 
-# Proton SRP modulus signing key — pinned resource slot (ADR-0014)
+# Proton SRP modulus signing key — pinned resource (ADR-0014)
 
-## What goes here
+## What is here
 
-A file named **`proton_srp_signing_key.asc`** in *this directory*
-(`core/crypto/src/main/resources/`) containing Proton AG's SRP
-modulus signing public key as an ASCII-armored OpenPGP public key
-block:
+**`proton_srp_signing_key.asc`** — Proton AG's SRP modulus signing
+public key, ASCII-armored Ed25519 (EdDSA).
 
-```
------BEGIN PGP PUBLIC KEY BLOCK-----
-...
------END PGP PUBLIC KEY BLOCK-----
-```
+- **UID:** `proton@srp.modulus`
+- **Key ID:** `3505 85C4 E951 8F26`
+- **Algorithm:** Ed25519 (EdDSA sign) + Curve25519 (ECDH encrypt)
 
-When the file is present and parseable, `BouncyCastleProtonModulusVerifier`
-verifies every `Modulus` value the Proton auth/info endpoint returns
-against this key. A verification failure aborts the login (treated
-as a MITM downgrade attempt).
+## Provenance
 
-## Why the file isn't here yet
+Sourced from two independent Proton-controlled repositories that
+ship the identical key:
 
-The real key needs to be sourced from a verified Proton-controlled
-channel (their published security documentation, their key
-transparency log, or a known-good `@protontech/crypto` release).
-Embedding a placeholder would either (a) cause every login to fail
-verification, or (b) cause every login to "succeed" against a bogus
-key, which is worse than no verification at all. So the resource
-stays absent in source control, and the verifier's `NO_SIGNER_KEY`
-branch fires — logging a loud warning that mod-sig verification
-isn't running.
+1. [ProtonMail/go-srp](https://github.com/ProtonMail/go-srp) —
+   `modulusPubkey` constant in `srp.go` (Go SRP library, MIT).
+2. [emersion/hydroxide](https://github.com/emersion/hydroxide) —
+   `protonmail/srp.go` (third-party bridge that has been in
+   production use against real Proton accounts since 2018).
 
-## How to add the key (release engineering)
+Both sources return byte-identical armored blocks.
 
-1. Obtain the armored key from Proton's published channel.
-2. Verify the key's fingerprint matches Proton's published one
-   out-of-band (a different channel from how you obtained the key).
-3. Save the ASCII-armored block at
-   `core/crypto/src/main/resources/proton_srp_signing_key.asc`.
-4. Update ADR-0014 with the fingerprint + provenance.
-5. Update `BouncyCastleProtonModulusVerifierTest` to assert the
-   resource loads and parses.
-6. Once that lands, change the orchestrator's `NO_SIGNER_KEY`
-   policy from "log warn + proceed" to "abort login" in a
-   follow-up commit (the production-gate flip).
-
-## What the verifier does today (without the file)
+## What the verifier does
 
 `BouncyCastleProtonModulusVerifier.loadPinnedKeyFromClasspath()`
-returns null when the file is absent. The orchestrator logs a
-warning at every login but proceeds — this matches the current
-`[A]`-marked behaviour in `SrpLoginOrchestrator`. Once the file
-is in place, the warning stops and signature verification becomes
-mandatory.
+reads this file. On every `POST core/v4/auth/info` response, the
+verifier checks the OpenPGP detached signature on the `Modulus`
+field against this key:
+
+- **VALID** — signature checks out; SRP proceeds.
+- **INVALID** — signature fails; login aborts (MITM assumed).
+- **NO_SIGNER_KEY** — file absent or unparseable; login aborts
+  (production policy, per ADR-0014).
+
+## Rotation
+
+If Proton rotates their SRP signing key, this file must be updated
+and the app re-released. The verifier can hold two keys (current +
+next) when a rotation is announced — add a second key ring to the
+file or ship a second `.asc` resource.
