@@ -14,7 +14,6 @@
     <ID>ArgumentListWrapping:ProtonContactsApiTest.kt$ProtonContactsApiTest$("missing Email param: ${recorded.path}", recorded.path!!.contains("Email=alice%40proton.me"))</ID>
     <ID>ArgumentListWrapping:TokenRefresherTest.kt$TokenRefresherTest.&lt;no name provided&gt;$( accessToken = "fresh", refreshToken = "fresh-r", tokenType = "Bearer", expiresIn = 86400, uid = "uid-1" )</ID>
     <ID>EmptyFunctionBlock:TokenRefresherTest.kt$TokenRefresherTest.NoOpAuthApi${}</ID>
-    <ID>ImportOrdering:HumanVerificationInterceptor.kt$import io.pcontacts.core.logging.Logger import io.pcontacts.core.logging.NoOpSink import io.pcontacts.core.logging.RedactingLogger import java.io.IOException import okhttp3.Interceptor import okhttp3.Response</ID>
     <ID>ImportOrdering:OkHttpClientFactory.kt$import io.pcontacts.core.proton.api.ProtonApiConfig import io.pcontacts.core.proton.api.Session import java.util.concurrent.TimeUnit import okhttp3.Authenticator import okhttp3.OkHttpClient</ID>
     <ID>ImportOrdering:ProtonHostDnsGuard.kt$import java.net.InetAddress import java.net.UnknownHostException import okhttp3.Dns</ID>
     <ID>ImportOrdering:ProtonHostDnsGuardTest.kt$import java.net.InetAddress import java.net.UnknownHostException import okhttp3.Dns import org.junit.Assert.assertEquals import org.junit.Assert.assertThrows import org.junit.Test</ID>
@@ -27,7 +26,6 @@
     <ID>NoMultipleSpaces:ProtonApiFactory.kt$ProtonApiFactory$ </ID>
     <ID>NoMultipleSpaces:TokenRefresherTest.kt$TokenRefresherTest$ </ID>
     <ID>SpacingBetweenDeclarationsWithAnnotations:HumanVerificationInterceptorTest.kt$HumanVerificationInterceptorTest$@After fun tearDown()</ID>
-    <ID>SpacingBetweenDeclarationsWithComments:HumanVerificationInterceptor.kt$HumanVerificationInterceptor.Companion$// Single-quote-delimited so the JSON tokenizer's whitespace</ID>
     <ID>SpreadOperator:ProtonCertificatePins.kt$ProtonCertificatePins$(host, *pins.toTypedArray())</ID>
     <ID>SwallowedException:HumanVerificationInterceptor.kt$HumanVerificationInterceptor$t: Throwable</ID>
     <ID>Wrapping:ContactEmailsPagerTest.kt$ContactEmailsPagerTest$(</ID>

@@ -6,6 +6,5 @@
     <ID>MultiLineIfElse:LoginViewModelTest.kt$LoginViewModelTest$LoginResult.Failed("two_factor_rejected")</ID>
     <ID>MultiLineIfElse:LoginViewModelTest.kt$LoginViewModelTest$LoginResult.Success(uid = "uid-retry")</ID>
     <ID>NoMultipleSpaces:LoginViewModelTest.kt$LoginViewModelTest$ </ID>
-    <ID>Wrapping:LoginViewModelTest.kt$LoginViewModelTest$;</ID>
   </CurrentIssues>
 </SmellBaseline>

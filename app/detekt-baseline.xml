@@ -4,7 +4,6 @@
   <CurrentIssues>
     <ID>CommentWrapping:LoginActivity.kt$LoginActivity$/* password = */</ID>
     <ID>CommentWrapping:LoginActivity.kt$LoginActivity$/* userdata = */</ID>
-    <ID>ImportOrdering:SettingsActivity.kt$import android.accounts.Account import android.accounts.AccountManager import android.content.ContentResolver import android.content.Intent import android.os.Bundle import android.provider.ContactsContract import androidx.activity.ComponentActivity import androidx.activity.compose.setContent import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.material3.MaterialTheme import androidx.compose.material3.Surface import androidx.compose.material3.Text import androidx.compose.ui.Modifier import io.pcontacts.app.MainActivity import io.pcontacts.app.account.LogoutHelper import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE import io.pcontacts.app.ui.PcontactsTheme import io.pcontacts.feature.settings.SettingsActionResult import io.pcontacts.feature.settings.SettingsScreen import io.pcontacts.feature.settings.SettingsViewModel import io.pcontacts.core.sync.auth.LogoutOrchestrator</ID>
     <ID>MultiLineIfElse:MainActivity.kt$"Sign in with your Proton account to start syncing contacts."</ID>
     <ID>MultiLineIfElse:MainActivity.kt$"Signed in. Your Proton contacts sync into the system Contacts app."</ID>
     <ID>SwallowedException:ProtonSyncAdapter.kt$ProtonSyncAdapter$e: HumanVerificationRequiredException</ID>
