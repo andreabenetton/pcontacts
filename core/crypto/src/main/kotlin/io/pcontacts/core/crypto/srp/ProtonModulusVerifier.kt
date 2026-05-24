@@ -26,19 +26,16 @@ import org.bouncycastle.openpgp.bc.BcPGPObjectFactory
  *                        Caller proceeds with SRP arithmetic.
  *     INVALID          — signature present but verification failed.
  *                        Caller MUST abort login (treat as MITM).
- *     NO_SIGNER_KEY    — no pinned key configured (placeholder /
- *                        missing resource). Caller logs a warning
- *                        and proceeds — this is the current default
- *                        until the real Proton key lands as a
- *                        resource. Production builds will eventually
- *                        be gated to refuse this branch.
+ *     NO_SIGNER_KEY    — no pinned key configured (missing or
+ *                        unparseable resource). Caller MUST abort
+ *                        login — the key is shipped in
+ *                        `proton_srp_signing_key.asc` and must load
+ *                        successfully in production builds.
  *
  * The pinned key is loaded from
- * `core/crypto/src/main/resources/proton_srp_signing_key.asc`. The
- * resource is intentionally absent in source control until the user
- * supplies the real key (see the README at that path). Tests
- * construct the verifier with an explicit key via the secondary
- * constructor.
+ * `core/crypto/src/main/resources/proton_srp_signing_key.asc`.
+ * Tests construct the verifier with an explicit key via the
+ * secondary constructor.
  */
 interface ProtonModulusVerifier {
     fun verify(cleartext: String, armoredSignature: String): ProtonModulusVerification
@@ -97,9 +94,7 @@ class BouncyCastleProtonModulusVerifier(
 
         /**
          * Reads the pinned key resource from the classpath. Returns null
-         * if absent (current state — the real key is a user-supplied
-         * follow-up per ADR-0014). The resource file lives at:
-         *   core/crypto/src/main/resources/proton_srp_signing_key.asc
+         * if absent or unparseable.
          */
         fun loadPinnedKeyFromClasspath(): String? {
             val stream = BouncyCastleProtonModulusVerifier::class.java.getResourceAsStream(RESOURCE_PATH)
