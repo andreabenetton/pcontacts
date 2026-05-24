@@ -41,6 +41,7 @@ jobs:
       - name: Run unit tests
         run: |
           ./gradlew --no-daemon --stacktrace \
+            :app:testDebugUnitTest \
             :core:crypto:test \
             :core:proton-api:test \
             :core:proton-contacts:test \

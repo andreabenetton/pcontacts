@@ -58,6 +58,10 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     packaging {
         resources {
             // BouncyCastle (bcpg + bcprov + bcutil) each ship an identical
@@ -108,6 +112,12 @@ dependencies {
 
     // ADR-0015: enforce no direct Log / println / System.out.* calls.
     lintChecks(project(":tools:lint"))
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 // ADR-0015: license-compatibility enforcement. Walks :app's resolved release
