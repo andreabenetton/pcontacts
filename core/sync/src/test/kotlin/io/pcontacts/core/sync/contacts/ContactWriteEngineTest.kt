@@ -739,6 +739,11 @@ private class WriteFakeContactMapDao : ContactMapDao {
     override suspend fun markDeleted(id: String) {
         rows[id]?.let { rows[id] = it.copy(deleted = true) }
     }
+    override suspend fun listConflicts(): List<ContactMapEntity> =
+        rows.values.filter { it.syncStatus == ContactMapEntity.Status.CONFLICT && !it.deleted }
+    override suspend fun resolveConflict(id: String) {
+        rows[id]?.let { rows[id] = it.copy(syncStatus = ContactMapEntity.Status.CLEAN, lastError = null) }
+    }
     override suspend fun deleteByProtonId(id: String) { rows.remove(id) }
     override suspend fun deleteAll() { rows.clear() }
 }

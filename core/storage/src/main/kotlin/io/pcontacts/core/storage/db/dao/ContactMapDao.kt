@@ -51,6 +51,12 @@ interface ContactMapDao {
     @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0 AND is_verified = 0")
     suspend fun countUnverified(): Int
 
+    @Query("SELECT * FROM contact_map WHERE sync_status = 3 AND deleted = 0")
+    suspend fun listConflicts(): List<ContactMapEntity>
+
+    @Query("UPDATE contact_map SET sync_status = 0, last_error = NULL WHERE proton_contact_id = :id")
+    suspend fun resolveConflict(id: String)
+
     @Query("DELETE FROM contact_map")
     suspend fun deleteAll()
 }
