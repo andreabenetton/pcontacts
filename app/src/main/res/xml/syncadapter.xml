@@ -8,8 +8,7 @@
   - contentAuthority must equal ContactsContract.AUTHORITY ("com.android.contacts").
   - accountType must match res/xml/authenticator.xml#accountType.
   - userVisible="true" makes the account togglable in Settings → Accounts → Sync.
-  - supportsUploading="false" — read-only sync per ADR-0006 (MVP scope).
-    Flipped to "true" when ADR-0009 phase 9 bidirectional sync lands.
+  - supportsUploading="true" — bidirectional sync per ADR-0017/ADR-0018.
   - allowParallelSyncs="false" — single sync per account to avoid
     interleaved writes against the same RawContacts rows.
   - isAlwaysSyncable="true" — opts the account in to sync without the
@@ -19,6 +18,6 @@
     android:contentAuthority="com.android.contacts"
     android:accountType="io.pcontacts.account"
     android:userVisible="true"
-    android:supportsUploading="false"
+    android:supportsUploading="true"
     android:allowParallelSyncs="false"
     android:isAlwaysSyncable="true" />

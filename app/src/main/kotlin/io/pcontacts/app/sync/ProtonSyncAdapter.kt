@@ -18,13 +18,12 @@ import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
 import kotlinx.coroutines.runBlocking
 
 /**
- * SyncAdapter — wires the system sync framework (ADR-0004) to
- * ContactDetailSyncEngine (plan §17 task 17 wired end-to-end).
- * The body of `onPerformSync` is intentionally thin: build the engine
- * via SyncBootstrap, run it, translate the resulting SyncReport into
- * SyncResult counters.
+ * SyncAdapter — wires the system sync framework (ADR-0004) to the
+ * bidirectional sync pipeline (ADR-0017, ADR-0018). Push-before-pull:
+ * the write engine drains the outbox first, then the read engine
+ * pulls server changes.
  *
- * Idempotency lives in the engine; the SyncAdapter is allowed to fire
+ * Idempotency lives in the engines; the SyncAdapter is allowed to fire
  * on its own schedule (plus the WorkManager belt-and-suspenders once
  * that ships) without worrying about re-doing work.
  *
@@ -50,17 +49,32 @@ class ProtonSyncAdapter(
         logger.info { "sync start account=${account.name} authority=$authority" }
         try {
             // onPerformSync runs on AbstractThreadedSyncAdapter's worker thread;
-            // runBlocking parks it while the suspend bootstrap + engine complete.
-            val report = runBlocking {
-                val engine = SyncBootstrap.createContactDetailSyncEngine(this@ProtonSyncAdapter.context, provider)
-                engine.sync(account)
+            // runBlocking parks it while the suspend bootstrap + engines complete.
+            val (writeReport, readReport) = runBlocking {
+                val (writeEngine, readEngine) = SyncBootstrap.createBidirectionalEngines(
+                    this@ProtonSyncAdapter.context, provider
+                )
+                // Push-before-pull per ADR-0017 §7B.
+                val wr = writeEngine.run {
+                    detectChanges(account)
+                    push()
+                }
+                val rr = readEngine.sync(account)
+                wr to rr
             }
-            syncResult.stats.numInserts += report.inserted.toLong()
-            syncResult.stats.numUpdates += report.updated.toLong()
-            syncResult.stats.numDeletes += report.deleted.toLong()
+            syncResult.stats.numInserts += readReport.inserted.toLong()
+            syncResult.stats.numUpdates += (readReport.updated + writeReport.updated).toLong()
+            syncResult.stats.numDeletes += (readReport.deleted + writeReport.deleted).toLong()
+            if (!writeReport.isNoOp()) {
+                logger.info {
+                    "push done — pushed=${writeReport.pushed} created=${writeReport.created} " +
+                        "updated=${writeReport.updated} deleted=${writeReport.deleted} " +
+                        "failed=${writeReport.failed} conflicted=${writeReport.conflicted}"
+                }
+            }
             logger.info {
-                "sync done — server=${report.totalServer} inserted=${report.inserted} " +
-                    "updated=${report.updated} deleted=${report.deleted} unchanged=${report.unchanged}"
+                "pull done — server=${readReport.totalServer} inserted=${readReport.inserted} " +
+                    "updated=${readReport.updated} deleted=${readReport.deleted} unchanged=${readReport.unchanged}"
             }
         } catch (e: DecryptUnavailableException) {
             // Stale keyPassword, missing primary key, or never-logged-in path.
