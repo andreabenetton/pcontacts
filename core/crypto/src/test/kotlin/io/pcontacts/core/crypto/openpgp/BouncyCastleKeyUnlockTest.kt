@@ -43,7 +43,7 @@ class BouncyCastleKeyUnlockTest {
         val decrypted = openPgp.decryptAndVerify(
             armoredMessage = encrypted.armoredMessage,
             detachedSignature = encrypted.armoredDetachedSignature,
-            decryptionKey = unlocked.private,
+            decryptionKeys = unlocked.allPrivateKeys,
             verificationKeys = listOf(unlocked.public)
         )
         assertTrue(plaintext.contentEquals(decrypted.plaintext))

@@ -101,10 +101,10 @@ class BouncyCastleOpenPgpService : OpenPgpService {
     override fun decryptAndVerify(
         armoredMessage: String,
         detachedSignature: String?,
-        decryptionKey: PgpPrivateKeyHandle,
+        decryptionKeys: List<PgpPrivateKeyHandle>,
         verificationKeys: List<PgpPublicKeyHandle>
     ): VerifiedDecryptResult {
-        val plaintext = decryptToBytes(armoredMessage, decryptionKey)
+        val plaintext = decryptToBytes(armoredMessage, decryptionKeys)
         val status = when {
             detachedSignature == null -> VerificationStatus.NOT_SIGNED
             verificationKeys.isEmpty() -> VerificationStatus.SIGNED_NO_VERIFIER
@@ -137,19 +137,22 @@ class BouncyCastleOpenPgpService : OpenPgpService {
 
     // --- internals ---
 
-    private fun decryptToBytes(armoredMessage: String, decryptionKey: PgpPrivateKeyHandle): ByteArray {
+    private fun decryptToBytes(armoredMessage: String, decryptionKeys: List<PgpPrivateKeyHandle>): ByteArray {
+        require(decryptionKeys.isNotEmpty()) { "at least one decryption key required" }
         val decoded: InputStream = PGPUtil.getDecoderStream(ByteArrayInputStream(armoredMessage.toByteArray(Charsets.US_ASCII)))
         var objectFactory: PGPObjectFactory = BcPGPObjectFactory(decoded)
 
         val encList = (objectFactory.nextObject() as? PGPEncryptedDataList)
             ?: error("expected PGPEncryptedDataList at top of message")
 
-        val target = encList.encryptedDataObjects.asSequence()
+        val keyById = decryptionKeys.associateBy { it.raw.keyID }
+        val (target, matchedKey) = encList.encryptedDataObjects.asSequence()
             .filterIsInstance<PGPPublicKeyEncryptedData>()
-            .firstOrNull { it.keyID == decryptionKey.raw.keyID }
-            ?: error("no encrypted data block for our key id")
+            .mapNotNull { enc -> keyById[enc.keyID]?.let { enc to it } }
+            .firstOrNull()
+            ?: error("no encrypted data block for any of our ${decryptionKeys.size} key(s)")
 
-        val clearStream = target.getDataStream(BcPublicKeyDataDecryptorFactory(decryptionKey.raw))
+        val clearStream = target.getDataStream(BcPublicKeyDataDecryptorFactory(matchedKey.raw))
         objectFactory = BcPGPObjectFactory(clearStream)
 
         // Strip layers: optional Compressed, then Literal.

@@ -20,7 +20,8 @@ import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
  */
 data class UnlockedKey(
     val private: PgpPrivateKeyHandle,
-    val public: PgpPublicKeyHandle
+    val public: PgpPublicKeyHandle,
+    val allPrivateKeys: List<PgpPrivateKeyHandle> = listOf(private)
 )
 
 class KeyUnlockException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -31,14 +32,15 @@ class KeyUnlockException(message: String, cause: Throwable? = null) : Exception(
  * `CryptoProxy.importPrivateKey({ armored, passphrase })` plays in the
  * Proton web client (Plan §2.7 step 13).
  *
- * For MVP we use the primary secret key in the ring for both signing
- * and decryption — that matches how Proton's user keys are issued
- * (`KeyFlags.SIGN_DATA | CERTIFY_OTHER | ENCRYPT_COMMS | ENCRYPT_STORAGE`
- * on the primary, [V] from the web client's getKeyEncryptionInfo path).
- * Real-account keys with split sign/encrypt subkeys land with the
- * complete version; the dispatcher in `:core:proton-contacts` already
- * treats the keyset as an opaque pair of handles, so growing the
- * unlock result to expose subkeys later is a non-breaking change.
+ * Extracts and unlocks ALL secret keys in the ring (primary +
+ * encryption subkeys). `[V]` Real Proton accounts use split keys:
+ * the primary key carries SIGN_DATA | CERTIFY_OTHER, and a subkey
+ * carries ENCRYPT_COMMS | ENCRYPT_STORAGE. Contacts are encrypted
+ * to the encryption subkey, so the decrypt path needs it.
+ *
+ * `private` is always the primary (signing) key. `allPrivateKeys`
+ * contains all keys in the ring (primary first, then subkeys) so
+ * the decrypt path can try each until one matches.
  */
 object BouncyCastleKeyUnlock {
 
@@ -55,37 +57,45 @@ object BouncyCastleKeyUnlock {
     fun unlock(armoredPrivateKey: String, passphrase: CharArray): UnlockedKey {
         PgpProvider.ensureProvider()
 
-        val secretKey = try {
+        val ring = try {
             val decoded = PGPUtil.getDecoderStream(
                 ByteArrayInputStream(armoredPrivateKey.toByteArray(Charsets.US_ASCII))
             )
             val objectFactory = BcPGPObjectFactory(decoded)
-            val ring = generateSequence { objectFactory.nextObject() }
+            generateSequence { objectFactory.nextObject() }
                 .filterIsInstance<PGPSecretKeyRing>()
                 .firstOrNull()
                 ?: throw KeyUnlockException("no PGPSecretKeyRing found in armored input")
-            // Primary key carries SIGN_DATA + ENCRYPT_COMMS for Proton users [V].
-            ring.secretKey
         } catch (kue: KeyUnlockException) {
             throw kue
         } catch (t: Throwable) {
             throw KeyUnlockException("failed to parse armored private key", t)
         }
 
-        val pgpPrivateKey = try {
-            secretKey.extractPrivateKey(
-                BcPBESecretKeyDecryptorBuilder(BcPGPDigestCalculatorProvider()).build(passphrase)
-            )
+        val decryptor = try {
+            BcPBESecretKeyDecryptorBuilder(BcPGPDigestCalculatorProvider()).build(passphrase)
         } catch (pgp: PGPException) {
-            // BouncyCastle throws PGPException("checksum mismatch") for bad
-            // passphrases. Translate without leaking the passphrase or
-            // BouncyCastle's internal stack trace into the message.
             throw KeyUnlockException("wrong passphrase or corrupted key material", pgp)
         }
 
+        val allKeys = mutableListOf<PgpPrivateKeyHandle>()
+        for (sk in ring.secretKeys) {
+            val priv = try {
+                sk.extractPrivateKey(decryptor)
+            } catch (pgp: PGPException) {
+                throw KeyUnlockException("wrong passphrase or corrupted key material", pgp)
+            }
+            allKeys += PgpPrivateKeyHandle(raw = priv, pubKey = sk.publicKey)
+        }
+        if (allKeys.isEmpty()) {
+            throw KeyUnlockException("key ring contains no secret keys")
+        }
+
+        val primaryKey = ring.secretKey
         return UnlockedKey(
-            private = PgpPrivateKeyHandle(raw = pgpPrivateKey, pubKey = secretKey.publicKey),
-            public = PgpPublicKeyHandle(raw = secretKey.publicKey)
+            private = allKeys.first { it.raw.keyID == primaryKey.keyID },
+            public = PgpPublicKeyHandle(raw = primaryKey.publicKey),
+            allPrivateKeys = allKeys
         )
     }
 }

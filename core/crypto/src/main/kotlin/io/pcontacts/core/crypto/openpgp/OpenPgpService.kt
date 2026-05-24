@@ -33,13 +33,14 @@ interface OpenPgpService {
     ): String
 
     /**
-     * Decrypts `armoredMessage`. When `detachedSignature` is non-null,
+     * Decrypts `armoredMessage` using the first matching key from
+     * `decryptionKeys`. When `detachedSignature` is non-null,
      * also verifies it against `verificationKeys`.
      */
     fun decryptAndVerify(
         armoredMessage: String,
         detachedSignature: String?,
-        decryptionKey: PgpPrivateKeyHandle,
+        decryptionKeys: List<PgpPrivateKeyHandle>,
         verificationKeys: List<PgpPublicKeyHandle>
     ): VerifiedDecryptResult
 

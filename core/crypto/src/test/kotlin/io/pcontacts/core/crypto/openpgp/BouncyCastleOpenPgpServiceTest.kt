@@ -61,7 +61,7 @@ class BouncyCastleOpenPgpServiceTest {
         val verified = service.decryptAndVerify(
             armoredMessage = encrypted.armoredMessage,
             detachedSignature = encrypted.armoredDetachedSignature,
-            decryptionKey = key.priv,
+            decryptionKeys = listOf(key.priv),
             verificationKeys = listOf(key.pub)
         )
 
@@ -79,7 +79,7 @@ class BouncyCastleOpenPgpServiceTest {
         val result = service.decryptAndVerify(
             armoredMessage = encrypted.armoredMessage,
             detachedSignature = null,
-            decryptionKey = key.priv,
+            decryptionKeys = listOf(key.priv),
             verificationKeys = listOf(key.pub)
         )
         assertArrayEquals(plaintext, result.plaintext)
@@ -96,7 +96,7 @@ class BouncyCastleOpenPgpServiceTest {
         val result = service.decryptAndVerify(
             armoredMessage = encrypted.armoredMessage,
             detachedSignature = encrypted.armoredDetachedSignature,
-            decryptionKey = key.priv,
+            decryptionKeys = listOf(key.priv),
             verificationKeys = emptyList()
         )
         assertEquals(VerificationStatus.SIGNED_NO_VERIFIER, result.verificationStatus)
