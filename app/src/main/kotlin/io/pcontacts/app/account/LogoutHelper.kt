@@ -33,6 +33,7 @@ class LogoutHelper(private val context: Context) {
         val provider = resolver.acquireContentProviderClient(ContactsContract.AUTHORITY)
             ?: error("ContactsProvider unavailable")
         try {
+            cancelAutoSync(account)
             val orchestrator = AuthBootstrap.createLogoutOrchestrator(
                 context = context,
                 provider = provider,
@@ -59,8 +60,7 @@ class LogoutHelper(private val context: Context) {
             AccountManager.get(context).removeAccountExplicitly(account)
         }
 
-    @Suppress("unused")
-    fun cancelAutoSync(account: Account) {
+    private fun cancelAutoSync(account: Account) {
         // After logout we may briefly leave a phantom Account if removal
         // races with a periodic sync trigger; tell the sync framework to
         // forget about it explicitly.

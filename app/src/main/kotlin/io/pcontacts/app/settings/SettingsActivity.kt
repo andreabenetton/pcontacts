@@ -20,7 +20,6 @@ import io.pcontacts.app.MainActivity
 import io.pcontacts.app.account.LogoutHelper
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.ui.PcontactsTheme
-import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsScreen
@@ -109,11 +108,4 @@ class SettingsActivity : ComponentActivity() {
         startActivity(intent)
         finish()
     }
-
-    // Touch the LogoutOrchestrator import so static analysis keeps it on the
-    // classpath — the actual call is via LogoutHelper, but documenting that
-    // SettingsActivity is the visible surface of LogoutOrchestrator helps
-    // future readers find the chain.
-    @Suppress("unused")
-    private val orchestratorClass = LogoutOrchestrator::class
 }
