@@ -90,6 +90,11 @@ jobs:
         # Services, Firebase, analytics SDKs, etc.
         run: ./gradlew --no-daemon --stacktrace checkForbiddenDependencies
 
+      - name: ADR-0015 license-compatibility check
+        # Fails if any dependency in :app's release classpath carries a
+        # license not on the ADR-0015 allowlist (config/allowed-licenses.json).
+        run: ./gradlew --no-daemon --stacktrace :app:checkLicense
+
       - name: Upload lint report on failure
         if: failure()
         uses: actions/upload-artifact@v4

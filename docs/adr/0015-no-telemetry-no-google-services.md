@@ -69,9 +69,10 @@ The redacting-logger requirement (no `Log.*` of tokens, passwords, signatures, v
 
 ## Implementation status
 
-Three of the four structural enforcement gates are shipped:
+Four structural enforcement gates are shipped:
 
-1. **Forbidden-dependency Gradle task** — `checkForbiddenDependencies` in the root `build.gradle.kts` walks every sub-project's resolved release runtime classpath and fails on any artifact whose group is in the blocklist (Google Play Services, Firebase, Play Integrity, Ads, Sentry, Bugsnag, AppsFlyer, Crashlytics, Fabric, Google Places). Marked `notCompatibleWithConfigurationCache` because it walks resolved configurations at execution time. Wired into the CI `assemble-debug` job so every PR exercises it. **This is not a full license-scan**; it doesn't catch non-GPL-3-compatible licenses on otherwise allowed groups. A real license-scan plugin (e.g. `com.github.jk1.dependency-license-report`) is a tracked follow-up.
+1. **Forbidden-dependency Gradle task** — `checkForbiddenDependencies` in the root `build.gradle.kts` walks every sub-project's resolved release runtime classpath and fails on any artifact whose group is in the blocklist (Google Play Services, Firebase, Play Integrity, Ads, Sentry, Bugsnag, AppsFlyer, Crashlytics, Fabric, Google Places). Marked `notCompatibleWithConfigurationCache` because it walks resolved configurations at execution time. Wired into the CI `assemble-debug` job so every PR exercises it.
+1b. **License-compatibility gate** — Custom `checkLicense` task in `app/build.gradle.kts` uses Gradle's `ArtifactResolutionQuery` API to fetch POM files for the full transitive release classpath and fails if any artifact carries a license not on the allowlist in `config/allowed-licenses.json`. Wired into the CI `assemble-debug` job alongside `checkForbiddenDependencies`.
 2. **`PcontactsSensitiveLog` Lint rule** — `tools/lint/.../SensitiveLogDetector.kt` (UAST detector) flags any `android.util.Log.*`, `println`, or `System.out.*` call outside the sanctioned bridge package `io.pcontacts.app.logging` and `:core:logging`. Wired into every Android module via `lintChecks(project(":tools:lint"))`. Failed Lint = failed build.
 3. **DNS allowlist for the single OkHttpClient** — `ProtonHostDnsGuard` in `:core:proton-api` refuses to resolve hosts that don't match `*.proton.me` (localhost allowed for MockWebServer tests). Mechanical enforcement of CLAUDE.md's "no host outside *.proton.me" rule.
 
@@ -83,4 +84,4 @@ Deferred:
 - Network-capture CI gate asserting startup makes zero DNS queries for non-`proton.me` hosts on a fresh emulator.
 - `apkanalyzer files list` post-build assertion against a forbidden-file pattern list.
 
-The CI workflow (`.github/workflows/build.yml`) runs `checkForbiddenDependencies` + `:app:lintDebug` (which includes the Sensitive-Log rule) + `:app:assembleRelease` (R8) on every push / PR.
+The CI workflow (`.github/workflows/build.yml`) runs `checkForbiddenDependencies` + `:app:checkLicense` + `:app:lintDebug` (which includes the Sensitive-Log rule) + `:app:assembleRelease` (R8) on every push / PR.

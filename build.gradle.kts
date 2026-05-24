@@ -34,8 +34,8 @@ subprojects {
 //   - Google Play Services, Firebase, Google Ads, Play Integrity etc.
 //   - Common analytics SDKs (Crashlytics, Sentry, AppsFlyer, Bugsnag).
 //
-// What it does NOT catch (deferred to manual NOTICE audit + a real
-// license-scan plugin in a follow-up):
+// What it does NOT catch (license scanning handled separately by the
+// `checkLicense` task in :app — see config/allowed-licenses.json):
 //   - Non-GPL-3-compatible licenses on otherwise allowed groups.
 //   - Transitive deps from disallowed sub-coordinates of an allowed group.
 
