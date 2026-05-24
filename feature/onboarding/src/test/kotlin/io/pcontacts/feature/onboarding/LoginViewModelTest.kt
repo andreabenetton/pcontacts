@@ -5,28 +5,39 @@ package io.pcontacts.feature.onboarding
 
 import io.pcontacts.core.sync.auth.LoginResult
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
 
+    private val testDispatcher = StandardTestDispatcher()
+
+    @Before fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @After fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
     private val unusedSubmitTotp: suspend (String) -> LoginResult =
         { error("submitTotp should not be called in this test") }
 
     @Test fun success_transitions_idle_submitting_success() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.Success(uid = "uid-1") },
             submitTotp = unusedSubmitTotp,
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
         assertEquals(LoginUiState.Idle, vm.uiState.value)
 
@@ -38,13 +49,10 @@ class LoginViewModelTest {
     }
 
     @Test fun two_factor_required_surfaces_in_state() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-2fa") },
             submitTotp = unusedSubmitTotp,
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
         vm.login("u", "p".toCharArray())
         advanceUntilIdle()
@@ -52,13 +60,10 @@ class LoginViewModelTest {
     }
 
     @Test fun failure_surfaces_reason_in_state() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.Failed(reason = "auth_failed") },
             submitTotp = unusedSubmitTotp,
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
         vm.login("u", "p".toCharArray())
         advanceUntilIdle()
@@ -66,10 +71,6 @@ class LoginViewModelTest {
     }
 
     @Test fun second_tap_while_submitting_is_a_noop() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
-
-        // Block the first attempt until we explicitly release it.
         val gate = CompletableDeferred<LoginResult>()
         var callCount = 0
         val vm = LoginViewModel(
@@ -78,8 +79,7 @@ class LoginViewModelTest {
                 gate.await()
             },
             submitTotp = unusedSubmitTotp,
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
 
         vm.login("u", "p".toCharArray())
@@ -98,14 +98,11 @@ class LoginViewModelTest {
     }
 
     @Test fun reset_returns_to_idle_and_cancels_pending_job() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         val gate = CompletableDeferred<LoginResult>()
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> gate.await() },
             submitTotp = unusedSubmitTotp,
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
         vm.login("u", "p".toCharArray())
         advanceUntilIdle()
@@ -118,8 +115,6 @@ class LoginViewModelTest {
     // --- 2FA / TOTP ---
 
     @Test fun submitTwoFactor_success_transitions_required_submitting_success() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         var capturedCode: String? = null
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-2fa") },
@@ -127,11 +122,9 @@ class LoginViewModelTest {
                 capturedCode = code
                 LoginResult.Success(uid = "uid-2fa")
             },
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
 
-        // Drive the state machine into TwoFactorRequired first.
         vm.login("u", "p".toCharArray())
         advanceUntilIdle()
         assertEquals(LoginUiState.TwoFactorRequired(uid = "uid-2fa"), vm.uiState.value)
@@ -145,16 +138,15 @@ class LoginViewModelTest {
     }
 
     @Test fun submitTwoFactor_failure_surfaces_TwoFactorFailed_preserving_uid() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-fail") },
             submitTotp = { _ -> LoginResult.Failed(reason = "two_factor_rejected") },
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
-        vm.login("u", "p".toCharArray()); advanceUntilIdle()
-        vm.submitTwoFactor("000000"); advanceUntilIdle()
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("000000")
+        advanceUntilIdle()
 
         assertEquals(
             LoginUiState.TwoFactorFailed(uid = "uid-fail", reason = "two_factor_rejected"),
@@ -163,8 +155,6 @@ class LoginViewModelTest {
     }
 
     @Test fun submitTwoFactor_from_failed_state_retries() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         var attempts = 0
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-retry") },
@@ -173,35 +163,37 @@ class LoginViewModelTest {
                 if (attempts == 1) LoginResult.Failed("two_factor_rejected")
                 else LoginResult.Success(uid = "uid-retry")
             },
-            scope = scope,
-            workDispatcher = dispatcher
+            workDispatcher = testDispatcher
         )
-        vm.login("u", "p".toCharArray()); advanceUntilIdle()
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
 
-        vm.submitTwoFactor("111111"); advanceUntilIdle()
+        vm.submitTwoFactor("111111")
+        advanceUntilIdle()
         assertEquals(
             LoginUiState.TwoFactorFailed(uid = "uid-retry", reason = "two_factor_rejected"),
             vm.uiState.value
         )
 
-        vm.submitTwoFactor("222222"); advanceUntilIdle()
+        vm.submitTwoFactor("222222")
+        advanceUntilIdle()
         assertEquals(LoginUiState.Success(uid = "uid-retry"), vm.uiState.value)
         assertEquals(2, attempts)
     }
 
     @Test fun submitTwoFactor_ignored_when_not_in_2fa_state() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = TestScope(dispatcher)
         var totpCalled = false
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.Success(uid = "no-2fa-here") },
-            submitTotp = { _ -> totpCalled = true; LoginResult.Success(uid = "x") },
-            scope = scope,
-            workDispatcher = dispatcher
+            submitTotp = { _ ->
+                totpCalled = true
+                LoginResult.Success(uid = "x")
+            },
+            workDispatcher = testDispatcher
         )
 
-        // From Idle the call must be a no-op.
-        vm.submitTwoFactor("123456"); advanceUntilIdle()
+        vm.submitTwoFactor("123456")
+        advanceUntilIdle()
         assertEquals(LoginUiState.Idle, vm.uiState.value)
         assertEquals(false, totpCalled)
     }

@@ -72,6 +72,7 @@ androidx-compose-ui-tooling  = { group = "androidx.compose.ui",   name = "ui-too
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-foundation  = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle-runtime-compose" }
+androidx-lifecycle-viewmodel     = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx",   version.ref = "androidx-lifecycle-runtime-compose" }
 androidx-appcompat           = { group = "androidx.appcompat",    name = "appcompat",                     version.ref = "androidx-appcompat" }
 androidx-biometric           = { group = "androidx.biometric",    name = "biometric-ktx",                 version.ref = "androidx-biometric" }
 androidx-core-ktx            = { group = "androidx.core",         name = "core-ktx",                      version.ref = "androidx-core" }
