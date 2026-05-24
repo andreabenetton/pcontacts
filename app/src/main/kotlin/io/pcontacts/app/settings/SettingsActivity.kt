@@ -20,10 +20,12 @@ import io.pcontacts.app.MainActivity
 import io.pcontacts.app.account.LogoutHelper
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.ui.PcontactsTheme
+import io.pcontacts.core.sync.auth.LogoutOrchestrator
+import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SettingsViewModel
-import io.pcontacts.core.sync.auth.LogoutOrchestrator
+import io.pcontacts.feature.settings.VerificationStats
 
 /**
  * Hosts the Settings Compose surface with Sync Now + Sign Out
@@ -40,7 +42,8 @@ class SettingsActivity : ComponentActivity() {
     private val viewModel by lazy {
         SettingsViewModel(
             syncNow = ::performSyncNow,
-            signOut = ::performSignOut
+            signOut = ::performSignOut,
+            queryVerificationStats = ::queryVerificationStats
         )
     }
 
@@ -89,6 +92,11 @@ class SettingsActivity : ComponentActivity() {
             // Aggregate the non-sensitive error tags into one string for the UI.
             SettingsActionResult.Failure(reason = result.errors.joinToString(prefix = "errors: "))
         }
+    }
+
+    private suspend fun queryVerificationStats(): VerificationStats {
+        val (total, unverified) = SyncBootstrap.countVerificationStats(applicationContext)
+        return VerificationStats(totalContacts = total, unverifiedContacts = unverified)
     }
 
     private fun currentAccount(): Account? =
