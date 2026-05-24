@@ -161,12 +161,12 @@ class ContactsContractInstrumentedTest {
         assertEquals(3, emails.size)
 
         val primary = emails.first { it["is_primary"] == "1" }
-        assertEquals("bob@proton.me", primary["address"])
+        assertEquals("bob@proton.me", primary[Email.ADDRESS])
 
         val nonPrimary = emails.filter { it["is_primary"] != "1" }
         assertEquals(2, nonPrimary.size)
-        assertTrue(nonPrimary.any { it["address"] == "bob.work@company.com" })
-        assertTrue(nonPrimary.any { it["address"] == "bob.alt@gmail.com" })
+        assertTrue(nonPrimary.any { it[Email.ADDRESS] == "bob.work@company.com" })
+        assertTrue(nonPrimary.any { it[Email.ADDRESS] == "bob.alt@gmail.com" })
     }
 
     @Test
@@ -353,7 +353,7 @@ class ContactsContractInstrumentedTest {
 
         val emails = queryAllDataRows(rawId, Email.CONTENT_ITEM_TYPE)
         assertEquals(2, emails.size)
-        val addrs = emails.map { it["address"] }.toSet()
+        val addrs = emails.map { it[Email.ADDRESS] }.toSet()
         assertTrue(addrs.contains("alice.new@proton.me"))
         assertTrue(addrs.contains("alice.alt@proton.me"))
         assertTrue("Old email must be gone", !addrs.contains("alice.old@proton.me"))

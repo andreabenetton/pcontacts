@@ -6,7 +6,6 @@ package io.pcontacts.core.contactswriter
 import android.accounts.Account
 import android.content.ContentProviderClient
 import android.content.ContentProviderResult
-import android.provider.ContactsContract
 import android.provider.ContactsContract.RawContacts
 
 /**
@@ -33,8 +32,9 @@ class BatchApplier(private val provider: ContentProviderClient) {
         val chunks = BatchPlanner.plan(account, intents)
         var totalResults = 0
         for (chunk in chunks) {
+            @Suppress("DEPRECATION")
             val results: Array<ContentProviderResult> =
-                provider.applyBatch(ContactsContract.AUTHORITY, ArrayList(chunk))
+                provider.applyBatch(ArrayList(chunk))
             totalResults += results.size
         }
 
