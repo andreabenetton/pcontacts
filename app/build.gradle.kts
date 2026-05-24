@@ -109,3 +109,9 @@ dependencies {
     // ADR-0015: enforce no direct Log / println / System.out.* calls.
     lintChecks(project(":tools:lint"))
 }
+
+afterEvaluate {
+    tasks.matching { it.name == "assembleRelease" }.configureEach {
+        dependsOn(":core:proton-api:verifyCertificatePins")
+    }
+}
