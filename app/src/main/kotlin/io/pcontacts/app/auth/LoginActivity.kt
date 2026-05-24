@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.provider.ContactsContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,14 +36,14 @@ import io.pcontacts.feature.onboarding.TwoFactorScreen
  *
  * Holds both LoginScreen and TwoFactorScreen behind the same
  * LoginViewModel — TOTP is a sub-state of the same flow, not a separate
- * Activity, so configuration changes and Activity recreation can't strand
- * the in-flight auth on a dead Activity.
+ * Activity. The ViewModel survives configuration changes (rotation)
+ * so in-flight SRP/2FA state is preserved.
  */
 class LoginActivity : ComponentActivity() {
 
     private val orchestrator by lazy { AuthBootstrap.createLoginOrchestrator(this) }
-    private val viewModel by lazy {
-        LoginViewModel(
+    private val viewModel: LoginViewModel by viewModels {
+        LoginViewModel.Factory(
             attemptLogin = orchestrator::login,
             submitTotp = orchestrator::submitTwoFactorCode
         )
@@ -68,20 +69,12 @@ class LoginActivity : ComponentActivity() {
                         else -> LoginScreen(
                             viewModel = viewModel,
                             onSuccess = { uid -> finishWithAccount(uid) },
-                            // No-op: navigating into TwoFactorRequired flips
-                            // the state, which flips the branch above on the
-                            // next recomposition.
                             onTwoFactorRequired = { /* handled by state-driven branch */ }
                         )
                     }
                 }
             }
         }
-    }
-
-    override fun onDestroy() {
-        viewModel.dispose()
-        super.onDestroy()
     }
 
     private fun finishWithAccount(uid: String) {
