@@ -45,6 +45,12 @@ interface ContactMapDao {
     @Query("DELETE FROM contact_map WHERE proton_contact_id = :id")
     suspend fun deleteByProtonId(id: String)
 
+    @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0")
+    suspend fun countLive(): Int
+
+    @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0 AND is_verified = 0")
+    suspend fun countUnverified(): Int
+
     @Query("DELETE FROM contact_map")
     suspend fun deleteAll()
 }

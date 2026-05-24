@@ -143,18 +143,55 @@ class PcontactsDatabaseTest {
         assertEquals(bumped, syncStateDao.get("uid-acct"))
     }
 
+    @Test fun count_live_excludes_deleted_rows() = runTest {
+        contactMapDao.upsertAll(
+            listOf(
+                sampleContact(id = "a", rawId = 1L),
+                sampleContact(id = "b", rawId = 2L),
+                sampleContact(id = "c", rawId = 3L)
+            )
+        )
+        contactMapDao.markDeleted("b")
+        assertEquals(2, contactMapDao.countLive())
+    }
+
+    @Test fun count_unverified_counts_only_live_unverified_rows() = runTest {
+        contactMapDao.upsertAll(
+            listOf(
+                sampleContact(id = "verified-1", rawId = 1L, verified = true),
+                sampleContact(id = "verified-2", rawId = 2L, verified = true),
+                sampleContact(id = "unverified-1", rawId = 3L, verified = false),
+                sampleContact(id = "unverified-2", rawId = 4L, verified = false),
+                sampleContact(id = "deleted-unverified", rawId = 5L, verified = false)
+            )
+        )
+        contactMapDao.markDeleted("deleted-unverified")
+        assertEquals(2, contactMapDao.countUnverified())
+    }
+
+    @Test fun count_unverified_returns_zero_when_all_verified() = runTest {
+        contactMapDao.upsertAll(
+            listOf(
+                sampleContact(id = "a", rawId = 1L, verified = true),
+                sampleContact(id = "b", rawId = 2L, verified = true)
+            )
+        )
+        assertEquals(0, contactMapDao.countUnverified())
+    }
+
     private fun sampleContact(
         id: String,
         rawId: Long,
         uid: String? = null,
-        hash: String = "hash-$id"
+        hash: String = "hash-$id",
+        verified: Boolean = true
     ) = ContactMapEntity(
         protonContactId = id,
         protonUid = uid,
         androidRawContactId = rawId,
         modifyTime = 1_700_000_000L,
         contentHash = hash,
-        isVerified = true,
+        isVerified = verified,
         deleted = false,
         syncStatus = ContactMapEntity.Status.CLEAN,
         lastError = null,
