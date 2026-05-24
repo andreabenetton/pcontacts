@@ -32,6 +32,8 @@ class SettingsViewModel(
     private val syncNow: suspend () -> SettingsActionResult,
     private val signOut: suspend () -> SettingsActionResult,
     private val queryVerificationStats: suspend () -> VerificationStats? = { null },
+    private val onSyncIntervalChanged: (Long) -> Unit = {},
+    initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours,
     private val scope: CoroutineScope = MainScope(),
     private val workDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
@@ -41,10 +43,18 @@ class SettingsViewModel(
     private val _verificationStats = MutableStateFlow<VerificationStats?>(null)
     val verificationStats: StateFlow<VerificationStats?> = _verificationStats.asStateFlow()
 
+    private val _syncInterval = MutableStateFlow(SyncInterval.fromHours(initialSyncIntervalHours))
+    val syncInterval: StateFlow<SyncInterval> = _syncInterval.asStateFlow()
+
     private var pendingJob: Job? = null
 
     init {
         scope.launch { refreshVerificationStats() }
+    }
+
+    fun setSyncInterval(interval: SyncInterval) {
+        _syncInterval.value = interval
+        onSyncIntervalChanged(interval.hours)
     }
 
     private suspend fun refreshVerificationStats() {

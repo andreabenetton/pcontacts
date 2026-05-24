@@ -147,4 +147,31 @@ class SettingsViewModelTest {
         advanceUntilIdle()
         assertEquals(null, vm.verificationStats.value)
     }
+
+    @Test fun sync_interval_defaults_to_initial_value() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            initialSyncIntervalHours = 6,
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        assertEquals(SyncInterval.SIX_HOURS, vm.syncInterval.value)
+    }
+
+    @Test fun set_sync_interval_updates_state_and_calls_callback() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var captured: Long? = null
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            onSyncIntervalChanged = { captured = it },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.setSyncInterval(SyncInterval.ONE_HOUR)
+        assertEquals(SyncInterval.ONE_HOUR, vm.syncInterval.value)
+        assertEquals(1L, captured)
+    }
 }
