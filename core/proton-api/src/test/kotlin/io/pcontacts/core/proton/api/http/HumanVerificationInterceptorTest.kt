@@ -9,7 +9,9 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -50,8 +52,6 @@ class HumanVerificationInterceptorTest {
     }
 
     @Test fun non_json_body_is_not_inspected_even_if_it_contains_9001() {
-        // Pathological: a binary stream that happens to include the bytes
-        // "Code":9001. Interceptor must NOT trigger on non-JSON.
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
@@ -62,9 +62,7 @@ class HumanVerificationInterceptorTest {
         assertEquals(200, response.code)
     }
 
-    @Test fun `9001 with extra padding or whitespace around the value is caught`() {
-        // Marker is literal "Code":9001 with no space — verify it matches
-        // when 9001 is followed by a delimiter (comma, brace).
+    @Test fun `9001 with Code field not first is caught`() {
         server.enqueue(
             MockResponse()
                 .setResponseCode(422)
@@ -74,5 +72,59 @@ class HumanVerificationInterceptorTest {
         assertThrows(HumanVerificationRequiredException::class.java) {
             client.newCall(Request.Builder().url(server.url("/x")).build()).execute()
         }
+    }
+
+    @Test fun `9001 with whitespace around colon is caught`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{ "Code" : 9001 , "Error" : "verify" }""")
+        )
+        assertThrows(HumanVerificationRequiredException::class.java) {
+            client.newCall(Request.Builder().url(server.url("/x")).build()).execute()
+        }
+    }
+
+    @Test fun `9001 with pretty-printed json is caught`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody("{\n  \"Error\": \"Human verification required\",\n  \"Code\": 9001\n}")
+        )
+        assertThrows(HumanVerificationRequiredException::class.java) {
+            client.newCall(Request.Builder().url(server.url("/x")).build()).execute()
+        }
+    }
+
+    // ---- Unit tests for isCode9001 directly ----
+
+    @Test fun isCode9001_minified() {
+        assertTrue(HumanVerificationInterceptor.isCode9001("""{"Code":9001}"""))
+    }
+
+    @Test fun isCode9001_with_spaces() {
+        assertTrue(HumanVerificationInterceptor.isCode9001("""{ "Code" : 9001 }"""))
+    }
+
+    @Test fun isCode9001_different_code() {
+        assertFalse(HumanVerificationInterceptor.isCode9001("""{"Code":1000}"""))
+    }
+
+    @Test fun isCode9001_no_Code_field() {
+        assertFalse(HumanVerificationInterceptor.isCode9001("""{"Error":"x"}"""))
+    }
+
+    @Test fun isCode9001_invalid_json() {
+        assertFalse(HumanVerificationInterceptor.isCode9001("not json at all"))
+    }
+
+    @Test fun isCode9001_code_as_string_9001_still_detected() {
+        assertTrue(HumanVerificationInterceptor.isCode9001("""{"Code":"9001"}"""))
+    }
+
+    @Test fun isCode9001_code_as_non_numeric_string() {
+        assertFalse(HumanVerificationInterceptor.isCode9001("""{"Code":"not-a-number"}"""))
     }
 }

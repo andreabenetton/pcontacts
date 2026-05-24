@@ -7,6 +7,10 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import java.io.IOException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -16,11 +20,10 @@ import okhttp3.Response
  * NEVER auto-retry 9001 — it must reach the user via the UI so they
  * can complete the captcha / recovery-email / SMS flow.
  *
- * Implementation: peek the response body, look for the literal
- * `"Code":9001`. JSON-parsing isn't worth the overhead for one
- * top-level int field; false positives on payloads that happen to
- * contain those bytes are astronomically unlikely. Body peek is
- * size-capped so a runaway response can't blow memory.
+ * Implementation: peek the response body and parse the top-level
+ * JSON `Code` field via kotlinx.serialization. Parsing is resilient
+ * to whitespace and field-order changes in Proton's responses. Body
+ * peek is size-capped so a runaway response can't blow memory.
  *
  * `HumanVerificationRequiredException` extends `IOException` so
  * Retrofit propagates it from `Call.execute()` / suspend functions
@@ -33,19 +36,15 @@ class HumanVerificationInterceptor(
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val response = chain.proceed(chain.request())
-        // Only JSON bodies are worth checking — Proton's API is JSON
-        // throughout but pre-filtering avoids a peek on every binary stream.
         val contentType = response.body?.contentType()?.subtype ?: ""
         if (!contentType.contains("json", ignoreCase = true)) return response
 
         val snippet = try {
             response.peekBody(maxPeekBytes).string()
         } catch (t: Throwable) {
-            // Body unreadable / oversize — let the caller see the original
-            // response and decide.
             return response
         }
-        if (snippet.contains(MARKER_9001)) {
+        if (isCode9001(snippet)) {
             response.close()
             logger.warn { "Proton returned Code:9001 (human verification) on ${chain.request().url.encodedPath}" }
             throw HumanVerificationRequiredException()
@@ -55,9 +54,19 @@ class HumanVerificationInterceptor(
 
     companion object {
         const val DEFAULT_MAX_PEEK_BYTES: Long = 8 * 1024
-        // Single-quote-delimited so the JSON tokenizer's whitespace
-        // doesn't matter — Proton emits "Code":9001 with no space.
-        const val MARKER_9001 = "\"Code\":9001"
+        const val HUMAN_VERIFICATION_CODE = 9001
+
+        private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
+
+        internal fun isCode9001(body: String): Boolean = try {
+            val code = lenientJson.parseToJsonElement(body)
+                .jsonObject["Code"]
+                ?.jsonPrimitive
+                ?.int
+            code == HUMAN_VERIFICATION_CODE
+        } catch (_: Exception) {
+            false
+        }
     }
 }
 
