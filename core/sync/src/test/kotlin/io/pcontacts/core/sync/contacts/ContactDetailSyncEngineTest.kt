@@ -226,13 +226,17 @@ class ContactDetailSyncEngineTest {
                     id = "c1",
                     modifyTime = 100L,
                     cards = listOf(
-                        ContactCardDto(type = 2, data = """
-                            BEGIN:VCARD
-                            VERSION:4.0
-                            FN:Alice
-                            EMAIL:alice@proton.me
-                            END:VCARD
-                        """.trimIndent(), signature = "bad-sig")
+                        ContactCardDto(
+                            type = 2,
+                            data = """
+                                BEGIN:VCARD
+                                VERSION:4.0
+                                FN:Alice
+                                EMAIL:alice@proton.me
+                                END:VCARD
+                            """.trimIndent(),
+                            signature = "bad-sig"
+                        )
                     )
                 )
             )
