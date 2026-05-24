@@ -6,11 +6,11 @@ A GPL-3.0 Android app that signs in to a Proton Mail account, decrypts the user'
 
 ## Status
 
-Pre-release. The full plan §17 task list (1–20) is implemented in source and exercised by unit tests; plan phase 10 hardening (refresh mutex, 429 backoff, 9001 handling, ProGuard + R8, CI, threat model, license-check task) is also in. **Not yet validated against a live Proton account on a real device** — see [Known gaps](#known-gaps) before relying on this.
+Pre-release. The full plan §17 task list (1–20) is implemented in source and exercised by unit tests; plan phase 10 hardening (refresh mutex, 429 backoff, 9001 handling, ProGuard + R8, CI, threat model, license-check task) is also in. **Validated against the live Proton production API** on 2026-05-24 — full SRP handshake, token persistence, keyPassword derivation, and logout all succeed. See [`docs/API_RESEARCH.md`](docs/API_RESEARCH.md) for protocol details.
 
-What works in code (verified by unit tests + assembleRelease):
+What works in code (verified by unit tests + live integration test):
 
-- SRP-6a login with TOTP 2FA. Modulus signature verification machinery wired (pinned key resource still required — see [Known gaps](#known-gaps)).
+- SRP login (Proton's custom go-srp variant, not standard SRP-6a) with TOTP 2FA. Modulus signature verification against pinned Proton SRP signing key (ADR-0014).
 - Per-card decrypt: CLEAR_TEXT / SIGNED / ENCRYPTED / ENCRYPTED_AND_SIGNED dispatch via `:core:proton-contacts`, integrated end-to-end against real BouncyCastle in `ContactDecryptBootstrapTest`.
 - Full vCard projection: FN / N pieces / multiple EMAIL / multiple TEL / multiple ADR / ORG / NOTE / IMPP / inline PHOTO / CATEGORIES + LabelIDs → GroupMembership.
 - Two-tier sync skip: server `ModifyTime` first (cheap, no fetch), then content hash (avoids no-op writes when ModifyTime bumps but content didn't change).
@@ -20,12 +20,11 @@ What works in code (verified by unit tests + assembleRelease):
 
 ### Known gaps
 
-1. **No live-account validation yet.** Every Proton-protocol claim past `[V]` markers in the code is a `[U]` (Unverified) or `[A]` (Assumption) until someone runs the APK against a real Proton account. See `docs/adr/0013-crypto-test-vectors.md` and `docs/adr/0014-modulus-pinning.md`.
-2. **Pinned Proton SRP signing key resource is absent.** The verifier in `:core:crypto` is wired (`BouncyCastleProtonModulusVerifier`); when it can't find `/proton_srp_signing_key.asc` on the classpath it returns `NO_SIGNER_KEY` and the login orchestrator logs a warning and proceeds. Source + drop the key per the README at `core/crypto/src/main/resources/README_proton_srp_signing_key.md`, then flip the orchestrator's `NO_SIGNER_KEY` policy from warn-and-proceed to abort. Until that lands, the modulus is trusted by virtue of TLS only.
-3. **SPKI certificate pins for `api.proton.me` are absent.** Same shape: pinner is wired, resource file empty, README at `core/proton-api/src/main/resources/README_proton_certificate_pins.md` documents the openssl one-liner to capture pins.
-4. **`@protontech/crypto` vectors not captured.** `tools/vectors/capture.js` is ready to run; `CapturedVectorsTest` JUnit-Assumes its way to a no-op when the JSON isn't there. Once you run the script and commit the JSON, bcrypt-SHA-512 (and, after extending the script, SRP + OpenPGP) get pinned bit-exact against the reference implementation.
-5. **No instrumented tests.** `ContactsContract` round-trip semantics (aggregation, tombstones, photo round-trip) are validated by Robolectric structural tests only. Add an emulator-backed pipeline before claiming end-to-end correctness.
-6. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
+1. **Contact Card decrypt not yet validated against a live account.** SRP login, token persistence, and keyPassword derivation are validated end-to-end (see `docs/API_RESEARCH.md` §7). Remaining: decrypt SIGNED + ENCRYPTED_AND_SIGNED Cards and PGP private key unlock with the derived keyPassword.
+2. **SPKI certificate pins for `mail-api.proton.me` are absent.** The pinner is wired (`ProtonCertificatePins`); the pin set needs to be captured and committed. README at `core/proton-api/src/main/resources/README_proton_certificate_pins.md` documents the procedure.
+3. **No instrumented tests.** `ContactsContract` round-trip semantics (aggregation, tombstones, photo round-trip) are validated by Robolectric structural tests only. Add an emulator-backed pipeline before claiming end-to-end correctness.
+4. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
+5. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
 
 ## Why this exists
 
@@ -54,13 +53,13 @@ See [`docs/adr/README.md`](docs/adr/README.md) for the index of all 15 ADRs.
 
 The load-bearing calls:
 
-- **Native Kotlin crypto** in `:core:crypto`: BouncyCastle for OpenPGP, ported SRP-6a + bcrypt-SHA-512. No embedded JS engine. (ADR 0002)
+- **Native Kotlin crypto** in `:core:crypto`: BouncyCastle for OpenPGP, ported Proton SRP (go-srp variant) + bcrypt-SHA-512. No embedded JS engine. (ADR 0002)
 - **F-Droid first**, sideload-friendly. No Google Play Services, no telemetry, no closed-source binaries. Enforced by a `checkForbiddenDependencies` Gradle task that fails CI on any forbidden group landing in a release classpath. (ADRs 0003, 0015)
 - **`AbstractAccountAuthenticator` + `SyncAdapter`** for system integration; `WorkManager` as the belt-and-suspenders periodic scheduler. (ADR 0004)
 - **Client-side decrypt only.** The app never calls `GET contacts/v4/contacts/export` (server-side decrypt); a CI grep fails on the path. (ADR 0007)
 - **Read-only, single-account MVP.** Bidirectional write-back is plan phase 9 work. (ADR 0006)
 - **Delete-and-reinsert child Data rows on update**, never the parent RawContact (preserves user-owned aggregate state — starred, custom ringtone, custom photo). (ADR 0010)
-- **Modulus signature verification** against a pinned Proton SRP signing key (machinery shipped, pinned key resource pending — see Known gaps). (ADR 0014)
+- **Modulus signature verification** against a pinned Proton SRP signing key. Verified against live API. (ADR 0014)
 
 ## Build & install
 
@@ -111,17 +110,16 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the STRIDE pass. Highligh
 
 - ContactsContract is shared by design — every app the user grants `READ_CONTACTS` to can read synced contacts. That's the point.
 - Heap-memory exposure on rooted devices is an accepted residual risk; the JVM can't guarantee memory zeroization.
-- Until the pinned signing key + SPKI cert pins land (see Known gaps), modulus + transport security depend on Android's system trust store.
+- Until SPKI cert pins land (see Known gaps), transport security depends on Android's system trust store. SRP modulus signature verification is active against the pinned key.
 
 ## Contributing
 
-The API surface is still being validated against a live account; until that's done, the architecture decisions in `docs/adr/` are the firmest part of the project. PRs welcome for:
+The SRP auth flow is validated against the live API. PRs welcome for:
 
-- Capturing `@protontech/crypto` vectors via `tools/vectors/capture.js` and committing the resulting JSON.
-- Sourcing + pinning the Proton SRP signing key (`docs/adr/0014-modulus-pinning.md`).
-- Sourcing + pinning SPKI certificates for `api.proton.me`.
+- Sourcing + pinning SPKI certificates for `mail-api.proton.me`.
 - Instrumented `ContactsContract` round-trip tests on an emulator pipeline.
 - Compose UI tests for the login + settings screens.
+- OpenPGP vector capture extension in `tools/vectors/capture.js`.
 
 Open an issue first for anything larger; this is a single-maintainer project and an unscoped PR is hard to absorb.
 

@@ -35,5 +35,5 @@ See [`template.md`](template.md) for new ADRs.
 - ADR filenames: `NNNN-kebab-case-title.md`, four-digit zero-padded sequence.
 - Number is permanent; never reuse a number, even if an ADR is deprecated.
 - Keep an ADR to ~1 page. If it grows, the decision is probably two decisions.
-- Cite Proton/WebClients source paths with the commit hash pinned in `docs/API_RESEARCH.md` (when that doc lands).
+- Cite Proton/WebClients source paths with the commit hash pinned in [`docs/API_RESEARCH.md`](../API_RESEARCH.md).
 - Use the verification markers from the implementation plan when relevant: `[V]` verified, `[U]` unverified, `[A]` assumption, `[D]` discouraged.

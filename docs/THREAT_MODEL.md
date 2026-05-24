@@ -104,7 +104,7 @@ PR.
             ▼
        ┌─────────────────────┐
        │ Proton REST API     │
-       │ api.proton.me       │
+       │ mail-api.proton.me  │
        └─────────────────────┘
 ```
 
@@ -139,8 +139,8 @@ The three crossings:
 
 | # | Threat | Mitigation today | Residual risk |
 |---|---|---|---|
-| S1 | Attacker impersonates Proton's `api.proton.me` to harvest credentials / inject malicious modulus. | TLS via Android system trust store; SPKI pinning slot wired (`ProtonCertificatePins`); DNS guard restricts to `*.proton.me`. | **High until the real SPKI pins land in the resource file.** Today we trust the system store; an attacker controlling a trusted CA + DNS can MITM. |
-| S2 | Attacker swaps the SRP `Modulus` to a backdoored value, defeating SRP entirely. | OpenPGP cleartext-envelope decoder peels the modulus; `ProtonModulusVerifier` machinery is wired; `NO_SIGNER_KEY` log fires until the real Proton SRP signing key lands as a pinned resource. | **High until the pinned signing key lands.** Login proceeds with a warning — production-gate flip is a follow-up commit. |
+| S1 | Attacker impersonates Proton's `mail-api.proton.me` to harvest credentials / inject malicious modulus. | TLS via Android system trust store; SPKI pinning slot wired (`ProtonCertificatePins`); DNS guard restricts to `*.proton.me`. | **Medium until the real SPKI pins land in the resource file.** Today we trust the system store; an attacker controlling a trusted CA + DNS can MITM. Modulus pinning (S2) provides a second layer. |
+| S2 | Attacker swaps the SRP `Modulus` to a backdoored value, defeating SRP entirely. | OpenPGP cleartext-envelope decoder peels the modulus; `BouncyCastleProtonModulusVerifier` verifies against the pinned Proton SRP signing key (`proton_srp_signing_key.asc`). On `INVALID` or `NO_SIGNER_KEY`, login aborts. Validated against live API on 2026-05-24. | **Low.** Attacker must also defeat TLS (S1) to inject a fake modulus. |
 | S3 | Malicious app on the device registers an `AccountAuthenticator` with the same type and prompts the user for credentials. | `android:accountType="io.pcontacts.account"` is unique to our installation; AccountManager enforces uniqueness per (package, type). | Low — Android system blocks the duplicate registration. Verify with `adb dumpsys account`. |
 
 ### Tampering
@@ -195,24 +195,21 @@ write-side artefacts are ContactsContract rows owned by us
 
 ### 5.1 The MITM-on-modulus narrative (S2)
 
-Today's reality: an attacker who controls the network AND can mint
-a TLS cert trusted by Android (a state-level CA compromise or a
-malicious enterprise CA installation) can return a backdoored
+An attacker who controls the network AND can mint a TLS cert
+trusted by Android (a state-level CA compromise or a malicious
+enterprise CA installation) could attempt to return a backdoored
 `Modulus` value on `/auth/info`. SRP's security depends on the
 modulus being prime + correctly structured; a malicious modulus
 leaks the verifier with high probability.
 
-**Mitigation deferred**: the ADR-0014 pinned Proton SRP signing
-key. When the key resource lands, `BouncyCastleProtonModulusVerifier`
-returns `INVALID` on a tampered modulus and the orchestrator
-aborts login.
-
-**Until then**: the verifier returns `NO_SIGNER_KEY` and the
-orchestrator proceeds with a logged warning. The README at
-`core/crypto/src/main/resources/README_proton_srp_signing_key.md`
-documents the source-and-pin procedure + the production-gating
-flip ("change `NO_SIGNER_KEY` policy from warn-and-proceed to
-abort").
+**Mitigation active**: the ADR-0014 pinned Proton SRP signing
+key is shipped as `proton_srp_signing_key.asc` in `:core:crypto`
+resources. `BouncyCastleProtonModulusVerifier` verifies the
+modulus's OpenPGP cleartext-signed envelope against this key.
+On `INVALID` (tampered modulus) or `NO_SIGNER_KEY` (resource
+missing), login aborts. Validated against the live Proton API
+on 2026-05-24 — the pinned key matches the key Proton uses to
+sign the modulus in production.
 
 ### 5.2 The cross-app contact harvesting narrative (I5)
 
@@ -286,13 +283,8 @@ Implemented:
   AbstractAccountAuthenticator, AbstractThreadedSyncAdapter.
 
 Deferred (tracked):
-- ADR-0014 — pin Proton SRP signing key resource + flip
-  `NO_SIGNER_KEY` policy to abort.
-- SPKI pins for `api.proton.me` — same flip after the pin set
-  lands.
-- @protontech/crypto vector capture (flips multiple `[A]` markers
-  to `[V]` — bcrypt-SHA-512 cost, SRP `x` derivation, keyPassword
-  format).
+- SPKI pins for `mail-api.proton.me` — pinner is wired, pin set
+  needs to be captured and committed.
 - Instrumented ContactsContract tests on an emulator pipeline
   (aggregation behaviour, deletion tombstones, photo round-trip).
 - Reproducible-build CI gate (diffoscope).
