@@ -60,7 +60,7 @@ class ProtonAccountAuthenticator(
         account: Account?,
         options: Bundle?
     ): Bundle? {
-        // Credential confirmation handled by the login flow once it ships.
+        // Credential confirmation handled by the SRP login flow in LoginActivity.
         return null
     }
 
