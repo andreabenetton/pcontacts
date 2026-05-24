@@ -12,8 +12,8 @@ import retrofit2.http.Query
  * `packages/shared/lib/api/contacts.ts`.
  *
  * Filters: per the web client `Email` and `LabelID` are XOR — pass at
- * most one. Passing both is undefined-server-behaviour [A]; the pager
- * never does both.
+ * most one. Passing both returns HTTP 400 [V] (validated 2026-05-24);
+ * the pager never does both.
  */
 interface ProtonContactsApi {
 
