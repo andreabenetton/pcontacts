@@ -10,7 +10,7 @@
 Proton's web client performs all client-side cryptography through `@protontech/crypto` (which in turn wraps `openpgpjs` and Proton's own SRP/bcrypt-SHA512 helpers). We need an Android equivalent for:
 
 1. SRP-6a authentication (RFC 5054 + Proton's SRP version, with signed modulus).
-2. `computeKeyPassword(password, salt) = bcrypt-SHA512` per Proton's published spec `[A]` — must be bit-exact to unlock user keys.
+2. `computeKeyPassword(password, salt) = bcrypt-SHA512` per Proton's published spec `[V]` — must be bit-exact to unlock user keys. Validated against live Proton account (2026-05-24).
 3. OpenPGP encrypt / decrypt / sign / verify, with detached signatures and canonical-text canonicalization (the web client passes `stripTrailingSpaces: true`).
 4. Future encrypt-and-sign for write-back (phase 9).
 

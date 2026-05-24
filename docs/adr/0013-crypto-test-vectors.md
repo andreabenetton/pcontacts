@@ -10,7 +10,7 @@
 ADR-0002 commits to porting SRP-6a and bcrypt-SHA512 to Kotlin and implementing OpenPGP via BouncyCastle. The single largest risk is that our implementations are not bit-exact with Proton's web client:
 
 - SRP-6a has implementation choices (padding length, hash domain separation, `k` constant derivation) that RFC 5054 leaves ambiguous; different libraries diverge subtly.
-- bcrypt-SHA512 is `bcrypt(SHA-512(password))` per Proton's published spec `[A]` — but cost factor, salt encoding, and output encoding all need verification.
+- bcrypt-SHA512 is `bcrypt(SHA-512(password))` per Proton's published spec `[V]` — cost factor 10, salt encoding, and output encoding validated against live Proton account (2026-05-24).
 - OpenPGP canonicalization: the web client passes `stripTrailingSpaces: true` to `verifyMessage`, suggesting `CANONICAL_TEXT_DOCUMENT` mode with trailing-whitespace stripping. BouncyCastle's behavior here is well-defined but easy to misconfigure.
 - The vCard-byte stream that gets signed/verified must be canonicalized identically on both ends.
 

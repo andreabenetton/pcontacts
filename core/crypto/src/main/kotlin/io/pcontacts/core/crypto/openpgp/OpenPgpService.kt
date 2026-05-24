@@ -13,7 +13,8 @@ package io.pcontacts.core.crypto.openpgp
  * Verification markers:
  *   `[V]` algorithm choices (OpenPGP, detached signatures, canonical text)
  *         confirmed from `packages/shared/lib/contacts/{encrypt,decrypt}.ts`.
- *   `[A]` exact canonicalization rules — see `TextCanonicalization` doc.
+ *   `[V]` exact canonicalization rules — see `TextCanonicalization` doc.
+ *         Signature verification passed against live Proton contacts (2026-05-24).
  */
 interface OpenPgpService {
 
