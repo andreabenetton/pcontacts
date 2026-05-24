@@ -285,10 +285,12 @@ Implemented:
   Retrofit, kotlinx-serialization, ez-vcard, WorkManager,
   AbstractAccountAuthenticator, AbstractThreadedSyncAdapter.
 
-Planned (ADR-0017/0018):
-- Outbox payloads (if stored) encrypted under Keystore AEAD KEK.
-- Signing key re-unlocked per push attempt, not held between retries.
-- Outbox wiped on logout alongside SecretStore and Room mapping.
+Implemented (ADR-0017/0018):
+- Outbox stores only `payload_hash` and metadata — no decrypted content
+  at rest; re-fetches from ContactsContract on demand for each push.
+- Signing key re-unlocked per sync run, not held between retries.
+- Outbox wiped on logout alongside SecretStore and Room mapping
+  (`LogoutOrchestrator` step 3).
 
 Deferred (tracked):
 - Instrumented ContactsContract tests on an emulator pipeline
