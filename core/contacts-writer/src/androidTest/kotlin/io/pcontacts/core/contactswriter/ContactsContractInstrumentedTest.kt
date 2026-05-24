@@ -3,9 +3,9 @@
 
 package io.pcontacts.core.contactswriter
 
+import android.Manifest
 import android.accounts.Account
 import android.content.ContentProviderClient
-import android.content.ContentUris
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.provider.ContactsContract
@@ -23,15 +23,16 @@ import android.provider.ContactsContract.Groups
 import android.provider.ContactsContract.RawContacts
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.GrantPermissionRule
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 import org.junit.After
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -49,34 +50,46 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ContactsContractInstrumentedTest {
 
-    private lateinit var provider: ContentProviderClient
-    private lateinit var account: Account
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.READ_CONTACTS,
+        Manifest.permission.WRITE_CONTACTS
+    )
+
+    private var provider: ContentProviderClient? = null
+    private var account: Account? = null
     private val accountType = "io.pcontacts.test.instrumented"
 
     @Before
     fun setUp() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         provider = context.contentResolver
-            .acquireContentProviderClient(ContactsContract.AUTHORITY)!!
+            .acquireContentProviderClient(ContactsContract.AUTHORITY)
+            ?: throw AssertionError("Could not acquire ContentProviderClient for ContactsContract")
         account = Account("test-${UUID.randomUUID()}@proton.me", accountType)
     }
 
     @After
     fun tearDown() {
-        val uri = SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
-        provider.delete(
+        val p = provider ?: return
+        val a = account ?: return
+        val uri = SyncAdapterUri.decorate(RawContacts.CONTENT_URI, a.name, a.type)
+        p.delete(
             uri,
             "${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
-            arrayOf(account.type, account.name)
+            arrayOf(a.type, a.name)
         )
-        val groupUri = SyncAdapterUri.decorate(Groups.CONTENT_URI, account.name, account.type)
-        provider.delete(
+        val groupUri = SyncAdapterUri.decorate(Groups.CONTENT_URI, a.name, a.type)
+        p.delete(
             groupUri,
             "${Groups.ACCOUNT_TYPE} = ? AND ${Groups.ACCOUNT_NAME} = ?",
-            arrayOf(account.type, account.name)
+            arrayOf(a.type, a.name)
         )
-        provider.close()
+        p.close()
     }
+
+    private val testProvider: ContentProviderClient get() = provider!!
+    private val testAccount: Account get() = account!!
 
     // ---- Create ----
 
@@ -87,8 +100,8 @@ class ContactsContractInstrumentedTest {
             displayName = "Alice Doe",
             emails = listOf("alice@proton.me")
         )
-        val applier = BatchApplier(provider)
-        val result = applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        val result = applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
         assertEquals(1, result.insertedContacts)
 
         val rawId = findRawContactBySourceId("proton-c1")
@@ -120,8 +133,8 @@ class ContactsContractInstrumentedTest {
             ),
             emails = listOf("alice@proton.me")
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c2")!!
         val name = queryDataRow(rawId, StructuredName.CONTENT_ITEM_TYPE)!!
@@ -140,8 +153,8 @@ class ContactsContractInstrumentedTest {
             displayName = "Bob",
             emails = listOf("bob@proton.me", "bob.work@company.com", "bob.alt@gmail.com")
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c3")!!
         val emails = queryAllDataRows(rawId, Email.CONTENT_ITEM_TYPE)
@@ -168,8 +181,8 @@ class ContactsContractInstrumentedTest {
                 PhoneEntry(number = "+1 555 0102", type = PhoneType.WORK)
             )
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c4")!!
         val phones = queryAllDataRows(rawId, Phone.CONTENT_ITEM_TYPE)
@@ -204,8 +217,8 @@ class ContactsContractInstrumentedTest {
                 )
             )
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c5")!!
         val addrs = queryAllDataRows(rawId, StructuredPostal.CONTENT_ITEM_TYPE)
@@ -232,8 +245,8 @@ class ContactsContractInstrumentedTest {
                 title = "Principal Engineer"
             )
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c6")!!
         val org = queryDataRow(rawId, CCOrganization.CONTENT_ITEM_TYPE)
@@ -252,8 +265,8 @@ class ContactsContractInstrumentedTest {
             emails = listOf("frank@proton.me"),
             notes = listOf("First note", "Second note")
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c7")!!
         val notes = queryAllDataRows(rawId, Note.CONTENT_ITEM_TYPE)
@@ -274,8 +287,8 @@ class ContactsContractInstrumentedTest {
                 ImAccount(handle = "grace.skype", protocol = ImProtocol.SKYPE)
             )
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c8")!!
         val ims = queryAllDataRows(rawId, Im.CONTENT_ITEM_TYPE)
@@ -297,8 +310,8 @@ class ContactsContractInstrumentedTest {
             emails = listOf("heidi@proton.me"),
             photo = ContactPhoto(photoBytes)
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-c9")!!
         val photoCursor = queryDataRow(rawId, Photo.CONTENT_ITEM_TYPE)
@@ -318,8 +331,8 @@ class ContactsContractInstrumentedTest {
             displayName = "Alice Original",
             emails = listOf("alice.old@proton.me")
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(initial)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(initial)))
 
         val rawId = findRawContactBySourceId("proton-u1")!!
 
@@ -329,7 +342,7 @@ class ContactsContractInstrumentedTest {
             emails = listOf("alice.new@proton.me", "alice.alt@proton.me"),
             phones = listOf(PhoneEntry(number = "+1 555 9999", type = PhoneType.MOBILE))
         )
-        applier.apply(account, listOf(RawContactOpIntent.UpdateContact(rawId, updated)))
+        applier.apply(testAccount, listOf(RawContactOpIntent.UpdateContact(rawId, updated)))
 
         val rawIdAfter = findRawContactBySourceId("proton-u1")
         assertEquals("RawContacts._ID must be stable across updates", rawId, rawIdAfter)
@@ -359,11 +372,11 @@ class ContactsContractInstrumentedTest {
             displayName = "ToDelete",
             emails = listOf("del@proton.me")
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
         assertNotNull("precondition: contact must exist", findRawContactBySourceId("proton-d1"))
 
-        applier.apply(account, listOf(RawContactOpIntent.DeleteContact("proton-d1")))
+        applier.apply(testAccount, listOf(RawContactOpIntent.DeleteContact("proton-d1")))
 
         val afterDelete = findRawContactBySourceId("proton-d1")
         assertNull("RawContact must be fully removed (no tombstone)", afterDelete)
@@ -379,11 +392,11 @@ class ContactsContractInstrumentedTest {
                 ContactRow(sourceId = "proton-da$it", displayName = "Name $it", emails = listOf("n$it@proton.me"))
             )
         }
-        val applier = BatchApplier(provider)
-        applier.apply(account, rows)
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, rows)
         assertEquals(5, countRawContactsForAccount())
 
-        val deleted = applier.deleteAllForAccount(account)
+        val deleted = applier.deleteAllForAccount(testAccount)
         assertEquals(5, deleted)
         assertEquals(0, countRawContactsForAccount())
     }
@@ -392,13 +405,13 @@ class ContactsContractInstrumentedTest {
 
     @Test
     fun group_reconcile_creates_new_and_deletes_removed_groups() {
-        val writer = LocalGroupsWriter(provider)
+        val writer = LocalGroupsWriter(testProvider)
 
         val labels1 = listOf(
             ProtonLabel("label-a", "Family"),
             ProtonLabel("label-b", "Work")
         )
-        val map1 = writer.reconcile(account, labels1)
+        val map1 = writer.reconcile(testAccount, labels1)
         assertEquals(2, map1.size)
         assertTrue(map1.containsKey("label-a"))
         assertTrue(map1.containsKey("label-b"))
@@ -407,7 +420,7 @@ class ContactsContractInstrumentedTest {
             ProtonLabel("label-b", "Work"),
             ProtonLabel("label-c", "Friends")
         )
-        val map2 = writer.reconcile(account, labels2)
+        val map2 = writer.reconcile(testAccount, labels2)
         assertEquals(2, map2.size)
         assertTrue("label-b must survive", map2.containsKey("label-b"))
         assertTrue("label-c must be added", map2.containsKey("label-c"))
@@ -418,9 +431,9 @@ class ContactsContractInstrumentedTest {
 
     @Test
     fun group_membership_links_contact_to_group() {
-        val writer = LocalGroupsWriter(provider)
+        val writer = LocalGroupsWriter(testProvider)
         val labels = listOf(ProtonLabel("label-gm", "TestGroup"))
-        val groupMap = writer.reconcile(account, labels)
+        val groupMap = writer.reconcile(testAccount, labels)
         val groupId = groupMap["label-gm"]!!
 
         val row = ContactRow(
@@ -429,8 +442,8 @@ class ContactsContractInstrumentedTest {
             emails = listOf("gm@proton.me"),
             groupRowIds = listOf(groupId)
         )
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-gm1")!!
         val memberships = queryAllDataRows(rawId, GroupMembership.CONTENT_ITEM_TYPE)
@@ -448,12 +461,12 @@ class ContactsContractInstrumentedTest {
             emails = listOf("stable@proton.me"),
             phones = listOf(PhoneEntry(number = "+1 555 7777", type = PhoneType.MOBILE))
         )
-        val applier = BatchApplier(provider)
+        val applier = BatchApplier(testProvider)
 
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
         val rawIdFirst = findRawContactBySourceId("proton-idem")!!
 
-        applier.apply(account, listOf(RawContactOpIntent.UpdateContact(rawIdFirst, row)))
+        applier.apply(testAccount, listOf(RawContactOpIntent.UpdateContact(rawIdFirst, row)))
         val rawIdSecond = findRawContactBySourceId("proton-idem")!!
 
         assertEquals("RawContacts._ID must be stable across idempotent update", rawIdFirst, rawIdSecond)
@@ -474,10 +487,10 @@ class ContactsContractInstrumentedTest {
             RawContactOpIntent.CreateContact(ContactRow("src-b", "B", emails = listOf("b@x"))),
             RawContactOpIntent.CreateContact(ContactRow("src-c", "C", emails = listOf("c@x")))
         )
-        BatchApplier(provider).apply(account, rows)
+        BatchApplier(testProvider).apply(testAccount, rows)
 
-        val reader = RawContactReader(provider)
-        val map = reader.readExisting(account)
+        val reader = RawContactReader(testProvider)
+        val map = reader.readExisting(testAccount)
         assertEquals(3, map.size)
         assertTrue(map.containsKey("src-a"))
         assertTrue(map.containsKey("src-b"))
@@ -490,8 +503,8 @@ class ContactsContractInstrumentedTest {
     @Test
     fun create_contact_with_all_fields_and_query_back() {
         val photoBytes = createSmallJpeg()
-        val writer = LocalGroupsWriter(provider)
-        val groupMap = writer.reconcile(account, listOf(ProtonLabel("label-full", "FullGroup")))
+        val writer = LocalGroupsWriter(testProvider)
+        val groupMap = writer.reconcile(testAccount, listOf(ProtonLabel("label-full", "FullGroup")))
 
         val row = ContactRow(
             sourceId = "proton-full",
@@ -525,8 +538,8 @@ class ContactsContractInstrumentedTest {
             groupRowIds = listOf(groupMap["label-full"]!!)
         )
 
-        val applier = BatchApplier(provider)
-        applier.apply(account, listOf(RawContactOpIntent.CreateContact(row)))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
 
         val rawId = findRawContactBySourceId("proton-full")!!
 
@@ -552,8 +565,8 @@ class ContactsContractInstrumentedTest {
                 ContactRow(sourceId = "proton-batch$it", displayName = "Batch $it", emails = listOf("b$it@x"))
             )
         }
-        val applier = BatchApplier(provider)
-        val result = applier.apply(account, intents)
+        val applier = BatchApplier(testProvider)
+        val result = applier.apply(testAccount, intents)
         assertEquals(20, result.insertedContacts)
         assertEquals(20, countRawContactsForAccount())
     }
@@ -568,11 +581,11 @@ class ContactsContractInstrumentedTest {
         } else {
             RawContacts.CONTENT_URI
         }
-        val cursor = provider.query(
+        val cursor = testProvider.query(
             uri,
             arrayOf(RawContacts._ID),
             "${RawContacts.SOURCE_ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
-            arrayOf(sourceId, account.type, account.name),
+            arrayOf(sourceId, testAccount.type, testAccount.name),
             null
         ) ?: return null
         return cursor.use {
@@ -581,7 +594,7 @@ class ContactsContractInstrumentedTest {
     }
 
     private fun queryDataRow(rawContactId: Long, mimeType: String): Cursor? {
-        val cursor = provider.query(
+        val cursor = testProvider.query(
             Data.CONTENT_URI,
             null,
             "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?",
@@ -592,7 +605,7 @@ class ContactsContractInstrumentedTest {
     }
 
     private fun queryAllDataRows(rawContactId: Long, mimeType: String): List<Map<String, String?>> {
-        val cursor = provider.query(
+        val cursor = testProvider.query(
             Data.CONTENT_URI,
             null,
             "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?",
@@ -613,11 +626,11 @@ class ContactsContractInstrumentedTest {
     }
 
     private fun countRawContactsForAccount(): Int {
-        val cursor = provider.query(
+        val cursor = testProvider.query(
             RawContacts.CONTENT_URI,
             arrayOf(RawContacts._ID),
             "${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
-            arrayOf(account.type, account.name),
+            arrayOf(testAccount.type, testAccount.name),
             null
         ) ?: return 0
         return cursor.use { it.count }
