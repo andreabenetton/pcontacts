@@ -32,58 +32,47 @@ class SrpClientTest {
     private val g2 = BigInteger.TWO
 
     @Test fun login_produces_consistent_self_round_trip() {
-        // Deterministic random for repeatability.
         val client = SrpClient(random = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(1, 2, 3, 4)) })
 
-        // Synthetic server B and x — we're not verifying against a real
-        // server here, just that the client computes a consistent
-        // (A, M1, expectedM2, K) tuple and that running login twice with the
-        // same inputs+seed yields identical outputs.
         val B = BigInteger("11" + "0".repeat(60), 16)
         val x = BigInteger("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", 16)
-        val salt = ByteArray(16) { it.toByte() }
 
-        val first = client.login(N = N1024, g = g2, salt = salt, serverEphemeralB = B, x = x)
+        val first = client.login(N = N1024, g = g2, serverEphemeralB = B, x = x)
 
         val client2 = SrpClient(random = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(1, 2, 3, 4)) })
-        val second = client2.login(N = N1024, g = g2, salt = salt, serverEphemeralB = B, x = x)
+        val second = client2.login(N = N1024, g = g2, serverEphemeralB = B, x = x)
 
         assertEquals(first.clientEphemeralA, second.clientEphemeralA)
         assertArrayEquals(first.clientProofM1, second.clientProofM1)
         assertArrayEquals(first.expectedServerProofM2, second.expectedServerProofM2)
-        assertArrayEquals(first.sharedKeyK, second.sharedKeyK)
+        assertArrayEquals(first.sharedSessionKey, second.sharedSessionKey)
     }
 
     @Test fun different_password_x_yields_different_proof_when_random_seeded_identically() {
-        // A = g^a mod N depends only on `a` (and N, g); x affects only S/K/M1.
-        // Re-seeding identically across clients pins `a`, isolating the
-        // effect of x on the downstream proof.
         val B = BigInteger("22" + "0".repeat(60), 16)
-        val salt = ByteArray(16) { it.toByte() }
         val xA = BigInteger("aaaaaaaa", 16)
         val xB = BigInteger("bbbbbbbb", 16)
 
         val clientA = SrpClient(random = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(9, 9, 9)) })
-        val a = clientA.login(N = N1024, g = g2, salt = salt, serverEphemeralB = B, x = xA)
+        val a = clientA.login(N = N1024, g = g2, serverEphemeralB = B, x = xA)
 
         val clientB = SrpClient(random = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(9, 9, 9)) })
-        val b = clientB.login(N = N1024, g = g2, salt = salt, serverEphemeralB = B, x = xB)
+        val b = clientB.login(N = N1024, g = g2, serverEphemeralB = B, x = xB)
 
         assertEquals("A should be identical when a is identical", a.clientEphemeralA, b.clientEphemeralA)
         assertFalse("M1 must differ when x differs", a.clientProofM1.contentEquals(b.clientProofM1))
-        assertFalse("K must differ when x differs", a.sharedKeyK.contentEquals(b.sharedKeyK))
+        assertFalse("session key must differ when x differs", a.sharedSessionKey.contentEquals(b.sharedSessionKey))
         assertFalse("expected M2 must differ when x differs", a.expectedServerProofM2.contentEquals(b.expectedServerProofM2))
     }
 
     @Test fun A_is_in_correct_padded_form_for_modulus() {
         val client = SrpClient()
         val proof = client.login(
-            N = N1024, g = g2, salt = ByteArray(16),
+            N = N1024, g = g2,
             serverEphemeralB = BigInteger("ff" + "0".repeat(60), 16),
             x = BigInteger("1234", 16)
         )
         val padLen = (N1024.bitLength() + 7) / 8
-        // Encoding A through toUnsignedBytes should round-trip cleanly.
         val encoded = proof.clientEphemeralA.toUnsignedBytes(padLen)
         assertEquals(padLen, encoded.size)
         assertEquals(proof.clientEphemeralA, encoded.toUnsignedBigInteger())
@@ -93,8 +82,8 @@ class SrpClientTest {
     fun rejects_B_that_is_zero_mod_N() {
         val client = SrpClient()
         client.login(
-            N = N1024, g = g2, salt = ByteArray(16),
-            serverEphemeralB = N1024,                          // B mod N == 0
+            N = N1024, g = g2,
+            serverEphemeralB = N1024,
             x = BigInteger.ONE
         )
     }
@@ -102,7 +91,7 @@ class SrpClientTest {
     @Test fun verifies_matching_server_proof() {
         val client = SrpClient()
         val proof = client.login(
-            N = N1024, g = g2, salt = ByteArray(16),
+            N = N1024, g = g2,
             serverEphemeralB = BigInteger("aa" + "0".repeat(60), 16),
             x = BigInteger("5", 16)
         )
@@ -112,7 +101,7 @@ class SrpClientTest {
     @Test fun rejects_mismatched_server_proof() {
         val client = SrpClient()
         val proof = client.login(
-            N = N1024, g = g2, salt = ByteArray(16),
+            N = N1024, g = g2,
             serverEphemeralB = BigInteger("aa" + "0".repeat(60), 16),
             x = BigInteger("5", 16)
         )
@@ -123,10 +112,21 @@ class SrpClientTest {
     @Test fun rejects_size_mismatched_server_proof() {
         val client = SrpClient()
         val proof = client.login(
-            N = N1024, g = g2, salt = ByteArray(16),
+            N = N1024, g = g2,
             serverEphemeralB = BigInteger("aa" + "0".repeat(60), 16),
             x = BigInteger("5", 16)
         )
         assertFalse(client.verifyServerProof(byteArrayOf(0, 1, 2), proof.expectedServerProofM2))
+    }
+
+    @Test fun client_proof_is_256_bytes_from_expand_hash() {
+        val client = SrpClient()
+        val proof = client.login(
+            N = N1024, g = g2,
+            serverEphemeralB = BigInteger("aa" + "0".repeat(60), 16),
+            x = BigInteger("5", 16)
+        )
+        assertEquals("M1 must be 256 bytes (4× SHA-512)", 256, proof.clientProofM1.size)
+        assertEquals("M2 must be 256 bytes (4× SHA-512)", 256, proof.expectedServerProofM2.size)
     }
 }

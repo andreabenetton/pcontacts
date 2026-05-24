@@ -3,28 +3,28 @@
 
 package io.pcontacts.core.crypto.bcrypt
 
-import java.security.MessageDigest
+import io.pcontacts.core.crypto.util.expandHash
+import java.util.Base64
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt
 
 /**
  * Proton SRP `hashPassword` (version 4) — derives the 256-byte value
  * used as the SRP `x` parameter.
  *
- * Algorithm (verified `[V]` against `@protontech/crypto` v2.0.1):
+ * Algorithm (verified `[V]` against `ProtonMail/go-srp` `hashPasswordVersion3`):
  *
- *   1. `saltWithSuffix = bytes(base64SaltString + "proton")` — ASCII bytes
- *      of the literal base64 string concatenated with "proton".
- *   2. `bcryptSalt = first16(saltWithSuffix)` — take the first 16 bytes.
- *   3. `unexpandedHash = bcrypt(password, "$2y$10$" + bcryptEncode(bcryptSalt))`
+ *   1. `rawSalt = base64Decode(saltB64)` — decode salt from base64 to raw bytes.
+ *   2. `saltWithSuffix = rawSalt ‖ bytes("proton")` — append ASCII "proton".
+ *   3. `bcryptSalt = first16(saltWithSuffix)` — take the first 16 bytes.
+ *   4. `unexpandedHash = bcrypt(password, "$2y$10$" + bcryptEncode(bcryptSalt))`
  *      → full 60-character bcrypt string.
- *   4. `hashBytes = charCodeBytes(unexpandedHash)` — each char → its byte value.
- *   5. `concat = hashBytes ‖ modulusBytes`.
- *   6. `expandHash(concat)` = `SHA-512(concat‖0x00) ‖ SHA-512(concat‖0x01)
+ *   5. `hashBytes = charCodeBytes(unexpandedHash)` — each char → its byte value.
+ *   6. `concat = hashBytes ‖ modulusBytes`.
+ *   7. `expandHash(concat)` = `SHA-512(concat‖0x00) ‖ SHA-512(concat‖0x01)
  *      ‖ SHA-512(concat‖0x02) ‖ SHA-512(concat‖0x03)` → 256 bytes.
  *
- * Source: `@protontech/crypto/src/srp/passwords.ts` (hashPassword3 +
- *         formatHash + expandHash) and `src/utils.ts`
- *         (binaryStringToUint8Array).
+ * Source: `ProtonMail/go-srp` `hashPasswordVersion3` — salt is
+ *         `base64Decode(saltB64) + []byte("proton")`, then first 16.
  *
  * This is NOT the same as [ComputeKeyPassword.derive] — that function
  * implements `computeKeyPassword` (key-unlock path), which uses a
@@ -37,16 +37,18 @@ object SrpHashPassword {
 
     /**
      * @param password  user's plaintext password.
-     * @param saltB64   base64 salt string from `auth/info` (used as a CHARACTER
-     *                  string, not decoded to bytes).
+     * @param saltB64   base64 salt from `auth/info` — decoded to raw bytes,
+     *                  then "proton" appended, then first 16 bytes used as
+     *                  the bcrypt salt (`[V]` go-srp `hashPasswordVersion3`).
      * @param modulusBytes  decoded SRP modulus (N) bytes (typically 256 bytes for
      *                      2048-bit).
      * @return 256-byte expanded hash, used as SRP `x` when interpreted as
      *         `BigInteger(1, result)`.
      */
     fun derive(password: CharArray, saltB64: String, modulusBytes: ByteArray): ByteArray {
-        // Step 1-2: ASCII bytes of (saltB64 + "proton"), take first 16
-        val saltWithSuffix = (saltB64 + "proton").toByteArray(Charsets.US_ASCII)
+        // Step 1-2: decode base64 salt to raw bytes, append "proton", take first 16
+        val rawSalt = Base64.getDecoder().decode(saltB64)
+        val saltWithSuffix = rawSalt + "proton".toByteArray(Charsets.US_ASCII)
         val bcryptSalt = saltWithSuffix.copyOfRange(0, minOf(saltWithSuffix.size, BCRYPT_SALT_BYTES))
         require(bcryptSalt.size == BCRYPT_SALT_BYTES) {
             "salt + 'proton' must yield at least $BCRYPT_SALT_BYTES bytes"
@@ -65,18 +67,6 @@ object SrpHashPassword {
 
         // Step 6: expand (4× SHA-512 with counter byte appended)
         return expandHash(concat)
-    }
-
-    private fun expandHash(input: ByteArray): ByteArray {
-        val result = ByteArray(4 * 64) // 4 × SHA-512 = 256 bytes
-        for (i in 0 until 4) {
-            val md = MessageDigest.getInstance("SHA-512")
-            md.update(input)
-            md.update(i.toByte())
-            val digest = md.digest()
-            System.arraycopy(digest, 0, result, i * 64, 64)
-        }
-        return result
     }
 
     /**

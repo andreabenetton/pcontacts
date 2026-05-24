@@ -44,3 +44,36 @@ internal fun sha512(vararg parts: ByteArray): ByteArray {
     for (p in parts) md.update(p)
     return md.digest()
 }
+
+/**
+ * `[V]` Proton's `expandHash` — 4× SHA-512 with a one-byte counter
+ * appended, yielding 256 bytes. Used by both `hashPassword` (SRP x
+ * derivation) and the SRP protocol itself (k, u, M1, M2).
+ *
+ * Matches `go-srp/hash.go:expandHash` and
+ * `@protontech/crypto/src/srp/passwords.ts:expandHash`.
+ */
+internal fun expandHash(input: ByteArray): ByteArray {
+    val result = ByteArray(4 * 64)
+    for (i in 0 until 4) {
+        val md = MessageDigest.getInstance("SHA-512")
+        md.update(input)
+        md.update(i.toByte())
+        System.arraycopy(md.digest(), 0, result, i * 64, 64)
+    }
+    return result
+}
+
+/**
+ * `[V]` Converts a BigInteger to a little-endian byte array of exactly
+ * `lengthBytes`, matching go-srp's `fromNat(bitLength, nat)`.
+ */
+internal fun BigInteger.toLittleEndianBytes(lengthBytes: Int): ByteArray =
+    toUnsignedBytes(lengthBytes).reversedArray()
+
+/**
+ * `[V]` Interprets a little-endian byte array as an unsigned BigInteger,
+ * matching go-srp's `toNat(buf)`.
+ */
+internal fun ByteArray.fromLittleEndianBigInteger(): BigInteger =
+    BigInteger(1, this.reversedArray())

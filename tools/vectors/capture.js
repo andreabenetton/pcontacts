@@ -45,12 +45,11 @@ async function computeKeyPassword(password, saltB64) {
 }
 
 // ---------------------------------------------------------------------------
-// hashPassword (version 4) — matches passwords.ts hashPassword3 + formatHash
-// + expandHash.
+// hashPassword (version 4) — matches go-srp hashPasswordVersion3.
 //
 // Steps:
-//   1. saltBinary = charCodeAt bytes of (salt + "proton")
-//   2. bcryptSalt = bcryptEncodeBase64(saltBinary, 16)
+//   1. rawSalt = base64Decode(saltB64), saltWithSuffix = rawSalt || "proton"
+//   2. bcryptSalt = bcryptEncodeBase64(saltWithSuffix, 16)
 //   3. unexpandedHash = bcrypt(password, "$2y$10$" + bcryptSalt)
 //   4. hashBytes = charCodeAt bytes of unexpandedHash
 //   5. concat = hashBytes || modulusBytes
@@ -78,10 +77,11 @@ function expandHash(input) {
 }
 
 async function hashPasswordV4(password, saltB64, modulusBytes) {
-  // Step 1: salt bytes = charCode bytes of (base64SaltString + "proton")
-  const saltBinary = binaryStringToUint8Array(saltB64 + 'proton');
+  // Step 1: decode base64 salt to raw bytes, append "proton" (go-srp hashPasswordVersion3)
+  const rawSalt = Buffer.from(saltB64, 'base64');
+  const saltWithSuffix = Buffer.concat([rawSalt, Buffer.from('proton', 'ascii')]);
   // Step 2: bcrypt-encode the first 16 of those bytes
-  const bcryptSalt = bcryptEncodeBase64(saltBinary, 16);
+  const bcryptSalt = bcryptEncodeBase64(saltWithSuffix, 16);
   // Step 3: bcrypt
   const unexpandedHash = await bcryptHash(password, BCRYPT_PREFIX + bcryptSalt);
   // Step 4: convert hash string chars to bytes
