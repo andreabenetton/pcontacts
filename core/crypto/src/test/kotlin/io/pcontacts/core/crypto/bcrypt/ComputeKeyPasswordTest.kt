@@ -6,19 +6,15 @@ package io.pcontacts.core.crypto.bcrypt
 import java.util.Base64
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ComputeKeyPasswordTest {
 
     private val saltB64: String = Base64.getEncoder().encodeToString(ByteArray(16) { i -> i.toByte() })
 
-    @Test fun derives_bcrypt_string_in_openbsd_format() {
+    @Test fun derives_31_character_trailing_hash() {
         val result = ComputeKeyPassword.derive("hunter2".toCharArray(), saltB64)
-        // OpenBSDBCrypt emits "$2y$<cost>$<22-char-salt><31-char-hash>"
-        assertTrue("output should start with \$2y\$10\$ but was $result", result.startsWith("\$2y\$10\$"))
-        val trailing = ComputeKeyPassword.trailingHash(result)
-        assertEquals(31, trailing.length)
+        assertEquals("trailing hash must be 31 characters", 31, result.length)
     }
 
     @Test fun deterministic_for_same_inputs() {
@@ -43,7 +39,7 @@ class ComputeKeyPasswordTest {
 
     @Test fun unicode_password_does_not_crash() {
         val out = ComputeKeyPassword.derive("p4sséèà".toCharArray(), saltB64)
-        assertTrue(out.startsWith("\$2y\$10\$"))
+        assertEquals(31, out.length)
     }
 
     @Test(expected = IllegalArgumentException::class)

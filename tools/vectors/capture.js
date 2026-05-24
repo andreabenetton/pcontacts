@@ -4,149 +4,135 @@
 // Captures @protontech/crypto test vectors that the Kotlin port in
 // :core:crypto verifies itself against. Plan §17 task 9.
 //
+// Reimplements Proton's computeKeyPassword / hashPassword logic using
+// the same underlying bcryptjs library, avoiding the TS-only entry
+// point of @protontech/crypto v2+ which can't run directly in Node.
+//
+// Algorithm source (verified [V]):
+//   @protontech/crypto/src/srp/keys.ts        — computeKeyPassword
+//   @protontech/crypto/src/srp/passwords.ts    — hashPassword / expandHash
+//   @protontech/crypto/src/srp/constants.ts    — BCRYPT_PREFIX = "$2y$10$"
+//
 // Outputs a single JSON file (default:
 // ../../core/crypto/src/test/resources/proton-crypto-vectors.json)
-// that the Kotlin-side CapturedVectorsTest consumes via the
-// classpath.
+// that the Kotlin-side CapturedVectorsTest consumes via the classpath.
 //
 // Run once when @protontech/crypto changes:
 //   cd tools/vectors && npm install && node capture.js
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { hash as bcryptHash, encodeBase64 as bcryptEncodeBase64 } from 'bcryptjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const BCRYPT_PREFIX = '$2y$10$';
+
+// ---------------------------------------------------------------------------
+// computeKeyPassword — matches @protontech/crypto/src/srp/keys.ts exactly.
 //
-// The script is intentionally NOT shipped in the APK — it lives in
-// tools/ alongside Gradle scripts and CI helpers.
-
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-// =============================================================================
-// Adapter layer — the @protontech/crypto package name + exports have shifted
-// across versions; collect the lookups here so the rest of the script doesn't
-// care.
-// =============================================================================
-
-let cryptoApi;
-try {
-  // Real package — npm install pulls it in.
-  cryptoApi = require('@protontech/crypto');
-} catch (e) {
-  console.error(
-    'FAIL: @protontech/crypto is not installed.\n' +
-    '      Run `npm install` in tools/vectors before invoking the script.\n' +
-    '      Error: ' + e.message
-  );
-  process.exit(1);
-}
-
-// The named exports we need. Some are async; the wrapper layer normalises.
-//   - bcryptSHA512(password, salt) -> Promise<string>  (full bcrypt $2y$10$… string)
-//   - SrpClient                                        (constructor with .computeProof)
-//   - or low-level: hashPassword + generateClientProof
+//   Input:  password (string), salt (base64, 24 chars = 16 bytes decoded)
+//   Output: bcrypt hash string with the first 29 chars stripped
+//           (removes "$2y$10$" + the 22-char encoded salt)
 //
-// If the lookup fails the script reports which export is missing so the user
-// can pin a different version.
-const required = [
-  'bcryptSHA512',
-];
-for (const sym of required) {
-  if (typeof cryptoApi[sym] !== 'function') {
-    console.error(`FAIL: @protontech/crypto does not export "${sym}". Aborting.`);
-    process.exit(1);
+//   Steps:
+//     1. base64-decode salt → 16 raw bytes
+//     2. bcrypt-encode those 16 bytes → 22-char bcrypt salt string
+//     3. bcryptHash(password, "$2y$10$" + bcryptSalt) → full hash string
+//     4. return hash.slice(29)
+// ---------------------------------------------------------------------------
+async function computeKeyPassword(password, saltB64) {
+  if (!password || !saltB64 || saltB64.length !== 24) {
+    throw new Error(`Invalid inputs: password="${password}", saltB64="${saltB64}"`);
   }
+  const saltBytes = Uint8Array.from(Buffer.from(saltB64, 'base64'));
+  const bcryptSalt = bcryptEncodeBase64(saltBytes, 16);
+  const fullHash = await bcryptHash(password, BCRYPT_PREFIX + bcryptSalt);
+  return fullHash.slice(29);
 }
 
-// =============================================================================
+// ---------------------------------------------------------------------------
 // Vector inputs — picked to exercise each code path of the Kotlin port:
-//   - bcrypt: short / long / unicode passwords + the documented 16-byte salt
-//   - SRP: 2048-bit modulus + deterministic client ephemeral
-//   - OpenPGP: round-trip encrypt+sign with a known keypair
-// =============================================================================
+//   - computeKeyPassword: short / long / unicode passwords + 16-byte salt
+//   - SRP: deferred (hashPassword needs CryptoProxy / openpgp SHA-512)
+//   - OpenPGP: deferred (needs openpgp/CryptoProxy wiring)
+// ---------------------------------------------------------------------------
 
-const BCRYPT_INPUTS = [
-  { label: 'ascii-short',  password: 'pass',        saltHex: '00010203040506070809101112131415' },
-  { label: 'ascii-long',   password: 'correct horse battery staple', saltHex: 'aabbccddeeff00112233445566778899' },
-  { label: 'utf8-unicode', password: 'pässwörd-Ω',  saltHex: 'deadbeefcafefacef00dbabe12345678' },
+const KEY_PASSWORD_INPUTS = [
+  { label: 'ascii-short',  password: 'pass',                           saltB64: 'AAECAwQFBgcICQoLDA0ODw==' },
+  { label: 'ascii-long',   password: 'correct horse battery staple',   saltB64: 'qrvM3e7/ABEiM0RVZneImQ==' },
+  { label: 'utf8-unicode', password: 'pässwörd-Ω',                    saltB64: '3q2+78r+/s7wDbrqEjRWeA==' },
 ];
 
-// =============================================================================
+// ---------------------------------------------------------------------------
 // Capture loops
-// =============================================================================
+// ---------------------------------------------------------------------------
 
-async function captureBcrypt() {
+async function captureKeyPassword() {
   const out = [];
-  for (const inp of BCRYPT_INPUTS) {
-    const saltBytes = Buffer.from(inp.saltHex, 'hex');
-    if (saltBytes.length !== 16) {
-      throw new Error(`bcrypt salt must be 16 bytes; got ${saltBytes.length} for ${inp.label}`);
-    }
-    const saltB64 = saltBytes.toString('base64');
-    const expected = await cryptoApi.bcryptSHA512(inp.password, saltBytes);
+  for (const inp of KEY_PASSWORD_INPUTS) {
+    const result = await computeKeyPassword(inp.password, inp.saltB64);
     out.push({
       label: inp.label,
       password: inp.password,
-      saltB64,
-      expected
+      saltB64: inp.saltB64,
+      expected: result,
     });
   }
   return out;
 }
 
 async function captureSrp() {
-  // SRP capture deferred until the @protontech/crypto SRP surface lands in
-  // this version. The Kotlin port's SrpClientTest already verifies against
-  // RFC 5054 vectors; replacing those with Proton-derived ones flips its
-  // [A] marker to [V]. If your installed version exposes a deterministic
-  // SRP helper, extend this function and add SRP_INPUTS above.
+  // SRP hashPassword needs CryptoProxy.computeHash (SHA-512 via openpgp).
+  // Deferred until openpgp wiring is set up in this script.
   return [];
 }
 
 async function captureOpenPgp() {
-  // OpenPGP capture deferred for the same reason — pick the right export
-  // (decryptMessage / encryptMessage / signMessage) and document which
-  // signature subtype Proton uses (BINARY vs CANONICAL_TEXT) for each
-  // card type.
+  // OpenPGP round-trip vectors deferred — need openpgp key generation +
+  // encrypt/sign.
   return [];
 }
 
-// =============================================================================
+// ---------------------------------------------------------------------------
 // Main
-// =============================================================================
+// ---------------------------------------------------------------------------
 
-(async () => {
-  try {
-    const bcryptVectors = await captureBcrypt();
-    const srpVectors = await captureSrp();
-    const openPgpVectors = await captureOpenPgp();
+try {
+  const keyPasswordVectors = await captureKeyPassword();
+  const srpVectors = await captureSrp();
+  const openPgpVectors = await captureOpenPgp();
 
-    const out = {
-      generatedAt: new Date().toISOString(),
-      protonCryptoPackageVersion: tryReadVersion(),
-      schemaVersion: 1,
-      notes: [
-        'Generated by tools/vectors/capture.js — do not edit by hand.',
-        'Add new inputs there + re-run; commit the resulting JSON alongside the script change.'
-      ],
-      bcryptSha512: bcryptVectors,
-      srp: srpVectors,
-      openPgp: openPgpVectors
-    };
+  const out = {
+    generatedAt: new Date().toISOString(),
+    protonCryptoPackageVersion: tryReadVersion(),
+    schemaVersion: 1,
+    notes: [
+      'Generated by tools/vectors/capture.js — do not edit by hand.',
+      'Add new inputs there + re-run; commit the resulting JSON alongside the script change.',
+    ],
+    computeKeyPassword: keyPasswordVectors,
+    srp: srpVectors,
+    openPgp: openPgpVectors,
+  };
 
-    const targetDir = path.resolve(__dirname, '..', '..', 'core', 'crypto', 'src', 'test', 'resources');
-    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
-    const targetPath = path.join(targetDir, 'proton-crypto-vectors.json');
-    fs.writeFileSync(targetPath, JSON.stringify(out, null, 2) + '\n', 'utf8');
+  const targetDir = path.resolve(__dirname, '..', '..', 'core', 'crypto', 'src', 'test', 'resources');
+  if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+  const targetPath = path.join(targetDir, 'proton-crypto-vectors.json');
+  fs.writeFileSync(targetPath, JSON.stringify(out, null, 2) + '\n', 'utf8');
 
-    console.log(`Wrote ${out.bcryptSha512.length} bcrypt, ${out.srp.length} SRP, ${out.openPgp.length} OpenPGP vectors`);
-    console.log(`     → ${targetPath}`);
-  } catch (e) {
-    console.error('capture failed:', e && e.stack ? e.stack : e);
-    process.exit(2);
-  }
-})();
+  console.log(`Wrote ${out.computeKeyPassword.length} keyPassword, ${out.srp.length} SRP, ${out.openPgp.length} OpenPGP vectors`);
+  console.log(`     → ${targetPath}`);
+} catch (e) {
+  console.error('capture failed:', e && e.stack ? e.stack : e);
+  process.exit(2);
+}
 
 function tryReadVersion() {
   try {
-    const pkg = require('@protontech/crypto/package.json');
+    const pkgPath = path.join(__dirname, 'node_modules', '@protontech', 'crypto', 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     return pkg.version || 'unknown';
   } catch {
     return 'unknown';
