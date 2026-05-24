@@ -206,7 +206,7 @@ class SrpLoginOrchestrator(
      * Preconditions:
      *   - `login()` succeeded recently; the access token and UID it
      *     persisted are still live (Proton's 2FA window is short — minutes,
-     *     not hours [A]).
+     *     not hours [U]).
      *   - The `Session` carried into this orchestrator instance still
      *     holds the post-SRP uid + access token; the OkHttp interceptor
      *     stack relies on those to attach `x-pm-uid` and `Authorization`.
