@@ -3,6 +3,9 @@
 
 package io.pcontacts.core.sync.contacts
 
+import android.accounts.Account
+import io.pcontacts.core.contactswriter.ContactRow
+import io.pcontacts.core.contactswriter.DirtyContact
 import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
 import io.pcontacts.core.proton.api.contacts.BulkDeleteResponse
 import io.pcontacts.core.proton.api.contacts.ContactCardBundle
@@ -281,6 +284,198 @@ class ContactWriteEngineTest {
         assertEquals(0, report.quarantined)
     }
 
+    // --- detectChanges tests ---
+
+    private val testAccount = Account("test@proton.me", "io.pcontacts")
+
+    private fun sampleRow(sourceId: String, email: String = "alice@proton.me") =
+        ContactRow(
+            sourceId = sourceId,
+            displayName = "Alice",
+            emails = listOf(email)
+        )
+
+    @Test fun detectChanges_with_no_dirty_contacts_returns_zero() = runTest {
+        val engine = newEngine()
+        assertEquals(0, engine.detectChanges(testAccount))
+    }
+
+    @Test fun detectChanges_enqueues_update_for_dirty_contact_with_changed_hash() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val rows = mutableMapOf(100L to sampleRow("ct-1", email = "alice-new@proton.me"))
+        val cleared = mutableListOf<Long>()
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows,
+            clearedFlags = cleared
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(1, count)
+        val entry = outbox.entries.values.single()
+        assertEquals(OutboxEntity.OpType.UPDATE, entry.opType)
+        assertEquals("ct-1", entry.protonContactId)
+        assertTrue(cleared.contains(100L))
+    }
+
+    @Test fun detectChanges_skips_update_when_hash_matches() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val row = sampleRow("ct-1")
+        val hash = EmailSyncHash.compute(row)
+        val rows = mutableMapOf(100L to row)
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(contentHash = hash))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(0, count)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun detectChanges_enqueues_delete_for_deleted_contact() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val cleared = mutableListOf<Long>()
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = false, isDeleted = true)),
+            clearedFlags = cleared
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(1, count)
+        val entry = outbox.entries.values.single()
+        assertEquals(OutboxEntity.OpType.DELETE, entry.opType)
+        assertEquals("ct-1", entry.protonContactId)
+        assertTrue(cleared.contains(100L))
+    }
+
+    @Test fun detectChanges_enqueues_create_for_new_local_contact() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val rows = mutableMapOf(500L to sampleRow("local-500"))
+        val cleared = mutableListOf<Long>()
+
+        val engine = newEngine(
+            outbox = outbox,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = true, isDeleted = false)),
+            contactRows = rows,
+            clearedFlags = cleared
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(1, count)
+        val entry = outbox.entries.values.single()
+        assertEquals(OutboxEntity.OpType.CREATE, entry.opType)
+        assertEquals("local-500", entry.protonContactId)
+        assertTrue(cleared.contains(500L))
+    }
+
+    @Test fun detectChanges_skips_duplicate_delete() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.DELETE,
+            payloadHash = "",
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = false, isDeleted = true))
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(0, count)
+        assertEquals(1, outbox.entries.size)
+    }
+
+    @Test fun detectChanges_skips_duplicate_update_with_same_hash() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val row = sampleRow("ct-1", email = "new@proton.me")
+        val hash = EmailSyncHash.compute(row)
+        val rows = mutableMapOf(100L to row)
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.UPDATE,
+            payloadHash = hash,
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(0, count)
+        assertEquals(1, outbox.entries.size)
+    }
+
+    @Test fun detectChanges_skips_when_contact_row_unreadable() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = emptyMap()
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(0, count)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun detectChanges_clears_dirty_flag_even_when_skipped() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val row = sampleRow("ct-1")
+        val hash = EmailSyncHash.compute(row)
+        val rows = mutableMapOf(100L to row)
+        val cleared = mutableListOf<Long>()
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(contentHash = hash))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows,
+            clearedFlags = cleared
+        )
+        engine.detectChanges(testAccount)
+
+        assertTrue(cleared.contains(100L))
+    }
+
     // --- helpers ---
 
     private fun newEngine(
@@ -288,6 +483,9 @@ class ContactWriteEngineTest {
         outbox: WriteFakeOutboxDao = WriteFakeOutboxDao(),
         contactMap: WriteFakeContactMapDao = WriteFakeContactMapDao(),
         contacts: Map<String, DecryptedContact> = emptyMap(),
+        dirtyContacts: List<DirtyContact> = emptyList(),
+        contactRows: Map<Long, ContactRow> = emptyMap(),
+        clearedFlags: MutableList<Long>? = null,
         clock: () -> Long = { 2_000_000_000L }
     ) = ContactWriteEngine(
         contactsApi = api,
@@ -295,6 +493,9 @@ class ContactWriteEngineTest {
         outboxDao = outbox,
         contactMapDao = contactMap,
         readLocalContact = { id -> contacts[id] },
+        readDirtyContacts = { dirtyContacts },
+        readContactRow = { rawId, sourceId -> contactRows[rawId] },
+        clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
         clock = clock
     )
 

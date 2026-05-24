@@ -6,7 +6,10 @@ package io.pcontacts.core.sync.contacts
 import android.content.ContentProviderClient
 import android.content.Context
 import io.pcontacts.core.contactswriter.BatchApplier
+import io.pcontacts.core.contactswriter.DirtyContactReader
+import io.pcontacts.core.contactswriter.DirtyFlagClearer
 import io.pcontacts.core.contactswriter.LocalGroupsWriter
+import io.pcontacts.core.contactswriter.RawContactDataReader
 import io.pcontacts.core.contactswriter.RawContactReader
 import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
@@ -228,11 +231,35 @@ object SyncBootstrap {
             }
         )
 
+        val dirtyReader = DirtyContactReader(provider)
+        val dataReader = RawContactDataReader(provider)
+        val dirtyClearer = DirtyFlagClearer(provider)
+
         val writeEngine = ContactWriteEngine(
             contactsApi = apis.contacts,
             serializer = serializer,
             outboxDao = db.outboxDao(),
-            contactMapDao = db.contactMapDao()
+            contactMapDao = db.contactMapDao(),
+            readLocalContact = { protonContactId ->
+                val mapping = db.contactMapDao().findByProtonId(protonContactId)
+                if (mapping != null) {
+                    val row = withContext(Dispatchers.IO) {
+                        dataReader.read(mapping.androidRawContactId, protonContactId)
+                    }
+                    row?.let {
+                        RowToDecryptedContact.convert(it, protonContactId, mapping.protonUid)
+                    }
+                } else null
+            },
+            readDirtyContacts = { account ->
+                withContext(Dispatchers.IO) { dirtyReader.readDirty(account) }
+            },
+            readContactRow = { rawContactId, sourceId ->
+                withContext(Dispatchers.IO) { dataReader.read(rawContactId, sourceId) }
+            },
+            clearDirtyFlag = { account, rawContactId ->
+                withContext(Dispatchers.IO) { dirtyClearer.clearDirty(account, rawContactId) }
+            }
         )
 
         return writeEngine to readEngine

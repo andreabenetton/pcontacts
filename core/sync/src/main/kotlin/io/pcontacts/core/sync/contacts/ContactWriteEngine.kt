@@ -3,6 +3,12 @@
 
 package io.pcontacts.core.sync.contacts
 
+import android.accounts.Account
+import io.pcontacts.core.contactswriter.ContactRow
+import io.pcontacts.core.contactswriter.DirtyContact
+import io.pcontacts.core.contactswriter.DirtyContactReader
+import io.pcontacts.core.contactswriter.DirtyFlagClearer
+import io.pcontacts.core.contactswriter.RawContactDataReader
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
@@ -52,9 +58,89 @@ class ContactWriteEngine(
     private val outboxDao: OutboxDao,
     private val contactMapDao: ContactMapDao,
     private val readLocalContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
+    private val readDirtyContacts: suspend (Account) -> List<DirtyContact> = { emptyList() },
+    private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
+    private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
 ) {
+
+    /**
+     * Scans for locally-modified contacts (DIRTY=1 or DELETED=1) and
+     * populates the outbox with corresponding CREATE / UPDATE / DELETE
+     * entries. Called before [push] in each sync run (ADR-0017 §1C).
+     *
+     * Returns the number of outbox entries created.
+     */
+    suspend fun detectChanges(account: Account): Int {
+        val dirty = readDirtyContacts(account)
+        if (dirty.isEmpty()) return 0
+
+        var enqueued = 0
+        for (dc in dirty) {
+            val created = enqueueChange(account, dc)
+            if (created) enqueued++
+            clearDirtyFlag(account, dc.rawContactId)
+        }
+        return enqueued
+    }
+
+    private suspend fun enqueueChange(account: Account, dc: DirtyContact): Boolean {
+        if (dc.isDeleted) {
+            val protonId = dc.sourceId ?: return false
+            if (outboxDao.findByContact(protonId).any { it.opType == OutboxEntity.OpType.DELETE }) {
+                return false
+            }
+            outboxDao.insert(
+                OutboxEntity(
+                    protonContactId = protonId,
+                    opType = OutboxEntity.OpType.DELETE,
+                    payloadHash = "",
+                    createdAt = clock()
+                )
+            )
+            return true
+        }
+
+        val isCreate = dc.sourceId == null
+        if (isCreate) {
+            val localId = "local-${dc.rawContactId}"
+            val row = readContactRow(dc.rawContactId, localId) ?: return false
+            val hash = EmailSyncHash.compute(row)
+            outboxDao.insert(
+                OutboxEntity(
+                    protonContactId = localId,
+                    opType = OutboxEntity.OpType.CREATE,
+                    payloadHash = hash,
+                    createdAt = clock()
+                )
+            )
+            return true
+        }
+
+        val protonId = dc.sourceId!!
+        val row = readContactRow(dc.rawContactId, protonId) ?: return false
+        val hash = EmailSyncHash.compute(row)
+        val mapping = contactMapDao.findByProtonId(protonId)
+        if (mapping != null && mapping.contentHash == hash) {
+            return false
+        }
+        if (outboxDao.findByContact(protonId).any {
+                it.opType == OutboxEntity.OpType.UPDATE && it.payloadHash == hash
+            }
+        ) {
+            return false
+        }
+        outboxDao.insert(
+            OutboxEntity(
+                protonContactId = protonId,
+                opType = OutboxEntity.OpType.UPDATE,
+                payloadHash = hash,
+                createdAt = clock()
+            )
+        )
+        return true
+    }
 
     suspend fun push(): WriteReport {
         val ready = outboxDao.listReady(clock())
