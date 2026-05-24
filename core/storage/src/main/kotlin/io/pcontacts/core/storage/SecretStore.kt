@@ -10,9 +10,9 @@ package io.pcontacts.core.storage
  *
  * Per ADR-0009:
  *   - This is the ONLY place in the codebase that touches
- *     `SharedPreferences` and the Android Keystore. A detekt rule will
- *     fail any other module that constructs a SharedPreferences directly
- *     (rule added once detekt is wired in a follow-up commit).
+ *     `SharedPreferences` and the Android Keystore. Direct
+ *     `SharedPreferences` constructor calls outside `:core:storage`
+ *     are forbidden (CLAUDE.md).
  *   - The mailbox key password is wrapped under a Keystore-backed
  *     AES-256-GCM key (`pcontacts.kekv1`) before it touches
  *     EncryptedSharedPreferences. The wrap key is rotated on full

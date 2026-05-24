@@ -8,9 +8,8 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Proton LabelID ↔ Android Group._ID mapping. Empty in MVP (groups land
- * with the complete version, ADR-0006 §6); the entity ships now so the
- * schema starts stable.
+ * Proton LabelID ↔ Android Group._ID mapping. Populated by
+ * LocalGroupsWriter during contact-detail sync.
  */
 @Entity(tableName = "group_map")
 data class GroupMapEntity(
