@@ -2,5 +2,4 @@
 <resources>
     <string name="app_name">pcontacts</string>
     <string name="account_label">Proton Contacts</string>
-    <string name="main_placeholder">pcontacts — login UI lands in a later commit.</string>
 </resources>
