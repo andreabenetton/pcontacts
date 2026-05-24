@@ -25,9 +25,9 @@ package io.pcontacts.core.protoncontacts
  *   IMPP             → imAccounts
  *   PHOTO (inline)   → photo
  *
- * Groups (CATEGORIES + Proton LabelIDs → GroupMembership) ship in a
- * later commit — they need the labels-listing API and GroupMap
- * lifecycle plumbing.
+ * Groups (CATEGORIES + Proton LabelIDs → GroupMembership) are
+ * handled by LocalGroupsWriter and ContactDetailSyncEngine via the
+ * labels-listing API and GroupMap lifecycle plumbing.
  */
 data class DecryptedContact(
     val protonContactId: String,
