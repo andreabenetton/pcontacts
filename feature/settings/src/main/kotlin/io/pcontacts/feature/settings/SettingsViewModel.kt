@@ -32,6 +32,11 @@ class SettingsViewModel(
     private val syncNow: suspend () -> SettingsActionResult,
     private val signOut: suspend () -> SettingsActionResult,
     private val queryVerificationStats: suspend () -> VerificationStats? = { null },
+    private val queryOutboxStats: suspend () -> OutboxStats = { OutboxStats(0, 0) },
+    private val queryPendingDeletes: suspend () -> List<PendingDelete> = { emptyList() },
+    private val queryConflicts: suspend () -> List<ConflictInfo> = { emptyList() },
+    private val cancelDelete: suspend (String) -> Unit = {},
+    private val resolveConflict: suspend (String, ConflictResolution) -> Unit = { _, _ -> },
     private val onSyncIntervalChanged: (Long) -> Unit = {},
     initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours,
     private val scope: CoroutineScope = MainScope(),
@@ -43,13 +48,22 @@ class SettingsViewModel(
     private val _verificationStats = MutableStateFlow<VerificationStats?>(null)
     val verificationStats: StateFlow<VerificationStats?> = _verificationStats.asStateFlow()
 
+    private val _outboxStats = MutableStateFlow(OutboxStats(0, 0))
+    val outboxStats: StateFlow<OutboxStats> = _outboxStats.asStateFlow()
+
+    private val _pendingDeletes = MutableStateFlow<List<PendingDelete>>(emptyList())
+    val pendingDeletes: StateFlow<List<PendingDelete>> = _pendingDeletes.asStateFlow()
+
+    private val _conflicts = MutableStateFlow<List<ConflictInfo>>(emptyList())
+    val conflicts: StateFlow<List<ConflictInfo>> = _conflicts.asStateFlow()
+
     private val _syncInterval = MutableStateFlow(SyncInterval.fromHours(initialSyncIntervalHours))
     val syncInterval: StateFlow<SyncInterval> = _syncInterval.asStateFlow()
 
     private var pendingJob: Job? = null
 
     init {
-        scope.launch { refreshVerificationStats() }
+        scope.launch { refreshSyncStatus() }
     }
 
     fun setSyncInterval(interval: SyncInterval) {
@@ -57,9 +71,12 @@ class SettingsViewModel(
         onSyncIntervalChanged(interval.hours)
     }
 
-    private suspend fun refreshVerificationStats() {
-        _verificationStats.value = withContext(workDispatcher) {
-            try { queryVerificationStats() } catch (_: Exception) { null }
+    private suspend fun refreshSyncStatus() {
+        withContext(workDispatcher) {
+            _verificationStats.value = try { queryVerificationStats() } catch (_: Exception) { null }
+            _outboxStats.value = try { queryOutboxStats() } catch (_: Exception) { OutboxStats(0, 0) }
+            _pendingDeletes.value = try { queryPendingDeletes() } catch (_: Exception) { emptyList() }
+            _conflicts.value = try { queryConflicts() } catch (_: Exception) { emptyList() }
         }
     }
 
@@ -74,7 +91,7 @@ class SettingsViewModel(
                 is SettingsActionResult.Failure ->
                     SettingsUiState.SyncFailed(result.reason)
             }
-            refreshVerificationStats()
+            refreshSyncStatus()
         }
     }
 
@@ -87,6 +104,20 @@ class SettingsViewModel(
                 is SettingsActionResult.Success -> SettingsUiState.SignedOut
                 is SettingsActionResult.Failure -> SettingsUiState.SignOutFailed(result.reason)
             }
+        }
+    }
+
+    fun cancelPendingDelete(protonContactId: String) {
+        scope.launch {
+            withContext(workDispatcher) { cancelDelete(protonContactId) }
+            refreshSyncStatus()
+        }
+    }
+
+    fun resolveContactConflict(protonContactId: String, resolution: ConflictResolution) {
+        scope.launch {
+            withContext(workDispatcher) { resolveConflict(protonContactId, resolution) }
+            refreshSyncStatus()
         }
     }
 

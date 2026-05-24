@@ -18,3 +18,21 @@ sealed interface SettingsUiState {
     data object SignedOut : SettingsUiState
     data class SignOutFailed(val reason: String) : SettingsUiState
 }
+
+data class OutboxStats(
+    val pending: Int,
+    val quarantined: Int
+)
+
+data class PendingDelete(
+    val protonContactId: String,
+    val createdAt: Long
+)
+
+data class ConflictInfo(
+    val protonContactId: String,
+    val displayName: String?,
+    val conflictFields: String?
+)
+
+enum class ConflictResolution { USE_LOCAL, USE_SERVER }

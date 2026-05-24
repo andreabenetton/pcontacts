@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -27,6 +30,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,10 +52,16 @@ fun SettingsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val verificationStats by viewModel.verificationStats.collectAsStateWithLifecycle()
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
+    val outboxStats by viewModel.outboxStats.collectAsStateWithLifecycle()
+    val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
+    val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
     val busy = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
 
     Column(
-        modifier = modifier.fillMaxSize().padding(PaddingValues(24.dp)),
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(PaddingValues(24.dp)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -120,6 +130,27 @@ fun SettingsScreen(
                 Spacer(Modifier.height(16.dp))
                 VerificationWarningBanner(stats)
             }
+        }
+
+        if (outboxStats.pending > 0 || outboxStats.quarantined > 0) {
+            Spacer(Modifier.height(16.dp))
+            OutboxStatusBanner(outboxStats)
+        }
+
+        if (pendingDeletes.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            PendingDeleteBanner(
+                deletes = pendingDeletes,
+                onCancel = viewModel::cancelPendingDelete
+            )
+        }
+
+        if (conflicts.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            ConflictBanner(
+                conflicts = conflicts,
+                onResolve = viewModel::resolveContactConflict
+            )
         }
     }
 }
@@ -200,4 +231,173 @@ private fun VerificationWarningBanner(stats: VerificationStats) {
             )
         }
     }
+}
+
+@Composable
+private fun OutboxStatusBanner(stats: OutboxStats) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(12.dp)
+    ) {
+        if (stats.pending > 0) {
+            Text(
+                text = "${stats.pending} change${if (stats.pending != 1) "s" else ""} pending sync",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+        if (stats.quarantined > 0) {
+            Text(
+                text = "${stats.quarantined} change${if (stats.quarantined != 1) "s" else ""} failed permanently",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+private fun PendingDeleteBanner(
+    deletes: List<PendingDelete>,
+    onCancel: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.tertiaryContainer)
+            .padding(12.dp)
+    ) {
+        Text(
+            text = "${deletes.size} contact${if (deletes.size != 1) "s" else ""} scheduled for deletion",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onTertiaryContainer
+        )
+        Text(
+            text = "Deletions are sent to Proton after a 1-hour grace period.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer
+        )
+        Spacer(Modifier.height(8.dp))
+        deletes.forEach { del ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = del.protonContactId.take(12) + "...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { onCancel(del.protonContactId) }) {
+                    Text("Cancel")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConflictBanner(
+    conflicts: List<ConflictInfo>,
+    onResolve: (String, ConflictResolution) -> Unit
+) {
+    var selectedConflict by remember { mutableStateOf<ConflictInfo?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(12.dp)
+    ) {
+        Text(
+            text = "${conflicts.size} contact${if (conflicts.size != 1) "s" else ""} with sync conflicts",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer
+        )
+        Text(
+            text = "Both the phone and Proton have changes to the same fields.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer
+        )
+        Spacer(Modifier.height(8.dp))
+        conflicts.forEach { conflict ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = conflict.displayName ?: conflict.protonContactId.take(12),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { selectedConflict = conflict }) {
+                    Text("Resolve")
+                }
+            }
+        }
+    }
+
+    selectedConflict?.let { conflict ->
+        ConflictResolutionDialog(
+            conflict = conflict,
+            onResolve = { resolution ->
+                onResolve(conflict.protonContactId, resolution)
+                selectedConflict = null
+            },
+            onDismiss = { selectedConflict = null }
+        )
+    }
+}
+
+@Composable
+private fun ConflictResolutionDialog(
+    conflict: ConflictInfo,
+    onResolve: (ConflictResolution) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Resolve conflict")
+        },
+        text = {
+            Column {
+                Text(
+                    text = conflict.displayName ?: "Contact",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                if (conflict.conflictFields != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Conflicting fields: ${conflict.conflictFields}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Choose which version to keep:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onResolve(ConflictResolution.USE_LOCAL) }) {
+                Text("Use phone version")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onResolve(ConflictResolution.USE_SERVER) }) {
+                Text("Use Proton version")
+            }
+        }
+    )
 }

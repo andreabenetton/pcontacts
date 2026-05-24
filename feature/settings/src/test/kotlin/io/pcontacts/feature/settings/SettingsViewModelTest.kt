@@ -174,4 +174,132 @@ class SettingsViewModelTest {
         assertEquals(SyncInterval.ONE_HOUR, vm.syncInterval.value)
         assertEquals(1L, captured)
     }
+
+    @Test fun outbox_stats_loaded_on_init() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryOutboxStats = { OutboxStats(pending = 3, quarantined = 1) },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(3, vm.outboxStats.value.pending)
+        assertEquals(1, vm.outboxStats.value.quarantined)
+    }
+
+    @Test fun pending_deletes_loaded_on_init() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val deletes = listOf(PendingDelete("ct-1", 1000L), PendingDelete("ct-2", 2000L))
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryPendingDeletes = { deletes },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(2, vm.pendingDeletes.value.size)
+        assertEquals("ct-1", vm.pendingDeletes.value[0].protonContactId)
+    }
+
+    @Test fun conflicts_loaded_on_init() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val conflicts = listOf(ConflictInfo("ct-1", "Alice", "fullName"))
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryConflicts = { conflicts },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(1, vm.conflicts.value.size)
+        assertEquals("Alice", vm.conflicts.value[0].displayName)
+    }
+
+    @Test fun cancel_pending_delete_calls_seam_and_refreshes() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val cancelled = mutableListOf<String>()
+        var queryCount = 0
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryPendingDeletes = {
+                queryCount++
+                if (queryCount == 1) listOf(PendingDelete("ct-1", 1000L))
+                else emptyList()
+            },
+            cancelDelete = { cancelled += it },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(1, vm.pendingDeletes.value.size)
+
+        vm.cancelPendingDelete("ct-1")
+        advanceUntilIdle()
+        assertEquals(listOf("ct-1"), cancelled)
+        assertEquals(0, vm.pendingDeletes.value.size)
+    }
+
+    @Test fun resolve_conflict_calls_seam_and_refreshes() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val resolved = mutableListOf<Pair<String, ConflictResolution>>()
+        var queryCount = 0
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryConflicts = {
+                queryCount++
+                if (queryCount == 1) listOf(ConflictInfo("ct-1", "Alice", "fullName"))
+                else emptyList()
+            },
+            resolveConflict = { id, res -> resolved += id to res },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(1, vm.conflicts.value.size)
+
+        vm.resolveContactConflict("ct-1", ConflictResolution.USE_LOCAL)
+        advanceUntilIdle()
+        assertEquals(listOf("ct-1" to ConflictResolution.USE_LOCAL), resolved)
+        assertEquals(0, vm.conflicts.value.size)
+    }
+
+    @Test fun outbox_stats_refreshed_after_sync() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var queryCount = 0
+        val vm = SettingsViewModel(
+            syncNow = { SettingsActionResult.Success("done") },
+            signOut = { error("not used") },
+            queryOutboxStats = {
+                queryCount++
+                OutboxStats(pending = if (queryCount == 1) 5 else 0, quarantined = 0)
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(5, vm.outboxStats.value.pending)
+
+        vm.triggerSyncNow()
+        advanceUntilIdle()
+        assertEquals(0, vm.outboxStats.value.pending)
+    }
+
+    @Test fun outbox_stats_default_on_query_failure() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryOutboxStats = { error("db error") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(OutboxStats(0, 0), vm.outboxStats.value)
+    }
 }
