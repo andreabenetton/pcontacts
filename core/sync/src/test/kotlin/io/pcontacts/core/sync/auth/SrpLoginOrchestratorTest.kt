@@ -213,11 +213,12 @@ class SrpLoginOrchestratorTest {
         assertEquals(LoginResult.Success(uid = "uid-key"), result)
         val stored = secretStore.keyPassword()
         assertNotNull("keyPassword must be persisted on successful login", stored)
-        // Format check: ComputeKeyPassword returns an OpenBSD bcrypt string;
-        // the UTF-8 bytes start with the well-known "$2y$10$" prefix.
-        assertTrue(
-            "keyPassword bytes must encode a bcrypt string starting with \$2y\$10\$",
-            String(stored!!, Charsets.UTF_8).startsWith("\$2y\$10\$")
+        // ComputeKeyPassword.derive now returns the 31-char trailing hash
+        // (matching Proton's computeKeyPassword output).
+        assertEquals(
+            "keyPassword must be 31 characters (bcrypt trailing hash)",
+            31,
+            String(stored!!, Charsets.UTF_8).length
         )
     }
 
