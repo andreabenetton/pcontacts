@@ -33,6 +33,8 @@ android {
 dependencies {
     implementation(libs.bundles.kotlinx.coroutines)
     implementation(project(":core:proton-api"))
+    // HttpException for error classification in ContactWriteEngine.
+    implementation(libs.retrofit)
     implementation(project(":core:crypto"))
     implementation(project(":core:storage"))
     implementation(project(":core:logging"))
