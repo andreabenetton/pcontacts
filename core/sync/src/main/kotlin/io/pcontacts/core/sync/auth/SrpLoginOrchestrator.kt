@@ -58,10 +58,10 @@ class SrpLoginOrchestrator(
     /**
      * ADR-0014 — verifies the OpenPGP detached signature on the SRP
      * Modulus. Default loads Proton's pinned public key from the
-     * classpath; when the resource is absent (current state, see
-     * `core:crypto/.../resources/README_proton_srp_signing_key.md`),
-     * verification returns `NO_SIGNER_KEY` and the orchestrator
-     * proceeds with a warning. Tests inject `NoOpProtonModulusVerifier`.
+     * classpath (`proton_srp_signing_key.asc`). On `NO_SIGNER_KEY`
+     * (resource missing or unparseable), login aborts — the key is
+     * committed and must load successfully in production builds.
+     * Tests inject `NoOpProtonModulusVerifier`.
      */
     private val modulusVerifier: ProtonModulusVerifier = BouncyCastleProtonModulusVerifier(
         pinnedPublicKeyArmored = BouncyCastleProtonModulusVerifier.loadPinnedKeyFromClasspath()
@@ -99,11 +99,12 @@ class SrpLoginOrchestrator(
                     return LoginResult.Failed(reason = "modulus_signature_invalid")
                 }
                 ProtonModulusVerification.NO_SIGNER_KEY -> {
-                    // No pinned key in the classpath resource yet. The
-                    // README at .../resources/README_proton_srp_signing_key.md
-                    // explains how to source + drop in the real key; until
-                    // then we log and continue.
-                    logger.warn { "modulus signature NOT verified — no pinned Proton SRP key configured (ADR-0014)" }
+                    // ADR-0014 production gate: the pinned key resource
+                    // is now committed (proton_srp_signing_key.asc). If
+                    // it fails to load, the build or classpath is broken
+                    // — abort rather than silently skipping verification.
+                    logger.warn { "modulus signature NOT verified — pinned Proton SRP key failed to load (ADR-0014)" }
+                    return LoginResult.Failed(reason = "modulus_pin_missing")
                 }
             }
         } else {
