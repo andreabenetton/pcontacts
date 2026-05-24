@@ -119,9 +119,9 @@ class EmailSyncEngine(
 
     private fun toMappingRow(row: ContactRow, rawId: Long, now: Long) = ContactMapEntity(
         protonContactId = row.sourceId,
-        protonUid = null,         // vCard UID lands once the decrypt phase ships.
+        protonUid = null,         // EmailSyncEngine doesn't decrypt; populated by ContactDetailSyncEngine.
         androidRawContactId = rawId,
-        modifyTime = 0L,          // Server ModifyTime lands with the metadata listing.
+        modifyTime = 0L,          // EmailSyncEngine has no metadata; populated by ContactDetailSyncEngine.
         contentHash = EmailSyncHash.compute(row),
         isVerified = false,       // No signature verification in the pre-decrypt path.
         deleted = false,
