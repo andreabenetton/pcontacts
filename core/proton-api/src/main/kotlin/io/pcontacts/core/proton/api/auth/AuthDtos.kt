@@ -13,12 +13,9 @@ import kotlinx.serialization.Serializable
  * Verification status:
  *   [V] field names + endpoint paths confirmed in
  *       ProtonMail/WebClients packages/shared/lib/api/auth.ts
- *   [U] exact ChallengePayload algorithm — see ADR-0014 §"Open Questions"
- *       and the implementation plan §2.8. For now `Payload` is typed as
- *       `Map<String, String>` so we can stub it during early integration.
- *   [A] computeKeyPassword parameters — bcrypt-SHA512 cost factor not
- *       exhaustively documented in the public source. ADR-0013 captures
- *       vectors as soon as the Node script lands.
+ *   [V] ChallengePayload — empty map accepted by live API (2026-05-24).
+ *   [V] computeKeyPassword parameters — bcrypt cost 10, salt from
+ *       keys/salts endpoint. Validated end-to-end (2026-05-24).
  */
 
 @Serializable
@@ -43,7 +40,7 @@ data class AuthRequest(
     @SerialName("ClientEphemeral") val clientEphemeral: String,
     @SerialName("ClientProof") val clientProof: String,
     @SerialName("SRPSession") val srpSession: String,
-    // [U] ChallengePayload — see file-level doc.
+    // [V] ChallengePayload — empty map accepted (2026-05-24).
     @SerialName("Payload") val payload: Map<String, String>? = null,
     @SerialName("PersistentCookies") val persistentCookies: Int? = null
 )

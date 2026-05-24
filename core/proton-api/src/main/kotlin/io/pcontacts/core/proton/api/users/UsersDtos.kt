@@ -18,9 +18,8 @@ import kotlinx.serialization.Serializable
  * Verification markers:
  *   [V]   field names and types confirmed in
  *         packages/shared/lib/interfaces/User.ts + Key.ts
- *   [A]   salts endpoint path `core/v4/keys/salts`. Web client uses
- *         `getSalts()` which hits this URL; first real-account fetch
- *         confirms.
+ *   [V]   salts endpoint path `core/v4/keys/salts` — confirmed by
+ *         live API fetch (2026-05-24).
  */
 
 @Serializable
