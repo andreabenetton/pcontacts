@@ -1,0 +1,88 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+# Daily canary: runs the live Proton API integration test to detect
+# x-pm-appversion window drift or endpoint changes before users hit them.
+# See also: C1 risk in the audit, ADR-0014.
+
+name: api-canary
+
+on:
+  schedule:
+    # 06:15 UTC daily — early enough to catch overnight Proton deploys
+    # before European users wake up.
+    - cron: '15 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  live-login:
+    name: Live Proton API smoke test
+    runs-on: ubuntu-latest
+    # Only run if secrets are configured — forks won't have them.
+    if: ${{ github.repository_owner == 'andreabenetton' }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle (with cache)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run LiveProtonLoginTest
+        env:
+          PCONTACTS_LIVE_TEST: 'true'
+          PCONTACTS_USERNAME: ${{ secrets.PCONTACTS_USERNAME }}
+          PCONTACTS_PASSWORD: ${{ secrets.PCONTACTS_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon --stacktrace \
+            :core:sync:testDebugUnitTest \
+            --tests "io.pcontacts.core.sync.auth.LiveProtonLoginTest"
+
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `API canary failed — ${new Date().toISOString().slice(0,10)}`;
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'api-canary',
+              per_page: 1
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `Canary still failing as of ${new Date().toISOString()}.\nRun: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                labels: ['api-canary'],
+                body: [
+                  '## API canary failure',
+                  '',
+                  'The daily live Proton API smoke test failed. This likely means:',
+                  '- `x-pm-appversion` `android-mail@3.0.12` fell out of the acceptance window, OR',
+                  '- Proton changed an endpoint or DTO shape.',
+                  '',
+                  `**Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                  '',
+                  'Action: bump `DEFAULT_APP_VERSION` in `ProtonApiConfig.kt`, re-run the live test, and cut a patch release.'
+                ].join('\n')
+              });
+            }
