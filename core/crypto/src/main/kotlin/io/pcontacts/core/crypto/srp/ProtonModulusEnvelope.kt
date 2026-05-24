@@ -30,8 +30,8 @@ package io.pcontacts.core.crypto.srp
  * Verification markers:
  *   [V] envelope shape — confirmed in
  *       packages/shared/lib/srp.ts + the OpenPGP cleartext signature spec.
- *   [A] absence of envelope → raw base64 is a fallback for older API
- *       versions / test fixtures; real prod always envelopes.
+ *   [V] prod always sends the envelope (validated 2026-05-24); the
+ *       raw base64 fallback path exists only for test fixtures.
  */
 object ProtonModulusEnvelope {
 
