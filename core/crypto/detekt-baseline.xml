@@ -1,0 +1,69 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>AnnotationOnSeparateLine:BouncyCastleOpenPgpServiceTest.kt$BouncyCastleOpenPgpServiceTest.Companion$@BeforeClass @JvmStatic</ID>
+    <ID>AnnotationOnSeparateLine:Pgp.kt$PgpProvider$@Suppress("UNUSED_EXPRESSION") installed</ID>
+    <ID>ArgumentListWrapping:BouncyCastleKeyUnlockTest.kt$BouncyCastleKeyUnlockTest$("error message must not contain the supplied passphrase", !ex.message!!.contains(String(wrongPassphrase)))</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$(ByteArrayInputStream(armoredMessage.toByteArray(Charsets.US_ASCII)))</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$(ByteArrayInputStream(armoredSignature.toByteArray(Charsets.US_ASCII)))</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$(Charsets.US_ASCII)</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$(armoredMessage.toByteArray(Charsets.US_ASCII))</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$(armoredSignature.toByteArray(Charsets.US_ASCII))</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$(plaintext, detachedSignature, verificationKeys, canonicalText = false, stripTrailingSpaces = false)</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpServiceTest.kt$BouncyCastleOpenPgpServiceTest$("-----BEGIN PGP SIGNATURE-----")</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpServiceTest.kt$BouncyCastleOpenPgpServiceTest$("sig should be ASCII armored", encrypted.armoredDetachedSignature.contains("-----BEGIN PGP SIGNATURE-----"))</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpServiceTest.kt$BouncyCastleOpenPgpServiceTest$(key.pub)</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpServiceTest.kt$BouncyCastleOpenPgpServiceTest$(original.toByteArray(), key.priv, canonicalText = true, stripTrailingSpaces = true)</ID>
+    <ID>ArgumentListWrapping:BouncyCastleOpenPgpServiceTest.kt$BouncyCastleOpenPgpServiceTest$(original.toByteArray(), sig, listOf(key.pub), canonicalText = true, stripTrailingSpaces = true)</ID>
+    <ID>ArgumentListWrapping:Bytes.kt$(length / 2)</ID>
+    <ID>ArgumentListWrapping:ProtonModulusVerifierTest.kt$ProtonModulusVerifierTest$("test", "-----BEGIN PGP SIGNATURE-----\n\niHUEARYIAB0WIQRbjk8xQkVnUqFUQOM1BYXE6VGPJgUCXAHLgwAKCRA1BYXE\n6VGPJnrhAP9G/vQjY7gOI0nnrBYmAGIuVMhh0AAAAAAA\n=AAAA\n-----END PGP SIGNATURE-----")</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$( N = N1024, g = g2, serverEphemeralB = BigInteger("aa" + "0".repeat(60), 16), x = BigInteger("5", 16) )</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$( N = N1024, g = g2, serverEphemeralB = BigInteger("ff" + "0".repeat(60), 16), x = BigInteger("1234", 16) )</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$( N = N1024, g = g2, serverEphemeralB = N1024, x = BigInteger.ONE )</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$("SHA1PRNG")</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$("expected M2 must differ when x differs", a.expectedServerProofM2.contentEquals(b.expectedServerProofM2))</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$(1, 2, 3, 4)</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$(b.expectedServerProofM2)</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$(byteArrayOf(1, 2, 3, 4))</ID>
+    <ID>ArgumentListWrapping:SrpClientTest.kt$SrpClientTest$(random = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(1, 2, 3, 4)) })</ID>
+    <ID>ArgumentListWrapping:TestKeyGen.kt$TestKeyGen$(false, KeyFlags.SIGN_DATA or KeyFlags.CERTIFY_OTHER or KeyFlags.ENCRYPT_COMMS or KeyFlags.ENCRYPT_STORAGE)</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:CapturedVectorsTest.kt$CapturedVectorsTest$val (label, passwordEscaped, saltB64, expected) = match.destructured</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:CapturedVectorsTest.kt$CapturedVectorsTest$val (label, passwordEscaped, saltB64, modulusHex, expectedHex) = match.destructured</ID>
+    <ID>FunctionParameterNaming:SrpClient.kt$SrpClient$N: BigInteger</ID>
+    <ID>ImportOrdering:BouncyCastleKeyUnlock.kt$import java.io.ByteArrayInputStream import org.bouncycastle.openpgp.PGPException import org.bouncycastle.openpgp.PGPSecretKeyRing import org.bouncycastle.openpgp.PGPUtil import org.bouncycastle.openpgp.bc.BcPGPObjectFactory import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider</ID>
+    <ID>ImportOrdering:BouncyCastleOpenPgpService.kt$import java.io.ByteArrayInputStream import java.io.ByteArrayOutputStream import java.io.InputStream import java.security.SecureRandom import org.bouncycastle.bcpg.ArmoredOutputStream import org.bouncycastle.bcpg.BCPGOutputStream import org.bouncycastle.bcpg.HashAlgorithmTags import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags import org.bouncycastle.openpgp.PGPCompressedData import org.bouncycastle.openpgp.PGPCompressedDataGenerator import org.bouncycastle.openpgp.PGPEncryptedDataGenerator import org.bouncycastle.openpgp.PGPEncryptedDataList import org.bouncycastle.openpgp.PGPLiteralData import org.bouncycastle.openpgp.PGPLiteralDataGenerator import org.bouncycastle.openpgp.PGPObjectFactory import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData import org.bouncycastle.openpgp.PGPSignature import org.bouncycastle.openpgp.PGPSignatureGenerator import org.bouncycastle.openpgp.PGPSignatureList import org.bouncycastle.openpgp.PGPUtil import org.bouncycastle.openpgp.bc.BcPGPObjectFactory import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator</ID>
+    <ID>ImportOrdering:BytesTest.kt$import java.math.BigInteger import org.junit.Assert.assertArrayEquals import org.junit.Assert.assertEquals import org.junit.Test</ID>
+    <ID>ImportOrdering:ComputeKeyPassword.kt$import java.util.Base64 import org.bouncycastle.crypto.generators.OpenBSDBCrypt</ID>
+    <ID>ImportOrdering:ComputeKeyPasswordTest.kt$import java.util.Base64 import org.junit.Assert.assertEquals import org.junit.Assert.assertNotEquals import org.junit.Test</ID>
+    <ID>ImportOrdering:Pgp.kt$import java.security.Security import org.bouncycastle.jce.provider.BouncyCastleProvider import org.bouncycastle.openpgp.PGPPrivateKey import org.bouncycastle.openpgp.PGPPublicKey</ID>
+    <ID>ImportOrdering:ProtonModulusEnvelopeTest.kt$import org.junit.Assert.assertEquals import org.junit.Assert.assertNull import org.junit.Assert.assertNotNull import org.junit.Assert.assertTrue import org.junit.Test</ID>
+    <ID>ImportOrdering:ProtonModulusVerifier.kt$import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService import io.pcontacts.core.crypto.openpgp.OpenPgpService import io.pcontacts.core.crypto.openpgp.PgpProvider import io.pcontacts.core.crypto.openpgp.PgpPublicKeyHandle import io.pcontacts.core.crypto.openpgp.VerificationStatus import java.io.ByteArrayInputStream import org.bouncycastle.openpgp.PGPPublicKeyRing import org.bouncycastle.openpgp.PGPUtil import org.bouncycastle.openpgp.bc.BcPGPObjectFactory</ID>
+    <ID>ImportOrdering:ProtonModulusVerifierTest.kt$import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService import io.pcontacts.core.crypto.openpgp.TestKeyGen import java.io.ByteArrayOutputStream import org.bouncycastle.bcpg.ArmoredOutputStream import org.bouncycastle.openpgp.PGPPublicKeyRing import org.junit.Assert.assertEquals import org.junit.Assert.assertNotNull import org.junit.Assert.assertTrue import org.junit.Test</ID>
+    <ID>ImportOrdering:SrpClientTest.kt$import io.pcontacts.core.crypto.util.toUnsignedBigInteger import io.pcontacts.core.crypto.util.toUnsignedBytes import java.math.BigInteger import java.security.SecureRandom import org.junit.Assert.assertArrayEquals import org.junit.Assert.assertEquals import org.junit.Assert.assertFalse import org.junit.Assert.assertNotEquals import org.junit.Assert.assertTrue import org.junit.Test</ID>
+    <ID>ImportOrdering:SrpHashPassword.kt$import io.pcontacts.core.crypto.util.expandHash import java.util.Base64 import org.bouncycastle.crypto.generators.OpenBSDBCrypt</ID>
+    <ID>ImportOrdering:TestKeyGen.kt$import java.io.ByteArrayOutputStream import java.security.KeyPairGenerator import java.util.Date import org.bouncycastle.bcpg.ArmoredOutputStream import org.bouncycastle.bcpg.HashAlgorithmTags import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags import org.bouncycastle.bcpg.sig.KeyFlags import org.bouncycastle.jce.provider.BouncyCastleProvider import org.bouncycastle.openpgp.PGPKeyPair import org.bouncycastle.openpgp.PGPKeyRingGenerator import org.bouncycastle.openpgp.PGPPublicKey import org.bouncycastle.openpgp.PGPSecretKeyRing import org.bouncycastle.openpgp.PGPSignature import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair</ID>
+    <ID>Indentation:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$ </ID>
+    <ID>MaxLineLength:ProtonModulusVerifierTest.kt$ProtonModulusVerifierTest$val result = verifier.verify("test", "-----BEGIN PGP SIGNATURE-----\n\niHUEARYIAB0WIQRbjk8xQkVnUqFUQOM1BYXE6VGPJgUCXAHLgwAKCRA1BYXE\n6VGPJnrhAP9G/vQjY7gOI0nnrBYmAGIuVMhh0AAAAAAA\n=AAAA\n-----END PGP SIGNATURE-----")</ID>
+    <ID>MaximumLineLength:ProtonModulusVerifierTest.kt$ProtonModulusVerifierTest$ </ID>
+    <ID>NoMultipleSpaces:TestKeyGen.kt$TestKeyGen$ </ID>
+    <ID>NoUnusedImports:SrpClientTest.kt$io.pcontacts.core.crypto.srp.SrpClientTest.kt</ID>
+    <ID>PropertyWrapping:SrpClientTest.kt$SrpClientTest$val client2 = SrpClient(random = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(1, 2, 3, 4)) })</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Pgp.kt$VerificationStatus.NOT_SIGNED$/** No signature on the message / call site asked for an unsigned path. */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Pgp.kt$VerificationStatus.SIGNED_INVALID$/** Signature present but verification failed (tampered or wrong key). */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Pgp.kt$VerificationStatus.SIGNED_NO_VERIFIER$/** Signature present, but no verification key was supplied or none matched the key ID. */</ID>
+    <ID>ThrowsCount:BouncyCastleKeyUnlock.kt$BouncyCastleKeyUnlock$fun unlock(armoredPrivateKey: String, passphrase: CharArray): UnlockedKey</ID>
+    <ID>UnusedPrivateProperty:TextCanonicalization.kt$TextCanonicalization$private const val CR: Byte = 0x0D</ID>
+    <ID>UnusedPrivateProperty:TextCanonicalization.kt$TextCanonicalization$private const val LF: Byte = 0x0A</ID>
+    <ID>VariableNaming:SrpClient.kt$SrpClient$val A = g.modPow(a, N)</ID>
+    <ID>VariableNaming:SrpClient.kt$SrpClient$val M1 = expandHash(aLE + bLE + sLE)</ID>
+    <ID>VariableNaming:SrpClient.kt$SrpClient$val S = base.modPow(exponent, N)</ID>
+    <ID>VariableNaming:SrpClientTest.kt$SrpClientTest$/** * RFC 3526 §2 — 1024-bit MODP group (the smallest standard SRP group). * Useful for fast tests; production uses the 2048-bit Proton modulus. */ private val N1024 = BigInteger( "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E08" + "8A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B" + "302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9" + "A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE6" + "49286651ECE65381FFFFFFFFFFFFFFFF", 16 )</ID>
+    <ID>VariableNaming:SrpClientTest.kt$SrpClientTest$val B = BigInteger("11" + "0".repeat(60), 16)</ID>
+    <ID>VariableNaming:SrpClientTest.kt$SrpClientTest$val B = BigInteger("22" + "0".repeat(60), 16)</ID>
+    <ID>Wrapping:BouncyCastleKeyUnlockTest.kt$BouncyCastleKeyUnlockTest$(</ID>
+    <ID>Wrapping:BouncyCastleOpenPgpService.kt$BouncyCastleOpenPgpService$(</ID>
+    <ID>Wrapping:BouncyCastleOpenPgpServiceTest.kt$BouncyCastleOpenPgpServiceTest$(</ID>
+    <ID>Wrapping:Bytes.kt$((Character.digit(this[it * 2], 16) shl 4) + Character.digit(this[it * 2 + 1], 16)).toByte()</ID>
+  </CurrentIssues>
+</SmellBaseline>

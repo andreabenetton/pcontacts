@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:VCardMerger.kt$VCardMerger$( out.poBox, out.extendedAddress, out.street, out.locality, out.region, out.postalCode, out.country )</ID>
+    <ID>ArgumentListWrapping:VCardMergerTest.kt$VCardMergerTest$("photo bytes must survive the data: URI parse", pngBytes.contentEquals(photo!!.data))</ID>
+    <ID>ComplexCondition:VCardMerger.kt$VCardMerger$given == null &amp;&amp; family == null &amp;&amp; additional.isEmpty() &amp;&amp; prefixes.isEmpty() &amp;&amp; suffixes.isEmpty()</ID>
+    <ID>MultiLineIfElse:VCardMerger.kt$VCardMerger$null</ID>
+    <ID>MultiLineIfElse:VCardMerger.kt$VCardMerger$out</ID>
+    <ID>NoBlankLineBeforeRbrace:VCardMerger.kt$VCardMerger$ </ID>
+    <ID>NoMultipleSpaces:ContactDecrypterTest.kt$ContactDecrypterTest$ </ID>
+    <ID>Wrapping:ContactDecrypterTest.kt$ContactDecrypterTest$;</ID>
+    <ID>Wrapping:ContactProcessorTest.kt$ContactProcessorTest$(</ID>
+    <ID>Wrapping:ContactProcessorTest.kt$ContactProcessorTest$(type = 0, data = """ BEGIN:VCARD VERSION:4.0 UID:urn:uuid:STRAY-FROM-CLEAR END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:ContactProcessorTest.kt$ContactProcessorTest$(type = 2, data = """ BEGIN:VCARD VERSION:4.0 FN:Alice END:VCARD """.trimIndent(), signature = "tampered")</ID>
+    <ID>Wrapping:VCardMerger.kt$VCardMerger$(</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.CLEAR_TEXT, """ BEGIN:VCARD VERSION:4.0 END:VCARD """.trimIndent(), verified = true)</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.CLEAR_TEXT, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.CLEAR_TEXT, """ BEGIN:VCARD VERSION:4.0 FN:Alice END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.CLEAR_TEXT, """ BEGIN:VCARD VERSION:4.0 UID:urn:uuid:tampered END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED, """ BEGIN:VCARD VERSION:4.0 FN:Alice END:VCARD """.trimIndent(), verified = false)</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 EMAIL;TYPE=work:alice.work@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me ADR:;;;;;; END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me ADR;TYPE=home;PREF=1:PO Box 5;Suite 3;100 Main St;Springfield;IL;62704;USA ADR;TYPE=work:;;200 Office Way;Chicago;IL;60601;USA END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me IMPP:xmpp:alice@chat.example IMPP:skype:alice.live END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me NOTE:First note NOTE:Second note END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me ORG:Acme Inc.;R&amp;D TITLE:Principal Engineer TITLE:Founding member END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me PHOTO:data:image/png;base64,$photoB64 END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me TEL;TYPE=home:+1 555 0100 TEL;TYPE=cell;PREF=1:+1 555 0101 TEL;TYPE=fax,work:+1 555 0102 END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 N:;;;; FN:Alice EMAIL:alice@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 N:Doe;Alice;Marie,Jane;Dr;PhD FN:Alice Doe EMAIL:alice@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 N:Doe;Alice;Marie;; END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.ENCRYPTED_AND_SIGNED, """ BEGIN:VCARD VERSION:4.0 UID:urn:uuid:ATTACKER-REBIND EMAIL:alice@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice Doe UID:urn:uuid:trusted-alice EMAIL;PREF=1:alice@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice END:VCARD """.trimIndent(), verified = false)</ID>
+    <ID>Wrapping:VCardMergerTest.kt$VCardMergerTest$(CardType.SIGNED, """ BEGIN:VCARD VERSION:4.0 FN:Alice UID:urn:uuid:trusted-alice END:VCARD """.trimIndent())</ID>
+  </CurrentIssues>
+</SmellBaseline>

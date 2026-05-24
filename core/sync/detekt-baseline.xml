@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$("SIGNED card with failed verification must mark mapping unverified", mapping!!.isVerified)</ID>
+    <ID>ArgumentListWrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$("getContact must not be called when modifyTime is unchanged", firstFetchCount, api.getContactCallCount)</ID>
+    <ID>ArgumentListWrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$("photo bytes must survive the projection", pngBytes.contentEquals(row.photo!!.data))</ID>
+    <ID>ArgumentListWrapping:EmailSyncEngineTest.kt$EmailSyncEngineTest$( id = id, email = addr, name = displayName, contactId = contactId, defaults = defaults, order = order )</ID>
+    <ID>ArgumentListWrapping:LiveProtonLoginTest.kt$LiveProtonLoginTest$(" -&gt; server's M2 doesn't match our expectation (SRP math divergence)")</ID>
+    <ID>ArgumentListWrapping:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$(proof.clientEphemeralA, padLen)</ID>
+    <ID>ArgumentListWrapping:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$(toLittleEndianBytes(proof.clientEphemeralA, padLen))</ID>
+    <ID>ArgumentListWrapping:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$("expected Failed(info_failed), was $result", result is LoginResult.Failed &amp;&amp; (result as LoginResult.Failed).reason == "info_failed")</ID>
+    <ID>ArgumentListWrapping:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$("expected Failed(no_session), was $result", result is LoginResult.Failed &amp;&amp; (result as LoginResult.Failed).reason == "no_session")</ID>
+    <ID>ArgumentListWrapping:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$("expected Failed(server_proof_mismatch), was $result", result is LoginResult.Failed &amp;&amp; (result as LoginResult.Failed).reason == "server_proof_mismatch")</ID>
+    <ID>ArgumentListWrapping:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$("expected Failed(two_factor_failed), was $result", result is LoginResult.Failed &amp;&amp; (result as LoginResult.Failed).reason == "two_factor_failed")</ID>
+    <ID>ArgumentListWrapping:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$("expected Failed(two_factor_rejected), was $result", result is LoginResult.Failed &amp;&amp; (result as LoginResult.Failed).reason == "two_factor_rejected")</ID>
+    <ID>ComplexCondition:DecryptedContactToRow.kt$DecryptedContactToRow$emails.isEmpty() &amp;&amp; phones.isEmpty() &amp;&amp; addresses.isEmpty() &amp;&amp; imAccounts.isEmpty()</ID>
+    <ID>ComplexCondition:DecryptedContactToRow.kt$DecryptedContactToRow$given == null &amp;&amp; family == null &amp;&amp; middle == null &amp;&amp; prefix == null &amp;&amp; suffix == null</ID>
+    <ID>CyclomaticComplexMethod:ContactDetailSyncEngine.kt$ContactDetailSyncEngine$suspend fun sync(account: Account): SyncReport</ID>
+    <ID>ImportOrdering:SrpLoginOrchestratorTest.kt$import io.pcontacts.core.crypto.srp.SrpClient import io.pcontacts.core.proton.api.InMemorySession import io.pcontacts.core.proton.api.ProtonApiConfig import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory import io.pcontacts.core.storage.InMemorySecretStore import java.math.BigInteger import java.security.SecureRandom import java.util.Base64 import kotlinx.coroutines.test.runTest import okhttp3.mockwebserver.MockResponse import okhttp3.mockwebserver.MockWebServer import okhttp3.mockwebserver.QueueDispatcher import org.junit.After import org.junit.Assert.assertEquals import org.junit.Assert.assertNotNull import org.junit.Assert.assertNull import org.junit.Assert.assertTrue import org.junit.Before import org.junit.Test</ID>
+    <ID>ImportOrdering:TestKeys.kt$import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock import io.pcontacts.core.crypto.openpgp.UnlockedKey import java.io.ByteArrayOutputStream import java.security.KeyPairGenerator import java.util.Date import org.bouncycastle.bcpg.ArmoredOutputStream import org.bouncycastle.bcpg.HashAlgorithmTags import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags import org.bouncycastle.bcpg.sig.KeyFlags import org.bouncycastle.jce.provider.BouncyCastleProvider import org.bouncycastle.openpgp.PGPKeyPair import org.bouncycastle.openpgp.PGPKeyRingGenerator import org.bouncycastle.openpgp.PGPPublicKey import org.bouncycastle.openpgp.PGPSignature import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair</ID>
+    <ID>LongMethod:ContactDetailSyncEngine.kt$ContactDetailSyncEngine$suspend fun sync(account: Account): SyncReport</ID>
+    <ID>LongMethod:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$suspend fun login(username: String, password: CharArray): LoginResult</ID>
+    <ID>LongParameterList:ContactDetailSyncEngine.kt$ContactDetailSyncEngine$( private val metadataPager: ContactsMetadataPager, private val contactsApi: ProtonContactsApi, private val labelsApi: ProtonLabelsApi, private val processor: ContactProcessor, private val contactMapDao: ContactMapDao, private val readExisting: suspend (Account) -&gt; Map&lt;String, Long&gt;, private val applyIntents: suspend (Account, List&lt;RawContactOpIntent&gt;) -&gt; ApplyResult, /** * Reconciles ContactsContract.Groups rows for `account` against the * server-side label set; returns `Map&lt;proton label id, local Groups._ID&gt;`. * Defaults to a no-op that yields empty map — keeps the constructor * backward-compatible for any test fixture that doesn't care about * groups. */ private val reconcileGroups: suspend (Account, List&lt;ProtonLabel&gt;) -&gt; Map&lt;String, Long&gt; = { _, _ -&gt; emptyMap() }, private val clock: () -&gt; Long = System::currentTimeMillis, private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink) )</ID>
+    <ID>LoopWithTooManyJumpStatements:ContactDetailSyncEngine.kt$ContactDetailSyncEngine$for</ID>
+    <ID>MaxLineLength:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$assertTrue("expected Failed(info_failed), was $result", result is LoginResult.Failed &amp;&amp; (result as LoginResult.Failed).reason == "info_failed")</ID>
+    <ID>MaximumLineLength:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$ </ID>
+    <ID>NoMultipleSpaces:ContactDecryptBootstrapTest.kt$ContactDecryptBootstrapTest$ </ID>
+    <ID>NoMultipleSpaces:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$ </ID>
+    <ID>NoMultipleSpaces:EmailSyncEngine.kt$EmailSyncEngine$ </ID>
+    <ID>NoMultipleSpaces:EmailSyncEngineTest.kt$EmailSyncEngineTest$ </ID>
+    <ID>NoMultipleSpaces:EmailSyncHash.kt$EmailSyncHash$ </ID>
+    <ID>NoMultipleSpaces:OpenPgpCardCryptoOpTest.kt$OpenPgpCardCryptoOpTest$ </ID>
+    <ID>NoMultipleSpaces:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$ </ID>
+    <ID>NoMultipleSpaces:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$ </ID>
+    <ID>ReturnCount:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$suspend fun login(username: String, password: CharArray): LoginResult</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$// Base64 of [0..15] — a valid 16-byte bcrypt salt.</ID>
+    <ID>ThrowsCount:ContactDecryptBootstrap.kt$ContactDecryptBootstrap$suspend fun createProcessor( secretStore: SecretStore, usersApi: ProtonUsersApi, openPgp: OpenPgpService ): ContactProcessor</ID>
+    <ID>ThrowsCount:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$private suspend fun deriveAndPersistKeyPassword(password: CharArray)</ID>
+    <ID>UnusedParameter:ContactDetailSyncEngineTest.kt$DetailFakeApplier$account: Account</ID>
+    <ID>UnusedParameter:EmailSyncEngineTest.kt$FakeApplier$account: Account</ID>
+    <ID>UnusedParameter:LiveProtonLoginTest.kt$LiveProtonLoginTest$password: CharArray</ID>
+    <ID>UseCheckOrError:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$throw IllegalStateException("no /keys/salts entry for primary key id (hash-redacted)")</ID>
+    <ID>UseCheckOrError:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$throw IllegalStateException("no active primary key in /users")</ID>
+    <ID>UseCheckOrError:SrpLoginOrchestrator.kt$SrpLoginOrchestrator$throw IllegalStateException("primary key has null KeySalt — key activation pending")</ID>
+    <ID>VariableNaming:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$// 1024-bit MODP group from RFC 3526 §2 — small enough for fast tests // yet still hits every code path the 2048-bit production modulus does. private val N1024 = BigInteger( "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E08" + "8A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B" + "302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9" + "A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE6" + "49286651ECE65381FFFFFFFFFFFFFFFF", 16 )</ID>
+    <ID>VariableNaming:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$// Base64 of [0..15] — a valid 16-byte bcrypt salt. private val SAMPLE_SALT_B64 = "AAECAwQFBgcICQoLDA0ODw=="</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$(</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$( "c1", 100L, """ BEGIN:VCARD VERSION:4.0 FN:Alice Doe EMAIL:alice@proton.me ADR;TYPE=home;PREF=1:;;100 Main St;Springfield;IL;62704;USA ADR;TYPE=work:;;200 Office Way;Chicago;IL;60601;USA ORG:Acme Inc.;R&amp;D TITLE:Principal Engineer NOTE:First note NOTE:Second note IMPP:xmpp:alice@chat.example IMPP:matrix:@alice:matrix.example PHOTO:data:image/png;base64,$photoB64 END:VCARD """.trimIndent() )</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$( "c1", 100L, """ BEGIN:VCARD VERSION:4.0 FN:Alice Doe EMAIL;PREF=1:alice@proton.me END:VCARD """.trimIndent() )</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$( "c1", 100L, """ BEGIN:VCARD VERSION:4.0 FN:Alice Doe N:Doe;Alice;Marie;Dr;PhD EMAIL:alice@proton.me TEL;TYPE=home:+1 555 0100 TEL;TYPE=cell;PREF=1:+1 555 0101 TEL;TYPE=fax,work:+1 555 0102 END:VCARD """.trimIndent() )</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$("c1", 100L, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:a@x END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$("c1", 100L, """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$("c1", 200L, """ BEGIN:VCARD VERSION:4.0 FN:Alice Doe EMAIL:alice@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$("c2", 100L, """ BEGIN:VCARD VERSION:4.0 FN:Bob EMAIL:bob@proton.me END:VCARD """.trimIndent())</ID>
+    <ID>Wrapping:ContactDetailSyncEngineTest.kt$ContactDetailSyncEngineTest$(type = 2, data = """ BEGIN:VCARD VERSION:4.0 FN:Alice EMAIL:alice@proton.me END:VCARD """.trimIndent(), signature = "any-sig")</ID>
+    <ID>Wrapping:EmailSyncHash.kt$EmailSyncHash$;</ID>
+    <ID>Wrapping:LiveProtonLoginTest.kt$LiveProtonLoginTest$(</ID>
+    <ID>Wrapping:OpenPgpCardCryptoOpTest.kt$OpenPgpCardCryptoOpTest$(</ID>
+    <ID>Wrapping:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$(</ID>
+    <ID>Wrapping:SrpLoginOrchestratorTest.kt$SrpLoginOrchestratorTest$;</ID>
+  </CurrentIssues>
+</SmellBaseline>

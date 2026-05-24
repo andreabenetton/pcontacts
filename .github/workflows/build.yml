@@ -81,6 +81,9 @@ jobs:
       - name: Lint debug
         run: ./gradlew --no-daemon --stacktrace :app:lintDebug
 
+      - name: Detekt (static analysis)
+        run: ./gradlew --no-daemon --stacktrace detekt
+
       - name: ADR-0015 forbidden-dependency check
         # Fails if any module's release classpath pulls in Google Play
         # Services, Firebase, analytics SDKs, etc.

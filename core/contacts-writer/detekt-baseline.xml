@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:BatchPlannerTest.kt$BatchPlannerTest$("b@x")</ID>
+    <ID>ArgumentListWrapping:BatchPlannerTest.kt$BatchPlannerTest$("c2", "Bob", emails = listOf("b@x"))</ID>
+    <ID>ArgumentListWrapping:BatchPlannerTest.kt$BatchPlannerTest$("each chunk must fit under the limit", chunks.all { it.size &lt;= 12 })</ID>
+    <ID>ArgumentListWrapping:BatchPlannerTest.kt$BatchPlannerTest$("each chunk must hold a multiple of 3 ops (no intent split)", chunks.all { it.size % 3 == 0 })</ID>
+    <ID>ArgumentListWrapping:BatchPlannerTest.kt$BatchPlannerTest$(rawContactId = 100L, row = ContactRow("c2", "Bob", emails = listOf("b@x")))</ID>
+    <ID>CommentWrapping:PhotoDownscaler.kt$PhotoDownscaler$/* filter */</ID>
+    <ID>Filename:BatchChunker.kt$io.pcontacts.core.contactswriter.BatchChunker.kt</ID>
+    <ID>ImportOrdering:ContactsContractOps.kt$import android.accounts.Account import android.content.ContentProviderOperation import android.provider.ContactsContract.CommonDataKinds.Email import android.provider.ContactsContract.CommonDataKinds.GroupMembership import android.provider.ContactsContract.CommonDataKinds.Im import android.provider.ContactsContract.CommonDataKinds.Note import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization import android.provider.ContactsContract.CommonDataKinds.Phone import android.provider.ContactsContract.CommonDataKinds.Photo import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName import android.provider.ContactsContract.CommonDataKinds.StructuredPostal import android.provider.ContactsContract.Data import android.provider.ContactsContract.RawContacts</ID>
+    <ID>MatchingDeclarationName:BatchChunker.kt$BatchPlanner</ID>
+    <ID>NoMultipleSpaces:BatchPlannerTest.kt$BatchPlannerTest$ </ID>
+    <ID>NoMultipleSpaces:ContactRow.kt$PostalAddress$ </ID>
+    <ID>NoMultipleSpaces:ContactsContractOpsTest.kt$ContactsContractOpsTest$ </ID>
+    <ID>NoMultipleSpaces:PhoneTypeMapper.kt$PhoneTypeMapper$ </ID>
+    <ID>NoMultipleSpaces:RawContactDifferTest.kt$RawContactDifferTest$ </ID>
+    <ID>NoMultipleSpaces:RawContactReader.kt$RawContactReader.Companion$ </ID>
+    <ID>TooManyFunctions:ContactsContractOps.kt$ContactsContractOps</ID>
+    <ID>Wrapping:BatchPlannerTest.kt$BatchPlannerTest$(</ID>
+  </CurrentIssues>
+</SmellBaseline>

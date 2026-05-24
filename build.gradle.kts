@@ -10,6 +10,19 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.detekt) apply false
+}
+
+subprojects {
+    apply(plugin = "io.gitlab.arturbosch.detekt")
+    extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
+        parallel = true
+        buildUponDefaultConfig = true
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    }
+    dependencies {
+        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:${rootProject.libs.versions.detekt.get()}")
+    }
 }
 
 // =============================================================================

@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>NoMultipleSpaces:SettingsViewModelTest.kt$SettingsViewModelTest$ </ID>
+    <ID>Wrapping:SettingsViewModelTest.kt$SettingsViewModelTest$;</ID>
+  </CurrentIssues>
+</SmellBaseline>

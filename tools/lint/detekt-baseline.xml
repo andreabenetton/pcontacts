@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>NoMultipleSpaces:SensitiveLogDetector.kt$SensitiveLogDetector$ </ID>
+    <ID>NoMultipleSpaces:SensitiveLogDetector.kt$SensitiveLogDetector.&lt;no name provided&gt;$ </ID>
+    <ID>Wrapping:SensitiveLogDetector.kt$SensitiveLogDetector.&lt;no name provided&gt;$(</ID>
+  </CurrentIssues>
+</SmellBaseline>

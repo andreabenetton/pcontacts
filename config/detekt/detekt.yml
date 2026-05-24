@@ -1,0 +1,46 @@
+# detekt configuration — pcontacts
+# Builds on the default ruleset; overrides below relax rules that
+# conflict with the project's style or are too noisy for the current
+# codebase maturity.
+
+complexity:
+  LongMethod:
+    threshold: 80
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 10
+  TooManyFunctions:
+    thresholdInFiles: 30
+    thresholdInClasses: 25
+    thresholdInInterfaces: 15
+  CyclomaticComplexMethod:
+    threshold: 20
+  NestedBlockDepth:
+    threshold: 6
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+
+naming:
+  FunctionNaming:
+    functionPattern: '[a-zA-Z][a-zA-Z0-9_]*'
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 140
+  WildcardImport:
+    active: false
+  ReturnCount:
+    max: 5
+  UnusedPrivateMember:
+    active: true
+    allowedNames: 'fingerprint.*'
+
+formatting:
+  MaximumLineLength:
+    maxLineLength: 140

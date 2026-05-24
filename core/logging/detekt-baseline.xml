@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>UseCheckOrError:RedactorTest.kt$RedactorTest$throw IllegalStateException("X")</ID>
+    <ID>Wrapping:RedactingLoggerTest.kt$RedactingLoggerTest$;</ID>
+  </CurrentIssues>
+</SmellBaseline>
