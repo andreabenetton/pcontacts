@@ -48,7 +48,7 @@ ezvcard                      = "0.12.2"
 
 # Test
 junit                        = "4.13.2"
-kotest                       = "5.9.1"
+kotest                       = "6.1.11"
 robolectric                  = "4.13"
 androidx-test-junit          = "1.2.1"
 androidx-test-espresso       = "3.6.1"
