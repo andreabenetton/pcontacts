@@ -12,8 +12,14 @@ import io.pcontacts.core.proton.api.contacts.ContactEmailsPageResponse
 import io.pcontacts.core.proton.api.contacts.ContactMetadataDto
 import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.contacts.ContactsPageResponse
+import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
+import io.pcontacts.core.proton.api.contacts.BulkDeleteResponse
+import io.pcontacts.core.proton.api.contacts.CreateContactsRequest
+import io.pcontacts.core.proton.api.contacts.CreateContactsResponse
 import io.pcontacts.core.proton.api.contacts.GetContactResponse
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
+import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
+import io.pcontacts.core.proton.api.contacts.UpdateContactResponse
 import io.pcontacts.core.proton.api.labels.GetLabelsResponse
 import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.protoncontacts.CardCryptoOutcome
@@ -581,6 +587,15 @@ private class DetailFakeApi(
         }
         return GetContactResponse(code = 1000, contact = contact)
     }
+
+    override suspend fun createContacts(request: CreateContactsRequest): CreateContactsResponse =
+        error("not used in read-engine tests")
+
+    override suspend fun updateContact(id: String, request: UpdateContactRequest): UpdateContactResponse =
+        error("not used in read-engine tests")
+
+    override suspend fun deleteContacts(request: BulkDeleteRequest): BulkDeleteResponse =
+        error("not used in read-engine tests")
 }
 
 private class DetailFakeContactMapDao : ContactMapDao {

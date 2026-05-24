@@ -150,5 +150,14 @@ class ContactEmailsPagerTest {
             labelIdFilter: String?
         ): ContactsPageResponse =
             error("FakeContactsApi.listContacts called unexpectedly in email pager tests")
+
+        override suspend fun createContacts(request: CreateContactsRequest): CreateContactsResponse =
+            error("not used in pager tests")
+
+        override suspend fun updateContact(id: String, request: UpdateContactRequest): UpdateContactResponse =
+            error("not used in pager tests")
+
+        override suspend fun deleteContacts(request: BulkDeleteRequest): BulkDeleteResponse =
+            error("not used in pager tests")
     }
 }

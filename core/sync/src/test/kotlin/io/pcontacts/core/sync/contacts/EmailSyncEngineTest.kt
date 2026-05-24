@@ -190,6 +190,15 @@ private class FakeContactsApi(vararg responses: ContactEmailsPageResponse) : Pro
         labelIdFilter: String?
     ): io.pcontacts.core.proton.api.contacts.ContactsPageResponse =
         error("FakeContactsApi.listContacts not used in email-only sync tests")
+
+    override suspend fun createContacts(request: io.pcontacts.core.proton.api.contacts.CreateContactsRequest) =
+        error("not used in email-only sync tests")
+
+    override suspend fun updateContact(id: String, request: io.pcontacts.core.proton.api.contacts.UpdateContactRequest) =
+        error("not used in email-only sync tests")
+
+    override suspend fun deleteContacts(request: io.pcontacts.core.proton.api.contacts.BulkDeleteRequest) =
+        error("not used in email-only sync tests")
 }
 
 private class FakeContactMapDao : ContactMapDao {

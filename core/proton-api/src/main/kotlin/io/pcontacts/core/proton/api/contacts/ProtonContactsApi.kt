@@ -3,7 +3,10 @@
 
 package io.pcontacts.core.proton.api.contacts
 
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -46,4 +49,33 @@ interface ProtonContactsApi {
         @Query("PageSize") pageSize: Int,
         @Query("LabelID") labelIdFilter: String? = null
     ): ContactsPageResponse
+
+    // --- Write endpoints (ADR-0017 / ADR-0018, phase 9) ---
+
+    /**
+     * Creates one or more contacts. Each element in the request's
+     * `contacts` list is one contact's full card set.
+     * [V] packages/shared/lib/api/contacts.ts `addContacts`.
+     */
+    @POST("contacts/v4/contacts")
+    suspend fun createContacts(@Body request: CreateContactsRequest): CreateContactsResponse
+
+    /**
+     * Replaces the entire Cards[] array for one contact. The server
+     * returns the updated contact with a new `ModifyTime`.
+     * [V] packages/shared/lib/api/contacts.ts `updateContact`.
+     */
+    @PUT("contacts/v4/contacts/{id}")
+    suspend fun updateContact(
+        @Path("id") id: String,
+        @Body request: UpdateContactRequest
+    ): UpdateContactResponse
+
+    /**
+     * Bulk-deletes contacts by ID. Note: Proton uses PUT, not HTTP
+     * DELETE, for this endpoint.
+     * [V] packages/shared/lib/api/contacts.ts `deleteContacts`.
+     */
+    @PUT("contacts/v4/contacts/delete")
+    suspend fun deleteContacts(@Body request: BulkDeleteRequest): BulkDeleteResponse
 }

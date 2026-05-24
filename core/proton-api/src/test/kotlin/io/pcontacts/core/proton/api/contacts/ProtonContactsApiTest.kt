@@ -170,6 +170,116 @@ class ProtonContactsApiTest {
         assertEquals("uid-x", recorded.getHeader("x-pm-uid"))
     }
 
+    // --- Write endpoint tests (ADR-0017 / ADR-0018, phase 9) ---
+
+    @Test fun createContacts_serializes_body_and_parses_response() = runTest {
+        session.update(uid = "uid-x", accessToken = "access-x")
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                    "Code":1000,
+                    "Responses":[
+                        {"Index":0,"Response":{"Code":1000,
+                            "Contact":{"ID":"new-c1","Name":"","UID":"","Size":0,
+                                       "CreateTime":1700000000,"ModifyTime":1700000000,
+                                       "Cards":[],"ContactEmails":[],"LabelIDs":[]}}}
+                    ]
+                }
+                """.trimIndent()
+            )
+        )
+
+        val request = CreateContactsRequest(
+            contacts = listOf(
+                ContactCardBundle(
+                    cards = listOf(
+                        ContactCardDto(type = 2, data = "FN:Alice", signature = "-----BEGIN PGP SIGNATURE-----..."),
+                        ContactCardDto(type = 3, data = "-----BEGIN PGP MESSAGE-----...", signature = "-----BEGIN PGP SIGNATURE-----...")
+                    )
+                )
+            )
+        )
+        val response = api.createContacts(request)
+
+        assertEquals(1000, response.code)
+        assertEquals(1, response.responses.size)
+        assertEquals(1000, response.responses[0].response.code)
+        assertEquals("new-c1", response.responses[0].response.contact?.id)
+
+        val recorded = server.takeRequest()
+        assertEquals("POST", recorded.method)
+        assertEquals("/contacts/v4/contacts", recorded.path)
+        val body = recorded.body.readUtf8()
+        assertTrue("body must contain Cards", body.contains("\"Cards\""))
+        assertTrue("body must contain Contacts", body.contains("\"Contacts\""))
+    }
+
+    @Test fun updateContact_sends_PUT_with_cards_body() = runTest {
+        session.update(uid = "uid-x", accessToken = "access-x")
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                    "Code":1000,
+                    "Contact":{"ID":"c1","Name":"Alice","UID":"","Size":0,
+                               "CreateTime":1700000000,"ModifyTime":1700000200,
+                               "Cards":[],"ContactEmails":[],"LabelIDs":[]}
+                }
+                """.trimIndent()
+            )
+        )
+
+        val request = UpdateContactRequest(
+            cards = listOf(
+                ContactCardDto(type = 2, data = "FN:Alice Updated", signature = "sig...")
+            )
+        )
+        val response = api.updateContact("c1", request)
+
+        assertEquals(1000, response.code)
+        assertEquals("c1", response.contact?.id)
+        assertEquals(1_700_000_200L, response.contact?.modifyTime)
+
+        val recorded = server.takeRequest()
+        assertEquals("PUT", recorded.method)
+        assertEquals("/contacts/v4/contacts/c1", recorded.path)
+        val body = recorded.body.readUtf8()
+        assertTrue("body must contain Cards", body.contains("\"Cards\""))
+    }
+
+    @Test fun deleteContacts_sends_PUT_with_IDs_body() = runTest {
+        session.update(uid = "uid-x", accessToken = "access-x")
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                    "Code":1001,
+                    "Responses":[
+                        {"ID":"c1","Response":{"Code":1000}},
+                        {"ID":"c2","Response":{"Code":1000}}
+                    ]
+                }
+                """.trimIndent()
+            )
+        )
+
+        val response = api.deleteContacts(BulkDeleteRequest(ids = listOf("c1", "c2")))
+
+        assertEquals(1001, response.code)
+        assertEquals(2, response.responses.size)
+        assertEquals("c1", response.responses[0].id)
+        assertEquals(1000, response.responses[0].response.code)
+
+        val recorded = server.takeRequest()
+        assertEquals("PUT", recorded.method)
+        assertEquals("/contacts/v4/contacts/delete", recorded.path)
+        val body = recorded.body.readUtf8()
+        assertTrue("body must contain IDs", body.contains("\"IDs\""))
+        assertTrue("body must contain c1", body.contains("c1"))
+        assertTrue("body must contain c2", body.contains("c2"))
+    }
+
     @Test fun listContactEmails_ignores_unknown_server_fields() = runTest {
         // Server adds a field we don't model; deserialization must not blow up.
         server.enqueue(

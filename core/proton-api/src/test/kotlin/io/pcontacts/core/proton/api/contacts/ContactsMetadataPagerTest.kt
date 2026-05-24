@@ -71,5 +71,14 @@ class ContactsMetadataPagerTest {
 
         override suspend fun getContact(id: String): GetContactResponse =
             error("not used in metadata pager tests")
+
+        override suspend fun createContacts(request: CreateContactsRequest): CreateContactsResponse =
+            error("not used in metadata pager tests")
+
+        override suspend fun updateContact(id: String, request: UpdateContactRequest): UpdateContactResponse =
+            error("not used in metadata pager tests")
+
+        override suspend fun deleteContacts(request: BulkDeleteRequest): BulkDeleteResponse =
+            error("not used in metadata pager tests")
     }
 }

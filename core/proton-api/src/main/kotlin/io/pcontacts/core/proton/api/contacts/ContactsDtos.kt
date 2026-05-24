@@ -112,3 +112,92 @@ data class ContactsPageResponse(
     @SerialName("Contacts") val contacts: List<ContactMetadataDto> = emptyList(),
     @SerialName("Total") val total: Int = 0
 )
+
+// --- Write-path DTOs (ADR-0017 / ADR-0018, phase 9) ---
+
+/**
+ * One contact's card set within a `POST /contacts/v4/contacts` batch.
+ * [V] packages/shared/lib/api/contacts.ts `addContacts`.
+ */
+@Serializable
+data class ContactCardBundle(
+    @SerialName("Cards") val cards: List<ContactCardDto>
+)
+
+/**
+ * Request body for `POST /contacts/v4/contacts`. Creates one or more
+ * contacts in a single call. Each element in `contacts` is one
+ * contact's full card set.
+ * [V] packages/shared/lib/api/contacts.ts `addContacts`.
+ */
+@Serializable
+data class CreateContactsRequest(
+    @SerialName("Contacts") val contacts: List<ContactCardBundle>,
+    @SerialName("Overwrite") val overwrite: Int = 0,
+    @SerialName("Labels") val labels: Int = 0
+)
+
+@Serializable
+data class CreateContactResponseBody(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Contact") val contact: ContactDto? = null
+)
+
+@Serializable
+data class CreateContactResponseItem(
+    @SerialName("Index") val index: Int = 0,
+    @SerialName("Response") val response: CreateContactResponseBody
+)
+
+/**
+ * Response envelope for `POST /contacts/v4/contacts`.
+ * [V] packages/shared/lib/api/contacts.ts — per-contact sub-responses.
+ */
+@Serializable
+data class CreateContactsResponse(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Responses") val responses: List<CreateContactResponseItem> = emptyList()
+)
+
+/**
+ * Request body for `PUT /contacts/v4/contacts/{id}`. Replaces the
+ * entire Cards[] array for one contact.
+ * [V] packages/shared/lib/api/contacts.ts `updateContact`.
+ */
+@Serializable
+data class UpdateContactRequest(
+    @SerialName("Cards") val cards: List<ContactCardDto>
+)
+
+@Serializable
+data class UpdateContactResponse(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Contact") val contact: ContactDto? = null
+)
+
+/**
+ * Request body for `PUT /contacts/v4/contacts/delete` (bulk delete).
+ * Note: Proton uses PUT, not DELETE, for this endpoint.
+ * [V] packages/shared/lib/api/contacts.ts `deleteContacts`.
+ */
+@Serializable
+data class BulkDeleteRequest(
+    @SerialName("IDs") val ids: List<String>
+)
+
+@Serializable
+data class DeleteResponseBody(
+    @SerialName("Code") val code: Int = 0
+)
+
+@Serializable
+data class DeleteResponseItem(
+    @SerialName("ID") val id: String,
+    @SerialName("Response") val response: DeleteResponseBody
+)
+
+@Serializable
+data class BulkDeleteResponse(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Responses") val responses: List<DeleteResponseItem> = emptyList()
+)
