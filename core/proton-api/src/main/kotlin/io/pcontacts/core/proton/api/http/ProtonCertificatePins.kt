@@ -17,7 +17,7 @@ import okhttp3.CertificatePinner
  * (their key transparency log, their public security docs, or
  * pinning them directly from a known-good cert chain). When the
  * resource is missing or empty, the returned pinner adds no
- * constraints for `api.proton.me` — same behaviour as the previous
+ * constraints for `*.proton.me` — same behaviour as the previous
  * commit (no pinning) but documented in one place.
  *
  * The README at the resource path explains the source-and-pin
@@ -26,7 +26,7 @@ import okhttp3.CertificatePinner
  */
 object ProtonCertificatePins {
 
-    const val PROTON_HOST = "api.proton.me"
+    const val PROTON_HOST = "*.proton.me"
     const val RESOURCE_PATH = "/proton_certificate_pins.txt"
 
     /**

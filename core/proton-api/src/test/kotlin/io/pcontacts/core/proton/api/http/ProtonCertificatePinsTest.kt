@@ -30,16 +30,16 @@ class ProtonCertificatePinsTest {
             "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
             "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
         )
-        val pinner = ProtonCertificatePins.buildPinner(host = "api.proton.me", pins = pins)
+        val pinner = ProtonCertificatePins.buildPinner(host = "*.proton.me", pins = pins)
         // CertificatePinner.findMatchingPins returns the pins configured
         // for a given host — non-empty here means our pins are wired in.
-        val matched = pinner.findMatchingPins("api.proton.me")
+        val matched = pinner.findMatchingPins("mail-api.proton.me")
         assertEquals(2, matched.size)
     }
 
     @Test fun buildPinner_only_pins_the_configured_host_not_other_hosts() {
         val pinner = ProtonCertificatePins.buildPinner(
-            host = "api.proton.me",
+            host = "*.proton.me",
             pins = listOf("sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
         )
         // A different host carries zero pin constraints (DNS guard
