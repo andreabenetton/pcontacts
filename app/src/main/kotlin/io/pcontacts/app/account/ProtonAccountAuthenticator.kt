@@ -17,11 +17,14 @@ import io.pcontacts.app.auth.LoginActivity
  * type so the user can add it from Settings → Accounts and so our
  * RawContacts can claim `ACCOUNT_TYPE = PROTON_ACCOUNT_TYPE`.
  *
- * For now `addAccount` returns an Intent that opens MainActivity as a
- * placeholder — the real LoginActivity (with SRP + 2FA) lives in
- * `:feature:onboarding` and replaces this Intent target in a later commit.
- * Auth-token retrieval is also stubbed; it will hand back the cached
- * AccessToken once `:core:storage` is in place (ADR-0009).
+ * `addAccount` returns an Intent that opens LoginActivity for
+ * SRP + 2FA authentication.
+ *
+ * `getAuthToken` intentionally does NOT return the Proton AccessToken.
+ * Per ADR-0016, returning it via KEY_AUTHTOKEN would cause Android to
+ * cache it plaintext in the system accounts database, contradicting the
+ * encrypted-only storage stance of ADR-0009. The SyncAdapter reads
+ * tokens from SecretStore directly and never calls getAuthToken.
  */
 class ProtonAccountAuthenticator(
     private val context: Context
@@ -67,10 +70,14 @@ class ProtonAccountAuthenticator(
         authTokenType: String?,
         options: Bundle?
     ): Bundle {
-        // Until :core:storage exposes the SecretStore, signal that auth is
-        // required so consumers don't believe a token is available.
+        // ADR-0016: never return the real AccessToken here — Android would
+        // cache it plaintext in accounts_ce.db. Return a re-auth intent so
+        // callers see "user action required" rather than a leaked token.
+        val intent = Intent(context, LoginActivity::class.java).apply {
+            putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response)
+        }
         return Bundle().apply {
-            putString(AccountManager.KEY_ERROR_MESSAGE, "auth required")
+            putParcelable(AccountManager.KEY_INTENT, intent)
         }
     }
 

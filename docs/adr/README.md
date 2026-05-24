@@ -25,6 +25,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0013](0013-crypto-test-vectors.md) | Crypto correctness — capture vectors from `@protontech/crypto` once | Accepted |
 | [0014](0014-modulus-pinning.md) | SRP modulus pinning — verify each modulus against Proton's signing key | Accepted |
 | [0015](0015-no-telemetry-no-google-services.md) | No telemetry, no Google Services, no proprietary deps | Accepted |
+| [0016](0016-no-accountmanager-token-retrieval.md) | No AccountManager token retrieval — getAuthToken returns re-auth intent | Accepted |
 
 ## Template
 
