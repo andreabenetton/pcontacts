@@ -222,6 +222,31 @@ class SrpLoginOrchestratorTest {
         )
     }
 
+    @Test fun login_zeros_password_array_on_success() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-zero", twoFactor = 0)
+
+        val password = "p4ssw0rd".toCharArray()
+        newOrchestrator().login("u", password)
+
+        assertTrue(
+            "password array must be zeroed after login",
+            password.all { it == '\u0000' }
+        )
+    }
+
+    @Test fun login_zeros_password_array_on_failure() = runTest {
+        server.enqueue(MockResponse().setResponseCode(500).setBody("error"))
+
+        val password = "s3cret".toCharArray()
+        newOrchestrator().login("u", password)
+
+        assertTrue(
+            "password array must be zeroed even when login fails",
+            password.all { it == '\u0000' }
+        )
+    }
+
     @Test fun login_success_when_users_endpoint_fails_still_succeeds_without_keyPassword() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-no-key", twoFactor = 0)

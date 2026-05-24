@@ -67,7 +67,13 @@ class SrpLoginOrchestrator(
     private val logger: Logger = RedactingLogger(tag = "SrpLogin", sink = NoOpSink)
 ) {
 
-    suspend fun login(username: String, password: CharArray): LoginResult {
+    suspend fun login(username: String, password: CharArray): LoginResult = try {
+        loginInternal(username, password)
+    } finally {
+        password.fill('\u0000')
+    }
+
+    private suspend fun loginInternal(username: String, password: CharArray): LoginResult {
         logger.info { "login: getInfo user=<redacted>" }
 
         val info = try {
