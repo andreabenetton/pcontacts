@@ -45,6 +45,12 @@ import kotlinx.coroutines.withContext
  */
 object SyncBootstrap {
 
+    suspend fun countVerificationStats(context: Context): Pair<Int, Int> {
+        val db = DatabaseFactory.create(context.applicationContext)
+        val dao = db.contactMapDao()
+        return dao.countLive() to dao.countUnverified()
+    }
+
     fun createEmailSyncEngine(
         context: Context,
         provider: ContentProviderClient
