@@ -39,18 +39,6 @@ object ComputeKeyPassword {
         return full.substring(BCRYPT_PREFIX_LEN)
     }
 
-    /**
-     * Raw `$2y$10$…` bcrypt string (full 60-char output, not sliced).
-     * Used by the SRP `x` derivation path which needs the complete
-     * bcrypt output for further hashing — NOT by the key-unlock path.
-     */
-    fun rawBcrypt(password: CharArray, saltBytes: ByteArray): String {
-        require(saltBytes.size == BCRYPT_SALT_BYTES) {
-            "bcrypt salt must be $BCRYPT_SALT_BYTES bytes, was ${saltBytes.size}"
-        }
-        return OpenBSDBCrypt.generate(password, saltBytes, COST)
-    }
-
     private fun decodeSalt(keySaltB64: String): ByteArray {
         val raw = Base64.getDecoder().decode(keySaltB64)
         require(raw.size == BCRYPT_SALT_BYTES) {
