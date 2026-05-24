@@ -23,6 +23,13 @@ import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.core.storage.db.DatabaseFactory
+import io.pcontacts.core.storage.db.entity.ContactMapEntity
+import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.feature.settings.ConflictInfo
+import io.pcontacts.feature.settings.ConflictResolution
+import io.pcontacts.feature.settings.OutboxStats
+import io.pcontacts.feature.settings.PendingDelete
 import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SettingsViewModel
@@ -41,11 +48,17 @@ class SettingsActivity : ComponentActivity() {
 
     private val logoutHelper by lazy { LogoutHelper(applicationContext) }
     private val userPrefs by lazy { SharedPreferencesUserPreferences(applicationContext) }
+    private val db by lazy { DatabaseFactory.create(applicationContext) }
     private val viewModel by lazy {
         SettingsViewModel(
             syncNow = ::performSyncNow,
             signOut = ::performSignOut,
             queryVerificationStats = ::queryVerificationStats,
+            queryOutboxStats = ::queryOutboxStats,
+            queryPendingDeletes = ::queryPendingDeletes,
+            queryConflicts = ::queryConflicts,
+            cancelDelete = ::cancelPendingDelete,
+            resolveConflict = ::resolveConflict,
             onSyncIntervalChanged = ::handleSyncIntervalChanged,
             initialSyncIntervalHours = userPrefs.syncIntervalHours
         )
@@ -106,6 +119,56 @@ class SettingsActivity : ComponentActivity() {
     private fun handleSyncIntervalChanged(hours: Long) {
         userPrefs.syncIntervalHours = hours
         SyncScheduler.reschedule(applicationContext, hours)
+    }
+
+    private suspend fun queryOutboxStats(): OutboxStats {
+        val outboxDao = db.outboxDao()
+        return OutboxStats(
+            pending = outboxDao.countPending(),
+            quarantined = outboxDao.countQuarantined()
+        )
+    }
+
+    private suspend fun queryPendingDeletes(): List<PendingDelete> =
+        db.outboxDao().listPendingDeletes().map { entry ->
+            PendingDelete(
+                protonContactId = entry.protonContactId,
+                createdAt = entry.createdAt
+            )
+        }
+
+    private suspend fun queryConflicts(): List<ConflictInfo> =
+        db.contactMapDao().listConflicts().map { entity ->
+            ConflictInfo(
+                protonContactId = entity.protonContactId,
+                displayName = null,
+                conflictFields = entity.lastError?.removePrefix("conflict: ")
+            )
+        }
+
+    private suspend fun cancelPendingDelete(protonContactId: String) {
+        db.outboxDao().deleteByContact(protonContactId)
+    }
+
+    private suspend fun resolveConflict(protonContactId: String, resolution: ConflictResolution) {
+        val contactMapDao = db.contactMapDao()
+        val outboxDao = db.outboxDao()
+        contactMapDao.resolveConflict(protonContactId)
+        when (resolution) {
+            ConflictResolution.USE_LOCAL -> {
+                outboxDao.insert(
+                    OutboxEntity(
+                        protonContactId = protonContactId,
+                        opType = OutboxEntity.OpType.UPDATE,
+                        payloadHash = "",
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+            }
+            ConflictResolution.USE_SERVER -> {
+                // No outbox entry needed — next pull overwrites the local copy.
+            }
+        }
     }
 
     private fun currentAccount(): Account? =
