@@ -6,13 +6,13 @@ package io.pcontacts.core.proton.api.http
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
-import java.io.IOException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Interceptor
 import okhttp3.Response
+import java.io.IOException
 
 /**
  * Detects Proton's `Code: 9001` human-verification challenge and
@@ -56,7 +56,10 @@ class HumanVerificationInterceptor(
         const val DEFAULT_MAX_PEEK_BYTES: Long = 8 * 1024
         const val HUMAN_VERIFICATION_CODE = 9001
 
-        private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
+        private val lenientJson = Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
         internal fun isCode9001(body: String): Boolean = try {
             val code = lenientJson.parseToJsonElement(body)
