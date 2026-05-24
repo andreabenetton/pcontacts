@@ -79,14 +79,8 @@ class SrpLoginOrchestrator(
             return LoginResult.Failed(reason = "info_failed")
         }
 
-        val saltBytes = Base64.getDecoder().decode(info.salt)
-        val saltB64Padded = Base64.getEncoder().encodeToString(padOrTruncate(saltBytes, BCRYPT_SALT_BYTES))
-
-        val x = SrpXDerivation.deriveX(password, saltB64Padded)
-
-        // Real Proton ships Modulus as an OpenPGP cleartext-signed envelope;
-        // peel off the envelope here, then verify the detached signature
-        // against Proton's pinned SRP signing public key (ADR-0014).
+        // Decode + verify the modulus BEFORE deriving x — the modulus bytes
+        // are an input to the SRP hashPassword derivation (ADR-0014 + [V]).
         val modulusDecoded = ProtonModulusEnvelope.decode(info.modulus)
         val armoredSig = modulusDecoded.armoredSignature
         if (armoredSig != null) {
@@ -99,10 +93,6 @@ class SrpLoginOrchestrator(
                     return LoginResult.Failed(reason = "modulus_signature_invalid")
                 }
                 ProtonModulusVerification.NO_SIGNER_KEY -> {
-                    // ADR-0014 production gate: the pinned key resource
-                    // is now committed (proton_srp_signing_key.asc). If
-                    // it fails to load, the build or classpath is broken
-                    // — abort rather than silently skipping verification.
                     logger.warn { "modulus signature NOT verified — pinned Proton SRP key failed to load (ADR-0014)" }
                     return LoginResult.Failed(reason = "modulus_pin_missing")
                 }
@@ -112,6 +102,12 @@ class SrpLoginOrchestrator(
         }
         val nBytes = Base64.getDecoder().decode(modulusDecoded.cleartextBase64)
         val n = BigInteger(1, nBytes)
+
+        // [V] SRP x derivation uses the salt as a raw base64 string (not
+        // decoded bytes) — Proton appends "proton" to the string, takes
+        // the first 16 ASCII bytes as the bcrypt salt.
+        val x = SrpXDerivation.deriveX(password, info.salt, nBytes)
+        val saltBytes = Base64.getDecoder().decode(info.salt)
         val bBytes = Base64.getDecoder().decode(info.serverEphemeral)
         val b = BigInteger(1, bBytes)
         val padLen = (n.bitLength() + 7) / 8
@@ -260,16 +256,7 @@ class SrpLoginOrchestrator(
         return padded
     }
 
-    private fun padOrTruncate(input: ByteArray, length: Int): ByteArray {
-        if (input.size == length) return input
-        if (input.size > length) return input.copyOfRange(0, length)
-        val out = ByteArray(length)
-        System.arraycopy(input, 0, out, 0, input.size)
-        return out
-    }
-
     private companion object {
-        const val BCRYPT_SALT_BYTES = 16
         const val TWO_FACTOR_TOTP_BIT = 1
         const val PROTON_SUCCESS_CODE = 1000
     }
