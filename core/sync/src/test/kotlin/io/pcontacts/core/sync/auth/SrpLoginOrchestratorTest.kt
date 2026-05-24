@@ -247,6 +247,25 @@ class SrpLoginOrchestratorTest {
         )
     }
 
+    @Test fun info_http_422_yields_appversion_rejected() = runTest {
+        server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":10,"Error":"Old version"}"""))
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertTrue("expected Failed(appversion_rejected), was $result",
+            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "appversion_rejected")
+        assertNull(secretStore.uid())
+    }
+
+    @Test fun info_http_400_yields_appversion_rejected() = runTest {
+        server.enqueue(MockResponse().setResponseCode(400).setBody("""{"Code":10,"Error":"Bad version"}"""))
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertTrue("expected Failed(appversion_rejected), was $result",
+            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "appversion_rejected")
+    }
+
     @Test fun login_success_when_users_endpoint_fails_still_succeeds_without_keyPassword() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-no-key", twoFactor = 0)

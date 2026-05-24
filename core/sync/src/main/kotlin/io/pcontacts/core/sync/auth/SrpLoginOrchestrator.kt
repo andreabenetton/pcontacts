@@ -13,6 +13,7 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.InMemorySession
+import io.pcontacts.core.proton.api.httpStatusCode
 import io.pcontacts.core.proton.api.auth.AuthRequest
 import io.pcontacts.core.proton.api.auth.AuthResponse
 import io.pcontacts.core.proton.api.auth.InfoRequest
@@ -79,6 +80,14 @@ class SrpLoginOrchestrator(
         val info = try {
             api.getInfo(InfoRequest(username = username))
         } catch (t: Throwable) {
+            // [V] HTTP 400/422 from auth/info indicate x-pm-appversion rejection
+            // (custom client ID or version below the acceptance window). Distinct
+            // from network/parse errors so the UI can surface "app may be outdated".
+            val httpCode = t.httpStatusCode()
+            if (httpCode == 400 || httpCode == 422) {
+                logger.warn { "auth/info returned HTTP $httpCode — likely x-pm-appversion rejected" }
+                return LoginResult.Failed(reason = "appversion_rejected")
+            }
             logger.error(t) { "getInfo failed" }
             return LoginResult.Failed(reason = "info_failed")
         }
