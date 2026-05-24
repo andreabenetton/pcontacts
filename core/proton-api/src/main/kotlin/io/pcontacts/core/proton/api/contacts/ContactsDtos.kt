@@ -14,9 +14,8 @@ import kotlinx.serialization.Serializable
  *   [V] field names + endpoint paths confirmed in
  *       ProtonMail/WebClients packages/shared/lib/api/contacts.ts and
  *       packages/shared/lib/interfaces/contacts/ContactApi.ts
- *   [A] response envelope shape (`{Code, ContactEmails, Total}`) inferred
- *       from web-client consumption; first integration against a live
- *       account confirms.
+ *   [V] response envelope shape (`{Code, ContactEmails, Total}`) validated
+ *       against live Proton API (2026-05-24).
  */
 
 @Serializable
@@ -65,7 +64,7 @@ data class ContactCardDto(
  * The fields beyond `ID` + `Cards` are denormalised metadata also
  * available via the listing endpoint; we keep them here so the sync
  * engine can populate `contact_map.modify_time` without a second
- * round-trip. [A] envelope confirmed from web-client consumption.
+ * round-trip. [V] envelope validated against live Proton API (2026-05-24).
  */
 @Serializable
 data class ContactDto(

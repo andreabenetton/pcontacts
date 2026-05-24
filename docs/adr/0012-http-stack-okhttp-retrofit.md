@@ -9,7 +9,7 @@
 
 The Proton API requires a non-trivial HTTP pipeline:
 
-1. **Default headers** on every request: `accept: application/vnd.protonmail.v1+json` `[V]`, `x-pm-appversion: <client>@<semver>` `[A]`, `x-pm-uid` (after login) `[V]`, `Authorization: Bearer <AccessToken>` (after login) `[V]`, optional `x-pm-locale`.
+1. **Default headers** on every request: `accept: application/vnd.protonmail.v1+json` `[V]`, `x-pm-appversion: <client>@<semver>` `[V]` (validated: `android-mail@3.0.12` accepted 2026-05-24), `x-pm-uid` (after login) `[V]`, `Authorization: Bearer <AccessToken>` (after login) `[V]`, optional `x-pm-locale`.
 2. **401 → single-flight refresh.** The web client (`packages/shared/lib/api/helpers/refreshHandlers.ts`) ensures only one refresh fires per UID despite concurrent failures, with a 15-second cross-tab lock and ~50 ms post-refresh delay. We mirror this on Android: a mutex around `POST auth/refresh`, retry the original request once on success, surface a re-auth UI on failure.
 3. **429 → Fibonacci backoff** honoring `Retry-After`. `auth` endpoint suppresses 429 handling (`ignoreHandler`) — we mirror.
 4. **9001 (human verification challenge).** Surface to UI; never auto-loop. Append `x-pm-human-verification-token` + `*-type` headers on the replayed request after the user solves the challenge.
