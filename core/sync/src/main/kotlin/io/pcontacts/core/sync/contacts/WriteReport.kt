@@ -15,9 +15,10 @@ data class WriteReport(
     val deleted: Int = 0,
     val failed: Int = 0,
     val quarantined: Int = 0,
-    val skippedGrace: Int = 0
+    val skippedGrace: Int = 0,
+    val conflicted: Int = 0
 ) {
-    fun isNoOp(): Boolean = pushed == 0 && failed == 0
+    fun isNoOp(): Boolean = pushed == 0 && failed == 0 && conflicted == 0
 
     operator fun plus(other: WriteReport) = WriteReport(
         pushed = pushed + other.pushed,
@@ -26,7 +27,8 @@ data class WriteReport(
         deleted = deleted + other.deleted,
         failed = failed + other.failed,
         quarantined = quarantined + other.quarantined,
-        skippedGrace = skippedGrace + other.skippedGrace
+        skippedGrace = skippedGrace + other.skippedGrace,
+        conflicted = conflicted + other.conflicted
     )
 
     companion object {

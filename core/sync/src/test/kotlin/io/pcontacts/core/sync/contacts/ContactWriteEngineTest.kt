@@ -454,6 +454,97 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    // --- conflict integration tests ---
+
+    @Test fun push_no_conflict_when_server_matches_local() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+
+        val localContact = sampleContact("ct-1").copy(fullName = "Alice Updated")
+        val serverContact = sampleContact("ct-1").copy(fullName = "Alice Updated")
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(
+            lastKnownServerPayloadHash = "old-hash"
+        ))
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.UPDATE,
+            payloadHash = "hash-v2",
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            api, outbox, contactMap,
+            contacts = mapOf("ct-1" to localContact),
+            serverContacts = mapOf("ct-1" to serverContact)
+        )
+        val report = engine.push()
+
+        assertEquals(1, report.pushed)
+        assertEquals(1, report.updated)
+        assertEquals(0, report.conflicted)
+    }
+
+    @Test fun push_detects_conflict_and_marks_mapping() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+
+        val baseContact = sampleContact("ct-1")
+        val localContact = sampleContact("ct-1").copy(fullName = "Alice Local")
+        val serverContact = sampleContact("ct-1").copy(fullName = "Alice Server")
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(
+            lastKnownServerPayloadHash = "old-hash"
+        ))
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.UPDATE,
+            payloadHash = "hash-v2",
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            api, outbox, contactMap,
+            contacts = mapOf("ct-1" to localContact),
+            serverContacts = mapOf("ct-1" to serverContact)
+        )
+        val report = engine.push()
+
+        assertEquals(0, report.pushed)
+        assertEquals(1, report.conflicted)
+        val mapping = contactMap.findByProtonId("ct-1")!!
+        assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
+        assertTrue(mapping.lastError!!.contains("fullName"))
+    }
+
+    @Test fun push_skips_merge_when_no_server_payload_hash() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+
+        val localContact = sampleContact("ct-1").copy(fullName = "Alice Updated")
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.UPDATE,
+            payloadHash = "hash-v2",
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            api, outbox, contactMap,
+            contacts = mapOf("ct-1" to localContact),
+            serverContacts = mapOf("ct-1" to sampleContact("ct-1").copy(fullName = "Alice Server"))
+        )
+        val report = engine.push()
+
+        assertEquals(1, report.pushed)
+        assertEquals(0, report.conflicted)
+    }
+
     @Test fun detectChanges_clears_dirty_flag_even_when_skipped() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
@@ -486,6 +577,7 @@ class ContactWriteEngineTest {
         dirtyContacts: List<DirtyContact> = emptyList(),
         contactRows: Map<Long, ContactRow> = emptyMap(),
         clearedFlags: MutableList<Long>? = null,
+        serverContacts: Map<String, DecryptedContact> = emptyMap(),
         clock: () -> Long = { 2_000_000_000L }
     ) = ContactWriteEngine(
         contactsApi = api,
@@ -496,6 +588,7 @@ class ContactWriteEngineTest {
         readDirtyContacts = { dirtyContacts },
         readContactRow = { rawId, sourceId -> contactRows[rawId] },
         clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
+        fetchServerContact = { id -> serverContacts[id] },
         clock = clock
     )
 

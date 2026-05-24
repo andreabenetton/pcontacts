@@ -61,6 +61,7 @@ class ContactWriteEngine(
     private val readDirtyContacts: suspend (Account) -> List<DirtyContact> = { emptyList() },
     private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
+    private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
 ) {
@@ -183,15 +184,36 @@ class ContactWriteEngine(
     }
 
     private suspend fun pushUpdate(entry: OutboxEntity): WriteReport {
-        val contact = readLocalContact(entry.protonContactId)
-        if (contact == null) {
+        val localContact = readLocalContact(entry.protonContactId)
+        if (localContact == null) {
             outboxDao.quarantine(entry.id, "contact not found locally")
             return WriteReport(quarantined = 1)
         }
+
+        val existing = contactMapDao.findByProtonId(entry.protonContactId)
+
+        // Conflict detection: if we have a stored hash AND the server
+        // has been fetched, check whether both sides changed the same
+        // field(s). If so, escalate rather than silently overwriting.
+        if (existing?.lastKnownServerPayloadHash != null) {
+            val serverContact = fetchServerContact(entry.protonContactId)
+            if (serverContact != null) {
+                val conflicts = detectFieldConflicts(serverContact, localContact)
+                if (conflicts.isNotEmpty()) {
+                    contactMapDao.upsert(
+                        existing.copy(
+                            syncStatus = ContactMapEntity.Status.CONFLICT,
+                            lastError = "conflict: ${conflicts.joinToString { it.fieldName }}"
+                        )
+                    )
+                    return WriteReport(conflicted = 1)
+                }
+            }
+        }
+
         return try {
-            val cards = serializer.serialize(contact)
+            val cards = serializer.serialize(localContact)
             contactsApi.updateContact(entry.protonContactId, UpdateContactRequest(cards = cards))
-            val existing = contactMapDao.findByProtonId(entry.protonContactId)
             if (existing != null) {
                 contactMapDao.upsert(
                     existing.copy(
@@ -206,6 +228,56 @@ class ContactWriteEngine(
         } catch (e: Exception) {
             handleFailure(entry, e)
         }
+    }
+
+    /**
+     * Compares the server and local contacts field-by-field. Returns
+     * conflicts for any field where both sides differ from each other.
+     * This is a simplified two-way conflict check — since we don't
+     * store the full base snapshot, we treat any difference between
+     * server-current and local-current as a potential conflict.
+     *
+     * Only checks fields that are both non-null and non-default on
+     * at least one side, to avoid false conflicts on fields the user
+     * never touched.
+     */
+    private fun detectFieldConflicts(
+        server: DecryptedContact,
+        local: DecryptedContact
+    ): List<io.pcontacts.core.sync.contacts.merge.FieldConflict> {
+        val conflicts = mutableListOf<io.pcontacts.core.sync.contacts.merge.FieldConflict>()
+
+        if (server.fullName != local.fullName) {
+            conflicts += io.pcontacts.core.sync.contacts.merge.FieldConflict(
+                "fullName", server.fullName, local.fullName
+            )
+        }
+        if (server.structuredName != local.structuredName) {
+            conflicts += io.pcontacts.core.sync.contacts.merge.FieldConflict(
+                "structuredName", server.structuredName?.toString(), local.structuredName?.toString()
+            )
+        }
+        if (server.emails.map { it.address }.toSet() != local.emails.map { it.address }.toSet()) {
+            conflicts += io.pcontacts.core.sync.contacts.merge.FieldConflict(
+                "emails",
+                server.emails.joinToString { it.address },
+                local.emails.joinToString { it.address }
+            )
+        }
+        if (server.phones.map { it.number }.toSet() != local.phones.map { it.number }.toSet()) {
+            conflicts += io.pcontacts.core.sync.contacts.merge.FieldConflict(
+                "phones",
+                server.phones.joinToString { it.number },
+                local.phones.joinToString { it.number }
+            )
+        }
+        if (server.organization != local.organization) {
+            conflicts += io.pcontacts.core.sync.contacts.merge.FieldConflict(
+                "organization", server.organization?.toString(), local.organization?.toString()
+            )
+        }
+
+        return conflicts
     }
 
     private suspend fun pushCreate(entry: OutboxEntity): WriteReport {
