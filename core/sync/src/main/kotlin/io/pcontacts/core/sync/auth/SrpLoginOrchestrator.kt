@@ -111,7 +111,8 @@ class SrpLoginOrchestrator(
                 }
             }
         } else {
-            logger.warn { "modulus arrived without an OpenPGP envelope — verification cannot run" }
+            logger.warn { "modulus arrived without an OpenPGP envelope — aborting (ADR-0014)" }
+            return LoginResult.Failed(reason = "modulus_unsigned")
         }
         // [V] Proton's API sends BigInteger values in little-endian byte
         // order (go-srp's fromNat/toNat convention). Reverse before

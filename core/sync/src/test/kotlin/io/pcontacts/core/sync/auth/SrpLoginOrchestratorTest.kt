@@ -3,6 +3,8 @@
 
 package io.pcontacts.core.sync.auth
 
+import io.pcontacts.core.crypto.srp.ProtonModulusVerification
+import io.pcontacts.core.crypto.srp.ProtonModulusVerifier
 import io.pcontacts.core.crypto.srp.SrpClient
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
@@ -112,7 +114,8 @@ class SrpLoginOrchestratorTest {
             srp = SrpClient(random = seededRandom()),
             secretStore = secretStore,
             session = session,
-            serverProofVerifier = { _, _ -> false }   // simulate MITM-style server-proof rejection
+            serverProofVerifier = { _, _ -> false },   // simulate MITM-style server-proof rejection
+            modulusVerifier = acceptAllModulus
         )
 
         val result = orchestrator.login("u", "p".toCharArray())
@@ -247,6 +250,16 @@ class SrpLoginOrchestratorTest {
         )
     }
 
+    @Test fun modulus_without_pgp_envelope_yields_modulus_unsigned() = runTest {
+        enqueueRawModulusInfoResponse()
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertTrue("expected Failed(modulus_unsigned), was $result",
+            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "modulus_unsigned")
+        assertNull(secretStore.uid())
+    }
+
     @Test fun info_http_422_yields_appversion_rejected() = runTest {
         server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":10,"Error":"Old version"}"""))
 
@@ -283,15 +296,18 @@ class SrpLoginOrchestratorTest {
 
     // --- helpers ---
 
+    private val acceptAllModulus = object : ProtonModulusVerifier {
+        override fun verify(cleartext: String, armoredSignature: String) = ProtonModulusVerification.VALID
+    }
+
     private fun newOrchestrator(): SrpLoginOrchestrator = SrpLoginOrchestrator(
         api = api(),
         usersApi = usersApi(),
         srp = SrpClient(random = seededRandom()),
         secretStore = secretStore,
         session = session,
-        // Bypass server-proof verification — tests of orchestrator wiring
-        // shouldn't double as full SRP end-to-end vectors.
-        serverProofVerifier = { _, _ -> true }
+        serverProofVerifier = { _, _ -> true },
+        modulusVerifier = acceptAllModulus
     )
 
     private fun apiFactory() = ProtonApiFactory(
@@ -336,12 +352,34 @@ class SrpLoginOrchestratorTest {
         ))
     }
 
+    private fun modulusBytes(): ByteArray = N1024.toByteArray().let {
+        if (it.isNotEmpty() && it[0] == 0.toByte() && it.size > 1) it.copyOfRange(1, it.size) else it
+    }
+
+    private fun wrapInPgpEnvelope(b64: String): String =
+        "-----BEGIN PGP SIGNED MESSAGE-----\\nHash: SHA256\\n\\n$b64\\n" +
+            "-----BEGIN PGP SIGNATURE-----\\nFAKE\\n-----END PGP SIGNATURE-----\\n"
+
     private fun enqueueInfoResponse() {
-        val modulusB64 = Base64.getEncoder().encodeToString(N1024.toByteArray().let {
-            // strip the BigInteger sign byte if present so the on-wire bytes
-            // are an unsigned representation, matching how Proton ships N.
-            if (it.isNotEmpty() && it[0] == 0.toByte() && it.size > 1) it.copyOfRange(1, it.size) else it
-        })
+        val modulusB64 = Base64.getEncoder().encodeToString(modulusBytes())
+        val saltB64 = Base64.getEncoder().encodeToString(saltBytes)
+        val bB64 = Base64.getEncoder().encodeToString(serverEphemeralBytes)
+        server.enqueue(MockResponse().setBody(
+            """
+            {
+                "Modulus":"${wrapInPgpEnvelope(modulusB64)}",
+                "ServerEphemeral":"$bB64",
+                "Version":4,
+                "Salt":"$saltB64",
+                "SRPSession":"session-id",
+                "Code":1000
+            }
+            """.trimIndent()
+        ))
+    }
+
+    private fun enqueueRawModulusInfoResponse() {
+        val modulusB64 = Base64.getEncoder().encodeToString(modulusBytes())
         val saltB64 = Base64.getEncoder().encodeToString(saltBytes)
         val bB64 = Base64.getEncoder().encodeToString(serverEphemeralBytes)
         server.enqueue(MockResponse().setBody(
