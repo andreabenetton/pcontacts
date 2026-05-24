@@ -13,7 +13,8 @@ data class SyncReport(
     val inserted: Int,
     val updated: Int,
     val deleted: Int,
-    val unchanged: Int
+    val unchanged: Int,
+    val unverifiedCount: Int = 0
 ) {
     fun isNoOp(): Boolean = inserted == 0 && updated == 0 && deleted == 0
 }

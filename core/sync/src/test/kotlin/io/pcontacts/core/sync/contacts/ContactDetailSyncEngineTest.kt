@@ -218,6 +218,71 @@ class ContactDetailSyncEngineTest {
         assertNotNull(dao.snapshot()["c1"])
     }
 
+    @Test fun sync_report_includes_unverified_count() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
+            contacts = mapOf(
+                "c1" to ContactDto(
+                    id = "c1",
+                    modifyTime = 100L,
+                    cards = listOf(
+                        ContactCardDto(type = 2, data = """
+                            BEGIN:VCARD
+                            VERSION:4.0
+                            FN:Alice
+                            EMAIL:alice@proton.me
+                            END:VCARD
+                        """.trimIndent(), signature = "bad-sig")
+                    )
+                )
+            )
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val rejectingProcessor = ContactProcessor(ContactDecrypter(cryptoOp = { req ->
+            CardCryptoOutcome(
+                plaintext = (req as? io.pcontacts.core.protoncontacts.CardCryptoRequest.VerifyOnly)?.data ?: "",
+                verified = false
+            )
+        }))
+        val engine = ContactDetailSyncEngine(
+            metadataPager = ContactsMetadataPager(api = api, pageSize = 1000),
+            contactsApi = api,
+            labelsApi = NoLabelsApi,
+            processor = rejectingProcessor,
+            contactMapDao = dao,
+            readExisting = { _ -> applier.knownRawIds() },
+            applyIntents = { acct, ints -> applier.apply(acct, ints) },
+            clock = { 1_700_000_000L }
+        )
+
+        val report = engine.sync(account)
+
+        assertEquals(1, report.unverifiedCount)
+    }
+
+    @Test fun sync_report_unverified_count_zero_when_all_verified() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
+            contacts = mapOf(
+                "c1" to contact("c1", 100L, """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice
+                    EMAIL:alice@proton.me
+                    END:VCARD
+                """.trimIndent())
+            )
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.unverifiedCount)
+    }
+
     @Test fun signature_failure_propagates_to_is_verified_false() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(metaPage(meta("c1", 100L))),
@@ -530,6 +595,10 @@ private class DetailFakeContactMapDao : ContactMapDao {
         rows.values.filter { !it.deleted }.map { it.protonContactId }
     override suspend fun listLive(): List<ContactMapEntity> =
         rows.values.filter { !it.deleted }
+    override suspend fun countLive(): Int =
+        rows.values.count { !it.deleted }
+    override suspend fun countUnverified(): Int =
+        rows.values.count { !it.deleted && !it.isVerified }
     override suspend fun markDeleted(id: String) {
         rows[id]?.let { rows[id] = it.copy(deleted = true) }
     }

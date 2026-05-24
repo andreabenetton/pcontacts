@@ -210,6 +210,10 @@ private class FakeContactMapDao : ContactMapDao {
         rows.values.filter { !it.deleted }.map { it.protonContactId }
     override suspend fun listLive(): List<ContactMapEntity> =
         rows.values.filter { !it.deleted }
+    override suspend fun countLive(): Int =
+        rows.values.count { !it.deleted }
+    override suspend fun countUnverified(): Int =
+        rows.values.count { !it.deleted && !it.isVerified }
     override suspend fun markDeleted(id: String) {
         rows[id]?.let { rows[id] = it.copy(deleted = true) }
     }

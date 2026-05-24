@@ -167,16 +167,19 @@ class ContactDetailSyncEngine(
 
         if (intents.isEmpty()) {
             val unchanged = (serverSourceIds.size - target.size - fetchFailures).coerceAtLeast(0)
+            val unverified = contactMapDao.countUnverified()
             logger.info {
                 "contact-detail sync done — no writes; " +
-                    "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures"
+                    "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures " +
+                    "unverified=$unverified"
             }
             return SyncReport(
                 totalServer = serverSourceIds.size,
                 inserted = 0,
                 updated = 0,
                 deleted = 0,
-                unchanged = unchanged
+                unchanged = unchanged,
+                unverifiedCount = unverified
             )
         }
 
@@ -213,17 +216,20 @@ class ContactDetailSyncEngine(
 
         val deletedCount = intents.count { it is RawContactOpIntent.DeleteContact }
         val unchanged = (serverSourceIds.size - target.size - fetchFailures).coerceAtLeast(0)
+        val unverified = contactMapDao.countUnverified()
         logger.info {
             "contact-detail sync done — inserted=${applyResult.insertedContacts} " +
                 "updated=${applyResult.updatedContacts} deleted=$deletedCount " +
-                "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures"
+                "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures " +
+                "unverified=$unverified"
         }
         return SyncReport(
             totalServer = serverSourceIds.size,
             inserted = applyResult.insertedContacts,
             updated = applyResult.updatedContacts,
             deleted = deletedCount,
-            unchanged = unchanged
+            unchanged = unchanged,
+            unverifiedCount = unverified
         )
     }
 
