@@ -23,7 +23,7 @@ import okhttp3.OkHttpClient
  *                            (localhost allowed for MockWebServer tests)
  *   - CertificatePinner    — SPKI pins from
  *                            resources/proton_certificate_pins.txt
- *                            (empty in source control; see README)
+ *                            (ISRG Root X1 + X2; release gated)
  *   - Authenticator (opt)  — RefreshingAuthenticator for 401 →
  *                            /auth/refresh → retry; null on the
  *                            refresh-only stage to avoid recursion.

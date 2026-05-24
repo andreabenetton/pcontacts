@@ -12,17 +12,16 @@ import okhttp3.CertificatePinner
  * format is one `sha256/<base64-spki>` pin per line, blanks +
  * `#`-comments allowed.
  *
- * The resource is intentionally absent in source control until the
- * user supplies real pins from a verified Proton-controlled source
- * (their key transparency log, their public security docs, or
- * pinning them directly from a known-good cert chain). When the
- * resource is missing or empty, the returned pinner adds no
- * constraints for `*.proton.me` — same behaviour as the previous
- * commit (no pinning) but documented in one place.
+ * Pinning strategy: ISRG Root X1 (RSA 4096) + ISRG Root X2 (EC
+ * P-384). Root-level pins survive leaf and intermediate rotation
+ * within the Let's Encrypt / ISRG chain. Captured 2026-05-24 from
+ * the official Let's Encrypt PEM endpoints and cross-verified
+ * against the live `mail-api.proton.me` cert chain.
  *
- * The README at the resource path explains the source-and-pin
- * procedure and the production-gating flip (refuse to build with
- * an empty pin set, once the pins land).
+ * Release builds gate on this resource being non-empty via the
+ * `:core:proton-api:verifyCertificatePins` task (wired as a
+ * dependency of `:app:assembleRelease`). If the resource is
+ * accidentally deleted, the release build fails.
  */
 object ProtonCertificatePins {
 
