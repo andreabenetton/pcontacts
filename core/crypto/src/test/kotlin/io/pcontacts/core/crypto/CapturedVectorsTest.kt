@@ -4,6 +4,7 @@
 package io.pcontacts.core.crypto
 
 import io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword
+import io.pcontacts.core.crypto.bcrypt.SrpHashPassword
 import org.junit.Assert.assertEquals
 import org.junit.Assume.assumeNotNull
 import org.junit.Test
@@ -37,6 +38,38 @@ class CapturedVectorsTest {
             val password = unescapeJson(passwordEscaped)
             val actual = ComputeKeyPassword.derive(password.toCharArray(), saltB64)
             assertEquals("computeKeyPassword vector '$label' mismatch", expected, actual)
+            checked += 1
+        }
+        if (checked == 0) return
+    }
+
+    @Test fun srpHashPassword_matches_captured_vectors() {
+        val vectors = loadVectors() ?: return
+        // srpHashPassword is a top-level array whose entries may contain long
+        // modulusHex fields — use a greedy-per-entry regex with lazy inner matches.
+        val srpArray = vectors.regexFind("\"srpHashPassword\"\\s*:\\s*\\[(.*?)\\](?=\\s*,\\s*\"openPgp\")")
+            ?: return
+        val entryRegex = Regex(
+            "\\{[^}]*?" +
+                "\"label\"\\s*:\\s*\"([^\"]+)\".*?" +
+                "\"password\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\".*?" +
+                "\"saltB64\"\\s*:\\s*\"([^\"]+)\".*?" +
+                "\"modulusHex\"\\s*:\\s*\"([^\"]+)\".*?" +
+                "\"expectedHex\"\\s*:\\s*\"([^\"]+)\"" +
+                "[^}]*\\}",
+            RegexOption.DOT_MATCHES_ALL
+        )
+        var checked = 0
+        for (match in entryRegex.findAll(srpArray)) {
+            val (label, passwordEscaped, saltB64, modulusHex, expectedHex) = match.destructured
+            val password = unescapeJson(passwordEscaped)
+            val modulusBytes = hexToBytes(modulusHex)
+            val actual = SrpHashPassword.derive(password.toCharArray(), saltB64, modulusBytes)
+            assertEquals(
+                "srpHashPassword vector '$label' mismatch",
+                expectedHex,
+                actual.toHex()
+            )
             checked += 1
         }
         if (checked == 0) return
@@ -79,4 +112,17 @@ class CapturedVectorsTest {
         }
         return sb.toString()
     }
+
+    @Suppress("SameParameterValue")
+    private fun hexToBytes(hex: String): ByteArray {
+        val len = hex.length / 2
+        val out = ByteArray(len)
+        for (i in 0 until len) {
+            out[i] = hex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
+        }
+        return out
+    }
+
+    private fun ByteArray.toHex(): String =
+        joinToString("") { "%02x".format(it) }
 }

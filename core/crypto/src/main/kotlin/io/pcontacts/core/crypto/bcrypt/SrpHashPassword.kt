@@ -1,0 +1,94 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+package io.pcontacts.core.crypto.bcrypt
+
+import java.security.MessageDigest
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt
+
+/**
+ * Proton SRP `hashPassword` (version 4) — derives the 256-byte value
+ * used as the SRP `x` parameter.
+ *
+ * Algorithm (verified `[V]` against `@protontech/crypto` v2.0.1):
+ *
+ *   1. `saltWithSuffix = bytes(base64SaltString + "proton")` — ASCII bytes
+ *      of the literal base64 string concatenated with "proton".
+ *   2. `bcryptSalt = first16(saltWithSuffix)` — take the first 16 bytes.
+ *   3. `unexpandedHash = bcrypt(password, "$2y$10$" + bcryptEncode(bcryptSalt))`
+ *      → full 60-character bcrypt string.
+ *   4. `hashBytes = charCodeBytes(unexpandedHash)` — each char → its byte value.
+ *   5. `concat = hashBytes ‖ modulusBytes`.
+ *   6. `expandHash(concat)` = `SHA-512(concat‖0x00) ‖ SHA-512(concat‖0x01)
+ *      ‖ SHA-512(concat‖0x02) ‖ SHA-512(concat‖0x03)` → 256 bytes.
+ *
+ * Source: `@protontech/crypto/src/srp/passwords.ts` (hashPassword3 +
+ *         formatHash + expandHash) and `src/utils.ts`
+ *         (binaryStringToUint8Array).
+ *
+ * This is NOT the same as [ComputeKeyPassword.derive] — that function
+ * implements `computeKeyPassword` (key-unlock path), which uses a
+ * different salt encoding and returns only the trailing hash.
+ */
+object SrpHashPassword {
+
+    private const val COST: Int = 10
+    private const val BCRYPT_SALT_BYTES: Int = 16
+
+    /**
+     * @param password  user's plaintext password.
+     * @param saltB64   base64 salt string from `auth/info` (used as a CHARACTER
+     *                  string, not decoded to bytes).
+     * @param modulusBytes  decoded SRP modulus (N) bytes (typically 256 bytes for
+     *                      2048-bit).
+     * @return 256-byte expanded hash, used as SRP `x` when interpreted as
+     *         `BigInteger(1, result)`.
+     */
+    fun derive(password: CharArray, saltB64: String, modulusBytes: ByteArray): ByteArray {
+        // Step 1-2: ASCII bytes of (saltB64 + "proton"), take first 16
+        val saltWithSuffix = (saltB64 + "proton").toByteArray(Charsets.US_ASCII)
+        val bcryptSalt = saltWithSuffix.copyOfRange(0, minOf(saltWithSuffix.size, BCRYPT_SALT_BYTES))
+        require(bcryptSalt.size == BCRYPT_SALT_BYTES) {
+            "salt + 'proton' must yield at least $BCRYPT_SALT_BYTES bytes"
+        }
+
+        // Step 3: bcrypt with cost 10
+        val unexpandedHash = OpenBSDBCrypt.generate(password, bcryptSalt, COST)
+
+        // Step 4: convert hash string chars to byte values (charCodeAt)
+        val hashBytes = charCodeBytes(unexpandedHash)
+
+        // Step 5: concatenate with modulus
+        val concat = ByteArray(hashBytes.size + modulusBytes.size)
+        System.arraycopy(hashBytes, 0, concat, 0, hashBytes.size)
+        System.arraycopy(modulusBytes, 0, concat, hashBytes.size, modulusBytes.size)
+
+        // Step 6: expand (4× SHA-512 with counter byte appended)
+        return expandHash(concat)
+    }
+
+    private fun expandHash(input: ByteArray): ByteArray {
+        val result = ByteArray(4 * 64) // 4 × SHA-512 = 256 bytes
+        for (i in 0 until 4) {
+            val md = MessageDigest.getInstance("SHA-512")
+            md.update(input)
+            md.update(i.toByte())
+            val digest = md.digest()
+            System.arraycopy(digest, 0, result, i * 64, 64)
+        }
+        return result
+    }
+
+    /**
+     * Each character's code point as a byte — matches the JS
+     * `binaryStringToUint8Array` helper. bcrypt output is pure ASCII
+     * so no char exceeds 0x7F.
+     */
+    private fun charCodeBytes(s: String): ByteArray {
+        val out = ByteArray(s.length)
+        for (i in s.indices) {
+            out[i] = s[i].code.toByte()
+        }
+        return out
+    }
+}

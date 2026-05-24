@@ -8,10 +8,11 @@
 // the same underlying bcryptjs library, avoiding the TS-only entry
 // point of @protontech/crypto v2+ which can't run directly in Node.
 //
-// Algorithm source (verified [V]):
+// Algorithm sources (verified [V]):
 //   @protontech/crypto/src/srp/keys.ts        — computeKeyPassword
 //   @protontech/crypto/src/srp/passwords.ts    — hashPassword / expandHash
 //   @protontech/crypto/src/srp/constants.ts    — BCRYPT_PREFIX = "$2y$10$"
+//   @protontech/crypto/src/utils.ts            — binaryStringToUint8Array
 //
 // Outputs a single JSON file (default:
 // ../../core/crypto/src/test/resources/proton-crypto-vectors.json)
@@ -22,6 +23,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { hash as bcryptHash, encodeBase64 as bcryptEncodeBase64 } from 'bcryptjs';
 
@@ -31,16 +33,6 @@ const BCRYPT_PREFIX = '$2y$10$';
 
 // ---------------------------------------------------------------------------
 // computeKeyPassword — matches @protontech/crypto/src/srp/keys.ts exactly.
-//
-//   Input:  password (string), salt (base64, 24 chars = 16 bytes decoded)
-//   Output: bcrypt hash string with the first 29 chars stripped
-//           (removes "$2y$10$" + the 22-char encoded salt)
-//
-//   Steps:
-//     1. base64-decode salt → 16 raw bytes
-//     2. bcrypt-encode those 16 bytes → 22-char bcrypt salt string
-//     3. bcryptHash(password, "$2y$10$" + bcryptSalt) → full hash string
-//     4. return hash.slice(29)
 // ---------------------------------------------------------------------------
 async function computeKeyPassword(password, saltB64) {
   if (!password || !saltB64 || saltB64.length !== 24) {
@@ -53,16 +45,88 @@ async function computeKeyPassword(password, saltB64) {
 }
 
 // ---------------------------------------------------------------------------
-// Vector inputs — picked to exercise each code path of the Kotlin port:
-//   - computeKeyPassword: short / long / unicode passwords + 16-byte salt
-//   - SRP: deferred (hashPassword needs CryptoProxy / openpgp SHA-512)
-//   - OpenPGP: deferred (needs openpgp/CryptoProxy wiring)
+// hashPassword (version 4) — matches passwords.ts hashPassword3 + formatHash
+// + expandHash.
+//
+// Steps:
+//   1. saltBinary = charCodeAt bytes of (salt + "proton")
+//   2. bcryptSalt = bcryptEncodeBase64(saltBinary, 16)
+//   3. unexpandedHash = bcrypt(password, "$2y$10$" + bcryptSalt)
+//   4. hashBytes = charCodeAt bytes of unexpandedHash
+//   5. concat = hashBytes || modulusBytes
+//   6. result = SHA512(concat||0x00) || SHA512(concat||0x01)
+//              || SHA512(concat||0x02) || SHA512(concat||0x03)
+// ---------------------------------------------------------------------------
+
+function binaryStringToUint8Array(str) {
+  const result = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) {
+    result[i] = str.charCodeAt(i);
+  }
+  return result;
+}
+
+function expandHash(input) {
+  const parts = [];
+  for (let i = 0; i < 4; i++) {
+    const h = crypto.createHash('sha512');
+    h.update(input);
+    h.update(Uint8Array.from([i]));
+    parts.push(h.digest());
+  }
+  return Buffer.concat(parts);
+}
+
+async function hashPasswordV4(password, saltB64, modulusBytes) {
+  // Step 1: salt bytes = charCode bytes of (base64SaltString + "proton")
+  const saltBinary = binaryStringToUint8Array(saltB64 + 'proton');
+  // Step 2: bcrypt-encode the first 16 of those bytes
+  const bcryptSalt = bcryptEncodeBase64(saltBinary, 16);
+  // Step 3: bcrypt
+  const unexpandedHash = await bcryptHash(password, BCRYPT_PREFIX + bcryptSalt);
+  // Step 4: convert hash string chars to bytes
+  const hashBytes = binaryStringToUint8Array(unexpandedHash);
+  // Step 5: concatenate with modulus
+  const concat = Buffer.concat([hashBytes, modulusBytes]);
+  // Step 6: expand
+  return expandHash(concat);
+}
+
+// ---------------------------------------------------------------------------
+// Vector inputs
 // ---------------------------------------------------------------------------
 
 const KEY_PASSWORD_INPUTS = [
-  { label: 'ascii-short',  password: 'pass',                           saltB64: 'AAECAwQFBgcICQoLDA0ODw==' },
-  { label: 'ascii-long',   password: 'correct horse battery staple',   saltB64: 'qrvM3e7/ABEiM0RVZneImQ==' },
-  { label: 'utf8-unicode', password: 'pässwörd-Ω',                    saltB64: '3q2+78r+/s7wDbrqEjRWeA==' },
+  { label: 'ascii-short',  password: 'pass',                         saltB64: 'AAECAwQFBgcICQoLDA0ODw==' },
+  { label: 'ascii-long',   password: 'correct horse battery staple', saltB64: 'qrvM3e7/ABEiM0RVZneImQ==' },
+  { label: 'utf8-unicode', password: 'pässwörd-Ω',                  saltB64: '3q2+78r+/s7wDbrqEjRWeA==' },
+];
+
+// A 256-byte (2048-bit) modulus for SRP vector capture. This is the
+// RFC 3526 §2 1024-bit MODP prime zero-padded to 256 bytes — NOT a
+// real Proton modulus, but exercises the full code path.
+const TEST_MODULUS_HEX =
+  '00000000000000000000000000000000' +
+  '00000000000000000000000000000000' +
+  '00000000000000000000000000000000' +
+  '00000000000000000000000000000000' +
+  '00000000000000000000000000000000' +
+  '00000000000000000000000000000000' +
+  '00000000000000000000000000000000' +
+  '00000000000000000000000000000000' +
+  'FFFFFFFFFFFFFFFFC90FDAA22168C234' +
+  'C4C6628B80DC1CD129024E088A67CC74' +
+  '020BBEA63B139B22514A08798E3404DD' +
+  'EF9519B3CD3A431B302B0A6DF25F1437' +
+  '4FE1356D6D51C245E485B576625E7EC6' +
+  'F44C42E9A637ED6B0BFF5CB6F406B7ED' +
+  'EE386BFB5A899FA5AE9F24117C4B1FE6' +
+  '49286651ECE65381FFFFFFFFFFFFFFFF';
+
+const SRP_INPUTS = [
+  { label: 'ascii-short-v4',  password: 'pass',                         saltB64: 'AAECAwQFBgcICQoLDA0ODw==', modulusHex: TEST_MODULUS_HEX, version: 4 },
+  { label: 'ascii-long-v4',   password: 'correct horse battery staple', saltB64: 'qrvM3e7/ABEiM0RVZneImQ==', modulusHex: TEST_MODULUS_HEX, version: 4 },
+  { label: 'utf8-unicode-v4', password: 'pässwörd-Ω',                  saltB64: '3q2+78r+/s7wDbrqEjRWeA==', modulusHex: TEST_MODULUS_HEX, version: 4 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -84,14 +148,23 @@ async function captureKeyPassword() {
 }
 
 async function captureSrp() {
-  // SRP hashPassword needs CryptoProxy.computeHash (SHA-512 via openpgp).
-  // Deferred until openpgp wiring is set up in this script.
-  return [];
+  const out = [];
+  for (const inp of SRP_INPUTS) {
+    const modulusBytes = Buffer.from(inp.modulusHex, 'hex');
+    const result = await hashPasswordV4(inp.password, inp.saltB64, modulusBytes);
+    out.push({
+      label: inp.label,
+      password: inp.password,
+      saltB64: inp.saltB64,
+      modulusHex: inp.modulusHex,
+      version: inp.version,
+      expectedHex: result.toString('hex'),
+    });
+  }
+  return out;
 }
 
 async function captureOpenPgp() {
-  // OpenPGP round-trip vectors deferred — need openpgp key generation +
-  // encrypt/sign.
   return [];
 }
 
@@ -107,13 +180,13 @@ try {
   const out = {
     generatedAt: new Date().toISOString(),
     protonCryptoPackageVersion: tryReadVersion(),
-    schemaVersion: 1,
+    schemaVersion: 2,
     notes: [
       'Generated by tools/vectors/capture.js — do not edit by hand.',
       'Add new inputs there + re-run; commit the resulting JSON alongside the script change.',
     ],
     computeKeyPassword: keyPasswordVectors,
-    srp: srpVectors,
+    srpHashPassword: srpVectors,
     openPgp: openPgpVectors,
   };
 
@@ -122,7 +195,7 @@ try {
   const targetPath = path.join(targetDir, 'proton-crypto-vectors.json');
   fs.writeFileSync(targetPath, JSON.stringify(out, null, 2) + '\n', 'utf8');
 
-  console.log(`Wrote ${out.computeKeyPassword.length} keyPassword, ${out.srp.length} SRP, ${out.openPgp.length} OpenPGP vectors`);
+  console.log(`Wrote ${out.computeKeyPassword.length} keyPassword, ${out.srpHashPassword.length} SRP, ${out.openPgp.length} OpenPGP vectors`);
   console.log(`     → ${targetPath}`);
 } catch (e) {
   console.error('capture failed:', e && e.stack ? e.stack : e);
