@@ -100,22 +100,22 @@ class SrpLoginOrchestrator(
         } else {
             logger.warn { "modulus arrived without an OpenPGP envelope — verification cannot run" }
         }
-        val nBytes = Base64.getDecoder().decode(modulusDecoded.cleartextBase64)
-        val n = BigInteger(1, nBytes)
+        // [V] Proton's API sends BigInteger values in little-endian byte
+        // order (go-srp's fromNat/toNat convention). Reverse before
+        // constructing BigIntegers; pass raw LE bytes to hashPassword.
+        val nBytesLE = Base64.getDecoder().decode(modulusDecoded.cleartextBase64)
+        val n = BigInteger(1, nBytesLE.reversedArray())
 
-        // [V] SRP x derivation uses the salt as a raw base64 string (not
-        // decoded bytes) — Proton appends "proton" to the string, takes
-        // the first 16 ASCII bytes as the bcrypt salt.
-        val x = SrpXDerivation.deriveX(password, info.salt, nBytes)
-        val saltBytes = Base64.getDecoder().decode(info.salt)
-        val bBytes = Base64.getDecoder().decode(info.serverEphemeral)
-        val b = BigInteger(1, bBytes)
+        // [V] SRP x derivation receives the raw LE modulus bytes — go-srp's
+        // hashPassword uses them as-is (no reversal).
+        val x = SrpXDerivation.deriveX(password, info.salt, nBytesLE)
+        val bBytesLE = Base64.getDecoder().decode(info.serverEphemeral)
+        val b = BigInteger(1, bBytesLE.reversedArray())
         val padLen = (n.bitLength() + 7) / 8
 
         val proof = try {
             srp.login(
                 N = n,
-                salt = saltBytes,
                 serverEphemeralB = b,
                 x = x
             )
@@ -128,7 +128,7 @@ class SrpLoginOrchestrator(
             api.auth(
                 AuthRequest(
                     username = username,
-                    clientEphemeral = Base64.getEncoder().encodeToString(unsignedBytes(proof.clientEphemeralA, padLen)),
+                    clientEphemeral = Base64.getEncoder().encodeToString(toLittleEndianBytes(proof.clientEphemeralA, padLen)),
                     clientProof = Base64.getEncoder().encodeToString(proof.clientProofM1),
                     srpSession = info.srpSession,
                     payload = emptyMap()    // [U] ChallengePayload
@@ -242,17 +242,21 @@ class SrpLoginOrchestrator(
         return LoginResult.Success(uid = uid)
     }
 
-    private fun unsignedBytes(value: BigInteger, length: Int): ByteArray {
+    /**
+     * `[V]` Proton SRP uses little-endian encoding for BigInteger values
+     * on the wire (go-srp's `fromNat`). Big-endian pad, then reverse.
+     */
+    private fun toLittleEndianBytes(value: BigInteger, length: Int): ByteArray {
         val raw = value.toByteArray()
         val stripped = if (raw.isNotEmpty() && raw[0] == 0.toByte() && raw.size > 1) {
             raw.copyOfRange(1, raw.size)
         } else {
             raw
         }
-        if (stripped.size == length) return stripped
         require(stripped.size <= length) { "value does not fit in $length bytes" }
         val padded = ByteArray(length)
         System.arraycopy(stripped, 0, padded, length - stripped.size, stripped.size)
+        padded.reverse()
         return padded
     }
 
