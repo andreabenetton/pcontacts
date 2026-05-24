@@ -55,7 +55,7 @@ PR.
 | A2 | `EncryptedSharedPreferences` (androidx.security:security-crypto) is honest — its AES256_SIV + AES256_GCM cipher pair has no known break. | Reviewed crypto, Tink-backed. |
 | A3 | The Android `ContactsContract` provider is honest — `caller_is_syncadapter=true` semantics work as documented (no duplicate-resurrection bug). | AOSP-documented, exercised by every account-syncing app. |
 | A4 | The user's Proton account password is sufficiently strong to resist offline brute-force against the bcrypt-SHA-512 key-password (≥ 60 bits of entropy in practice). | Proton enforces a minimum complexity at signup. |
-| A5 | The OkHttp + BouncyCastle releases pinned in `gradle/libs.versions.toml` do not contain a known CVE we're vulnerable to. | Dep-bump cadence per ADR-0015. CI will gain a vuln-scan task in a later commit. |
+| A5 | The OkHttp + BouncyCastle releases pinned in `gradle/libs.versions.toml` do not contain a known CVE we're vulnerable to. | Dep-bump cadence per ADR-0015. Dependabot is enabled for Gradle + GitHub Actions ecosystems (`.github/dependabot.yml`). |
 
 ---
 
@@ -286,7 +286,7 @@ Deferred (tracked):
 - Instrumented ContactsContract tests on an emulator pipeline
   (aggregation behaviour, deletion tombstones, photo round-trip).
 - Reproducible-build CI gate (diffoscope).
-- Vuln-scan CI task (OWASP dependency-check or equivalent).
+- OWASP dependency-check CI task (Dependabot covers update PRs but not blocking CI on known CVEs).
 - Compose UI tests for the login + settings screens.
 - Manifest-merger test asserting `allowBackup=false` +
   `debuggable=false` on release builds.
