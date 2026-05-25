@@ -745,6 +745,8 @@ private class WriteFakeContactMapDao : ContactMapDao {
     override suspend fun resolveConflict(id: String) {
         rows[id]?.let { rows[id] = it.copy(syncStatus = ContactMapEntity.Status.CLEAN, lastError = null) }
     }
+    override suspend fun maxLastSyncedAt(): Long? =
+        rows.values.filter { !it.deleted }.maxOfOrNull { it.lastSyncedAt }
     override suspend fun deleteByProtonId(id: String) { rows.remove(id) }
     override suspend fun deleteAll() { rows.clear() }
 }

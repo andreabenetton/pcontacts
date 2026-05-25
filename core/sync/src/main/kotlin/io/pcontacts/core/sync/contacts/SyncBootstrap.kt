@@ -65,6 +65,16 @@ object SyncBootstrap {
         return dao.countLive() to dao.countUnverified()
     }
 
+    suspend fun loadLauncherStatus(context: Context): LauncherStatus {
+        val db = DatabaseFactory.create(context.applicationContext)
+        val dao = db.contactMapDao()
+        return LauncherStatus(
+            totalContacts = dao.countLive(),
+            unverifiedContacts = dao.countUnverified(),
+            lastSyncedAtMillis = dao.maxLastSyncedAt()
+        )
+    }
+
     fun createEmailSyncEngine(
         context: Context,
         provider: ContentProviderClient
