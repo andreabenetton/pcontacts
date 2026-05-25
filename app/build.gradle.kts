@@ -17,16 +17,32 @@ android {
         minSdk = libs.versions.android.min.sdk.get().toInt()
         targetSdk = libs.versions.android.target.sdk.get().toInt()
         versionCode = 1
-        versionName = "0.0.1"
+        versionName = "0.1.0"
+    }
+
+    val releaseStoreFile = project.findProperty("RELEASE_STORE_FILE") as String?
+        ?: System.getenv("RELEASE_STORE_FILE")
+    if (releaseStoreFile != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = (project.findProperty("RELEASE_STORE_PASSWORD") as String?)
+                    ?: System.getenv("RELEASE_STORE_PASSWORD") ?: ""
+                keyAlias = (project.findProperty("RELEASE_KEY_ALIAS") as String?)
+                    ?: System.getenv("RELEASE_KEY_ALIAS") ?: ""
+                keyPassword = (project.findProperty("RELEASE_KEY_PASSWORD") as String?)
+                    ?: System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+            }
+        }
     }
 
     buildTypes {
         debug {
             isDebuggable = true
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             // R8 + proguard-rules.pro. Minification on so the BouncyCastle /
             // kotlinx-serialization / Retrofit / Room reflection-keep rules
             // get exercised by `:app:assembleRelease` in CI.

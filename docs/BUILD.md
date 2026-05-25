@@ -30,28 +30,51 @@ directly via `adb install`.
      -validity 10000 -storepass <password> -keypass <password>
    ```
 
-2. Build and sign:
+2. Create or edit `~/.gradle/gradle.properties` (NOT committed):
+
+   ```properties
+   RELEASE_STORE_FILE=/absolute/path/to/release.keystore
+   RELEASE_STORE_PASSWORD=<password>
+   RELEASE_KEY_ALIAS=pcontacts
+   RELEASE_KEY_PASSWORD=<password>
+   ```
+
+   Alternatively, pass as command-line flags:
 
    ```bash
    ./gradlew :app:assembleRelease \
-     -Pandroid.injected.signing.store.file="$(pwd)/release.keystore" \
-     -Pandroid.injected.signing.store.password=<password> \
-     -Pandroid.injected.signing.key.alias=pcontacts \
-     -Pandroid.injected.signing.key.password=<password>
+     -PRELEASE_STORE_FILE="$(pwd)/release.keystore" \
+     -PRELEASE_STORE_PASSWORD=<password> \
+     -PRELEASE_KEY_ALIAS=pcontacts \
+     -PRELEASE_KEY_PASSWORD=<password>
    ```
 
-3. The signed APK lands in `app/build/outputs/apk/release/`.
+3. Build:
+
+   ```bash
+   ./gradlew :app:assembleRelease
+   ```
+
+4. The signed APK lands in `app/build/outputs/apk/release/`.
+
+When no signing properties are set, `assembleRelease` still succeeds
+and produces an unsigned APK. This is the expected path in CI for
+reproducible-build verification (signing is a separate step).
 
 ## Release build (CI)
 
 Tag a commit with `vX.Y.Z` and push. The `release.yml` workflow:
 
-1. Decodes the release keystore from `RELEASE_KEYSTORE_BASE64`.
-2. Signs the APK using `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
-   `RELEASE_KEY_PASSWORD`.
-3. Computes SHA-256 checksums.
-4. Creates a GitHub Release with the APK and checksums attached.
-5. Shreds the decoded keystore from the runner.
+1. Decodes the release keystore from `RELEASE_KEYSTORE_BASE64` to a
+   temporary file.
+2. Exports `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`,
+   `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD` as environment
+   variables. The signing config in `app/build.gradle.kts` reads
+   Gradle properties first, then falls back to environment variables.
+3. Runs `assembleRelease` — produces a signed APK.
+4. Computes SHA-256 checksums.
+5. Creates a GitHub Release with the APK and checksums attached.
+6. Shreds the decoded keystore from the runner.
 
 ### Required secrets
 
