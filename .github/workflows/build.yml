@@ -166,7 +166,12 @@ jobs:
       - name: Assemble release
         # Exercises proguard-rules.pro — catches missing keep rules for
         # BouncyCastle / kotlinx-serialization / Retrofit / Room / etc.
+        # verifyManifestInvariants runs as a dependency of assembleRelease.
         run: ./gradlew --no-daemon --stacktrace :app:assembleRelease
+
+      - name: ADR-0009 manifest invariant check
+        # Already ran as assembleRelease dependency; explicit step for log visibility.
+        run: ./gradlew --no-daemon --stacktrace :app:verifyManifestInvariants
 
       - name: Upload mapping + missing-rules artifacts on failure
         if: failure()

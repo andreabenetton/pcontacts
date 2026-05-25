@@ -202,8 +202,113 @@ tasks.register("checkLicense") {
     }
 }
 
+// ADR-0009: manifest-invariant enforcement. Reads the merged manifests after
+// processDebugManifest / processReleaseManifest and asserts the security-
+// critical attributes haven't been overridden by a library's manifest merger.
+// Also validates data_extraction_rules.xml exclusion completeness.
+tasks.register("verifyManifestInvariants") {
+    group = "verification"
+    description = "Fails the build if merged manifests violate ADR-0009 " +
+        "security invariants (allowBackup, debuggable, dataExtractionRules)."
+    notCompatibleWithConfigurationCache("reads merged manifest files at execution time")
+
+    dependsOn("processDebugManifest", "processReleaseManifest")
+
+    doLast {
+        val violations = mutableListOf<String>()
+
+        fun parseApplicationAttrs(file: java.io.File): Map<String, String?> {
+            val text = file.readText()
+            val appBlock = Regex("""<application\b[^>]*>""", RegexOption.DOT_MATCHES_ALL)
+                .find(text)?.value ?: error("No <application> tag found in ${file.path}")
+            fun attr(name: String): String? =
+                Regex("""android:$name\s*=\s*"([^"]*)"""").find(appBlock)?.groupValues?.get(1)
+            return mapOf(
+                "allowBackup" to attr("allowBackup"),
+                "debuggable" to attr("debuggable"),
+                "dataExtractionRules" to attr("dataExtractionRules")
+            )
+        }
+
+        // --- Debug manifest ---
+        val debugManifest = file(
+            "build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml"
+        )
+        if (debugManifest.exists()) {
+            val attrs = parseApplicationAttrs(debugManifest)
+            if (attrs["allowBackup"] != "false") {
+                violations += "debug: android:allowBackup must be \"false\", got \"${attrs["allowBackup"]}\""
+            }
+            if (attrs["dataExtractionRules"] != "@xml/data_extraction_rules") {
+                violations += "debug: android:dataExtractionRules must be " +
+                    "\"@xml/data_extraction_rules\", got \"${attrs["dataExtractionRules"]}\""
+            }
+        } else {
+            violations += "debug: merged manifest not found at ${debugManifest.path}"
+        }
+
+        // --- Release manifest ---
+        val releaseManifest = file(
+            "build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml"
+        )
+        if (releaseManifest.exists()) {
+            val attrs = parseApplicationAttrs(releaseManifest)
+            if (attrs["allowBackup"] != "false") {
+                violations += "release: android:allowBackup must be \"false\", got \"${attrs["allowBackup"]}\""
+            }
+            if (attrs["dataExtractionRules"] != "@xml/data_extraction_rules") {
+                violations += "release: android:dataExtractionRules must be " +
+                    "\"@xml/data_extraction_rules\", got \"${attrs["dataExtractionRules"]}\""
+            }
+            if (attrs["debuggable"] != null && attrs["debuggable"] != "false") {
+                violations += "release: android:debuggable must be absent or \"false\", " +
+                    "got \"${attrs["debuggable"]}\""
+            }
+        } else {
+            violations += "release: merged manifest not found at ${releaseManifest.path}"
+        }
+
+        // --- data_extraction_rules.xml completeness ---
+        val rulesFile = file("src/main/res/xml/data_extraction_rules.xml")
+        if (rulesFile.exists()) {
+            val rulesText = rulesFile.readText()
+            val requiredDomains = listOf("root", "file", "database", "sharedpref", "external")
+            for (section in listOf("cloud-backup", "device-transfer")) {
+                val sectionBlock = Regex(
+                    """<$section>(.*?)</$section>""",
+                    RegexOption.DOT_MATCHES_ALL
+                ).find(rulesText)?.groupValues?.get(1)
+                if (sectionBlock == null) {
+                    violations += "data_extraction_rules.xml: missing <$section> section"
+                } else {
+                    for (domain in requiredDomains) {
+                        if (!sectionBlock.contains("""domain="$domain"""")) {
+                            violations += "data_extraction_rules.xml: <$section> missing " +
+                                "exclude for domain=\"$domain\""
+                        }
+                    }
+                }
+            }
+        } else {
+            violations += "data_extraction_rules.xml not found at ${rulesFile.path}"
+        }
+
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                "ADR-0009 — manifest invariant violations:\n  - " +
+                    violations.joinToString("\n  - ")
+            )
+        }
+        logger.lifecycle(
+            "ADR-0009 manifest invariant check passed — " +
+                "debug manifest, release manifest, data_extraction_rules.xml all verified."
+        )
+    }
+}
+
 afterEvaluate {
     tasks.matching { it.name == "assembleRelease" }.configureEach {
         dependsOn(":core:proton-api:verifyCertificatePins")
+        dependsOn("verifyManifestInvariants")
     }
 }
