@@ -17,6 +17,9 @@ interface UserPreferences {
     /** Periodic sync interval in hours. Default [DEFAULT_SYNC_INTERVAL_HOURS]. */
     var syncIntervalHours: Long
 
+    /** Whether the POST_NOTIFICATIONS runtime permission has been requested. */
+    var notificationPermissionRequested: Boolean
+
     companion object {
         const val DEFAULT_SYNC_INTERVAL_HOURS = 12L
         val ALLOWED_INTERVALS_HOURS = listOf(1L, 6L, 12L, 24L)
