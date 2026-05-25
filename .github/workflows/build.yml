@@ -133,7 +133,10 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
-          script: ./gradlew --no-daemon --stacktrace :core:contacts-writer:connectedDebugAndroidTest
+          script: >-
+            ./gradlew --no-daemon --stacktrace
+            :core:contacts-writer:connectedDebugAndroidTest
+            :feature:onboarding:connectedDebugAndroidTest
 
       - name: Upload instrumented test reports on failure
         if: failure()
