@@ -31,7 +31,7 @@ class LogoutHelper(private val context: Context) {
         }
         val resolver = context.contentResolver
         val provider = resolver.acquireContentProviderClient(ContactsContract.AUTHORITY)
-            ?: error("ContactsProvider unavailable")
+            ?: throw MissingContactsPermissionException()
         try {
             cancelAutoSync(account)
             val orchestrator = AuthBootstrap.createLogoutOrchestrator(

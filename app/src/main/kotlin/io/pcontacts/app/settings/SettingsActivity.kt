@@ -7,25 +7,38 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import io.pcontacts.app.MainActivity
 import io.pcontacts.app.account.LogoutHelper
+import io.pcontacts.app.account.MissingContactsPermissionException
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
+import io.pcontacts.app.permissions.ContactsPermissionBanner
+import io.pcontacts.app.permissions.ContactsPermissionState
+import io.pcontacts.app.permissions.ContactsPermissionStatus
 import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
-import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.OutboxStats
@@ -49,6 +62,14 @@ class SettingsActivity : ComponentActivity() {
     private val logoutHelper by lazy { LogoutHelper(applicationContext) }
     private val userPrefs by lazy { SharedPreferencesUserPreferences(applicationContext) }
     private val db by lazy { DatabaseFactory.create(applicationContext) }
+    private var contactsPermissionStatus by mutableStateOf(ContactsPermissionStatus.GRANTED)
+
+    private val contactsPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        userPrefs.contactsPermissionRequested = true
+        contactsPermissionStatus = ContactsPermissionState.check(this, true)
+    }
     private val viewModel by lazy {
         SettingsViewModel(
             syncNow = ::performSyncNow,
@@ -66,6 +87,9 @@ class SettingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        contactsPermissionStatus = ContactsPermissionState.check(
+            this, userPrefs.contactsPermissionRequested
+        )
         setContent {
             PcontactsTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -73,14 +97,31 @@ class SettingsActivity : ComponentActivity() {
                     if (account == null) {
                         Text("No Proton account. Sign in from the launcher.")
                     } else {
-                        SettingsScreen(
-                            viewModel = viewModel,
-                            onSignedOut = ::finishToLauncher
-                        )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
+                                ContactsPermissionBanner(
+                                    isPermanentlyDenied = contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED,
+                                    onAction = ::handleContactsPermissionAction,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                            SettingsScreen(
+                                viewModel = viewModel,
+                                onSignedOut = ::finishToLauncher,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        contactsPermissionStatus = ContactsPermissionState.check(
+            this, userPrefs.contactsPermissionRequested
+        )
     }
 
     override fun onDestroy() {
@@ -102,12 +143,15 @@ class SettingsActivity : ComponentActivity() {
     private suspend fun performSignOut(): SettingsActionResult {
         val account = currentAccount()
             ?: return SettingsActionResult.Failure(reason = "no_account")
-        val result = logoutHelper.signOut(account)
-        return if (result.successful) {
-            SettingsActionResult.Success(message = "Signed out (${result.contactsDeleted} contacts removed).")
-        } else {
-            // Aggregate the non-sensitive error tags into one string for the UI.
-            SettingsActionResult.Failure(reason = result.errors.joinToString(prefix = "errors: "))
+        return try {
+            val result = logoutHelper.signOut(account)
+            if (result.successful) {
+                SettingsActionResult.Success(message = "Signed out (${result.contactsDeleted} contacts removed).")
+            } else {
+                SettingsActionResult.Failure(reason = result.errors.joinToString(prefix = "errors: "))
+            }
+        } catch (_: MissingContactsPermissionException) {
+            SettingsActionResult.Failure(reason = "missing_contacts_permission")
         }
     }
 
@@ -169,6 +213,21 @@ class SettingsActivity : ComponentActivity() {
                 // No outbox entry needed — next pull overwrites the local copy.
             }
         }
+    }
+
+    private fun handleContactsPermissionAction() {
+        if (contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED) {
+            openAppSettings()
+        } else {
+            contactsPermissionLauncher.launch(ContactsPermissionState.requiredPermissions())
+        }
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+        }
+        startActivity(intent)
     }
 
     private fun currentAccount(): Account? =

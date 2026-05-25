@@ -8,6 +8,7 @@ import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -52,6 +53,9 @@ import androidx.lifecycle.ViewModelProvider
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.auth.LoginActivity
 import io.pcontacts.app.notifications.SyncNotifier
+import io.pcontacts.app.permissions.ContactsPermissionBanner
+import io.pcontacts.app.permissions.ContactsPermissionState
+import io.pcontacts.app.permissions.ContactsPermissionStatus
 import io.pcontacts.app.settings.SettingsActivity
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
@@ -63,14 +67,18 @@ class MainActivity : ComponentActivity() {
     private lateinit var viewModel: LauncherViewModel
     private var resumeTick = 0
     private var pendingVerificationReturn = false
-    private var permissionDenied = false
+    private var notificationDenied = false
+    private var contactsPermissionStatus by mutableStateOf(ContactsPermissionStatus.GRANTED)
 
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (!granted) {
-            permissionDenied = true
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        if (results[Manifest.permission.POST_NOTIFICATIONS] == false) {
+            notificationDenied = true
         }
+        val prefs = SharedPreferencesUserPreferences(this)
+        prefs.contactsPermissionRequested = true
+        contactsPermissionStatus = ContactsPermissionState.check(this, true)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,7 +91,10 @@ class MainActivity : ComponentActivity() {
             )
         )[LauncherViewModel::class.java]
 
-        requestNotificationPermissionOnce()
+        requestPermissionsOnce()
+        contactsPermissionStatus = ContactsPermissionState.check(
+            this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
+        )
 
         setContent {
             PcontactsTheme {
@@ -107,6 +118,8 @@ class MainActivity : ComponentActivity() {
                         state = state,
                         onSignIn = ::launchLogin,
                         onOpenSettings = ::launchSettings,
+                        contactsPermissionStatus = contactsPermissionStatus,
+                        onGrantContactsPermission = ::handleContactsPermissionAction,
                         modifier = Modifier.padding(innerPadding)
                     )
 
@@ -120,8 +133,8 @@ class MainActivity : ComponentActivity() {
                         showFallbackDialog = handleVerificationIntent(intent)
                     }
 
-                    if (permissionDenied) {
-                        permissionDenied = false
+                    if (notificationDenied) {
+                        notificationDenied = false
                         val message = getString(R.string.notification_permission_denied)
                         val action = getString(R.string.notification_permission_settings)
                         LaunchedEffect(Unit) {
@@ -149,6 +162,9 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         resumeTick++
         viewModel.refresh()
+        contactsPermissionStatus = ContactsPermissionState.check(
+            this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
+        )
 
         if (pendingVerificationReturn) {
             pendingVerificationReturn = false
@@ -183,22 +199,50 @@ class MainActivity : ComponentActivity() {
         ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
     }
 
-    private fun requestNotificationPermissionOnce() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+    private fun requestPermissionsOnce() {
         val prefs = SharedPreferencesUserPreferences(this)
-        if (prefs.notificationPermissionRequested) return
+        val perms = mutableListOf<String>()
+
+        val contactsNotGranted =
+            checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED
+        if (!prefs.contactsPermissionRequested && contactsNotGranted) {
+            perms += Manifest.permission.READ_CONTACTS
+            perms += Manifest.permission.WRITE_CONTACTS
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !prefs.notificationPermissionRequested &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            perms += Manifest.permission.POST_NOTIFICATIONS
+        }
+
+        if (perms.isEmpty()) return
+
+        prefs.contactsPermissionRequested = true
         prefs.notificationPermissionRequested = true
-        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        permissionLauncher.launch(perms.toTypedArray())
+    }
+
+    private fun handleContactsPermissionAction() {
+        if (contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED) {
+            openAppSettings()
+        } else {
+            permissionLauncher.launch(ContactsPermissionState.requiredPermissions())
+        }
     }
 
     private fun openAppNotificationSettings() {
         val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
             putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        }
+        startActivity(intent)
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
         }
         startActivity(intent)
     }
@@ -220,6 +264,8 @@ internal fun LauncherScreen(
     state: LauncherUiState,
     onSignIn: () -> Unit,
     onOpenSettings: () -> Unit,
+    contactsPermissionStatus: ContactsPermissionStatus = ContactsPermissionStatus.GRANTED,
+    onGrantContactsPermission: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -260,6 +306,13 @@ internal fun LauncherScreen(
 
             is LauncherUiState.SignedIn -> {
                 SignedInStatus(state.status)
+                if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
+                    Spacer(Modifier.height(16.dp))
+                    ContactsPermissionBanner(
+                        isPermanentlyDenied = contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED,
+                        onAction = onGrantContactsPermission
+                    )
+                }
                 Spacer(Modifier.height(24.dp))
                 Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
                     Text("Settings (Sync Now / Sign Out)")
