@@ -10,7 +10,7 @@ import android.content.Context
 import android.content.SyncResult
 import android.os.Bundle
 import io.pcontacts.app.logging.AndroidLogcatSink
-import io.pcontacts.app.verification.VerificationNotifier
+import io.pcontacts.app.notifications.SyncNotifier
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
@@ -33,10 +33,8 @@ import kotlinx.coroutines.runBlocking
  *
  * DecryptUnavailableException and AppVersionRejectedException both
  * map to `numAuthExceptions` so the system sync framework treats them
- * as non-retryable. DecryptUnavailableException means re-login is
- * needed to re-derive keyPassword; AppVersionRejectedException means
- * the app's hardcoded x-pm-appversion has aged out of Proton's
- * sliding acceptance window and a code update is required.
+ * as non-retryable. [SyncNotifier] posts user-visible notifications
+ * on auth failures and persistent IO errors.
  */
 class ProtonSyncAdapter(
     context: Context,
@@ -50,7 +48,8 @@ class ProtonSyncAdapter(
             }
             val rr = readEngine.sync(acct)
             wr to rr
-        }
+        },
+    internal val notifier: SyncNotifier = SyncNotifier(context)
 ) : AbstractThreadedSyncAdapter(context, autoInitialize) {
 
     private val logger: Logger = RedactingLogger(tag = "ProtonSync", sink = AndroidLogcatSink())
@@ -84,16 +83,21 @@ class ProtonSyncAdapter(
         } catch (e: DecryptUnavailableException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
+            notifier.notifyReauthRequired(account)
         } catch (e: HumanVerificationRequiredException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync paused — human verification required (Code 9001)" }
-            VerificationNotifier.notify(context, e.verificationUrl)
+            notifier.notifyHumanVerification(account, e.verificationUrl)
         } catch (e: AppVersionRejectedException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync stopped — app version rejected (Code ${e.protonCode}), update required" }
+            notifier.notifyHumanVerification(account, null)
         } catch (e: Exception) {
             syncResult.stats.numIoExceptions += 1
             logger.error(e) { "sync failed" }
+            if (syncResult.tooManyRetries) {
+                notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
+            }
         }
     }
 }

@@ -3,14 +3,19 @@
 
 package io.pcontacts.app
 
+import android.Manifest
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.provider.Settings
 import android.text.format.DateUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,7 +28,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,10 +51,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.auth.LoginActivity
+import io.pcontacts.app.notifications.SyncNotifier
 import io.pcontacts.app.settings.SettingsActivity
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
-import io.pcontacts.app.verification.VerificationNotifier
+import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 
 class MainActivity : ComponentActivity() {
@@ -52,6 +63,15 @@ class MainActivity : ComponentActivity() {
     private lateinit var viewModel: LauncherViewModel
     private var resumeTick = 0
     private var pendingVerificationReturn = false
+    private var permissionDenied = false
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            permissionDenied = true
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,12 +83,20 @@ class MainActivity : ComponentActivity() {
             )
         )[LauncherViewModel::class.java]
 
+        requestNotificationPermissionOnce()
+
         setContent {
             PcontactsTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                val snackbarHostState = remember { SnackbarHostState() }
+
+                Scaffold(
+                    snackbarHost = {
+                        SnackbarHost(snackbarHostState) { data ->
+                            Snackbar(snackbarData = data)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.background
+                ) { innerPadding ->
                     val state by viewModel.uiState.collectAsState()
                     var tick by remember { mutableIntStateOf(resumeTick) }
                     var showFallbackDialog by remember { mutableStateOf(false) }
@@ -78,7 +106,8 @@ class MainActivity : ComponentActivity() {
                     LauncherScreen(
                         state = state,
                         onSignIn = ::launchLogin,
-                        onOpenSettings = ::launchSettings
+                        onOpenSettings = ::launchSettings,
+                        modifier = Modifier.padding(innerPadding)
                     )
 
                     if (showFallbackDialog) {
@@ -89,6 +118,22 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         showFallbackDialog = handleVerificationIntent(intent)
+                    }
+
+                    if (permissionDenied) {
+                        permissionDenied = false
+                        val message = getString(R.string.notification_permission_denied)
+                        val action = getString(R.string.notification_permission_settings)
+                        LaunchedEffect(Unit) {
+                            val result = snackbarHostState.showSnackbar(
+                                message = message,
+                                actionLabel = action,
+                                duration = SnackbarDuration.Long
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                openAppNotificationSettings()
+                            }
+                        }
                     }
                 }
             }
@@ -112,12 +157,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleVerificationIntent(intent: Intent?): Boolean {
-        if (intent?.getBooleanExtra(VerificationNotifier.EXTRA_VERIFICATION_NEEDED, false) != true) {
+        if (intent?.getBooleanExtra(SyncNotifier.EXTRA_VERIFICATION_NEEDED, false) != true) {
             return false
         }
-        val url = intent.getStringExtra(VerificationNotifier.EXTRA_VERIFICATION_URL)
-        intent.removeExtra(VerificationNotifier.EXTRA_VERIFICATION_NEEDED)
-        intent.removeExtra(VerificationNotifier.EXTRA_VERIFICATION_URL)
+        val url = intent.getStringExtra(SyncNotifier.EXTRA_VERIFICATION_URL)
+        intent.removeExtra(SyncNotifier.EXTRA_VERIFICATION_NEEDED)
+        intent.removeExtra(SyncNotifier.EXTRA_VERIFICATION_URL)
 
         if (url != null) {
             pendingVerificationReturn = true
@@ -138,6 +183,26 @@ class MainActivity : ComponentActivity() {
         ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
     }
 
+    private fun requestNotificationPermissionOnce() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        val prefs = SharedPreferencesUserPreferences(this)
+        if (prefs.notificationPermissionRequested) return
+        prefs.notificationPermissionRequested = true
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    private fun openAppNotificationSettings() {
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        }
+        startActivity(intent)
+    }
+
     private fun hasProtonAccount(): Boolean =
         AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).isNotEmpty()
 
@@ -154,10 +219,11 @@ class MainActivity : ComponentActivity() {
 internal fun LauncherScreen(
     state: LauncherUiState,
     onSignIn: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(PaddingValues(24.dp)),
         horizontalAlignment = Alignment.CenterHorizontally,
