@@ -22,9 +22,8 @@ What works in code (verified by unit tests + live integration test):
 
 ### Known gaps
 
-1. **No reproducible-build CI gate.** ADR-0003 calls for diffoscope verification; not wired yet.
-2. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
-3. **Bidirectional sync is not yet validated against the live API.** The encrypt/decrypt round-trip is proven by unit tests with real BouncyCastle keys, but the full CREATE/UPDATE/DELETE flow has not been exercised against a real Proton account.
+1. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
+2. **Bidirectional sync is not yet validated against the live API.** The encrypt/decrypt round-trip is proven by unit tests with real BouncyCastle keys, but the full CREATE/UPDATE/DELETE flow has not been exercised against a real Proton account.
 
 ## Why this exists
 
@@ -77,7 +76,7 @@ For a release build (R8 + minification, exercises every `proguard-rules.pro` kee
 
 The Gradle wrapper bootstraps Gradle 8.10.2 + AGP 8.7.0 + Kotlin 2.0.21. JDK 17 required.
 
-Reproducible-build instructions will land in `docs/BUILD.md` when the diffoscope CI gate is wired.
+Reproducible-build verification is documented in [`docs/BUILD.md`](docs/BUILD.md) and enforced in CI via `diffoscope`.
 
 ## Running the test suites
 

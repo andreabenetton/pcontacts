@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+
 # Build & signing
 
 ## Prerequisites
@@ -57,10 +62,119 @@ Tag a commit with `vX.Y.Z` and push. The `release.yml` workflow:
 | `RELEASE_KEY_ALIAS` | Key alias (e.g. `pcontacts`) |
 | `RELEASE_KEY_PASSWORD` | Key password |
 
-## Reproducible-build verification
+## Reproducible builds
 
-Reproducible-build CI gate (diffoscope comparison of two clean builds)
-is a tracked follow-up for the 1.0 release.
+ADR-0003 requires that two clean builds from the same commit produce
+byte-identical unsigned APKs. This is verified in CI by the
+`reproducible-build` job in `.github/workflows/build.yml`, which
+assembles `:app:assembleRelease` twice with isolated Gradle caches and
+compares the outputs with `diffoscope`.
+
+### How the CI gate works
+
+1. Two independent `assembleRelease` runs execute from the same
+   checkout, each using a separate `--project-cache-dir` to prevent
+   any shared state between runs.
+2. `diffoscope` compares the two unsigned APKs. If it finds any
+   differences, the job fails and uploads an HTML report as an
+   artifact for diagnosis.
+3. The job is separate from `assemble-release-r8` so a flaky
+   diffoscope run does not block the canonical release-assemble.
+
+### Local verification (without diffoscope)
+
+```bash
+# Build A
+./gradlew --no-daemon --no-build-cache \
+  --project-cache-dir=/tmp/repro-a/cache \
+  clean :app:assembleRelease
+cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/repro-a/
+
+# Build B
+./gradlew --no-daemon --no-build-cache \
+  --project-cache-dir=/tmp/repro-b/cache \
+  clean :app:assembleRelease
+cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/repro-b/
+
+# Compare
+sha256sum /tmp/repro-a/app-release-unsigned.apk \
+          /tmp/repro-b/app-release-unsigned.apk
+```
+
+If the two hashes match, the build is reproducible. If they differ,
+install `diffoscope` (see below) to identify what changed.
+
+### Installing diffoscope
+
+**Linux (Debian/Ubuntu):**
+
+```bash
+sudo apt-get install diffoscope
+```
+
+**macOS (Homebrew):**
+
+```bash
+brew install diffoscope
+```
+
+**pip (any platform):**
+
+```bash
+pip install diffoscope
+```
+
+For full APK comparison (ZIP internals, DEX disassembly), diffoscope
+benefits from having `apktool`, `enjarify` or `dex2jar`, and
+`android-sdk-build-tools` available on `$PATH`. The CI job uses the
+`apt` package, which pulls in most of these automatically.
+
+### Known sources of non-determinism in Android builds
+
+Android builds can break reproducibility through several mechanisms.
+This project currently avoids all of them, but they are documented
+here for diagnosis if reproducibility regresses:
+
+1. **Timestamps in ZIP entries.** APK and JAR files are ZIP archives.
+   Some build tools write the current wall-clock time into ZIP entry
+   headers. AGP's `zipflinger` uses a fixed timestamp by default for
+   unsigned APKs, which is why our builds are currently deterministic.
+
+2. **File ordering in ZIP archives.** The order in which files are
+   added to the APK can vary if the build tool iterates a filesystem
+   directory (non-deterministic order on most filesystems). AGP
+   sorts entries deterministically.
+
+3. **R8/ProGuard mapping non-determinism.** R8 is generally
+   deterministic for the same input, but different JDK patch versions
+   can produce different optimisation decisions. Pin JDK version in
+   CI (Temurin 17).
+
+4. **Kotlin compiler non-determinism.** Rare, but the Kotlin compiler
+   has had bugs where annotation processing order or inline function
+   expansion produced different bytecode. Pinning the Kotlin version
+   in `libs.versions.toml` (via the wrapper) mitigates this.
+
+5. **Resource ordering.** AAPT2 processes resources in a
+   deterministic order by default. Custom resource processors or
+   generated resources that depend on filesystem iteration order can
+   break this.
+
+6. **Build tool version drift.** Different Gradle, AGP, or Kotlin
+   versions produce different artifacts. The Gradle wrapper
+   (`gradle-wrapper.properties`) and version catalog
+   (`libs.versions.toml`) pin all three.
+
+7. **Locale-sensitive sorting.** If any build step sorts strings
+   using the JVM's default locale, results vary by machine.
+   `SOURCE_DATE_EPOCH` does not fix this; the fix is to use
+   locale-independent comparators. Not currently an issue.
+
+8. **`SOURCE_DATE_EPOCH`.** Setting this environment variable forces
+   compliant tools to use a fixed timestamp. Not currently needed
+   (AGP already uses a fixed timestamp), but useful as a belt-and-
+   suspenders measure if a new build step introduces wall-clock
+   sensitivity.
 
 ## F-Droid
 
