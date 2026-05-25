@@ -9,28 +9,28 @@
 
 [versions]
 # Build tooling
-agp                          = "8.7.0"
-kotlin                       = "2.0.21"
-ksp                          = "2.0.21-1.0.28"
+agp                          = "8.11.2"
+kotlin                       = "2.3.21"
+ksp                          = "2.3.8"
 java                         = "17"
 detekt                       = "1.23.8"
-android-lint                 = "31.7.0"
+android-lint                 = "31.11.2"
 
 # Android platform
-android-compile-sdk          = "34"
-android-target-sdk           = "34"
+android-compile-sdk          = "35"
+android-target-sdk           = "35"
 android-min-sdk              = "26"
 
 # AndroidX
 androidx-activity            = "1.9.3"
 androidx-activity-compose    = "1.9.3"
-androidx-compose-bom         = "2024.10.01"
+androidx-compose-bom         = "2026.05.01"
 androidx-lifecycle-runtime-compose = "2.8.7"
 androidx-appcompat           = "1.7.0"
 androidx-biometric           = "1.2.0-alpha05"
 androidx-core                = "1.13.1"
 androidx-credentials         = "1.3.0"
-androidx-room                = "2.6.1"
+androidx-room                = "2.7.2"
 androidx-security-crypto     = "1.1.0-alpha06"
 androidx-work                = "2.9.1"
 

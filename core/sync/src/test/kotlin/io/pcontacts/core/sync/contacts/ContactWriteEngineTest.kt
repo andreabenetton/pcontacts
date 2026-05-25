@@ -41,6 +41,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
+import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 
 class ContactWriteEngineTest {
@@ -634,7 +635,7 @@ class ContactWriteEngineTest {
     )
 
     private fun http(code: Int): HttpException =
-        HttpException(Response.error<Unit>(code, okhttp3.ResponseBody.Companion.create(null, "")))
+        HttpException(Response.error<Unit>(code, "".toResponseBody(null)))
 }
 
 // --- fakes ---

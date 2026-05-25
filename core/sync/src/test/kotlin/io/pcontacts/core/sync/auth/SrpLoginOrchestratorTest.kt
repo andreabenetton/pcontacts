@@ -99,7 +99,7 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("u", "p".toCharArray())
 
-        assertTrue("expected Failed(info_failed), was $result", result is LoginResult.Failed && (result as LoginResult.Failed).reason == "info_failed")
+        assertTrue("expected Failed(info_failed), was $result", result is LoginResult.Failed && result.reason == "info_failed")
         assertNull(secretStore.uid())
         assertNull(secretStore.accessToken())
     }
@@ -121,7 +121,7 @@ class SrpLoginOrchestratorTest {
         val result = orchestrator.login("u", "p".toCharArray())
 
         assertTrue("expected Failed(server_proof_mismatch), was $result",
-            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "server_proof_mismatch")
+            result is LoginResult.Failed && result.reason == "server_proof_mismatch")
         // Persistence runs only AFTER the verifier accepts.
         assertNull(secretStore.uid())
         assertNull(secretStore.accessToken())
@@ -171,7 +171,7 @@ class SrpLoginOrchestratorTest {
         // No login() preceded; session is empty.
         val result = newOrchestrator().submitTwoFactorCode("000000")
         assertTrue("expected Failed(no_session), was $result",
-            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "no_session")
+            result is LoginResult.Failed && result.reason == "no_session")
     }
 
     @Test fun submitTwoFactorCode_http_failure_returns_two_factor_failed() = runTest {
@@ -185,8 +185,8 @@ class SrpLoginOrchestratorTest {
         val result = orchestrator.submitTwoFactorCode("999999")
 
         assertTrue("expected Failed(two_factor_failed), was $result",
-            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "two_factor_failed")
-        assertEquals("uid-2fa-fail", (result as LoginResult.Failed).uid)
+            result is LoginResult.Failed && result.reason == "two_factor_failed")
+        assertEquals("uid-2fa-fail", result.uid)
     }
 
     @Test fun submitTwoFactorCode_non_success_code_returns_two_factor_rejected() = runTest {
@@ -201,7 +201,7 @@ class SrpLoginOrchestratorTest {
         val result = orchestrator.submitTwoFactorCode("111111")
 
         assertTrue("expected Failed(two_factor_rejected), was $result",
-            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "two_factor_rejected")
+            result is LoginResult.Failed && result.reason == "two_factor_rejected")
     }
 
     @Test fun login_success_derives_and_persists_keyPassword_from_primary_key_salt() = runTest {
@@ -256,7 +256,7 @@ class SrpLoginOrchestratorTest {
         val result = newOrchestrator().login("u", "p".toCharArray())
 
         assertTrue("expected Failed(modulus_unsigned), was $result",
-            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "modulus_unsigned")
+            result is LoginResult.Failed && result.reason == "modulus_unsigned")
         assertNull(secretStore.uid())
     }
 
@@ -266,7 +266,7 @@ class SrpLoginOrchestratorTest {
         val result = newOrchestrator().login("u", "p".toCharArray())
 
         assertTrue("expected Failed(appversion_rejected), was $result",
-            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "appversion_rejected")
+            result is LoginResult.Failed && result.reason == "appversion_rejected")
         assertNull(secretStore.uid())
     }
 
@@ -276,7 +276,7 @@ class SrpLoginOrchestratorTest {
         val result = newOrchestrator().login("u", "p".toCharArray())
 
         assertTrue("expected Failed(appversion_rejected), was $result",
-            result is LoginResult.Failed && (result as LoginResult.Failed).reason == "appversion_rejected")
+            result is LoginResult.Failed && result.reason == "appversion_rejected")
     }
 
     @Test fun login_success_when_users_endpoint_fails_still_succeeds_without_keyPassword() = runTest {
