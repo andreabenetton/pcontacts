@@ -20,6 +20,9 @@ interface UserPreferences {
     /** Whether the POST_NOTIFICATIONS runtime permission has been requested. */
     var notificationPermissionRequested: Boolean
 
+    /** Whether READ_CONTACTS / WRITE_CONTACTS runtime permissions have been requested. */
+    var contactsPermissionRequested: Boolean
+
     companion object {
         const val DEFAULT_SYNC_INTERVAL_HOURS = 12L
         val ALLOWED_INTERVALS_HOURS = listOf(1L, 6L, 12L, 24L)

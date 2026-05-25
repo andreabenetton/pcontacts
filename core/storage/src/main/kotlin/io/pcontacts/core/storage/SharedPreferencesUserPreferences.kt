@@ -26,9 +26,14 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, false)
         set(value) { prefs.edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, value).apply() }
 
+    override var contactsPermissionRequested: Boolean
+        get() = prefs.getBoolean(KEY_CONTACTS_PERMISSION_REQUESTED, false)
+        set(value) { prefs.edit().putBoolean(KEY_CONTACTS_PERMISSION_REQUESTED, value).apply() }
+
     private companion object {
         const val PREFS_NAME = "pcontacts_user_prefs"
         const val KEY_SYNC_INTERVAL = "sync_interval_hours"
         const val KEY_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
+        const val KEY_CONTACTS_PERMISSION_REQUESTED = "contacts_permission_requested"
     }
 }

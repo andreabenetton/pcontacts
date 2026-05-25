@@ -10,4 +10,5 @@ package io.pcontacts.core.storage
 class InMemoryUserPreferences : UserPreferences {
     override var syncIntervalHours: Long = UserPreferences.DEFAULT_SYNC_INTERVAL_HOURS
     override var notificationPermissionRequested: Boolean = false
+    override var contactsPermissionRequested: Boolean = false
 }
