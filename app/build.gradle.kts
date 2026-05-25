@@ -81,7 +81,6 @@ kotlin {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)         // kept for Theme.AppCompat parent on Activity manifest theme
     implementation(libs.androidx.activity)
     implementation(libs.androidx.activity.compose)
 

@@ -11,10 +11,9 @@ import androidx.compose.runtime.Composable
 
 /**
  * Material3 theme for pcontacts. Follows the ProtonVPN/android-app stack
- * (Compose + Material3); no Material3-XML or AppCompat theming is involved
- * at the Composable layer. The Activity-level manifest theme remains
- * `Theme.AppCompat.DayNight.NoActionBar` only because Android requires a
- * non-Compose theme for window/status-bar setup before `setContent` runs.
+ * (Compose + Material3). The Activity-level manifest theme is a minimal
+ * `android:Theme.Material.Light.NoActionBar` for window setup before
+ * `setContent` runs; all real theming happens here in Compose.
  *
  * Color overrides land here once we have brand palette decisions; for now
  * we use Material3's stock light/dark color schemes so previews and the
