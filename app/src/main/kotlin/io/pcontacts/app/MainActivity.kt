@@ -137,52 +137,49 @@ internal fun LauncherScreen(
             }
 
             is LauncherUiState.SignedIn -> {
-                Text(
-                    text = "Signed in. Your Proton contacts sync into the system Contacts app.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(16.dp))
-
-                val status = state.status
-                Text(
-                    text = stringResource(R.string.launcher_synced_contacts, status.totalContacts),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                val lastSyncMillis = status.lastSyncedAtMillis
-                val lastSyncText = if (lastSyncMillis != null) {
-                    stringResource(
-                        R.string.launcher_last_sync,
-                        DateUtils.getRelativeTimeSpanString(
-                            lastSyncMillis,
-                            System.currentTimeMillis(),
-                            DateUtils.MINUTE_IN_MILLIS
-                        )
-                    )
-                } else {
-                    stringResource(R.string.launcher_last_sync_never)
-                }
-                Text(
-                    text = lastSyncText,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                if (status.unverifiedContacts > 0) {
-                    Text(
-                        text = stringResource(
-                            R.string.launcher_unverified_warning,
-                            status.unverifiedContacts
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-
+                SignedInStatus(state.status)
                 Spacer(Modifier.height(24.dp))
                 Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
                     Text("Settings (Sync Now / Sign Out)")
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatus) {
+    Text(
+        text = "Signed in. Your Proton contacts sync into the system Contacts app.",
+        style = MaterialTheme.typography.bodyMedium
+    )
+    Spacer(Modifier.height(16.dp))
+    Text(
+        text = stringResource(R.string.launcher_synced_contacts, status.totalContacts),
+        style = MaterialTheme.typography.bodyMedium
+    )
+    val lastSyncMillis = status.lastSyncedAtMillis
+    val lastSyncText = if (lastSyncMillis != null) {
+        stringResource(
+            R.string.launcher_last_sync,
+            DateUtils.getRelativeTimeSpanString(
+                lastSyncMillis,
+                System.currentTimeMillis(),
+                DateUtils.MINUTE_IN_MILLIS
+            )
+        )
+    } else {
+        stringResource(R.string.launcher_last_sync_never)
+    }
+    Text(
+        text = lastSyncText,
+        style = MaterialTheme.typography.bodyMedium
+    )
+    if (status.unverifiedContacts > 0) {
+        Text(
+            text = stringResource(R.string.launcher_unverified_warning, status.unverifiedContacts),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error
+        )
     }
 }
