@@ -6,6 +6,7 @@ package io.pcontacts.app
 import android.accounts.AccountManager
 import android.content.Intent
 import android.os.Bundle
+import android.text.format.DateUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -23,33 +24,62 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.auth.LoginActivity
 import io.pcontacts.app.settings.SettingsActivity
 import io.pcontacts.app.ui.PcontactsTheme
+import io.pcontacts.core.sync.contacts.SyncBootstrap
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var viewModel: LauncherViewModel
+    private var resumeTick = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(
+            this,
+            LauncherViewModel.Factory(
+                hasAccount = ::hasProtonAccount,
+                loadStatus = { SyncBootstrap.loadLauncherStatus(this@MainActivity) }
+            )
+        )[LauncherViewModel::class.java]
+
         setContent {
             PcontactsTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val state by viewModel.uiState.collectAsState()
+                    var tick by remember { mutableIntStateOf(resumeTick) }
+
+                    LaunchedEffect(tick) { viewModel.refresh() }
+
                     LauncherScreen(
-                        hasAccount = ::hasProtonAccount,
+                        state = state,
                         onSignIn = ::launchLogin,
                         onOpenSettings = ::launchSettings
                     )
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        resumeTick++
+        viewModel.refresh()
     }
 
     private fun hasProtonAccount(): Boolean =
@@ -65,18 +95,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun LauncherScreen(
-    hasAccount: () -> Boolean,
+internal fun LauncherScreen(
+    state: LauncherUiState,
     onSignIn: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    // Recompute on each entry — `hasAccount()` reads AccountManager directly,
-    // which may have changed while another Activity was foregrounded.
-    var accountPresent by remember { mutableStateOf(hasAccount()) }
-    LaunchedEffect(Unit) { accountPresent = hasAccount() }
-
     Column(
-        modifier = Modifier.fillMaxSize().padding(PaddingValues(24.dp)),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(PaddingValues(24.dp)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -85,26 +112,76 @@ private fun LauncherScreen(
             style = MaterialTheme.typography.headlineLarge
         )
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = if (accountPresent)
-                "Signed in. Your Proton contacts sync into the system Contacts app."
-            else
-                "Sign in with your Proton account to start syncing contacts.",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(Modifier.height(24.dp))
 
-        if (accountPresent) {
-            Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                Text("Settings (Sync Now / Sign Out)")
+        when (state) {
+            is LauncherUiState.Loading -> {
+                Text(
+                    text = "Loading...",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
-        } else {
-            Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
-                Text("Sign in")
+
+            is LauncherUiState.NoAccount -> {
+                Text(
+                    text = "Sign in with your Proton account to start syncing contacts.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
+                    Text("Sign in")
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                    Text("Settings")
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                Text("Settings")
+
+            is LauncherUiState.SignedIn -> {
+                Text(
+                    text = "Signed in. Your Proton contacts sync into the system Contacts app.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(16.dp))
+
+                val status = state.status
+                Text(
+                    text = stringResource(R.string.launcher_synced_contacts, status.totalContacts),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                val lastSyncMillis = status.lastSyncedAtMillis
+                val lastSyncText = if (lastSyncMillis != null) {
+                    stringResource(
+                        R.string.launcher_last_sync,
+                        DateUtils.getRelativeTimeSpanString(
+                            lastSyncMillis,
+                            System.currentTimeMillis(),
+                            DateUtils.MINUTE_IN_MILLIS
+                        )
+                    )
+                } else {
+                    stringResource(R.string.launcher_last_sync_never)
+                }
+                Text(
+                    text = lastSyncText,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                if (status.unverifiedContacts > 0) {
+                    Text(
+                        text = stringResource(
+                            R.string.launcher_unverified_warning,
+                            status.unverifiedContacts
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                    Text("Settings (Sync Now / Sign Out)")
+                }
             }
         }
     }

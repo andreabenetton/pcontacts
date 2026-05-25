@@ -94,6 +94,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // :app pulls in the orchestration + feature modules. Per ADR-0011 it does

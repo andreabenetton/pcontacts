@@ -2,4 +2,8 @@
 <resources>
     <string name="app_name">pcontacts</string>
     <string name="account_label">Proton Contacts</string>
+    <string name="launcher_synced_contacts">Synced: %d contacts</string>
+    <string name="launcher_last_sync">Last sync: %s</string>
+    <string name="launcher_last_sync_never">Last sync: never</string>
+    <string name="launcher_unverified_warning">%d contacts failed signature verification</string>
 </resources>
