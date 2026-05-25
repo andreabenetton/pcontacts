@@ -12,6 +12,7 @@ import android.os.Bundle
 import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
+import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.core.sync.contacts.SyncReport
@@ -29,10 +30,12 @@ import kotlinx.coroutines.runBlocking
  * on its own schedule (plus the WorkManager belt-and-suspenders once
  * that ships) without worrying about re-doing work.
  *
- * DecryptUnavailableException maps to `numAuthExceptions` so the
- * system sync framework treats it as "needs re-auth" (which it does —
- * the user has to re-login to re-derive keyPassword) rather than a
- * retry-with-backoff IO failure.
+ * DecryptUnavailableException and AppVersionRejectedException both
+ * map to `numAuthExceptions` so the system sync framework treats them
+ * as non-retryable. DecryptUnavailableException means re-login is
+ * needed to re-derive keyPassword; AppVersionRejectedException means
+ * the app's hardcoded x-pm-appversion has aged out of Proton's
+ * sliding acceptance window and a code update is required.
  */
 class ProtonSyncAdapter(
     context: Context,
@@ -83,6 +86,9 @@ class ProtonSyncAdapter(
         } catch (e: HumanVerificationRequiredException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync paused — human verification required (Code 9001)" }
+        } catch (e: AppVersionRejectedException) {
+            syncResult.stats.numAuthExceptions += 1
+            logger.warn { "sync stopped — app version rejected (Code ${e.protonCode}), update required" }
         } catch (e: Exception) {
             syncResult.stats.numIoExceptions += 1
             logger.error(e) { "sync failed" }

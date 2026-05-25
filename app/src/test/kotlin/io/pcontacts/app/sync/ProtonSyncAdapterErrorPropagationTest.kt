@@ -13,6 +13,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
+import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.sync.contacts.SyncReport
 import io.pcontacts.core.sync.contacts.WriteReport
@@ -93,6 +94,15 @@ class ProtonSyncAdapterErrorPropagationTest {
     @Test
     fun humanVerificationRequired_is_caught_as_auth_exception() {
         val adapter = adapter { _, _, _ -> throw HumanVerificationRequiredException() }
+        val syncResult = SyncResult()
+        adapter.onPerformSync(account, extras, authority, provider, syncResult)
+        assertEquals(1L, syncResult.stats.numAuthExceptions)
+        assertEquals(0L, syncResult.stats.numIoExceptions)
+    }
+
+    @Test
+    fun appVersionRejected_is_caught_as_auth_exception() {
+        val adapter = adapter { _, _, _ -> throw AppVersionRejectedException(5003) }
         val syncResult = SyncResult()
         adapter.onPerformSync(account, extras, authority, provider, syncResult)
         assertEquals(1L, syncResult.stats.numAuthExceptions)
