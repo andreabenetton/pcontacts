@@ -14,6 +14,8 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.core.sync.contacts.SyncReport
+import io.pcontacts.core.sync.contacts.WriteReport
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
 import kotlinx.coroutines.runBlocking
 
@@ -34,7 +36,17 @@ import kotlinx.coroutines.runBlocking
  */
 class ProtonSyncAdapter(
     context: Context,
-    autoInitialize: Boolean = true
+    autoInitialize: Boolean = true,
+    internal val syncRunner: suspend (Context, ContentProviderClient, Account) -> Pair<WriteReport, SyncReport> =
+        { ctx, prov, acct ->
+            val (writeEngine, readEngine) = SyncBootstrap.createBidirectionalEngines(ctx, prov)
+            val wr = writeEngine.run {
+                detectChanges(acct)
+                push()
+            }
+            val rr = readEngine.sync(acct)
+            wr to rr
+        }
 ) : AbstractThreadedSyncAdapter(context, autoInitialize) {
 
     private val logger: Logger = RedactingLogger(tag = "ProtonSync", sink = AndroidLogcatSink())
@@ -48,19 +60,8 @@ class ProtonSyncAdapter(
     ) {
         logger.info { "sync start account=${account.name} authority=$authority" }
         try {
-            // onPerformSync runs on AbstractThreadedSyncAdapter's worker thread;
-            // runBlocking parks it while the suspend bootstrap + engines complete.
             val (writeReport, readReport) = runBlocking {
-                val (writeEngine, readEngine) = SyncBootstrap.createBidirectionalEngines(
-                    this@ProtonSyncAdapter.context, provider
-                )
-                // Push-before-pull per ADR-0017 §7B.
-                val wr = writeEngine.run {
-                    detectChanges(account)
-                    push()
-                }
-                val rr = readEngine.sync(account)
-                wr to rr
+                syncRunner(this@ProtonSyncAdapter.context, provider, account)
             }
             syncResult.stats.numInserts += readReport.inserted.toLong()
             syncResult.stats.numUpdates += (readReport.updated + writeReport.updated).toLong()
@@ -77,19 +78,14 @@ class ProtonSyncAdapter(
                     "updated=${readReport.updated} deleted=${readReport.deleted} unchanged=${readReport.unchanged}"
             }
         } catch (e: DecryptUnavailableException) {
-            // Stale keyPassword, missing primary key, or never-logged-in path.
-            // Tell the sync framework auth is required so it stops retrying
-            // until the user re-logs.
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
         } catch (e: HumanVerificationRequiredException) {
-            // Proton wants the user to clear a captcha / recovery flow.
-            // Stop retrying until the user completes it in the app UI.
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync paused — human verification required (Code 9001)" }
-        } catch (t: Throwable) {
+        } catch (e: Exception) {
             syncResult.stats.numIoExceptions += 1
-            logger.error(t) { "sync failed" }
+            logger.error(e) { "sync failed" }
         }
     }
 }
