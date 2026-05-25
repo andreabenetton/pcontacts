@@ -1,0 +1,1 @@
+Sync Proton Mail contacts into the Android system address book.

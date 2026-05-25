@@ -1,0 +1,11 @@
+Initial release (0.1.0).
+
+* SRP login with TOTP 2FA and modulus signature verification.
+* Full contact sync: name, email, phone, address, organization,
+  notes, instant messaging, photos, and group membership.
+* Bidirectional sync with persistent outbox and push-before-pull.
+* Per-field three-way conflict detection with resolution UI.
+* Soft-delete with 1-hour grace period and cancellation support.
+* Periodic sync (configurable interval) via SyncAdapter + WorkManager.
+* Client-side-only OpenPGP decryption — no contact data leaves the device.
+* No telemetry, no Google Play Services, no proprietary dependencies.
