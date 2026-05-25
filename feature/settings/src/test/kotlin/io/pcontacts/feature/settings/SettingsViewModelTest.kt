@@ -290,6 +290,23 @@ class SettingsViewModelTest {
         assertEquals(0, vm.outboxStats.value.pending)
     }
 
+    @Test fun sign_out_failure_surfaces_reason() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { SettingsActionResult.Failure("missing_contacts_permission") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.triggerSignOut()
+        assertEquals(SettingsUiState.SigningOut, vm.uiState.value)
+        advanceUntilIdle()
+        assertEquals(
+            SettingsUiState.SignOutFailed("missing_contacts_permission"),
+            vm.uiState.value
+        )
+    }
+
     @Test fun outbox_stats_default_on_query_failure() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = SettingsViewModel(
