@@ -63,6 +63,28 @@ known set of client identifiers and a sliding version window `[V]`.
 
 Current value: `android-mail@3.0.12` (set in `ProtonApiConfig`).
 
+### Version-rejection detection
+
+When the pinned version ages out of Proton's acceptance window, the
+server responds with a JSON body containing a specific error code
+rather than a generic 4xx:
+
+| Code | Meaning | Status |
+|---|---|---|
+| 5003 | Force upgrade (bad app version) | `[V]` |
+| 5004 | API version not supported | `[A]` |
+
+The HTTP status code varies (401, 422, or 400 depending on how far
+out of window the version is), so detection keys on the JSON `Code`
+field, not the HTTP status `[V]`.
+
+`AppVersionRejectionInterceptor` peeks the response body for these
+codes and throws `AppVersionRejectedException` (an `IOException`
+subclass), letting callers distinguish "app needs update" from
+transient IO errors or auth failures. The SyncAdapter maps this
+exception to `numAuthExceptions` so the sync framework stops
+retrying until the app is updated.
+
 ---
 
 ## 3. SRP authentication flow
@@ -362,6 +384,10 @@ highlights:
    Mitigation: if rejected, investigate `@protontech/challenge`
    source; last resort is WebView-based auth (out of scope for v1).
 3. **appVersion window drift.** Our `3.0.12` will age out.
-   Mitigation: periodic probing; bump in a maintenance release.
+   Mitigation: `AppVersionRejectionInterceptor` detects Code
+   5003/5004 `[V]`/`[A]` and throws a typed exception so the
+   SyncAdapter stops retrying and the user sees "app update
+   required" instead of a silent auth loop. Still requires a
+   code update to bump `ProtonApiConfig.DEFAULT_APP_VERSION`.
 4. **Rate limiting / captcha.** Fibonacci backoff + 12h sync
    interval + 9001 typed exception.

@@ -32,7 +32,7 @@ class AuthInterceptorTest {
             .addInterceptor(AuthInterceptor(InMemorySession()))
             .build()
 
-        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body?.close() }
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body.close() }
 
         val recorded = server.takeRequest()
         assertNull(recorded.getHeader("x-pm-uid"))
@@ -46,7 +46,7 @@ class AuthInterceptorTest {
             .addInterceptor(AuthInterceptor(session))
             .build()
 
-        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body?.close() }
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body.close() }
 
         val recorded = server.takeRequest()
         assertEquals("session-uid-abc", recorded.getHeader("x-pm-uid"))
@@ -61,7 +61,7 @@ class AuthInterceptorTest {
             .addInterceptor(AuthInterceptor(session))
             .build()
 
-        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body?.close() }
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body.close() }
 
         val recorded = server.takeRequest()
         assertNull(recorded.getHeader("x-pm-uid"))

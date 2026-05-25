@@ -32,7 +32,7 @@ class HeadersInterceptorTest {
             .addInterceptor(HeadersInterceptor(ProtonApiConfig(baseUrl = server.url("/").toString(), appVersion = "android-contacts@0.1.0")))
             .build()
 
-        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body?.close() }
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body.close() }
 
         val recorded = server.takeRequest()
         assertEquals("application/vnd.protonmail.v1+json", recorded.getHeader("accept"))
@@ -46,7 +46,7 @@ class HeadersInterceptorTest {
             .addInterceptor(HeadersInterceptor(ProtonApiConfig(baseUrl = server.url("/").toString(), locale = "en_US")))
             .build()
 
-        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body?.close() }
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body.close() }
 
         assertEquals("en_US", server.takeRequest().getHeader("x-pm-locale"))
     }
@@ -57,7 +57,7 @@ class HeadersInterceptorTest {
             .addInterceptor(HeadersInterceptor(ProtonApiConfig(baseUrl = server.url("/").toString())))
             .build()
 
-        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body?.close() }
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().use { it.body.close() }
 
         val recorded = server.takeRequest()
         assertNull("HeadersInterceptor must not touch auth headers", recorded.getHeader("x-pm-uid"))

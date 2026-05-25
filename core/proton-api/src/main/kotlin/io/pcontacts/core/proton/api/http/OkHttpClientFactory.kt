@@ -31,6 +31,10 @@ import okhttp3.OkHttpClient
  *                            rate-limited requests on the wire side
  *                            so callers don't see 429s under normal
  *                            transient load.
+ *   - AppVersionRejection  — peeks the JSON body for Code 5003/5004
+ *                            and throws AppVersionRejectedException
+ *                            so callers can distinguish "app needs
+ *                            update" from generic failures.
  *
  * Logging interceptor is intentionally absent. If one is added it must
  * use `:core:logging`'s `Logger` and never emit request/response bodies
@@ -55,6 +59,9 @@ object OkHttpClientFactory {
             // and throws HumanVerificationRequiredException so 9001 is
             // never silently auto-retried.
             .addInterceptor(HumanVerificationInterceptor())
+            // App-version rejection (5003/5004) — must run after 9001
+            // so the more-specific human-verification is caught first.
+            .addInterceptor(AppVersionRejectionInterceptor())
             .dns(ProtonHostDnsGuard())
             .certificatePinner(ProtonCertificatePins.buildPinner())
             .connectTimeout(15, TimeUnit.SECONDS)

@@ -36,7 +36,7 @@ class HumanVerificationInterceptor(
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val response = chain.proceed(chain.request())
-        val contentType = response.body?.contentType()?.subtype ?: ""
+        val contentType = response.body.contentType()?.subtype ?: ""
         if (!contentType.contains("json", ignoreCase = true)) return response
 
         val snippet = try {

@@ -13,6 +13,15 @@ package io.pcontacts.core.proton.api
  * `3.0.12` are accepted; below returns 422, above returns 401. The
  * window moves as Proton ships new official releases, so this default
  * will need periodic bumps.
+ *
+ * When the pinned version ages out, Proton responds with `Code: 5003`
+ * (force upgrade) `[V]` or `5004` (API version unsupported) `[A]`.
+ * [io.pcontacts.core.proton.api.http.AppVersionRejectionInterceptor]
+ * detects these codes and throws
+ * [io.pcontacts.core.proton.api.http.AppVersionRejectedException],
+ * letting callers distinguish "needs app update" from transient IO
+ * errors. See `docs/API_RESEARCH.md` §2 for the full validation
+ * matrix.
  */
 data class ProtonApiConfig(
     val baseUrl: String = "https://mail-api.proton.me/",

@@ -48,7 +48,7 @@ class HumanVerificationInterceptorTest {
         )
         val response = client.newCall(Request.Builder().url(server.url("/x")).build()).execute()
         assertEquals(200, response.code)
-        assertEquals("""{"Code":1000,"OK":true}""", response.body!!.string())
+        assertEquals("""{"Code":1000,"OK":true}""", response.body.string())
     }
 
     @Test fun non_json_body_is_not_inspected_even_if_it_contains_9001() {
