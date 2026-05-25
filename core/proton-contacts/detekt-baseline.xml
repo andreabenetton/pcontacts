@@ -1,10 +1,13 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>ArgumentListWrapping:ContactSerializerTest.kt$ContactSerializerTest$( given = "Alice", family = "Smith", additionalNames = listOf("Marie"), prefixes = listOf("Dr."), suffixes = listOf("Jr.") )</ID>
+    <ID>ArgumentListWrapping:ContactSerializerTest.kt$ContactSerializerTest$( street = "123 Main St", locality = "Springfield", region = "IL", postalCode = "62701", country = "US", types = listOf("home"), isPrimary = true )</ID>
     <ID>ArgumentListWrapping:VCardMerger.kt$VCardMerger$( out.poBox, out.extendedAddress, out.street, out.locality, out.region, out.postalCode, out.country )</ID>
     <ID>ArgumentListWrapping:VCardMergerTest.kt$VCardMergerTest$("photo bytes must survive the data: URI parse", pngBytes.contentEquals(photo!!.data))</ID>
     <ID>ComplexCondition:VCardMerger.kt$VCardMerger$given == null &amp;&amp; family == null &amp;&amp; additional.isEmpty() &amp;&amp; prefixes.isEmpty() &amp;&amp; suffixes.isEmpty()</ID>
+    <ID>LongParameterList:ContactSerializerTest.kt$ContactSerializerTest$( fullName: String? = null, protonUid: String? = null, structuredName: DecryptedStructuredName? = null, emails: List&lt;DecryptedEmail&gt; = emptyList(), phones: List&lt;DecryptedPhone&gt; = emptyList(), addresses: List&lt;DecryptedAddress&gt; = emptyList(), organization: DecryptedOrganization? = null, notes: List&lt;String&gt; = emptyList(), imAccounts: List&lt;DecryptedIm&gt; = emptyList(), photo: DecryptedPhoto? = null )</ID>
     <ID>MultiLineIfElse:VCardMerger.kt$VCardMerger$null</ID>
     <ID>MultiLineIfElse:VCardMerger.kt$VCardMerger$out</ID>
     <ID>NoBlankLineBeforeRbrace:VCardMerger.kt$VCardMerger$ </ID>

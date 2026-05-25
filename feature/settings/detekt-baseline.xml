@@ -1,7 +1,12 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( viewModel: SettingsViewModel, onSignedOut: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:SettingsViewModel.kt$SettingsViewModel$( private val syncNow: suspend () -&gt; SettingsActionResult, private val signOut: suspend () -&gt; SettingsActionResult, private val queryVerificationStats: suspend () -&gt; VerificationStats? = { null }, private val queryOutboxStats: suspend () -&gt; OutboxStats = { OutboxStats(0, 0) }, private val queryPendingDeletes: suspend () -&gt; List&lt;PendingDelete&gt; = { emptyList() }, private val queryConflicts: suspend () -&gt; List&lt;ConflictInfo&gt; = { emptyList() }, private val cancelDelete: suspend (String) -&gt; Unit = {}, private val resolveConflict: suspend (String, ConflictResolution) -&gt; Unit = { _, _ -&gt; }, private val onSyncIntervalChanged: (Long) -&gt; Unit = {}, initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours, private val scope: CoroutineScope = MainScope(), private val workDispatcher: CoroutineDispatcher = Dispatchers.Default )</ID>
+    <ID>MultiLineIfElse:SettingsViewModelTest.kt$SettingsViewModelTest$emptyList()</ID>
+    <ID>MultiLineIfElse:SettingsViewModelTest.kt$SettingsViewModelTest$listOf(ConflictInfo("ct-1", "Alice", "fullName"))</ID>
+    <ID>MultiLineIfElse:SettingsViewModelTest.kt$SettingsViewModelTest$listOf(PendingDelete("ct-1", 1000L))</ID>
     <ID>NoMultipleSpaces:SettingsViewModelTest.kt$SettingsViewModelTest$ </ID>
     <ID>Wrapping:SettingsViewModelTest.kt$SettingsViewModelTest$;</ID>
   </CurrentIssues>

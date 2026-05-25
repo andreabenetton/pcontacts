@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ArgumentListWrapping:ContactEmailsPagerTest.kt$ContactEmailsPagerTest$( id = id, email = "$id@proton.me", contactId = contactId )</ID>
     <ID>ArgumentListWrapping:ContactEmailsPagerTest.kt$ContactEmailsPagerTest$(code = 1000, total = 3, contactEmails = (1..3).map { email("e$it", "c$it") })</ID>
@@ -12,6 +12,7 @@
     <ID>ArgumentListWrapping:HeadersInterceptorTest.kt$HeadersInterceptorTest$(ProtonApiConfig(baseUrl = server.url("/").toString(), appVersion = "android-contacts@0.1.0"))</ID>
     <ID>ArgumentListWrapping:HeadersInterceptorTest.kt$HeadersInterceptorTest$(baseUrl = server.url("/").toString(), appVersion = "android-contacts@0.1.0")</ID>
     <ID>ArgumentListWrapping:ProtonContactsApiTest.kt$ProtonContactsApiTest$("missing Email param: ${recorded.path}", recorded.path!!.contains("Email=alice%40proton.me"))</ID>
+    <ID>ArgumentListWrapping:ProtonContactsApiTest.kt$ProtonContactsApiTest$(type = 3, data = "-----BEGIN PGP MESSAGE-----...", signature = "-----BEGIN PGP SIGNATURE-----...")</ID>
     <ID>ArgumentListWrapping:TokenRefresherTest.kt$TokenRefresherTest.&lt;no name provided&gt;$( accessToken = "fresh", refreshToken = "fresh-r", tokenType = "Bearer", expiresIn = 86400, uid = "uid-1" )</ID>
     <ID>EmptyFunctionBlock:TokenRefresherTest.kt$TokenRefresherTest.NoOpAuthApi${}</ID>
     <ID>ImportOrdering:OkHttpClientFactory.kt$import io.pcontacts.core.proton.api.ProtonApiConfig import io.pcontacts.core.proton.api.Session import java.util.concurrent.TimeUnit import okhttp3.Authenticator import okhttp3.OkHttpClient</ID>
