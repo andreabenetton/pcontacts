@@ -55,7 +55,7 @@ PR.
 | A2 | `EncryptedSharedPreferences` (androidx.security:security-crypto) is honest — its AES256_SIV + AES256_GCM cipher pair has no known break. | Reviewed crypto, Tink-backed. |
 | A3 | The Android `ContactsContract` provider is honest — `caller_is_syncadapter=true` semantics work as documented (no duplicate-resurrection bug). | AOSP-documented, exercised by every account-syncing app. |
 | A4 | The user's Proton account password is sufficiently strong to resist offline brute-force against the bcrypt-SHA-512 key-password (≥ 60 bits of entropy in practice). | Proton enforces a minimum complexity at signup. |
-| A5 | The OkHttp + BouncyCastle releases pinned in `gradle/libs.versions.toml` do not contain a known CVE we're vulnerable to. | Dep-bump cadence per ADR-0015. Dependabot is enabled for Gradle + GitHub Actions ecosystems (`.github/dependabot.yml`). |
+| A5 | The OkHttp + BouncyCastle releases pinned in `gradle/libs.versions.toml` do not contain a known CVE we're vulnerable to. | Dep-bump cadence per ADR-0015. Dependabot is enabled (`.github/dependabot.yml`). OWASP Dependency-Check runs weekly (Monday 09:00 UTC) and on PRs touching `gradle/libs.versions.toml` — see the `vulnerability-scan` job in `.github/workflows/build.yml`. Findings with CVSS >= 7.0 fail the build. |
 
 ---
 

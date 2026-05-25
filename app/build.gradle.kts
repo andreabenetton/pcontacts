@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.dependency.check)
 }
 
 android {
@@ -307,6 +308,18 @@ tasks.register("verifyManifestInvariants") {
                 "debug manifest, release manifest, data_extraction_rules.xml all verified."
         )
     }
+}
+
+// OWASP Dependency-Check — scans resolved classpath for known CVEs.
+// Runs weekly in CI and on PRs touching libs.versions.toml.
+// NVD API key (free, https://nvd.nist.gov/developers/request-an-api-key)
+// is required since dependency-check v9; set NVD_API_KEY in CI secrets.
+dependencyCheck {
+    failBuildOnCVSS = 7.0f
+    suppressionFile = "$rootDir/config/dependency-check-suppressions.xml"
+    formats = listOf("HTML", "JSON", "SARIF")
+    skipConfigurations = listOf("lintClassPath", "lintChecks")
+    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
 }
 
 afterEvaluate {
