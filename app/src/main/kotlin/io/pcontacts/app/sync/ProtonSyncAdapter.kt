@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.SyncResult
 import android.os.Bundle
 import io.pcontacts.app.logging.AndroidLogcatSink
+import io.pcontacts.app.verification.VerificationNotifier
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
@@ -86,6 +87,7 @@ class ProtonSyncAdapter(
         } catch (e: HumanVerificationRequiredException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync paused — human verification required (Code 9001)" }
+            VerificationNotifier.notify(context, e.verificationUrl)
         } catch (e: AppVersionRejectedException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync stopped — app version rejected (Code ${e.protonCode}), update required" }

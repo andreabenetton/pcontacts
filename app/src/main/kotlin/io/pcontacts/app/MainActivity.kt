@@ -4,8 +4,10 @@
 package io.pcontacts.app
 
 import android.accounts.AccountManager
+import android.content.ContentResolver
 import android.content.Intent
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.text.format.DateUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,16 +19,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,12 +43,15 @@ import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.auth.LoginActivity
 import io.pcontacts.app.settings.SettingsActivity
 import io.pcontacts.app.ui.PcontactsTheme
+import io.pcontacts.app.verification.HumanVerificationLauncher
+import io.pcontacts.app.verification.VerificationNotifier
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: LauncherViewModel
     private var resumeTick = 0
+    private var pendingVerificationReturn = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +71,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val state by viewModel.uiState.collectAsState()
                     var tick by remember { mutableIntStateOf(resumeTick) }
+                    var showFallbackDialog by remember { mutableStateOf(false) }
 
                     LaunchedEffect(tick) { viewModel.refresh() }
 
@@ -71,15 +80,62 @@ class MainActivity : ComponentActivity() {
                         onSignIn = ::launchLogin,
                         onOpenSettings = ::launchSettings
                     )
+
+                    if (showFallbackDialog) {
+                        VerificationFallbackDialog(
+                            onDismiss = { showFallbackDialog = false }
+                        )
+                    }
+
+                    LaunchedEffect(Unit) {
+                        showFallbackDialog = handleVerificationIntent(intent)
+                    }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onResume() {
         super.onResume()
         resumeTick++
         viewModel.refresh()
+
+        if (pendingVerificationReturn) {
+            pendingVerificationReturn = false
+            requestExpeditedSync()
+        }
+    }
+
+    private fun handleVerificationIntent(intent: Intent?): Boolean {
+        if (intent?.getBooleanExtra(VerificationNotifier.EXTRA_VERIFICATION_NEEDED, false) != true) {
+            return false
+        }
+        val url = intent.getStringExtra(VerificationNotifier.EXTRA_VERIFICATION_URL)
+        intent.removeExtra(VerificationNotifier.EXTRA_VERIFICATION_NEEDED)
+        intent.removeExtra(VerificationNotifier.EXTRA_VERIFICATION_URL)
+
+        if (url != null) {
+            pendingVerificationReturn = true
+            HumanVerificationLauncher.launch(this, url)
+            return false
+        }
+        return true
+    }
+
+    private fun requestExpeditedSync() {
+        val account = AccountManager.get(this)
+            .getAccountsByType(PROTON_ACCOUNT_TYPE)
+            .firstOrNull() ?: return
+        val extras = Bundle().apply {
+            putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
+            putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
+        }
+        ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
     }
 
     private fun hasProtonAccount(): Boolean =
@@ -182,4 +238,18 @@ private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatu
             color = MaterialTheme.colorScheme.error
         )
     }
+}
+
+@Composable
+private fun VerificationFallbackDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.verification_fallback_title)) },
+        text = { Text(stringResource(R.string.verification_fallback_message)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.verification_fallback_dismiss))
+            }
+        }
+    )
 }

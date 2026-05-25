@@ -6,4 +6,10 @@
     <string name="launcher_last_sync">Last sync: %s</string>
     <string name="launcher_last_sync_never">Last sync: never</string>
     <string name="launcher_unverified_warning">%d contacts failed signature verification</string>
+    <string name="notification_channel_sync">Sync status</string>
+    <string name="notification_verification_title">Proton verification required</string>
+    <string name="notification_verification_text">Tap to complete verification so contact sync can resume.</string>
+    <string name="verification_fallback_title">Verification required</string>
+    <string name="verification_fallback_message">Proton requires human verification before sync can continue. Please sign in to mail.proton.me in a browser, complete the verification, then return here and sync will retry automatically.</string>
+    <string name="verification_fallback_dismiss">OK</string>
 </resources>
