@@ -183,6 +183,32 @@ class PcontactsDatabaseTest {
         assertEquals(0, contactMapDao.countUnverified())
     }
 
+    @Test fun max_last_synced_at_returns_latest_timestamp() = runTest {
+        contactMapDao.upsertAll(
+            listOf(
+                sampleContact(id = "a", rawId = 1L).copy(lastSyncedAt = 1_000L),
+                sampleContact(id = "b", rawId = 2L).copy(lastSyncedAt = 3_000L),
+                sampleContact(id = "c", rawId = 3L).copy(lastSyncedAt = 2_000L)
+            )
+        )
+        assertEquals(3_000L, contactMapDao.maxLastSyncedAt())
+    }
+
+    @Test fun max_last_synced_at_excludes_deleted_rows() = runTest {
+        contactMapDao.upsertAll(
+            listOf(
+                sampleContact(id = "a", rawId = 1L).copy(lastSyncedAt = 1_000L),
+                sampleContact(id = "b", rawId = 2L).copy(lastSyncedAt = 5_000L)
+            )
+        )
+        contactMapDao.markDeleted("b")
+        assertEquals(1_000L, contactMapDao.maxLastSyncedAt())
+    }
+
+    @Test fun max_last_synced_at_returns_null_when_table_empty() = runTest {
+        assertNull(contactMapDao.maxLastSyncedAt())
+    }
+
     // --- contact_map: lastKnownServerPayloadHash column ---
 
     @Test fun contact_map_last_known_server_payload_hash_defaults_to_null() = runTest {

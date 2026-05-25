@@ -51,6 +51,9 @@ interface ContactMapDao {
     @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0 AND is_verified = 0")
     suspend fun countUnverified(): Int
 
+    @Query("SELECT MAX(last_synced_at) FROM contact_map WHERE deleted = 0")
+    suspend fun maxLastSyncedAt(): Long?
+
     @Query("SELECT * FROM contact_map WHERE sync_status = 3 AND deleted = 0")
     suspend fun listConflicts(): List<ContactMapEntity>
 
