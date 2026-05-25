@@ -18,6 +18,7 @@ android {
         targetSdk = libs.versions.android.target.sdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+        setProperty("archivesBaseName", "pcontacts")
     }
 
     val releaseStoreFile = project.findProperty("RELEASE_STORE_FILE") as String?
