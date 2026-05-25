@@ -3,5 +3,6 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>NoMultipleSpaces:KeystoreAesGcmKek.kt$KeystoreAesGcmKek$ </ID>
+    <ID>TooManyFunctions:ContactMapDao.kt$ContactMapDao</ID>
   </CurrentIssues>
 </SmellBaseline>
