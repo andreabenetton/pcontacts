@@ -14,8 +14,8 @@ fixes. There is no backport policy at this stage.
 
 **Do not open a public issue for security vulnerabilities.**
 
-Email the maintainer at the address listed in the top-level `NOTICE`
-file. Include:
+Email the maintainer at **andrea.benetton@blueteam.ee** (also listed
+in the top-level `NOTICE` file). Include:
 
 1. A description of the vulnerability and its impact.
 2. Steps to reproduce or a proof of concept.

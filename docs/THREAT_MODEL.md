@@ -320,8 +320,8 @@ Accepted residual risks:
 ## 7. Reporting a security issue
 
 For now: open a private GitHub issue with the `security` label,
-or email the maintainer at the address in `git log -1 --format=%ae`.
-Do NOT file as a public PR.
+or email the maintainer at **andrea.benetton@blueteam.ee** (also
+listed in the top-level `NOTICE` file). Do NOT file as a public PR.
 
 If a fix requires a coordinated disclosure, expect a 30-day
 embargo from first acknowledgement; longer if multiple parties

@@ -126,4 +126,4 @@ Open an issue first for anything larger; this is a single-maintainer project and
 
 ## Reporting a security issue
 
-See `docs/THREAT_MODEL.md §7`. Short version: private issue or maintainer email, NOT a public PR. Expect a 30-day coordinated-disclosure embargo from first acknowledgement.
+See `docs/THREAT_MODEL.md §7` and [`SECURITY.md`](SECURITY.md). Short version: email **andrea.benetton@blueteam.ee** or open a private GitHub issue — NOT a public PR. Expect a 30-day coordinated-disclosure embargo from first acknowledgement.
