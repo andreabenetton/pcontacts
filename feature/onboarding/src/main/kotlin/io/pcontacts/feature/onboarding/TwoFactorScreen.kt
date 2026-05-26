@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,12 +63,12 @@ fun TwoFactorScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Two-factor authentication",
+            text = stringResource(R.string.two_factor_title),
             style = MaterialTheme.typography.headlineSmall
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Enter the 6-digit code from your authenticator app.",
+            text = stringResource(R.string.two_factor_subtitle),
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(Modifier.height(16.dp))
@@ -78,7 +79,7 @@ fun TwoFactorScreen(
             // typing them just produces noise. The 8-char cap covers both
             // TOTP (6) and Proton recovery codes (8).
             onValueChange = { input -> code = input.filter(Char::isDigit).take(8) },
-            label = { Text("Code") },
+            label = { Text(stringResource(R.string.two_factor_code_label)) },
             singleLine = true,
             enabled = !submitting,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -96,7 +97,7 @@ fun TwoFactorScreen(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Verify")
+            Text(stringResource(R.string.two_factor_verify))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -106,7 +107,7 @@ fun TwoFactorScreen(
             onClick = onCancel,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Cancel sign-in")
+            Text(stringResource(R.string.two_factor_cancel))
         }
 
         Spacer(Modifier.height(16.dp))

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="login_title">Proton account</string>
+    <string name="login_username_label">Email or username</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_password_show">Show</string>
+    <string name="login_password_hide">Hide</string>
+    <string name="login_sign_in">Sign in</string>
+
+    <string name="two_factor_title">Two-factor authentication</string>
+    <string name="two_factor_subtitle">Enter the 6-digit code from your authenticator app.</string>
+    <string name="two_factor_code_label">Code</string>
+    <string name="two_factor_verify">Verify</string>
+    <string name="two_factor_cancel">Cancel sign-in</string>
+</resources>
