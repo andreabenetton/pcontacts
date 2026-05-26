@@ -73,7 +73,7 @@ For a release build (R8 + minification, exercises every `proguard-rules.pro` kee
 # unsigned APK at app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
-The Gradle wrapper bootstraps Gradle 8.10.2 + AGP 8.7.0 + Kotlin 2.0.21. JDK 17 required.
+The Gradle wrapper bootstraps Gradle 8.10.2 + AGP 8.7.0 + Kotlin 2.0.21. JDK 17 is required.
 
 Reproducible-build verification is documented in [`docs/BUILD.md`](docs/BUILD.md) and enforced in CI via `diffoscope`.
 
