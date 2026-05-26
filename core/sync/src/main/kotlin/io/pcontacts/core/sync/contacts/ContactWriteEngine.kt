@@ -97,7 +97,7 @@ class ContactWriteEngine(
     private suspend fun enqueueChange(account: Account, dc: DirtyContact): EnqueueResult {
         if (dc.isDeleted) {
             val protonId = dc.sourceId ?: return EnqueueResult.SKIPPED
-            if (outboxDao.findByContact(protonId).any { it.opType == OutboxEntity.OpType.DELETE }) {
+            if (outboxDao.findByContact(protonId).any { !it.quarantined && it.opType == OutboxEntity.OpType.DELETE }) {
                 return EnqueueResult.SKIPPED
             }
             outboxDao.insert(
@@ -144,7 +144,7 @@ class ContactWriteEngine(
             return EnqueueResult.SKIPPED
         }
         if (outboxDao.findByContact(protonId).any {
-                it.opType == OutboxEntity.OpType.UPDATE && it.payloadHash == hash
+                !it.quarantined && it.opType == OutboxEntity.OpType.UPDATE && it.payloadHash == hash
             }
         ) {
             return EnqueueResult.SKIPPED

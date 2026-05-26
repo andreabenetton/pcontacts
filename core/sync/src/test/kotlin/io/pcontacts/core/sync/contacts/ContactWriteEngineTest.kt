@@ -439,6 +439,62 @@ class ContactWriteEngineTest {
         assertEquals(1, outbox.entries.size)
     }
 
+    @Test fun detectChanges_re_enqueues_update_when_prior_entry_quarantined() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val row = sampleRow("ct-1", email = "new@proton.me")
+        val hash = EmailSyncHash.compute(row)
+        val rows = mutableMapOf(100L to row)
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        val id = outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.UPDATE,
+            payloadHash = hash,
+            createdAt = 1_000_000L
+        ))
+        outbox.quarantine(id, "HttpException: 400")
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(1, count)
+        val nonQuarantined = outbox.entries.values.filter { !it.quarantined }
+        assertEquals(1, nonQuarantined.size)
+        assertEquals(hash, nonQuarantined.single().payloadHash)
+    }
+
+    @Test fun detectChanges_re_enqueues_delete_when_prior_entry_quarantined() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+
+        val id = outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.DELETE,
+            payloadHash = "",
+            createdAt = 1_000_000L
+        ))
+        outbox.quarantine(id, "HttpException: 400")
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = false, isDeleted = true))
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(1, count)
+        val nonQuarantined = outbox.entries.values.filter { !it.quarantined }
+        assertEquals(1, nonQuarantined.size)
+        assertEquals(OutboxEntity.OpType.DELETE, nonQuarantined.single().opType)
+    }
+
     @Test fun detectChanges_skips_when_contact_row_unreadable() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
