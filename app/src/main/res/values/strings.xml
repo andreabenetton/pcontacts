@@ -24,4 +24,19 @@
     <string name="verification_fallback_title">Verification required</string>
     <string name="verification_fallback_message">Proton requires human verification before sync can continue. Please sign in to mail.proton.me in a browser, complete the verification, then return here and sync will retry automatically.</string>
     <string name="verification_fallback_dismiss">OK</string>
+
+    <string name="launcher_loading">Loading…</string>
+    <string name="launcher_no_account">Sign in with your Proton account to start syncing contacts.</string>
+    <string name="launcher_sign_in">Sign in</string>
+    <string name="launcher_settings">Settings</string>
+    <string name="launcher_settings_detail">Settings (Sync Now / Sign Out)</string>
+    <string name="launcher_signed_in">Signed in. Your Proton contacts sync into the system Contacts app.</string>
+    <plurals name="launcher_pending_changes">
+        <item quantity="one">%d change pending sync</item>
+        <item quantity="other">%d changes pending sync</item>
+    </plurals>
+    <plurals name="launcher_quarantined_changes">
+        <item quantity="one">%d change failed</item>
+        <item quantity="other">%d changes failed</item>
+    </plurals>
 </resources>

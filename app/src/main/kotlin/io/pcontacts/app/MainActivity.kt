@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -276,7 +277,7 @@ internal fun LauncherScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "pcontacts",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineLarge
         )
         Spacer(Modifier.height(8.dp))
@@ -284,23 +285,23 @@ internal fun LauncherScreen(
         when (state) {
             is LauncherUiState.Loading -> {
                 Text(
-                    text = "Loading...",
+                    text = stringResource(R.string.launcher_loading),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
 
             is LauncherUiState.NoAccount -> {
                 Text(
-                    text = "Sign in with your Proton account to start syncing contacts.",
+                    text = stringResource(R.string.launcher_no_account),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(24.dp))
                 Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
-                    Text("Sign in")
+                    Text(stringResource(R.string.launcher_sign_in))
                 }
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text("Settings")
+                    Text(stringResource(R.string.launcher_settings))
                 }
             }
 
@@ -315,7 +316,7 @@ internal fun LauncherScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text("Settings (Sync Now / Sign Out)")
+                    Text(stringResource(R.string.launcher_settings_detail))
                 }
             }
         }
@@ -325,7 +326,7 @@ internal fun LauncherScreen(
 @Composable
 private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatus) {
     Text(
-        text = "Signed in. Your Proton contacts sync into the system Contacts app.",
+        text = stringResource(R.string.launcher_signed_in),
         style = MaterialTheme.typography.bodyMedium
     )
     Spacer(Modifier.height(16.dp))
@@ -350,6 +351,20 @@ private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatu
         text = lastSyncText,
         style = MaterialTheme.typography.bodyMedium
     )
+    if (status.pendingChanges > 0) {
+        Text(
+            text = pluralStringResource(R.plurals.launcher_pending_changes, status.pendingChanges, status.pendingChanges),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+    if (status.quarantinedChanges > 0) {
+        Text(
+            text = pluralStringResource(R.plurals.launcher_quarantined_changes, status.quarantinedChanges, status.quarantinedChanges),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
     if (status.unverifiedContacts > 0) {
         Text(
             text = stringResource(R.string.launcher_unverified_warning, status.unverifiedContacts),
