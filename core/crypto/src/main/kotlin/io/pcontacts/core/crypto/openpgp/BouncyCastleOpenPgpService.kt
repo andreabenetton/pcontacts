@@ -67,7 +67,7 @@ class BouncyCastleOpenPgpService : OpenPgpService {
         val detachedSig = signDetached(plaintext, signingKey, canonicalText = false, stripTrailingSpaces = false)
 
         return EncryptedSignedResult(
-            armoredMessage = encryptedOut.toString(Charsets.US_ASCII),
+            armoredMessage = encryptedOut.toByteArray().toString(Charsets.US_ASCII),
             armoredDetachedSignature = detachedSig
         )
     }
@@ -95,7 +95,7 @@ class BouncyCastleOpenPgpService : OpenPgpService {
 
         bcpgOut.close()
         armored.close()
-        return out.toString(Charsets.US_ASCII)
+        return out.toByteArray().toString(Charsets.US_ASCII)
     }
 
     override fun decryptAndVerify(
