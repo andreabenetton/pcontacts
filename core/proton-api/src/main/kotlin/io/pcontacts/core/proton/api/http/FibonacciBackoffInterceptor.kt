@@ -31,6 +31,8 @@ class FibonacciBackoffInterceptor(
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
+        if (request.method == "POST") return chain.proceed(request)
+
         var attempt = 0
         var response = chain.proceed(request)
 

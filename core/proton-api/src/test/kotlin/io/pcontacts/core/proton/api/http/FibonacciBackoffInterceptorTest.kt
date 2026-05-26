@@ -5,6 +5,7 @@ package io.pcontacts.core.proton.api.http
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -75,6 +76,20 @@ class FibonacciBackoffInterceptorTest {
 
         // 42 seconds → 42_000 ms, NOT 1_000.
         assertEquals(listOf(42_000L), sleeps)
+    }
+
+    @Test fun post_request_is_not_retried_on_429() {
+        server.enqueue(MockResponse().setResponseCode(429))
+
+        val request = Request.Builder()
+            .url(server.url("/contacts/v4/contacts"))
+            .post("{}".toRequestBody(null))
+            .build()
+        val response = client.newCall(request).execute()
+
+        assertEquals(429, response.code)
+        assertEquals(0, sleeps.size)
+        assertEquals(1, server.requestCount)
     }
 
     @Test fun persistent_429_propagates_after_maxRetries() {
