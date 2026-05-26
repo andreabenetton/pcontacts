@@ -12,6 +12,9 @@ import io.pcontacts.core.contactswriter.LocalGroupsWriter
 import io.pcontacts.core.contactswriter.RawContactDataReader
 import io.pcontacts.core.contactswriter.RawContactReader
 import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
+import io.pcontacts.core.logging.Logger
+import io.pcontacts.core.logging.NoOpSink
+import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
 import io.pcontacts.core.crypto.openpgp.KeyUnlockException
 import io.pcontacts.core.proton.api.InMemorySession
@@ -171,7 +174,8 @@ object SyncBootstrap {
      */
     suspend fun createBidirectionalEngines(
         context: Context,
-        provider: ContentProviderClient
+        provider: ContentProviderClient,
+        logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
     ): Pair<ContactWriteEngine, ContactDetailSyncEngine> {
         val appContext = context.applicationContext
         val secretStore = EncryptedSecretStore.create(appContext)
@@ -250,6 +254,7 @@ object SyncBootstrap {
             serializer = serializer,
             outboxDao = db.outboxDao(),
             contactMapDao = db.contactMapDao(),
+            logger = logger,
             readLocalContact = { protonContactId ->
                 val mapping = db.contactMapDao().findByProtonId(protonContactId)
                 if (mapping != null) {

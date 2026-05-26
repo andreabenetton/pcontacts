@@ -25,9 +25,12 @@ object ContactEncryptBootstrap {
         openPgp: OpenPgpService,
         unlocked: UnlockedKey
     ): ContactSerializer {
+        val encryptionKeys = unlocked.encryptionPublicKeys.ifEmpty {
+            listOf(unlocked.public)
+        }
         val encryptOp = OpenPgpCardEncryptOp.build(
             openPgp = openPgp,
-            encryptionKeys = listOf(unlocked.public),
+            encryptionKeys = encryptionKeys,
             signingKey = unlocked.private
         )
         return ContactSerializer(encryptOp = encryptOp)

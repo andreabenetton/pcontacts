@@ -76,11 +76,14 @@ class ContactWriteEngine(
      */
     suspend fun detectChanges(account: Account): Int {
         val dirty = readDirtyContacts(account)
+        logger.info { "detectChanges: ${dirty.size} dirty contacts" }
         if (dirty.isEmpty()) return 0
 
         var enqueued = 0
         for (dc in dirty) {
-            when (enqueueChange(account, dc)) {
+            val result = enqueueChange(account, dc)
+            logger.info { "detectChanges: rawId=${dc.rawContactId} sourceId=${dc.sourceId} deleted=${dc.isDeleted} result=$result" }
+            when (result) {
                 EnqueueResult.ENQUEUED -> {
                     enqueued++
                     clearDirtyFlag(account, dc.rawContactId)
@@ -137,16 +140,23 @@ class ContactWriteEngine(
             outboxDao.deleteById(del.id)
         }
 
-        val row = readContactRow(dc.rawContactId, protonId) ?: return EnqueueResult.FAILED
+        val row = readContactRow(dc.rawContactId, protonId)
+        if (row == null) {
+            logger.warn { "enqueue: readContactRow returned null for rawId=${dc.rawContactId}" }
+            return EnqueueResult.FAILED
+        }
         val hash = EmailSyncHash.compute(row)
         val mapping = contactMapDao.findByProtonId(protonId)
         if (mapping != null && mapping.contentHash == hash) {
+            logger.info { "enqueue: hash unchanged, skipping (stored=${mapping.contentHash.take(8)})" }
             return EnqueueResult.SKIPPED
         }
+        logger.info { "enqueue: hash differs stored=${mapping?.contentHash?.take(8)} new=${hash.take(8)}" }
         if (outboxDao.findByContact(protonId).any {
                 !it.quarantined && it.opType == OutboxEntity.OpType.UPDATE && it.payloadHash == hash
             }
         ) {
+            logger.info { "enqueue: dedup match in outbox, skipping" }
             return EnqueueResult.SKIPPED
         }
         outboxDao.insert(
@@ -162,6 +172,7 @@ class ContactWriteEngine(
 
     suspend fun push(): WriteReport {
         val ready = outboxDao.listReady(clock())
+        logger.info { "push: ${ready.size} entries ready" }
         if (ready.isEmpty()) return WriteReport.EMPTY
 
         val semaphore = Semaphore(MAX_CONCURRENT_PUSHES)
@@ -203,6 +214,7 @@ class ContactWriteEngine(
     private suspend fun pushUpdate(entry: OutboxEntity): WriteReport {
         val localContact = readLocalContact(entry.protonContactId)
         if (localContact == null) {
+            logger.warn { "pushUpdate: contact not found locally, quarantining id=${entry.id}" }
             outboxDao.quarantine(entry.id, "contact not found locally")
             return WriteReport(quarantined = 1)
         }
@@ -256,6 +268,7 @@ class ContactWriteEngine(
             outboxDao.deleteById(entry.id)
             WriteReport(pushed = 1, updated = 1)
         } catch (e: Exception) {
+            logger.warn { "pushUpdate: failed ${e.javaClass.simpleName}" }
             handleFailure(entry, e)
         }
     }

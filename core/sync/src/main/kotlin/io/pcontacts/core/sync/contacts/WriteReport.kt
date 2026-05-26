@@ -18,7 +18,7 @@ data class WriteReport(
     val skippedGrace: Int = 0,
     val conflicted: Int = 0
 ) {
-    fun isNoOp(): Boolean = pushed == 0 && failed == 0 && conflicted == 0
+    fun isNoOp(): Boolean = pushed == 0 && failed == 0 && conflicted == 0 && quarantined == 0
 
     operator fun plus(other: WriteReport) = WriteReport(
         pushed = pushed + other.pushed,
