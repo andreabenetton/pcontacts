@@ -19,7 +19,7 @@
 
 ## Next
 
-- [ ] Live write-path validation (nightly canary)
+- [x] Live write-path validation (nightly canary)
 - [ ] Multi-account support
 - [ ] FIDO2/WebAuthn 2FA
 - [ ] Encrypted offline cache (SQLCipher)
