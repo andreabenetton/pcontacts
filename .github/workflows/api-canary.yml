@@ -47,6 +47,16 @@ jobs:
             :core:sync:testDebugUnitTest \
             --tests "io.pcontacts.core.sync.auth.LiveProtonLoginTest"
 
+      - name: Run LiveProtonWriteTest
+        env:
+          PCONTACTS_LIVE_TEST: 'true'
+          PCONTACTS_USERNAME: ${{ secrets.PCONTACTS_USERNAME }}
+          PCONTACTS_PASSWORD: ${{ secrets.PCONTACTS_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon --stacktrace \
+            :core:sync:testDebugUnitTest \
+            --tests "io.pcontacts.core.sync.auth.LiveProtonWriteTest"
+
       - name: Close issue on recovery
         if: success()
         uses: actions/github-script@v9
