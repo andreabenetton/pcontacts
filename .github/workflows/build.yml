@@ -56,6 +56,18 @@ jobs:
             :feature:settings:test \
             :tools:lint:test
 
+      - name: Generate coverage report (Kover)
+        if: success()
+        run: ./gradlew --no-daemon --stacktrace koverXmlReport koverHtmlReport
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: |
+            build/reports/kover/
+
       - name: Upload test reports on failure
         if: failure()
         uses: actions/upload-artifact@v7

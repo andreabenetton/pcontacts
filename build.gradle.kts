@@ -12,9 +12,21 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.dependency.check) apply false
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.kover) apply false
+}
+
+apply(plugin = "org.jetbrains.kotlinx.kover")
+
+dependencies {
+    subprojects.filter { it.path != ":tools:lint" }.forEach {
+        "kover"(it)
+    }
 }
 
 subprojects {
+    if (path != ":tools:lint") {
+        apply(plugin = "org.jetbrains.kotlinx.kover")
+    }
     apply(plugin = "io.gitlab.arturbosch.detekt")
     extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
         parallel = true
