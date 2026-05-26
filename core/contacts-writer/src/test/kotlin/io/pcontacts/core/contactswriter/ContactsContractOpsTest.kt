@@ -48,10 +48,10 @@ class ContactsContractOpsTest {
         assertEquals("true", raw0Uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
         assertEquals("alice@proton.me", raw0Uri.getQueryParameter(RawContacts.ACCOUNT_NAME))
 
-        // Child Data inserts target the bare Data URI — they back-reference,
-        // so they shouldn't need the syncadapter param on the URI itself.
-        assertEquals(Data.CONTENT_URI, ops[1].uri)
-        assertEquals(Data.CONTENT_URI, ops[2].uri)
+        // Child Data inserts also carry caller_is_syncadapter to prevent
+        // Android from marking the parent RawContact as DIRTY (ADR-0010).
+        assertEquals("true", ops[1].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
+        assertEquals("true", ops[2].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
     }
 
     @Test fun update_emits_delete_data_then_two_data_reinserts() {

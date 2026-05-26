@@ -5,6 +5,7 @@ package io.pcontacts.core.contactswriter
 
 import android.accounts.Account
 import android.content.ContentProviderOperation
+import android.net.Uri
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
@@ -72,6 +73,7 @@ object ContactsContractOps {
     ): List<ContentProviderOperation> {
         val ops = ArrayList<ContentProviderOperation>(estimateOps(row))
         val rawIdx = baseIdx
+        val dataUri = SyncAdapterUri.decorate(Data.CONTENT_URI, account.name, account.type)
 
         ops += ContentProviderOperation.newInsert(
             SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
@@ -81,8 +83,8 @@ object ContactsContractOps {
             .withValue(RawContacts.SOURCE_ID, row.sourceId)
             .build()
 
-        ops += newStructuredNameInsertWithBackRef(rawIdx, row.displayName, row.structuredName)
-        appendChildDataInsertsWithBackRef(ops, rawIdx, row)
+        ops += newStructuredNameInsertWithBackRef(dataUri, rawIdx, row.displayName, row.structuredName)
+        appendChildDataInsertsWithBackRef(ops, dataUri, rawIdx, row)
         return ops
     }
 
@@ -92,70 +94,71 @@ object ContactsContractOps {
         row: ContactRow
     ): List<ContentProviderOperation> {
         val ops = ArrayList<ContentProviderOperation>(estimateOps(row) + 1)
+        val dataUri = SyncAdapterUri.decorate(Data.CONTENT_URI, account.name, account.type)
 
         // 1) Wipe existing Data rows for this RawContact.
-        ops += ContentProviderOperation.newDelete(
-            SyncAdapterUri.decorate(Data.CONTENT_URI, account.name, account.type)
-        )
+        ops += ContentProviderOperation.newDelete(dataUri)
             .withSelection("${Data.RAW_CONTACT_ID} = ?", arrayOf(rawContactId.toString()))
             .build()
 
         // 2) Re-insert with the known absolute RawContacts._ID — no back-refs.
-        ops += newStructuredNameInsertForExisting(rawContactId, row.displayName, row.structuredName)
-        appendChildDataInsertsForExisting(ops, rawContactId, row)
+        ops += newStructuredNameInsertForExisting(dataUri, rawContactId, row.displayName, row.structuredName)
+        appendChildDataInsertsForExisting(ops, dataUri, rawContactId, row)
         return ops
     }
 
     private fun appendChildDataInsertsWithBackRef(
         ops: ArrayList<ContentProviderOperation>,
+        dataUri: Uri,
         rawIdx: Int,
         row: ContactRow
     ) {
         row.emails.forEachIndexed { idx, address ->
-            ops += newEmailInsertWithBackRef(rawIdx, address, isPrimary = idx == 0)
+            ops += newEmailInsertWithBackRef(dataUri, rawIdx, address, isPrimary = idx == 0)
         }
         val phonePrimaryIdx = resolvePrimaryPhoneIndex(row.phones)
         row.phones.forEachIndexed { idx, phone ->
-            ops += newPhoneInsertWithBackRef(rawIdx, phone, isPrimary = idx == phonePrimaryIdx)
+            ops += newPhoneInsertWithBackRef(dataUri, rawIdx, phone, isPrimary = idx == phonePrimaryIdx)
         }
         val addressPrimaryIdx = resolvePrimaryAddressIndex(row.addresses)
         row.addresses.forEachIndexed { idx, addr ->
-            ops += newPostalInsertWithBackRef(rawIdx, addr, isPrimary = idx == addressPrimaryIdx)
+            ops += newPostalInsertWithBackRef(dataUri, rawIdx, addr, isPrimary = idx == addressPrimaryIdx)
         }
-        row.organization?.let { ops += newOrganizationInsertWithBackRef(rawIdx, it) }
-        row.notes.forEach { note -> ops += newNoteInsertWithBackRef(rawIdx, note) }
-        row.imAccounts.forEach { im -> ops += newImInsertWithBackRef(rawIdx, im) }
+        row.organization?.let { ops += newOrganizationInsertWithBackRef(dataUri, rawIdx, it) }
+        row.notes.forEach { note -> ops += newNoteInsertWithBackRef(dataUri, rawIdx, note) }
+        row.imAccounts.forEach { im -> ops += newImInsertWithBackRef(dataUri, rawIdx, im) }
         row.photo?.let { photo ->
             val fitted = PhotoDownscaler.downscale(photo.data)
-            if (fitted != null) ops += newPhotoInsertWithBackRef(rawIdx, ContactPhoto(fitted))
+            if (fitted != null) ops += newPhotoInsertWithBackRef(dataUri, rawIdx, ContactPhoto(fitted))
         }
-        row.groupRowIds.forEach { gid -> ops += newGroupMembershipInsertWithBackRef(rawIdx, gid) }
+        row.groupRowIds.forEach { gid -> ops += newGroupMembershipInsertWithBackRef(dataUri, rawIdx, gid) }
     }
 
     private fun appendChildDataInsertsForExisting(
         ops: ArrayList<ContentProviderOperation>,
+        dataUri: Uri,
         rawContactId: Long,
         row: ContactRow
     ) {
         row.emails.forEachIndexed { idx, address ->
-            ops += newEmailInsertForExisting(rawContactId, address, isPrimary = idx == 0)
+            ops += newEmailInsertForExisting(dataUri, rawContactId, address, isPrimary = idx == 0)
         }
         val phonePrimaryIdx = resolvePrimaryPhoneIndex(row.phones)
         row.phones.forEachIndexed { idx, phone ->
-            ops += newPhoneInsertForExisting(rawContactId, phone, isPrimary = idx == phonePrimaryIdx)
+            ops += newPhoneInsertForExisting(dataUri, rawContactId, phone, isPrimary = idx == phonePrimaryIdx)
         }
         val addressPrimaryIdx = resolvePrimaryAddressIndex(row.addresses)
         row.addresses.forEachIndexed { idx, addr ->
-            ops += newPostalInsertForExisting(rawContactId, addr, isPrimary = idx == addressPrimaryIdx)
+            ops += newPostalInsertForExisting(dataUri, rawContactId, addr, isPrimary = idx == addressPrimaryIdx)
         }
-        row.organization?.let { ops += newOrganizationInsertForExisting(rawContactId, it) }
-        row.notes.forEach { note -> ops += newNoteInsertForExisting(rawContactId, note) }
-        row.imAccounts.forEach { im -> ops += newImInsertForExisting(rawContactId, im) }
+        row.organization?.let { ops += newOrganizationInsertForExisting(dataUri, rawContactId, it) }
+        row.notes.forEach { note -> ops += newNoteInsertForExisting(dataUri, rawContactId, note) }
+        row.imAccounts.forEach { im -> ops += newImInsertForExisting(dataUri, rawContactId, im) }
         row.photo?.let { photo ->
             val fitted = PhotoDownscaler.downscale(photo.data)
-            if (fitted != null) ops += newPhotoInsertForExisting(rawContactId, ContactPhoto(fitted))
+            if (fitted != null) ops += newPhotoInsertForExisting(dataUri, rawContactId, ContactPhoto(fitted))
         }
-        row.groupRowIds.forEach { gid -> ops += newGroupMembershipInsertForExisting(rawContactId, gid) }
+        row.groupRowIds.forEach { gid -> ops += newGroupMembershipInsertForExisting(dataUri, rawContactId, gid) }
     }
 
     private fun estimateOps(row: ContactRow): Int =
@@ -177,11 +180,12 @@ object ContactsContractOps {
     // ---- StructuredName ----
 
     private fun newStructuredNameInsertWithBackRef(
+        dataUri: Uri,
         rawIdx: Int,
         displayName: String,
         structured: StructuredName?
     ): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, CCStructuredName.CONTENT_ITEM_TYPE)
             .withValue(CCStructuredName.DISPLAY_NAME, displayName)
@@ -190,11 +194,12 @@ object ContactsContractOps {
     }
 
     private fun newStructuredNameInsertForExisting(
+        dataUri: Uri,
         rawContactId: Long,
         displayName: String,
         structured: StructuredName?
     ): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, CCStructuredName.CONTENT_ITEM_TYPE)
             .withValue(CCStructuredName.DISPLAY_NAME, displayName)
@@ -222,11 +227,12 @@ object ContactsContractOps {
     // ---- Email ----
 
     private fun newEmailInsertWithBackRef(
+        dataUri: Uri,
         rawIdx: Int,
         address: String,
         isPrimary: Boolean
     ): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
             .withValue(Email.ADDRESS, address)
@@ -240,11 +246,12 @@ object ContactsContractOps {
             .build()
 
     private fun newEmailInsertForExisting(
+        dataUri: Uri,
         rawContactId: Long,
         address: String,
         isPrimary: Boolean
     ): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
             .withValue(Email.ADDRESS, address)
@@ -260,11 +267,12 @@ object ContactsContractOps {
     // ---- Phone ----
 
     private fun newPhoneInsertWithBackRef(
+        dataUri: Uri,
         rawIdx: Int,
         phone: PhoneEntry,
         isPrimary: Boolean
     ): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE)
             .withValue(Phone.NUMBER, phone.number)
@@ -278,11 +286,12 @@ object ContactsContractOps {
             .build()
 
     private fun newPhoneInsertForExisting(
+        dataUri: Uri,
         rawContactId: Long,
         phone: PhoneEntry,
         isPrimary: Boolean
     ): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE)
             .withValue(Phone.NUMBER, phone.number)
@@ -298,11 +307,12 @@ object ContactsContractOps {
     // ---- StructuredPostal ----
 
     private fun newPostalInsertWithBackRef(
+        dataUri: Uri,
         rawIdx: Int,
         address: PostalAddress,
         isPrimary: Boolean
     ): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, StructuredPostal.CONTENT_ITEM_TYPE)
             .withValue(StructuredPostal.TYPE, PostalAddressTypeMapper.toAndroid(address.type))
@@ -311,11 +321,12 @@ object ContactsContractOps {
     }
 
     private fun newPostalInsertForExisting(
+        dataUri: Uri,
         rawContactId: Long,
         address: PostalAddress,
         isPrimary: Boolean
     ): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, StructuredPostal.CONTENT_ITEM_TYPE)
             .withValue(StructuredPostal.TYPE, PostalAddressTypeMapper.toAndroid(address.type))
@@ -351,10 +362,11 @@ object ContactsContractOps {
     // ---- Organization ----
 
     private fun newOrganizationInsertWithBackRef(
+        dataUri: Uri,
         rawIdx: Int,
         org: Organization
     ): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, CCOrganization.CONTENT_ITEM_TYPE)
         applyOrganizationPieces(builder, org)
@@ -362,10 +374,11 @@ object ContactsContractOps {
     }
 
     private fun newOrganizationInsertForExisting(
+        dataUri: Uri,
         rawContactId: Long,
         org: Organization
     ): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, CCOrganization.CONTENT_ITEM_TYPE)
         applyOrganizationPieces(builder, org)
@@ -386,15 +399,15 @@ object ContactsContractOps {
 
     // ---- Note ----
 
-    private fun newNoteInsertWithBackRef(rawIdx: Int, note: String): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+    private fun newNoteInsertWithBackRef(dataUri: Uri, rawIdx: Int, note: String): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, Note.CONTENT_ITEM_TYPE)
             .withValue(Note.NOTE, note)
             .build()
 
-    private fun newNoteInsertForExisting(rawContactId: Long, note: String): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+    private fun newNoteInsertForExisting(dataUri: Uri, rawContactId: Long, note: String): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, Note.CONTENT_ITEM_TYPE)
             .withValue(Note.NOTE, note)
@@ -402,8 +415,8 @@ object ContactsContractOps {
 
     // ---- Im ----
 
-    private fun newImInsertWithBackRef(rawIdx: Int, im: ImAccount): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+    private fun newImInsertWithBackRef(dataUri: Uri, rawIdx: Int, im: ImAccount): ContentProviderOperation {
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, Im.CONTENT_ITEM_TYPE)
             .withValue(Im.DATA, im.handle)
@@ -413,10 +426,11 @@ object ContactsContractOps {
     }
 
     private fun newImInsertForExisting(
+        dataUri: Uri,
         rawContactId: Long,
         im: ImAccount
     ): ContentProviderOperation {
-        val builder = ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        val builder = ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, Im.CONTENT_ITEM_TYPE)
             .withValue(Im.DATA, im.handle)
@@ -439,18 +453,19 @@ object ContactsContractOps {
 
     // ---- Photo ----
 
-    private fun newPhotoInsertWithBackRef(rawIdx: Int, photo: ContactPhoto): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+    private fun newPhotoInsertWithBackRef(dataUri: Uri, rawIdx: Int, photo: ContactPhoto): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, Photo.CONTENT_ITEM_TYPE)
             .withValue(Photo.PHOTO, photo.data)
             .build()
 
     private fun newPhotoInsertForExisting(
+        dataUri: Uri,
         rawContactId: Long,
         photo: ContactPhoto
     ): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+        ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, Photo.CONTENT_ITEM_TYPE)
             .withValue(Photo.PHOTO, photo.data)
@@ -460,15 +475,15 @@ object ContactsContractOps {
 
     // ---- GroupMembership ----
 
-    private fun newGroupMembershipInsertWithBackRef(rawIdx: Int, groupRowId: Long): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+    private fun newGroupMembershipInsertWithBackRef(dataUri: Uri, rawIdx: Int, groupRowId: Long): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE)
             .withValue(GroupMembership.GROUP_ROW_ID, groupRowId)
             .build()
 
-    private fun newGroupMembershipInsertForExisting(rawContactId: Long, groupRowId: Long): ContentProviderOperation =
-        ContentProviderOperation.newInsert(Data.CONTENT_URI)
+    private fun newGroupMembershipInsertForExisting(dataUri: Uri, rawContactId: Long, groupRowId: Long): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE)
             .withValue(GroupMembership.GROUP_ROW_ID, groupRowId)
