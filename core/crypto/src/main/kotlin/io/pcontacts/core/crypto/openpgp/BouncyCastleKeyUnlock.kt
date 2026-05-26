@@ -21,7 +21,8 @@ import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
 data class UnlockedKey(
     val private: PgpPrivateKeyHandle,
     val public: PgpPublicKeyHandle,
-    val allPrivateKeys: List<PgpPrivateKeyHandle> = listOf(private)
+    val allPrivateKeys: List<PgpPrivateKeyHandle> = listOf(private),
+    val encryptionPublicKeys: List<PgpPublicKeyHandle> = emptyList()
 )
 
 class KeyUnlockException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -92,10 +93,15 @@ object BouncyCastleKeyUnlock {
         }
 
         val primaryKey = ring.secretKey
+        val encPubKeys = ring.publicKeys.asSequence()
+            .filter { it.isEncryptionKey }
+            .map { PgpPublicKeyHandle(raw = it) }
+            .toList()
         return UnlockedKey(
             private = allKeys.first { it.raw.keyID == primaryKey.keyID },
             public = PgpPublicKeyHandle(raw = primaryKey.publicKey),
-            allPrivateKeys = allKeys
+            allPrivateKeys = allKeys,
+            encryptionPublicKeys = encPubKeys
         )
     }
 }
