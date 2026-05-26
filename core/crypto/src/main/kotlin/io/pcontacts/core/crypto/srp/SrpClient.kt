@@ -109,7 +109,7 @@ class SrpClient(
     }
 
     companion object {
-        val G_DEFAULT: BigInteger = BigInteger.TWO
+        val G_DEFAULT: BigInteger = BigInteger.valueOf(2)
     }
 }
 

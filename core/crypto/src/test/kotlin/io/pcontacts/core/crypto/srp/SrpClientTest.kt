@@ -29,7 +29,7 @@ class SrpClientTest {
         16
     )
 
-    private val g2 = BigInteger.TWO
+    private val g2 = BigInteger.valueOf(2)
 
     @Test fun login_produces_consistent_self_round_trip() {
         val client = SrpClient(random = SecureRandom.getInstance("SHA1PRNG").apply { setSeed(byteArrayOf(1, 2, 3, 4)) })
