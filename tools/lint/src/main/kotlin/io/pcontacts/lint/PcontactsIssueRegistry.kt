@@ -19,6 +19,6 @@ class PcontactsIssueRegistry : IssueRegistry() {
     override val vendor: Vendor = Vendor(
         vendorName = "pcontacts",
         identifier = "io.pcontacts.lint",
-        feedbackUrl = "https://example.invalid/pcontacts/issues"
+        feedbackUrl = "https://github.com/andreabenetton/pcontacts/issues"
     )
 }
