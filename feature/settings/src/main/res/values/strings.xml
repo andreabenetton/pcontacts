@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="settings_title">Proton Contacts</string>
+    <string name="settings_sync_now">Sync now</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_signed_out">Signed out.</string>
+    <string name="settings_sync_requested">Sync requested</string>
+    <string name="settings_sync_failed">Sync failed: %s</string>
+    <string name="settings_sign_out_failed">Sign-out reported errors: %s</string>
+    <string name="settings_sync_interval">Sync interval</string>
+
+    <string name="verification_icon">!</string>
+    <string name="verification_warning">%1$d of %2$d contacts could not be verified</string>
+    <string name="verification_detail">Signature verification failed. These contacts may have been tampered with.</string>
+
+    <plurals name="outbox_pending">
+        <item quantity="one">%d change pending sync</item>
+        <item quantity="other">%d changes pending sync</item>
+    </plurals>
+    <plurals name="outbox_quarantined">
+        <item quantity="one">%d change failed permanently</item>
+        <item quantity="other">%d changes failed permanently</item>
+    </plurals>
+
+    <plurals name="pending_delete_count">
+        <item quantity="one">%d contact scheduled for deletion</item>
+        <item quantity="other">%d contacts scheduled for deletion</item>
+    </plurals>
+    <string name="pending_delete_grace">Deletions are sent to Proton after a 1-hour grace period.</string>
+    <string name="pending_delete_cancel">Cancel</string>
+
+    <plurals name="conflict_count">
+        <item quantity="one">%d contact with sync conflicts</item>
+        <item quantity="other">%d contacts with sync conflicts</item>
+    </plurals>
+    <string name="conflict_detail">Both the phone and Proton have changes to the same fields.</string>
+    <string name="conflict_resolve">Resolve</string>
+    <string name="conflict_dialog_title">Resolve conflict</string>
+    <string name="conflict_dialog_fields">Conflicting fields: %s</string>
+    <string name="conflict_dialog_prompt">Choose which version to keep:</string>
+    <string name="conflict_use_local">Use phone version</string>
+    <string name="conflict_use_server">Use Proton version</string>
+</resources>

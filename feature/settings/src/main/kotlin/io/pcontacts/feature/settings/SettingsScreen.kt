@@ -40,6 +40,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -66,7 +68,7 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Proton Contacts",
+            text = stringResource(R.string.settings_title),
             style = MaterialTheme.typography.headlineSmall
         )
         Spacer(Modifier.height(24.dp))
@@ -76,7 +78,7 @@ fun SettingsScreen(
             onClick = viewModel::triggerSyncNow,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Sync now")
+            Text(stringResource(R.string.settings_sync_now))
         }
         Spacer(Modifier.height(12.dp))
 
@@ -85,7 +87,7 @@ fun SettingsScreen(
             onClick = viewModel::triggerSignOut,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Sign out")
+            Text(stringResource(R.string.settings_sign_out))
         }
 
         Spacer(Modifier.height(24.dp))
@@ -110,16 +112,16 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
             is SettingsUiState.SyncFailed -> Text(
-                text = "Sync failed: ${s.reason}",
+                text = stringResource(R.string.settings_sync_failed, s.reason),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium
             )
             SettingsUiState.SignedOut -> {
-                Text("Signed out.", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.settings_signed_out), style = MaterialTheme.typography.bodyMedium)
                 LaunchedEffect(Unit) { onSignedOut() }
             }
             is SettingsUiState.SignOutFailed -> Text(
-                text = "Sign-out reported errors: ${s.reason}",
+                text = stringResource(R.string.settings_sign_out_failed, s.reason),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -165,7 +167,7 @@ private fun SyncIntervalSelector(
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Sync interval",
+            text = stringResource(R.string.settings_sync_interval),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -213,19 +215,19 @@ private fun VerificationWarningBanner(stats: VerificationStats) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "!",
+            text = stringResource(R.string.verification_icon),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onErrorContainer
         )
         Spacer(Modifier.width(8.dp))
         Column {
             Text(
-                text = "${stats.unverifiedContacts} of ${stats.totalContacts} contacts could not be verified",
+                text = stringResource(R.string.verification_warning, stats.unverifiedContacts, stats.totalContacts),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             Text(
-                text = "Signature verification failed. These contacts may have been tampered with.",
+                text = stringResource(R.string.verification_detail),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -244,14 +246,14 @@ private fun OutboxStatusBanner(stats: OutboxStats) {
     ) {
         if (stats.pending > 0) {
             Text(
-                text = "${stats.pending} change${if (stats.pending != 1) "s" else ""} pending sync",
+                text = pluralStringResource(R.plurals.outbox_pending, stats.pending, stats.pending),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
         if (stats.quarantined > 0) {
             Text(
-                text = "${stats.quarantined} change${if (stats.quarantined != 1) "s" else ""} failed permanently",
+                text = pluralStringResource(R.plurals.outbox_quarantined, stats.quarantined, stats.quarantined),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error
             )
@@ -272,12 +274,12 @@ private fun PendingDeleteBanner(
             .padding(12.dp)
     ) {
         Text(
-            text = "${deletes.size} contact${if (deletes.size != 1) "s" else ""} scheduled for deletion",
+            text = pluralStringResource(R.plurals.pending_delete_count, deletes.size, deletes.size),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onTertiaryContainer
         )
         Text(
-            text = "Deletions are sent to Proton after a 1-hour grace period.",
+            text = stringResource(R.string.pending_delete_grace),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onTertiaryContainer
         )
@@ -295,7 +297,7 @@ private fun PendingDeleteBanner(
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = { onCancel(del.protonContactId) }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.pending_delete_cancel))
                 }
             }
         }
@@ -317,12 +319,12 @@ private fun ConflictBanner(
             .padding(12.dp)
     ) {
         Text(
-            text = "${conflicts.size} contact${if (conflicts.size != 1) "s" else ""} with sync conflicts",
+            text = pluralStringResource(R.plurals.conflict_count, conflicts.size, conflicts.size),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onErrorContainer
         )
         Text(
-            text = "Both the phone and Proton have changes to the same fields.",
+            text = stringResource(R.string.conflict_detail),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onErrorContainer
         )
@@ -340,7 +342,7 @@ private fun ConflictBanner(
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = { selectedConflict = conflict }) {
-                    Text("Resolve")
+                    Text(stringResource(R.string.conflict_resolve))
                 }
             }
         }
@@ -367,36 +369,36 @@ private fun ConflictResolutionDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Resolve conflict")
+            Text(stringResource(R.string.conflict_dialog_title))
         },
         text = {
             Column {
                 Text(
-                    text = conflict.displayName ?: "Contact",
+                    text = conflict.displayName ?: stringResource(R.string.settings_title),
                     style = MaterialTheme.typography.titleSmall
                 )
                 if (conflict.conflictFields != null) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Conflicting fields: ${conflict.conflictFields}",
+                        text = stringResource(R.string.conflict_dialog_fields, conflict.conflictFields),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Choose which version to keep:",
+                    text = stringResource(R.string.conflict_dialog_prompt),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = { onResolve(ConflictResolution.USE_LOCAL) }) {
-                Text("Use phone version")
+                Text(stringResource(R.string.conflict_use_local))
             }
         },
         dismissButton = {
             TextButton(onClick = { onResolve(ConflictResolution.USE_SERVER) }) {
-                Text("Use Proton version")
+                Text(stringResource(R.string.conflict_use_server))
             }
         }
     )
