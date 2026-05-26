@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -117,11 +116,8 @@ fun TwoFactorScreen(
             LoginUiState.Submitting,
             is LoginUiState.Failed,
             is LoginUiState.TwoFactorRequired -> Unit
-            is LoginUiState.TwoFactorSubmitting -> {
+            is LoginUiState.TwoFactorSubmitting ->
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                CircularProgressIndicator()
-            }
             is LoginUiState.TwoFactorFailed -> Text(
                 text = friendlyTotpError(s.reason),
                 color = MaterialTheme.colorScheme.error,

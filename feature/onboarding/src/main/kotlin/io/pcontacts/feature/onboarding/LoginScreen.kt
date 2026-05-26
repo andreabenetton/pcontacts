@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -121,11 +120,8 @@ fun LoginScreen(
 
         when (val s = state) {
             LoginUiState.Idle -> Unit
-            LoginUiState.Submitting -> {
+            LoginUiState.Submitting ->
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                CircularProgressIndicator()
-            }
             is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid) }
             is LoginUiState.TwoFactorRequired -> LaunchedEffect(s.uid) { onTwoFactorRequired(s.uid) }
             // The 2FA-side states belong to TwoFactorScreen; the host Activity
