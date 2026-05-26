@@ -79,18 +79,25 @@ class ContactWriteEngine(
 
         var enqueued = 0
         for (dc in dirty) {
-            val created = enqueueChange(account, dc)
-            if (created) enqueued++
-            clearDirtyFlag(account, dc.rawContactId)
+            when (enqueueChange(account, dc)) {
+                EnqueueResult.ENQUEUED -> {
+                    enqueued++
+                    clearDirtyFlag(account, dc.rawContactId)
+                }
+                EnqueueResult.SKIPPED -> clearDirtyFlag(account, dc.rawContactId)
+                EnqueueResult.FAILED -> Unit
+            }
         }
         return enqueued
     }
 
-    private suspend fun enqueueChange(account: Account, dc: DirtyContact): Boolean {
+    private enum class EnqueueResult { ENQUEUED, SKIPPED, FAILED }
+
+    private suspend fun enqueueChange(account: Account, dc: DirtyContact): EnqueueResult {
         if (dc.isDeleted) {
-            val protonId = dc.sourceId ?: return false
+            val protonId = dc.sourceId ?: return EnqueueResult.SKIPPED
             if (outboxDao.findByContact(protonId).any { it.opType == OutboxEntity.OpType.DELETE }) {
-                return false
+                return EnqueueResult.SKIPPED
             }
             outboxDao.insert(
                 OutboxEntity(
@@ -100,13 +107,13 @@ class ContactWriteEngine(
                     createdAt = clock()
                 )
             )
-            return true
+            return EnqueueResult.ENQUEUED
         }
 
         val isCreate = dc.sourceId == null
         if (isCreate) {
             val localId = "local-${dc.rawContactId}"
-            val row = readContactRow(dc.rawContactId, localId) ?: return false
+            val row = readContactRow(dc.rawContactId, localId) ?: return EnqueueResult.FAILED
             val hash = EmailSyncHash.compute(row)
             outboxDao.insert(
                 OutboxEntity(
@@ -116,7 +123,7 @@ class ContactWriteEngine(
                     createdAt = clock()
                 )
             )
-            return true
+            return EnqueueResult.ENQUEUED
         }
 
         val protonId = dc.sourceId!!
@@ -129,17 +136,17 @@ class ContactWriteEngine(
             outboxDao.deleteById(del.id)
         }
 
-        val row = readContactRow(dc.rawContactId, protonId) ?: return false
+        val row = readContactRow(dc.rawContactId, protonId) ?: return EnqueueResult.FAILED
         val hash = EmailSyncHash.compute(row)
         val mapping = contactMapDao.findByProtonId(protonId)
         if (mapping != null && mapping.contentHash == hash) {
-            return false
+            return EnqueueResult.SKIPPED
         }
         if (outboxDao.findByContact(protonId).any {
                 it.opType == OutboxEntity.OpType.UPDATE && it.payloadHash == hash
             }
         ) {
-            return false
+            return EnqueueResult.SKIPPED
         }
         outboxDao.insert(
             OutboxEntity(
@@ -149,7 +156,7 @@ class ContactWriteEngine(
                 createdAt = clock()
             )
         )
-        return true
+        return EnqueueResult.ENQUEUED
     }
 
     suspend fun push(): WriteReport {

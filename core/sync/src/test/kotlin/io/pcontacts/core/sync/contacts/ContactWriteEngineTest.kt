@@ -38,6 +38,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
@@ -574,7 +575,7 @@ class ContactWriteEngineTest {
         assertEquals(OutboxEntity.OpType.UPDATE, entries[0].opType)
     }
 
-    @Test fun detectChanges_clears_dirty_flag_even_when_skipped() = runTest {
+    @Test fun detectChanges_clears_dirty_flag_when_hash_unchanged() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
         val row = sampleRow("ct-1")
@@ -594,6 +595,26 @@ class ContactWriteEngineTest {
         engine.detectChanges(testAccount)
 
         assertTrue(cleared.contains(100L))
+    }
+
+    @Test fun detectChanges_keeps_dirty_flag_when_contact_row_unreadable() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val cleared = mutableListOf<Long>()
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = emptyMap(),
+            clearedFlags = cleared
+        )
+        val count = engine.detectChanges(testAccount)
+
+        assertEquals(0, count)
+        assertFalse(cleared.contains(100L))
     }
 
     // --- helpers ---
