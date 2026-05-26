@@ -60,11 +60,22 @@
 # ---------------------------------------------------------------
 # Retrofit
 # ---------------------------------------------------------------
-# Retrofit synthesises proxy classes at runtime; keep the interfaces
-# (already done via @Keep semantics) + their parameter annotations.
+# Retrofit synthesises proxy classes at runtime and inspects generic
+# signatures of suspend-function Continuation<T> parameters to
+# determine return types. R8 full mode strips those signatures,
+# causing "Unable to create converter for class java.lang.Object".
+# Keep the Retrofit plumbing, Kotlin Continuation, and our own API
+# interfaces with their full method + type signatures.
 -keepattributes Signature, Exceptions, *Annotation*
 -keep,allowobfuscation,allowshrinking interface retrofit2.Call
 -keep,allowobfuscation,allowshrinking class retrofit2.Response
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+# Keep all Proton API interfaces, DTOs, and serializer companions.
+# Retrofit needs full generic signatures for suspend-function return
+# types; kotlinx.serialization needs $$serializer classes for every
+# DTO. Keeping the whole package is cheaper than debugging which
+# specific class R8 strips in full mode.
+-keep class io.pcontacts.core.proton.api.** { *; }
 -dontwarn retrofit2.**
 
 # ---------------------------------------------------------------

@@ -41,7 +41,8 @@ class ProtonSyncAdapter(
     autoInitialize: Boolean = true,
     internal val syncRunner: suspend (Context, ContentProviderClient, Account) -> Pair<WriteReport, SyncReport> =
         { ctx, prov, acct ->
-            val (writeEngine, readEngine) = SyncBootstrap.createBidirectionalEngines(ctx, prov)
+            val writeLogger = RedactingLogger(tag = "ContactWrite", sink = io.pcontacts.app.logging.AndroidLogcatSink())
+            val (writeEngine, readEngine) = SyncBootstrap.createBidirectionalEngines(ctx, prov, writeLogger)
             val wr = writeEngine.run {
                 detectChanges(acct)
                 push()
