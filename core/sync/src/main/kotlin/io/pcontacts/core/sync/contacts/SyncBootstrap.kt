@@ -70,11 +70,14 @@ object SyncBootstrap {
 
     suspend fun loadLauncherStatus(context: Context): LauncherStatus {
         val db = DatabaseFactory.create(context.applicationContext)
-        val dao = db.contactMapDao()
+        val contactDao = db.contactMapDao()
+        val outboxDao = db.outboxDao()
         return LauncherStatus(
-            totalContacts = dao.countLive(),
-            unverifiedContacts = dao.countUnverified(),
-            lastSyncedAtMillis = dao.maxLastSyncedAt()
+            totalContacts = contactDao.countLive(),
+            unverifiedContacts = contactDao.countUnverified(),
+            lastSyncedAtMillis = contactDao.maxLastSyncedAt(),
+            pendingChanges = outboxDao.countPending(),
+            quarantinedChanges = outboxDao.countQuarantined()
         )
     }
 

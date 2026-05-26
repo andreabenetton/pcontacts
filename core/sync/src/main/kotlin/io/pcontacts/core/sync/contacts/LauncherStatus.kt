@@ -6,5 +6,7 @@ package io.pcontacts.core.sync.contacts
 data class LauncherStatus(
     val totalContacts: Int,
     val unverifiedContacts: Int,
-    val lastSyncedAtMillis: Long?
+    val lastSyncedAtMillis: Long?,
+    val pendingChanges: Int = 0,
+    val quarantinedChanges: Int = 0
 )
