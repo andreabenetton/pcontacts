@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="settings_title">Contatti Proton</string>
+    <string name="settings_sync_now">Sincronizza ora</string>
+    <string name="settings_sign_out">Esci</string>
+    <string name="settings_signed_out">Disconnesso.</string>
+    <string name="settings_sync_requested">Sincronizzazione richiesta</string>
+    <string name="settings_sync_failed">Sincronizzazione non riuscita: %s</string>
+    <string name="settings_sign_out_failed">La disconnessione ha segnalato errori: %s</string>
+    <string name="settings_sync_interval">Intervallo di sincronizzazione</string>
+
+    <string name="verification_icon">!</string>
+    <string name="verification_warning">%1$d contatti su %2$d non verificabili</string>
+    <string name="verification_detail">La verifica della firma è fallita. Questi contatti potrebbero essere stati alterati.</string>
+
+    <plurals name="outbox_pending">
+        <item quantity="one">%d modifica in attesa di sincronizzazione</item>
+        <item quantity="other">%d modifiche in attesa di sincronizzazione</item>
+    </plurals>
+    <plurals name="outbox_quarantined">
+        <item quantity="one">%d modifica fallita definitivamente</item>
+        <item quantity="other">%d modifiche fallite definitivamente</item>
+    </plurals>
+
+    <plurals name="pending_delete_count">
+        <item quantity="one">%d contatto in attesa di eliminazione</item>
+        <item quantity="other">%d contatti in attesa di eliminazione</item>
+    </plurals>
+    <string name="pending_delete_grace">Le eliminazioni vengono inviate a Proton dopo un periodo di grazia di 1 ora.</string>
+    <string name="pending_delete_cancel">Annulla</string>
+
+    <plurals name="conflict_count">
+        <item quantity="one">%d contatto con conflitti di sincronizzazione</item>
+        <item quantity="other">%d contatti con conflitti di sincronizzazione</item>
+    </plurals>
+    <string name="conflict_detail">Sia il telefono che Proton hanno modifiche agli stessi campi.</string>
+    <string name="conflict_resolve">Risolvi</string>
+    <string name="conflict_dialog_title">Risolvi conflitto</string>
+    <string name="conflict_dialog_fields">Campi in conflitto: %s</string>
+    <string name="conflict_dialog_prompt">Scegli quale versione mantenere:</string>
+    <string name="conflict_use_local">Usa la versione del telefono</string>
+    <string name="conflict_use_server">Usa la versione Proton</string>
+</resources>

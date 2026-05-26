@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="app_name">pcontacts</string>
+    <string name="account_label">Contatti Proton</string>
+    <string name="launcher_synced_contacts">Sincronizzati: %d contatti</string>
+    <string name="launcher_last_sync">Ultima sincronizzazione: %s</string>
+    <string name="launcher_last_sync_never">Ultima sincronizzazione: mai</string>
+    <string name="launcher_unverified_warning">La verifica della firma è fallita per %d contatti</string>
+    <string name="channel_status_name">Stato sincronizzazione</string>
+    <string name="channel_status_description">Informazioni sullo stato della sincronizzazione</string>
+    <string name="channel_action_required_name">Azione richiesta</string>
+    <string name="channel_action_required_description">Notifiche quando è necessario accedere o completare una verifica per la sincronizzazione</string>
+    <string name="notification_verification_title">Verifica Proton richiesta</string>
+    <string name="notification_verification_text">Tocca per completare la verifica e riprendere la sincronizzazione dei contatti.</string>
+    <string name="notification_reauth_title">Accesso richiesto</string>
+    <string name="notification_reauth_text">La sessione è scaduta. Accedi di nuovo per riprendere la sincronizzazione dei contatti.</string>
+    <string name="notification_sync_failure_title">Sincronizzazione contatti non riuscita</string>
+    <string name="notification_sync_failure_text">La sincronizzazione ha fallito più volte. Apri l\'app per controllare la connessione e riprovare.</string>
+    <string name="notification_permission_denied">Le notifiche sono disattivate. La sincronizzazione funziona comunque, ma non riceverai avvisi quando è necessaria un\'azione.</string>
+    <string name="notification_permission_settings">Impostazioni</string>
+    <string name="contacts_permission_banner">pcontacts ha bisogno del permesso Contatti per gestire i contatti sincronizzati.</string>
+    <string name="contacts_permission_grant">Concedi</string>
+    <string name="contacts_permission_open_settings">Apri impostazioni</string>
+    <string name="verification_fallback_title">Verifica richiesta</string>
+    <string name="verification_fallback_message">Proton richiede una verifica prima di poter continuare la sincronizzazione. Accedi a mail.proton.me dal browser, completa la verifica, poi torna qui: la sincronizzazione ripartirà automaticamente.</string>
+    <string name="verification_fallback_dismiss">OK</string>
+
+    <string name="launcher_loading">Caricamento…</string>
+    <string name="launcher_no_account">Accedi con il tuo account Proton per iniziare a sincronizzare i contatti.</string>
+    <string name="launcher_sign_in">Accedi</string>
+    <string name="launcher_settings">Impostazioni</string>
+    <string name="launcher_settings_detail">Impostazioni (Sincronizza ora / Esci)</string>
+    <string name="launcher_signed_in">Accesso effettuato. I contatti Proton vengono sincronizzati nell\'app Contatti di sistema.</string>
+    <plurals name="launcher_pending_changes">
+        <item quantity="one">%d modifica in attesa di sincronizzazione</item>
+        <item quantity="other">%d modifiche in attesa di sincronizzazione</item>
+    </plurals>
+    <plurals name="launcher_quarantined_changes">
+        <item quantity="one">%d modifica non riuscita</item>
+        <item quantity="other">%d modifiche non riuscite</item>
+    </plurals>
+</resources>
