@@ -1,0 +1,18 @@
+Erstveröffentlichung (0.1.0).
+
+* SRP-Anmeldung mit TOTP-2FA und Modulus-Signaturverifizierung.
+* Vollständige Kontaktsynchronisierung: Name, E-Mail, Telefon,
+  Adresse, Organisation, Notizen, Instant Messaging, Fotos und
+  Gruppenzugehörigkeit.
+* Bidirektionale Synchronisierung mit persistentem Postausgang und
+  Push-before-Pull.
+* Konflikterkennung auf Feldebene mit Drei-Wege-Vergleich und
+  Benutzeroberfläche zur Konfliktlösung.
+* Soft-Delete mit einstündiger Karenzzeit und
+  Abbruchmöglichkeit.
+* Periodische Synchronisierung (konfigurierbares Intervall) über
+  SyncAdapter + WorkManager.
+* Ausschließlich lokale OpenPGP-Entschlüsselung -- keine
+  Kontaktdaten verlassen das Gerät.
+* Keine Telemetrie, keine Google Play Services, keine proprietären
+  Abhängigkeiten.

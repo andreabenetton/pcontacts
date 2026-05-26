@@ -1,0 +1,34 @@
+pcontacts accede al tuo account Proton Mail, decifra i contatti
+localmente tramite OpenPGP e li rende disponibili nell'app Contatti
+di sistema, in modo che appaiano insieme ai contatti locali, proprio
+come WhatsApp o Telegram mostrano le proprie rubriche.
+
+Funzionalità:
+
+* Accesso SRP con autenticazione a due fattori TOTP.
+* Decifratura esclusivamente locale: i tuoi contatti non vengono mai
+  inviati da nessuna parte tranne che nella rubrica di sistema sul
+  tuo dispositivo.
+* Supporto completo dei campi vCard: nome, email, telefono, indirizzo,
+  organizzazione, note, messaggistica istantanea, foto e appartenenza
+  ai gruppi.
+* Sincronizzazione bidirezionale: le modifiche effettuate nell'app
+  Contatti di sistema vengono inviate a Proton con crittografia
+  end-to-end.
+* Eliminazione soft con un periodo di grazia di 1 ora, in modo che le
+  eliminazioni accidentali possano essere annullate prima di
+  raggiungere il server.
+* Rilevamento dei conflitti per singolo campo quando sia il telefono
+  che Proton hanno modifiche allo stesso contatto.
+* Sincronizzazione periodica in background tramite SyncAdapter e
+  WorkManager.
+* Nessun Google Play Services, nessuna telemetria, nessun sistema di
+  analisi, nessun tracciamento.
+
+Questa app non è affiliata né approvata da Proton AG. Utilizza la
+stessa API HTTP del client web di Proton Mail, che non è ufficialmente
+documentata né supportata per l'uso da parte di terzi. L'API può
+cambiare in qualsiasi momento senza preavviso.
+
+Codice sorgente: https://github.com/andreabenetton/pcontacts
+Licenza: GPL-3.0-only

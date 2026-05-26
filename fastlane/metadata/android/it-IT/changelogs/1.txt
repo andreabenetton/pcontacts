@@ -1,0 +1,18 @@
+Versione iniziale (0.1.0).
+
+* Accesso SRP con 2FA TOTP e verifica della firma del modulo.
+* Sincronizzazione completa dei contatti: nome, email, telefono,
+  indirizzo, organizzazione, note, messaggistica istantanea, foto
+  e appartenenza ai gruppi.
+* Sincronizzazione bidirezionale con outbox persistente e
+  push-before-pull.
+* Rilevamento dei conflitti a tre vie per singolo campo con
+  interfaccia di risoluzione.
+* Eliminazione soft con periodo di grazia di 1 ora e possibilità
+  di annullamento.
+* Sincronizzazione periodica (intervallo configurabile) tramite
+  SyncAdapter + WorkManager.
+* Decifratura OpenPGP esclusivamente locale: nessun dato dei contatti
+  lascia il dispositivo.
+* Nessuna telemetria, nessun Google Play Services, nessuna dipendenza
+  proprietaria.
