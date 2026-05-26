@@ -77,6 +77,14 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
+    override fun finish() {
+        if (response != null) {
+            response?.onError(AccountManager.ERROR_CODE_CANCELED, "Login cancelled")
+            response = null
+        }
+        super.finish()
+    }
+
     private fun finishWithAccount(uid: String) {
         val accountManager = AccountManager.get(this)
         val account = Account(uid, PROTON_ACCOUNT_TYPE)
