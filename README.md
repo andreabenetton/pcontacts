@@ -23,7 +23,6 @@ What works in code (verified by unit tests + live integration test):
 ### Known gaps
 
 1. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
-2. **Bidirectional sync is not yet validated against the live API.** The encrypt/decrypt round-trip is proven by unit tests with real BouncyCastle keys, but the full CREATE/UPDATE/DELETE flow has not been exercised against a real Proton account.
 
 ## Why this exists
 
