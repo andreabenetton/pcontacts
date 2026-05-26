@@ -83,6 +83,35 @@ These are the load-bearing invariants. Every one corresponds to an ADR; read the
 
 ---
 
+## Code discipline
+
+### Simplicity first
+- Minimum code that solves the problem. No speculative features, no abstractions for single-use code, no "flexibility" that wasn't requested.
+- If you write 200 lines and it could be 50, rewrite it.
+- No error handling for scenarios that cannot happen. Trust internal code and framework guarantees; only validate at system boundaries (user input, Proton API responses).
+
+### Surgical changes
+- Touch only what the task requires. Don't "improve" adjacent code, comments, or formatting opportunistically.
+- Match existing patterns and style. When adding a new file, mirror the closest existing peer in the same package.
+- Remove imports/variables/functions that YOUR changes made unused. Don't remove pre-existing dead code unless asked.
+- Every changed line should trace directly to the task.
+
+### Verify before declaring done
+- Transform tasks into verifiable goals with concrete success criteria. "Add validation" → "write tests for invalid inputs, then make them pass." "Fix the bug" → "write a test that reproduces it, then make it pass."
+- Run the relevant module's test suite before committing. If the task touches UI, test it in a browser or on a device. Type-checking and test suites verify code correctness, not feature correctness.
+- If you cannot verify (e.g., no emulator available), say so explicitly rather than claiming success.
+
+### Dependency injection
+- Manual DI via Bootstrap factory objects (`SyncBootstrap`, `ContactEncryptBootstrap`, `ContactDecryptBootstrap`). **No Hilt, Dagger, or Koin.**
+- New features follow the existing Bootstrap pattern: a factory object that wires dependencies, scoped to a sync run or activity lifecycle.
+- ViewModels receive dependencies as constructor function-type seams (see `SettingsViewModel`, `LoginViewModel`).
+
+### UI strings
+- All user-facing text must be defined in `app/src/main/res/values/strings.xml` (or the relevant module's resources). Never hardcode user-facing strings in Composables or Activities.
+- String resources default to `translatable="true"`. Mark `translatable="false"` only for identifiers or technical labels that should not be translated.
+
+---
+
 ## Documentation conventions
 
 | Type | Pattern | Example |
@@ -96,6 +125,10 @@ Rules:
 - An ADR is one decision. If it grows beyond ~2 pages, it's probably two ADRs.
 - The ADR index lives at `docs/adr/README.md`. Every new ADR adds its row.
 - A new ADR ships in the same commit as the code that enacts it.
+
+### Cross-document consistency
+- Status claims (what works, what's a known gap) must agree across `README.md`, `CHANGELOG.md`, and `docs/ROADMAP.md`. When updating feature status in any one, check the others.
+- `CHANGELOG.md` is the source of truth for what shipped in a release. `README.md §Status` and `docs/ROADMAP.md` reflect it, not the other way around.
 
 ---
 
@@ -176,6 +209,9 @@ Do not introduce:
 - a Proton API claim without a `[V]`/`[U]`/`[A]`/`[D]` marker
 - a runtime fetch of a pinned key, certificate, or fingerprint
 - an ADR renumbering or rename to satisfy aesthetic preference
+- a DI framework (Hilt, Dagger, Koin) — manual Bootstrap factories only
+- hardcoded user-facing strings in Composables or Activities — use string resources
+- speculative abstractions, unused parameters, or "flexibility" not required by the task
 - a commit that bundles unrelated fixes
 - a commit message that says "various fixes" or "WIP"
 - a `Co-Authored-By` trailer
