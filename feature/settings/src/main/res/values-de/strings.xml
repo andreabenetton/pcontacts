@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="settings_title">Proton Kontakte</string>
+    <string name="settings_sync_now">Jetzt synchronisieren</string>
+    <string name="settings_sign_out">Abmelden</string>
+    <string name="settings_signed_out">Abgemeldet.</string>
+    <string name="settings_sync_requested">Synchronisierung angefordert</string>
+    <string name="settings_sync_failed">Synchronisierung fehlgeschlagen: %s</string>
+    <string name="settings_sign_out_failed">Abmeldung mit Fehlern: %s</string>
+    <string name="settings_sync_interval">Synchronisierungsintervall</string>
+
+    <string name="verification_warning">%1$d von %2$d Kontakten konnten nicht verifiziert werden</string>
+    <string name="verification_detail">Signaturverifizierung fehlgeschlagen. Diese Kontakte wurden möglicherweise manipuliert.</string>
+
+    <plurals name="outbox_pending">
+        <item quantity="one">%d Änderung wartet auf Synchronisierung</item>
+        <item quantity="other">%d Änderungen warten auf Synchronisierung</item>
+    </plurals>
+    <plurals name="outbox_quarantined">
+        <item quantity="one">%d Änderung dauerhaft fehlgeschlagen</item>
+        <item quantity="other">%d Änderungen dauerhaft fehlgeschlagen</item>
+    </plurals>
+
+    <plurals name="pending_delete_count">
+        <item quantity="one">%d Kontakt zum Löschen vorgemerkt</item>
+        <item quantity="other">%d Kontakte zum Löschen vorgemerkt</item>
+    </plurals>
+    <string name="pending_delete_grace">Löschungen werden nach einer einstündigen Karenzzeit an Proton gesendet.</string>
+    <string name="pending_delete_cancel">Abbrechen</string>
+
+    <plurals name="conflict_count">
+        <item quantity="one">%d Kontakt mit Synchronisierungskonflikten</item>
+        <item quantity="other">%d Kontakte mit Synchronisierungskonflikten</item>
+    </plurals>
+    <string name="conflict_detail">Sowohl das Telefon als auch Proton haben Änderungen an denselben Feldern.</string>
+    <string name="conflict_resolve">Beheben</string>
+    <string name="conflict_dialog_title">Konflikt beheben</string>
+    <string name="conflict_dialog_fields">Betroffene Felder: %s</string>
+    <string name="conflict_dialog_prompt">Wählen Sie die zu behaltende Version:</string>
+    <string name="conflict_use_local">Telefonversion verwenden</string>
+    <string name="conflict_use_server">Proton-Version verwenden</string>
+</resources>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="app_name">pcontacts</string>
+    <string name="account_label">Proton Kontakte</string>
+    <string name="launcher_synced_contacts">Synchronisiert: %d Kontakte</string>
+    <string name="launcher_last_sync">Letzte Synchronisierung: %s</string>
+    <string name="launcher_last_sync_never">Letzte Synchronisierung: nie</string>
+    <string name="launcher_unverified_warning">%d Kontakte konnten nicht verifiziert werden</string>
+    <string name="channel_status_name">Synchronisierungsstatus</string>
+    <string name="channel_status_description">Informationen zum Synchronisierungsstatus</string>
+    <string name="channel_action_required_name">Aktion erforderlich</string>
+    <string name="channel_action_required_description">Benachrichtigungen, wenn eine Anmeldung oder Verifizierung für die Synchronisierung erforderlich ist</string>
+    <string name="notification_verification_title">Proton-Verifizierung erforderlich</string>
+    <string name="notification_verification_text">Tippen Sie hier, um die Verifizierung abzuschließen, damit die Kontaktsynchronisierung fortgesetzt werden kann.</string>
+    <string name="notification_reauth_title">Anmeldung erforderlich</string>
+    <string name="notification_reauth_text">Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an, um die Kontaktsynchronisierung fortzusetzen.</string>
+    <string name="notification_sync_failure_title">Kontaktsynchronisierung fehlgeschlagen</string>
+    <string name="notification_sync_failure_text">Die Synchronisierung ist wiederholt fehlgeschlagen. Öffnen Sie die App, um Ihre Verbindung zu prüfen und es erneut zu versuchen.</string>
+    <string name="notification_permission_denied">Benachrichtigungen sind deaktiviert. Die Synchronisierung funktioniert weiterhin, aber Sie erhalten keine Hinweise, wenn eine Aktion erforderlich ist.</string>
+    <string name="notification_permission_settings">Einstellungen</string>
+    <string name="contacts_permission_banner">pcontacts benötigt die Kontakte-Berechtigung, um Ihre synchronisierten Kontakte zu verwalten.</string>
+    <string name="contacts_permission_grant">Erlauben</string>
+    <string name="contacts_permission_open_settings">Einstellungen öffnen</string>
+    <string name="verification_fallback_title">Verifizierung erforderlich</string>
+    <string name="verification_fallback_message">Proton erfordert eine menschliche Verifizierung, bevor die Synchronisierung fortgesetzt werden kann. Bitte melden Sie sich in einem Browser bei mail.proton.me an, schließen Sie die Verifizierung ab und kehren Sie hierher zurück. Die Synchronisierung wird dann automatisch erneut versucht.</string>
+    <string name="verification_fallback_dismiss">OK</string>
+
+    <string name="launcher_loading">Wird geladen…</string>
+    <string name="launcher_no_account">Melden Sie sich mit Ihrem Proton-Konto an, um die Kontaktsynchronisierung zu starten.</string>
+    <string name="launcher_sign_in">Anmelden</string>
+    <string name="launcher_settings">Einstellungen</string>
+    <string name="launcher_settings_detail">Einstellungen (Jetzt synchronisieren / Abmelden)</string>
+    <string name="launcher_signed_in">Angemeldet. Ihre Proton-Kontakte werden in die System-Kontakte-App synchronisiert.</string>
+    <plurals name="launcher_pending_changes">
+        <item quantity="one">%d Änderung wartet auf Synchronisierung</item>
+        <item quantity="other">%d Änderungen warten auf Synchronisierung</item>
+    </plurals>
+    <plurals name="launcher_quarantined_changes">
+        <item quantity="one">%d Änderung fehlgeschlagen</item>
+        <item quantity="other">%d Änderungen fehlgeschlagen</item>
+    </plurals>
+</resources>

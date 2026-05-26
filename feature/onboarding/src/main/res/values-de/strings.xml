@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="login_title">Proton-Konto</string>
+    <string name="login_username_label">E-Mail oder Benutzername</string>
+    <string name="login_password_label">Passwort</string>
+    <string name="login_password_show">Anzeigen</string>
+    <string name="login_password_hide">Ausblenden</string>
+    <string name="login_sign_in">Anmelden</string>
+
+    <string name="two_factor_title">Zwei-Faktor-Authentifizierung</string>
+    <string name="two_factor_subtitle">Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.</string>
+    <string name="two_factor_code_label">Code</string>
+    <string name="two_factor_verify">Bestätigen</string>
+    <string name="two_factor_cancel">Anmeldung abbrechen</string>
+</resources>
