@@ -26,6 +26,7 @@ android {
         }
         getByName("test") {
             java.srcDirs("src/test/kotlin")
+            assets.srcDirs("schemas")
         }
     }
 
@@ -66,6 +67,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.room.testing)
 
     lintChecks(project(":tools:lint"))
 }
