@@ -9,6 +9,7 @@
     "capture": "node capture.js"
   },
   "dependencies": {
-    "@protontech/crypto": "*"
+    "@protontech/crypto": "*",
+    "openpgp": "^5.11.0"
   }
 }

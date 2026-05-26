@@ -165,7 +165,82 @@ async function captureSrp() {
 }
 
 async function captureOpenPgp() {
-  return [];
+  const openpgp = await import('openpgp');
+
+  // Generate a test RSA-2048 keypair — unprotected for test vectors.
+  const { privateKey: armoredPrivate, publicKey: armoredPublic } = await openpgp.generateKey({
+    type: 'rsa',
+    rsaBits: 2048,
+    userIDs: [{ name: 'Test', email: 'test@example.com' }],
+    passphrase: '',
+    format: 'armored'
+  });
+
+  const privateKey = await openpgp.readPrivateKey({ armoredKey: armoredPrivate });
+  const publicKey = await openpgp.readKey({ armoredKey: armoredPublic });
+
+  const vectors = [];
+
+  // Vector 1: detached sign + verify (binary mode)
+  const plaintext1 = 'the quick brown fox jumps over the lazy dog';
+  const sig1 = await openpgp.sign({
+    message: await openpgp.createMessage({ binary: new TextEncoder().encode(plaintext1) }),
+    signingKeys: privateKey,
+    detached: true,
+    format: 'armored'
+  });
+  vectors.push({
+    label: 'sign-verify-binary',
+    operation: 'signDetached',
+    plaintext: plaintext1,
+    armoredPublicKey: armoredPublic,
+    armoredPrivateKey: armoredPrivate,
+    armoredSignature: sig1,
+  });
+
+  // Vector 2: detached sign + verify (vCard-like content with CRLF)
+  const plaintext2 = 'BEGIN:VCARD\r\nFN:Alice\r\nEMAIL:alice@example.com\r\nEND:VCARD\r\n';
+  const sig2 = await openpgp.sign({
+    message: await openpgp.createMessage({ binary: new TextEncoder().encode(plaintext2) }),
+    signingKeys: privateKey,
+    detached: true,
+    format: 'armored'
+  });
+  vectors.push({
+    label: 'sign-verify-vcard',
+    operation: 'signDetached',
+    plaintext: plaintext2,
+    armoredPublicKey: armoredPublic,
+    armoredPrivateKey: armoredPrivate,
+    armoredSignature: sig2,
+  });
+
+  // Vector 3: encrypt + sign (detached) then decrypt + verify
+  const plaintext3 = 'BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Bob Smith\r\nEMAIL:bob@example.com\r\nTEL:+1-555-0199\r\nEND:VCARD\r\n';
+  const encrypted = await openpgp.encrypt({
+    message: await openpgp.createMessage({ binary: new TextEncoder().encode(plaintext3) }),
+    encryptionKeys: publicKey,
+    format: 'armored'
+  });
+  // Separate detached binary signature — matches Proton's model where the
+  // detached signature over plaintext is independent of the encrypted blob.
+  const sig3 = await openpgp.sign({
+    message: await openpgp.createMessage({ binary: new TextEncoder().encode(plaintext3) }),
+    signingKeys: privateKey,
+    detached: true,
+    format: 'armored'
+  });
+  vectors.push({
+    label: 'encrypt-sign-decrypt-verify',
+    operation: 'encryptAndSignDetached',
+    plaintext: plaintext3,
+    armoredPublicKey: armoredPublic,
+    armoredPrivateKey: armoredPrivate,
+    armoredMessage: encrypted,
+    armoredDetachedSignature: sig3,
+  });
+
+  return vectors;
 }
 
 // ---------------------------------------------------------------------------
