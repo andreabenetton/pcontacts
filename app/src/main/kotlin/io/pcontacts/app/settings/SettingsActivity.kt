@@ -38,6 +38,7 @@ import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
@@ -145,10 +146,11 @@ class SettingsActivity : ComponentActivity() {
             ?: return SettingsActionResult.Failure(reason = "no_account")
         return try {
             val result = logoutHelper.signOut(account)
-            if (result.successful) {
+            val criticalErrors = result.errors.filter { it != LogoutOrchestrator.LOGOUT_ERR_REVOKE }
+            if (criticalErrors.isEmpty()) {
                 SettingsActionResult.Success(message = "Signed out (${result.contactsDeleted} contacts removed).")
             } else {
-                SettingsActionResult.Failure(reason = result.errors.joinToString(prefix = "errors: "))
+                SettingsActionResult.Failure(reason = criticalErrors.joinToString())
             }
         } catch (_: MissingContactsPermissionException) {
             SettingsActionResult.Failure(reason = "missing_contacts_permission")
