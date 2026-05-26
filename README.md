@@ -115,12 +115,10 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the STRIDE pass. Highligh
 
 ## Contributing
 
-The SRP auth flow is validated against the live API. PRs welcome for:
+Both the SRP auth flow and the bidirectional sync write path (CREATE / UPDATE / DELETE round-trip) are validated against the live Proton API via nightly canary tests. PRs welcome for:
 
-- Live-API validation of the bidirectional sync path (CREATE / UPDATE / DELETE round-trip).
-- Instrumented `ContactsContract` round-trip tests on an emulator pipeline.
 - Compose UI tests for the login + settings screens.
-- OpenPGP vector capture extension in `tools/vectors/capture.js`.
+- Additional OpenPGP test vector capture in `tools/vectors/capture.js`.
 
 Open an issue first for anything larger; this is a single-maintainer project and an unscoped PR is hard to absorb.
 
