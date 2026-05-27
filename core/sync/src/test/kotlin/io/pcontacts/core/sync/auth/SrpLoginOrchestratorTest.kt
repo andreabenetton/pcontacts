@@ -73,7 +73,7 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login(username = "alice@proton.test", password = "p4ssw0rd".toCharArray())
 
-        assertEquals(LoginResult.Success(uid = "uid-success"), result)
+        assertEquals(LoginResult.Success(uid = "uid-success", username = "alice@proton.test"), result)
         assertEquals("uid-success", secretStore.uid())
         assertEquals("access-token-XYZ", secretStore.accessToken())
         assertEquals("refresh-token-XYZ", secretStore.refreshToken())
@@ -87,7 +87,7 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("bob@proton.test", "x".toCharArray())
 
-        assertEquals(LoginResult.TwoFactorRequired(uid = "uid-2fa"), result)
+        assertEquals(LoginResult.TwoFactorRequired(uid = "uid-2fa", username = "bob@proton.test"), result)
         // Tokens already land — the orchestrator is now in a state where
         // /core/v4/auth/2fa can be called with x-pm-uid + Authorization set.
         assertEquals("uid-2fa", secretStore.uid())
@@ -158,7 +158,7 @@ class SrpLoginOrchestratorTest {
         server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
         val second = orchestrator.submitTwoFactorCode("654321")
 
-        assertEquals(LoginResult.Success(uid = "uid-2fa"), second)
+        assertEquals(LoginResult.Success(uid = "uid-2fa", username = "u"), second)
 
         val recorded = server.takeRequest()
         assertEquals("/core/v4/auth/2fa", recorded.path)
@@ -213,7 +213,7 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("u", "p4ssw0rd".toCharArray())
 
-        assertEquals(LoginResult.Success(uid = "uid-key"), result)
+        assertEquals(LoginResult.Success(uid = "uid-key", username = "u"), result)
         val stored = secretStore.keyPassword()
         assertNotNull("keyPassword must be persisted on successful login", stored)
         // ComputeKeyPassword.derive now returns the 31-char trailing hash
@@ -287,7 +287,7 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("u", "p".toCharArray())
 
-        assertEquals(LoginResult.Success(uid = "uid-no-key"), result)
+        assertEquals(LoginResult.Success(uid = "uid-no-key", username = "u"), result)
         // Tokens still persisted; keyPassword absent — sync will refuse
         // to run loudly until the user re-logs.
         assertEquals("uid-no-key", secretStore.uid())
