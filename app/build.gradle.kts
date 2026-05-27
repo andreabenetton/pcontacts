@@ -344,4 +344,7 @@ afterEvaluate {
         dependsOn(":core:proton-api:verifyCertificatePins")
         dependsOn("verifyManifestInvariants")
     }
+    tasks.matching { it.name.contains("VersionControlInfo") }.configureEach {
+        enabled = false
+    }
 }
