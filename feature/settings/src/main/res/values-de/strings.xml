@@ -13,6 +13,7 @@
     <string name="settings_sign_out_failed">Abmeldung mit Fehlern: %s</string>
     <string name="settings_sync_interval">Synchronisierungsintervall</string>
 
+    <string name="verification_icon">!</string>
     <string name="verification_warning">%1$d von %2$d Kontakten konnten nicht verifiziert werden</string>
     <string name="verification_detail">Signaturverifizierung fehlgeschlagen. Diese Kontakte wurden möglicherweise manipuliert.</string>
 
@@ -43,4 +44,10 @@
     <string name="conflict_dialog_prompt">Wählen Sie die zu behaltende Version:</string>
     <string name="conflict_use_local">Telefonversion verwenden</string>
     <string name="conflict_use_server">Proton-Version verwenden</string>
+
+    <plurals name="contacts_access_count">
+        <item quantity="one">%d App kann Ihre Kontakte lesen</item>
+        <item quantity="other">%d Apps können Ihre Kontakte lesen</item>
+    </plurals>
+    <string name="contacts_access_detail">Diese Apps haben die Berechtigung READ_CONTACTS und können Ihre synchronisierten Proton-Kontakte sehen.</string>
 </resources>
