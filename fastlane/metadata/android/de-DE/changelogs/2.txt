@@ -1,0 +1,5 @@
+Version 1.0.0.
+
+* Einstellungen zeigen jetzt, welche Apps Ihre Kontakte lesen können.
+* Italienische und deutsche Übersetzungen vervollständigt.
+* Als stabile Version veröffentlicht.

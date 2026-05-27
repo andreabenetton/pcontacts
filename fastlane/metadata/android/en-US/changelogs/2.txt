@@ -1,0 +1,5 @@
+Version 1.0.0.
+
+* Settings screen now shows which apps can read your contacts.
+* Italian and German translations completed.
+* Promoted to stable release.

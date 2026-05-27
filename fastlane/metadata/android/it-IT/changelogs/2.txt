@@ -1,0 +1,5 @@
+Versione 1.0.0.
+
+* La schermata delle impostazioni mostra quali app possono leggere i contatti.
+* Traduzioni in italiano e tedesco completate.
+* Promossa a versione stabile.

@@ -7,7 +7,7 @@
 
 > This is the public-facing subset of the internal plan. Open an issue before starting work on any unchecked item.
 
-## Done (v0.1.0)
+## Done (v1.0.0)
 
 - [x] Phase 0: GPL-3.0 repo bootstrap
 - [x] Phase 1-2: Account authenticator + SRP login + TOTP 2FA
@@ -25,4 +25,4 @@
 - [ ] Encrypted offline cache (SQLCipher)
 - [ ] Compose UI polish
 - [ ] F-Droid submission
-- [ ] 1.0 release
+- [x] 1.0 release
