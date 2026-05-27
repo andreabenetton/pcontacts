@@ -1,0 +1,3 @@
+Version 1.0.1.
+
+* F-Droid-Build-Metadaten korrigiert (JDK-17-Sudo-Block entfernt, nicht kompatibel mit Debian Trixie).

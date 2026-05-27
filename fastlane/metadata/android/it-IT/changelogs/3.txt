@@ -1,0 +1,3 @@
+Versione 1.0.1.
+
+* Corretti i metadati di build F-Droid (rimosso blocco sudo JDK 17 incompatibile con Debian Trixie).
