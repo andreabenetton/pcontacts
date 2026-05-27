@@ -1,0 +1,32 @@
+Categories:
+  - Security
+  - Phone & SMS
+License: GPL-3.0-only
+AuthorName: Andrea Benetton
+AuthorWebSite: https://github.com/andreabenetton
+SourceCode: https://github.com/andreabenetton/pcontacts
+IssueTracker: https://github.com/andreabenetton/pcontacts/issues
+Changelog: https://github.com/andreabenetton/pcontacts/blob/master/CHANGELOG.md
+
+AutoName: pcontacts
+
+RepoType: git
+Repo: https://github.com/andreabenetton/pcontacts.git
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 2
+    commit: v1.0.0
+    subdir: app
+    sudo:
+      - apt-get update
+      - apt-get install -y openjdk-17-jdk-headless
+      - update-java-alternatives -a
+    gradle:
+      - yes
+    output: build/outputs/apk/release/pcontacts-release-unsigned.apk
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.0.0
+CurrentVersionCode: 2
