@@ -4,7 +4,7 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 <resources>
-    <string name="settings_title">Proton Contacts</string>
+    <string name="settings_title">PContacts</string>
     <string name="settings_sync_now">Sync now</string>
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_signed_out">Signed out.</string>

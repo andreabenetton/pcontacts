@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">pcontacts</string>
-    <string name="account_label">Proton Contacts</string>
+    <string name="account_label">PContacts</string>
     <string name="launcher_synced_contacts">Synced: %d contacts</string>
     <string name="launcher_last_sync">Last sync: %s</string>
     <string name="launcher_last_sync_never">Last sync: never</string>
