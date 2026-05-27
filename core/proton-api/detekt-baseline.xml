@@ -26,9 +26,7 @@
     <ID>MaximumLineLength:HeadersInterceptorTest.kt$HeadersInterceptorTest$ </ID>
     <ID>NoMultipleSpaces:ProtonApiFactory.kt$ProtonApiFactory$ </ID>
     <ID>NoMultipleSpaces:TokenRefresherTest.kt$TokenRefresherTest$ </ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:HumanVerificationInterceptorTest.kt$HumanVerificationInterceptorTest$@After fun tearDown()</ID>
     <ID>SpreadOperator:ProtonCertificatePins.kt$ProtonCertificatePins$(host, *pins.toTypedArray())</ID>
-    <ID>SwallowedException:HumanVerificationInterceptor.kt$HumanVerificationInterceptor$t: Throwable</ID>
     <ID>Wrapping:ContactEmailsPagerTest.kt$ContactEmailsPagerTest$(</ID>
     <ID>Wrapping:FibonacciBackoffInterceptor.kt$FibonacciBackoffInterceptor$"429 on ${request.method} ${request.url.encodedPath}; backing off ${sleepMs}ms (attempt=${attempt + 1}/$maxRetries)"</ID>
     <ID>Wrapping:ProtonContactsApiTest.kt$ProtonContactsApiTest$(</ID>
