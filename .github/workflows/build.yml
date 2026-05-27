@@ -222,7 +222,7 @@ jobs:
           ./gradlew --no-daemon --no-build-cache --stacktrace \
             --project-cache-dir=/tmp/repro-a/cache \
             :app:assembleRelease
-          cp app/build/outputs/apk/release/app-release-unsigned.apk \
+          cp app/build/outputs/apk/release/pcontacts-release.apk \
             /tmp/repro-a.apk
 
       - name: Clean between builds
@@ -233,7 +233,7 @@ jobs:
           ./gradlew --no-daemon --no-build-cache --stacktrace \
             --project-cache-dir=/tmp/repro-b/cache \
             :app:assembleRelease
-          cp app/build/outputs/apk/release/app-release-unsigned.apk \
+          cp app/build/outputs/apk/release/pcontacts-release.apk \
             /tmp/repro-b.apk
 
       - name: Quick hash check
