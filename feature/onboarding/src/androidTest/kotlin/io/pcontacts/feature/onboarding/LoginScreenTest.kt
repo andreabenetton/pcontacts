@@ -30,7 +30,7 @@ class LoginScreenTest {
 
     private fun viewModel(
         attemptLogin: suspend (String, CharArray) -> LoginResult = { _, _ ->
-            LoginResult.Success("uid")
+            LoginResult.Success("uid", "testuser")
         },
         submitTotp: suspend (String) -> LoginResult = unusedTotp
     ) = LoginViewModel(
@@ -43,7 +43,7 @@ class LoginScreenTest {
     fun initial_state_shows_fields_and_sign_in_button_disabled() {
         val vm = viewModel()
         composeRule.setContent {
-            LoginScreen(vm, onSuccess = {}, onTwoFactorRequired = {})
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
         }
         composeRule.onNodeWithText("Email or username").assertIsDisplayed()
         composeRule.onNodeWithText("Password").assertIsDisplayed()
@@ -54,7 +54,7 @@ class LoginScreenTest {
     fun typing_username_only_keeps_button_disabled() {
         val vm = viewModel()
         composeRule.setContent {
-            LoginScreen(vm, onSuccess = {}, onTwoFactorRequired = {})
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
         }
         composeRule.onNodeWithText("Email or username").performTextInput("alice")
         composeRule.onNodeWithText("Sign in").assertIsNotEnabled()
@@ -64,7 +64,7 @@ class LoginScreenTest {
     fun typing_username_and_password_enables_button() {
         val vm = viewModel()
         composeRule.setContent {
-            LoginScreen(vm, onSuccess = {}, onTwoFactorRequired = {})
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
         }
         composeRule.onNodeWithText("Email or username").performTextInput("alice")
         composeRule.onNodeWithText("Password").performTextInput("secret")
@@ -84,7 +84,7 @@ class LoginScreenTest {
         })
 
         composeRule.setContent {
-            LoginScreen(vm, onSuccess = {}, onTwoFactorRequired = {})
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
         }
         composeRule.onNodeWithText("Email or username").performTextInput("alice")
         composeRule.onNodeWithText("Password").performTextInput("s3cret")
@@ -101,7 +101,7 @@ class LoginScreenTest {
         val vm = viewModel(attemptLogin = { _, _ -> gate.await() })
 
         composeRule.setContent {
-            LoginScreen(vm, onSuccess = {}, onTwoFactorRequired = {})
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
         }
         composeRule.onNodeWithText("Email or username").performTextInput("alice")
         composeRule.onNodeWithText("Password").performTextInput("pw")
@@ -119,7 +119,7 @@ class LoginScreenTest {
         )
 
         composeRule.setContent {
-            LoginScreen(vm, onSuccess = {}, onTwoFactorRequired = {})
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
         }
         composeRule.onNodeWithText("Email or username").performTextInput("alice")
         composeRule.onNodeWithText("Password").performTextInput("wrong")

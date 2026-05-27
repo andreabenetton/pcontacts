@@ -25,10 +25,10 @@ class TwoFactorScreenTest {
     @get:Rule val composeRule = createComposeRule()
 
     private fun viewModelIn2faState(
-        submitTotp: suspend (String) -> LoginResult = { LoginResult.Success("uid-2fa") }
+        submitTotp: suspend (String) -> LoginResult = { LoginResult.Success("uid-2fa", "testuser") }
     ): LoginViewModel {
         val vm = LoginViewModel(
-            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired("uid-2fa") },
+            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired("uid-2fa", "testuser") },
             submitTotp = submitTotp,
             workDispatcher = UnconfinedTestDispatcher()
         )
@@ -40,7 +40,7 @@ class TwoFactorScreenTest {
     fun two_factor_required_state_shows_code_input_and_submit_disabled() {
         val vm = viewModelIn2faState()
         composeRule.setContent {
-            TwoFactorScreen(vm, onSuccess = {}, onCancel = {})
+            TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
         }
         composeRule.onNodeWithText("Code").assertIsDisplayed()
         composeRule.onNodeWithText("Verify").assertIsDisplayed().assertIsNotEnabled()
@@ -50,7 +50,7 @@ class TwoFactorScreenTest {
     fun six_digit_code_enables_verify_button() {
         val vm = viewModelIn2faState()
         composeRule.setContent {
-            TwoFactorScreen(vm, onSuccess = {}, onCancel = {})
+            TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
         }
         composeRule.onNodeWithText("Code").performTextInput("123456")
         composeRule.onNodeWithText("Verify").assertIsEnabled()
@@ -62,7 +62,7 @@ class TwoFactorScreenTest {
         val vm = viewModelIn2faState(submitTotp = { gate.await() })
 
         composeRule.setContent {
-            TwoFactorScreen(vm, onSuccess = {}, onCancel = {})
+            TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
         }
         composeRule.onNodeWithText("Code").performTextInput("123456")
         composeRule.onNodeWithText("Verify").performClick()
@@ -79,7 +79,7 @@ class TwoFactorScreenTest {
         )
 
         composeRule.setContent {
-            TwoFactorScreen(vm, onSuccess = {}, onCancel = {})
+            TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
         }
         composeRule.onNodeWithText("Code").performTextInput("000000")
         composeRule.onNodeWithText("Verify").performClick()
@@ -98,7 +98,7 @@ class TwoFactorScreenTest {
         composeRule.setContent {
             TwoFactorScreen(
                 vm,
-                onSuccess = {},
+                onSuccess = { _, _ -> },
                 onCancel = {
                     cancelCalled = true
                     vm.reset()
