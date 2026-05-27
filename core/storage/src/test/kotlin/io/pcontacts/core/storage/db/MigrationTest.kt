@@ -22,7 +22,7 @@ class MigrationTest {
     )
 
     @Test fun migrate_1_to_2_adds_outbox_table_and_server_hash_column() {
-        val db = helper.createDatabase(TEST_DB, 1).apply {
+        helper.createDatabase(TEST_DB, 1).apply {
             execSQL(
                 """INSERT INTO contact_map (
                     proton_contact_id, proton_uid, android_raw_contact_id,
@@ -38,10 +38,15 @@ class MigrationTest {
         }
 
         val migratedDb = helper.runMigrationsAndValidate(
-            TEST_DB, 2, true, PcontactsDatabase.MIGRATION_1_2
+            TEST_DB,
+            2,
+            true,
+            PcontactsDatabase.MIGRATION_1_2
         )
 
-        migratedDb.query("SELECT last_known_server_payload_hash FROM contact_map WHERE proton_contact_id = 'ct-1'").use { cursor ->
+        migratedDb.query(
+            "SELECT last_known_server_payload_hash FROM contact_map WHERE proton_contact_id = 'ct-1'"
+        ).use { cursor ->
             assert(cursor.moveToFirst()) { "contact_map row should survive migration" }
             assert(cursor.isNull(0)) { "last_known_server_payload_hash should default to NULL" }
         }
@@ -50,11 +55,15 @@ class MigrationTest {
             assert(cursor.moveToFirst()) { "outbox table should exist after migration" }
         }
 
-        migratedDb.query("SELECT name FROM sqlite_master WHERE type='index' AND name='index_outbox_proton_contact_id'").use { cursor ->
+        migratedDb.query(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='index_outbox_proton_contact_id'"
+        ).use { cursor ->
             assert(cursor.moveToFirst()) { "outbox proton_contact_id index should exist" }
         }
 
-        migratedDb.query("SELECT name FROM sqlite_master WHERE type='index' AND name='index_outbox_next_attempt_at'").use { cursor ->
+        migratedDb.query(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='index_outbox_next_attempt_at'"
+        ).use { cursor ->
             assert(cursor.moveToFirst()) { "outbox next_attempt_at index should exist" }
         }
 
