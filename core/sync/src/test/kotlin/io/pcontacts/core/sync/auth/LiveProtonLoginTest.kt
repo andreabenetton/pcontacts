@@ -46,10 +46,11 @@ class LiveProtonLoginTest {
     @Test fun live_login_against_proton_api() = runBlocking {
         assumeTrue("Set env PCONTACTS_LIVE_TEST=true", System.getenv("PCONTACTS_LIVE_TEST") == "true")
 
-        val username = System.getenv("PCONTACTS_USERNAME")
-            ?: throw AssertionError("Set env PCONTACTS_USERNAME")
-        val password = (System.getenv("PCONTACTS_PASSWORD")
-            ?: throw AssertionError("Set env PCONTACTS_PASSWORD")).toCharArray()
+        val username = System.getenv("PCONTACTS_USERNAME").orEmpty()
+            .also { check(it.isNotBlank()) { "Set env PCONTACTS_USERNAME" } }
+        val password = System.getenv("PCONTACTS_PASSWORD").orEmpty()
+            .also { check(it.isNotBlank()) { "Set env PCONTACTS_PASSWORD" } }
+            .toCharArray()
 
         val secretStore = InMemorySecretStore()
         val session = InMemorySession()
