@@ -10,13 +10,13 @@ import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
 import android.provider.ContactsContract.CommonDataKinds.Note
-import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.Photo
-import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.RawContacts
+import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
+import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName
 
 /**
  * Mechanical mapping from RawContactOpIntent → ContentProviderOperation

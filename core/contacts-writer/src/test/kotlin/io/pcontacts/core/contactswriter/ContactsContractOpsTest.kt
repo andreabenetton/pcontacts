@@ -5,7 +5,6 @@ package io.pcontacts.core.contactswriter
 
 import android.accounts.Account
 import android.provider.ContactsContract
-import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.RawContacts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
