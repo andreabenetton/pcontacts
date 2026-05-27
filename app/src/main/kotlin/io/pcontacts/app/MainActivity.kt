@@ -353,14 +353,22 @@ private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatu
     )
     if (status.pendingChanges > 0) {
         Text(
-            text = pluralStringResource(R.plurals.launcher_pending_changes, status.pendingChanges, status.pendingChanges),
+            text = pluralStringResource(
+                R.plurals.launcher_pending_changes,
+                status.pendingChanges,
+                status.pendingChanges
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary
         )
     }
     if (status.quarantinedChanges > 0) {
         Text(
-            text = pluralStringResource(R.plurals.launcher_quarantined_changes, status.quarantinedChanges, status.quarantinedChanges),
+            text = pluralStringResource(
+                R.plurals.launcher_quarantined_changes,
+                status.quarantinedChanges,
+                status.quarantinedChanges
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error
         )
