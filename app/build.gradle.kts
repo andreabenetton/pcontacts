@@ -76,6 +76,11 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
 
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     packaging {
         resources {
             // BouncyCastle (bcpg + bcprov + bcutil) each ship an identical
