@@ -40,6 +40,7 @@ import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.feature.settings.ContactsAccessApp
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.OutboxStats
@@ -81,6 +82,7 @@ class SettingsActivity : ComponentActivity() {
             queryConflicts = ::queryConflicts,
             cancelDelete = ::cancelPendingDelete,
             resolveConflict = ::resolveConflict,
+            queryContactsAccessApps = ::queryContactsAccessApps,
             onSyncIntervalChanged = ::handleSyncIntervalChanged,
             initialSyncIntervalHours = userPrefs.syncIntervalHours
         )
@@ -191,6 +193,27 @@ class SettingsActivity : ComponentActivity() {
                 conflictFields = entity.lastError?.removePrefix("conflict: ")
             )
         }
+
+    private fun queryContactsAccessApps(): List<ContactsAccessApp> {
+        val pm = packageManager
+        val installed = pm.getInstalledPackages(android.content.pm.PackageManager.GET_PERMISSIONS)
+        return installed
+            .filter { pkg ->
+                pkg.packageName != packageName &&
+                    pkg.requestedPermissions?.contains(android.Manifest.permission.READ_CONTACTS) == true &&
+                    pm.checkPermission(
+                        android.Manifest.permission.READ_CONTACTS,
+                        pkg.packageName
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+            .map { pkg ->
+                ContactsAccessApp(
+                    appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName,
+                    packageName = pkg.packageName
+                )
+            }
+            .sortedBy { it.appName }
+    }
 
     private suspend fun cancelPendingDelete(protonContactId: String) {
         db.outboxDao().deleteByContact(protonContactId)
