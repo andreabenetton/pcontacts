@@ -22,6 +22,14 @@ Builds:
       - yes
     output: build/outputs/apk/release/pcontacts-release-unsigned.apk
 
+  - versionName: 1.0.1
+    versionCode: 3
+    commit: v1.0.1
+    subdir: app
+    gradle:
+      - yes
+    output: build/outputs/apk/release/pcontacts-release-unsigned.apk
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 CurrentVersion: 1.0.1
