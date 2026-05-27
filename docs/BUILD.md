@@ -212,8 +212,10 @@ Follow this sequence exactly. Do not tag until the build is verified.
       project's maturity level (e.g. pre-release → stable).
 - [ ] Update `docs/ROADMAP.md` — check off completed items, update the
       "Done" heading version if needed.
-- [ ] Update `CurrentVersion` and `CurrentVersionCode` in
-      `fdroid/io.pcontacts.app.yml`.
+- [ ] Update `fdroid/io.pcontacts.app.yml`: add a new entry to the
+      `Builds:` list with the new `versionName`, `versionCode`, and
+      `commit` tag, AND update `CurrentVersion` and
+      `CurrentVersionCode` at the bottom.
 - [ ] Create fastlane changelogs for the new `versionCode` in all
       locales: `fastlane/metadata/android/{en-US,it-IT,de-DE}/changelogs/<versionCode>.txt`.
 - [ ] If new user-facing strings were added, verify Italian and German
