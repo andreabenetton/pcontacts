@@ -130,6 +130,9 @@ Rules:
 - Status claims (what works, what's a known gap) must agree across `README.md`, `CHANGELOG.md`, and `docs/ROADMAP.md`. When updating feature status in any one, check the others.
 - `CHANGELOG.md` is the source of truth for what shipped in a release. `README.md §Status` and `docs/ROADMAP.md` reflect it, not the other way around.
 
+### Release process
+When the user asks to release a version, follow the checklist in [`docs/BUILD.md` §Release checklist](docs/BUILD.md#release-checklist) **exactly and in order**. The critical invariant: **do not tag until the release APK builds successfully**. The tag triggers CI and creates a public GitHub Release — tagging a broken or unverified commit ships a broken release.
+
 ---
 
 ## Git discipline

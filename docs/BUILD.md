@@ -199,6 +199,96 @@ here for diagnosis if reproducibility regresses:
    suspenders measure if a new build step introduces wall-clock
    sensitivity.
 
+## Release checklist
+
+Follow this sequence exactly. Do not tag until the build is verified.
+
+### 1. Prepare the version bump
+
+- [ ] Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
+- [ ] Add a `## [X.Y.Z] - YYYY-MM-DD` entry in `CHANGELOG.md` with a
+      link reference at the bottom.
+- [ ] Update `README.md` status section if the release changes the
+      project's maturity level (e.g. pre-release → stable).
+- [ ] Update `docs/ROADMAP.md` — check off completed items, update the
+      "Done" heading version if needed.
+- [ ] Update `CurrentVersion` and `CurrentVersionCode` in
+      `fdroid/io.pcontacts.app.yml`.
+- [ ] Create fastlane changelogs for the new `versionCode` in all
+      locales: `fastlane/metadata/android/{en-US,it-IT,de-DE}/changelogs/<versionCode>.txt`.
+- [ ] If new user-facing strings were added, verify Italian and German
+      translations have the same keys as the default `values/strings.xml`
+      in every module.
+
+### 2. Run the full test suite
+
+```bash
+./gradlew test
+```
+
+All modules must pass. Do not proceed with failures.
+
+### 3. Build the release APK locally
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+Verify the build succeeds and the APK exists at
+`app/build/outputs/apk/release/pcontacts-release.apk`.
+
+### 4. Commit and push
+
+```bash
+git add -A
+git commit -m "release: bump to vX.Y.Z"
+git push
+```
+
+### 5. Tag
+
+Only after steps 2–4 succeed:
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+```
+
+Pushing the tag triggers the `release.yml` CI workflow, which builds a
+signed APK, computes SHA-256 checksums, and creates a draft GitHub
+Release with the APK and checksums attached.
+
+### 6. Create or finalise the GitHub Release
+
+If CI created a draft release, review and publish it. Otherwise create
+it manually:
+
+```bash
+gh release create vX.Y.Z --title "vX.Y.Z" --notes "$(cat <<'EOF'
+<release notes>
+EOF
+)"
+```
+
+### 7. Verify the published release
+
+```bash
+gh release view vX.Y.Z --json assets --jq '.assets[] | "\(.name) \(.size)"'
+```
+
+Confirm the APK and SHA256SUMS.txt are attached and the APK size is
+in the expected range.
+
+### What NOT to do
+
+- **Do not tag before building.** The tag is the release gate. If the
+  build fails after tagging, you ship a broken release.
+- **Do not skip the local build.** CI builds too, but the local build
+  is the verification step that catches issues before they become a
+  public tag.
+- **Do not bundle unrelated changes into a release commit.** The
+  release commit contains only version bumps, changelog, and metadata.
+
 ## F-Droid
 
 F-Droid builds from source using its own signing key. The `fastlane/`
