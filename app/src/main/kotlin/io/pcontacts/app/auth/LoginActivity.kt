@@ -63,12 +63,12 @@ class LoginActivity : ComponentActivity() {
                         is LoginUiState.TwoFactorSubmitting,
                         is LoginUiState.TwoFactorFailed -> TwoFactorScreen(
                             viewModel = viewModel,
-                            onSuccess = { uid -> finishWithAccount(uid) },
+                            onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onCancel = { viewModel.reset() }
                         )
                         else -> LoginScreen(
                             viewModel = viewModel,
-                            onSuccess = { uid -> finishWithAccount(uid) },
+                            onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onTwoFactorRequired = { /* handled by state-driven branch */ }
                         )
                     }
@@ -85,17 +85,18 @@ class LoginActivity : ComponentActivity() {
         super.finish()
     }
 
-    private fun finishWithAccount(uid: String) {
+    private fun finishWithAccount(uid: String, username: String) {
         val accountManager = AccountManager.get(this)
-        val account = Account(uid, PROTON_ACCOUNT_TYPE)
+        val account = Account(username, PROTON_ACCOUNT_TYPE)
         accountManager.addAccountExplicitly(account, /* password = */ null, /* userdata = */ null)
+        accountManager.setUserData(account, "proton_uid", uid)
 
         ContentResolver.setIsSyncable(account, ContactsContract.AUTHORITY, 1)
         ContentResolver.setSyncAutomatically(account, ContactsContract.AUTHORITY, true)
 
         response?.onResult(
             Bundle().apply {
-                putString(AccountManager.KEY_ACCOUNT_NAME, uid)
+                putString(AccountManager.KEY_ACCOUNT_NAME, username)
                 putString(AccountManager.KEY_ACCOUNT_TYPE, PROTON_ACCOUNT_TYPE)
             }
         )
