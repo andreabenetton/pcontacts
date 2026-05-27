@@ -12,7 +12,8 @@ AutoName: pcontacts
 
 RepoType: git
 Repo: https://github.com/andreabenetton/pcontacts.git
-Binaries: https://github.com/andreabenetton/pcontacts/releases/download/v%v/pcontacts-release.apk
+Binaries: 
+  https://github.com/andreabenetton/pcontacts/releases/download/v%v/pcontacts-release.apk
 
 Builds:
   - versionName: 1.0.1
