@@ -60,106 +60,18 @@ class LiveProtonWriteTest {
             .also { check(it.isNotBlank()) { "Set env PCONTACTS_PASSWORD" } }
             .toCharArray()
 
-        val secretStore = InMemorySecretStore()
-        val session = InMemorySession()
-        val apiFactory = ProtonApiFactory(
-            config = ProtonApiConfig(),
-            session = session
-        )
-
-        val orchestrator = SrpLoginOrchestrator(
-            api = apiFactory.auth,
-            usersApi = apiFactory.users,
-            srp = SrpClient(random = SecureRandom()),
-            secretStore = secretStore,
-            session = session
-        )
-
         println("=== LiveProtonWriteTest ===")
-
-        val result = orchestrator.login(username, password)
-        assertTrue("login must succeed", result is LoginResult.Success)
-
-        val keyPasswordBytes = secretStore.keyPassword()!!
-        val keyPassword = String(keyPasswordBytes, Charsets.UTF_8).toCharArray()
-        val userResponse = apiFactory.users.getUser()
-        val primaryKey = userResponse.user.keys.first { it.primary == 1 && it.active == 1 }
-        val unlockedKey = BouncyCastleKeyUnlock.unlock(primaryKey.privateKey, keyPassword)
-
-        val openPgp = BouncyCastleOpenPgpService()
-
-        val serializer = ContactEncryptBootstrap.createSerializer(openPgp, unlockedKey)
-        val cryptoOp = OpenPgpCardCryptoOp.build(
-            openPgp = openPgp,
-            decryptionKeys = unlockedKey.allPrivateKeys,
-            verificationKeys = listOf(unlockedKey.public)
-        )
-        val processor = ContactProcessor(ContactDecrypter(cryptoOp))
+        val (apiFactory, serializer, processor) = loginAndBuildCrypto(username, password)
 
         val marker = UUID.randomUUID().toString().take(8)
+        val testContact = buildTestContact(marker)
         var createdId: String? = null
 
         try {
-            // --- Step 1: Create ---
-            val testContact = DecryptedContact(
-                protonContactId = "",
-                protonUid = "urn:uuid:${UUID.randomUUID()}",
-                fullName = "pcontacts Canary $marker",
-                structuredName = DecryptedStructuredName(
-                    given = "Canary",
-                    family = "pcontacts $marker"
-                ),
-                emails = listOf(
-                    DecryptedEmail(address = "canary-$marker@test.invalid", types = listOf("home"))
-                ),
-                phones = listOf(
-                    DecryptedPhone(number = "+1-555-0100", types = listOf("cell"))
-                ),
-                notes = listOf("pcontacts-canary-$marker — safe to delete"),
-                verified = true,
-                cardCount = 2,
-                unverifiedCardCount = 0
-            )
+            createdId = createOnServer(apiFactory, serializer, testContact, marker)
+            val decrypted = fetchAndDecrypt(apiFactory, processor, createdId)
+            assertRoundTrip(testContact, decrypted, marker)
 
-            val cards = serializer.serialize(testContact)
-            assertEquals("serializer must produce 2 cards (SIGNED + E&S)", 2, cards.size)
-            println("  serialize: OK (${cards.size} cards)")
-
-            val createResponse = apiFactory.contacts.createContacts(
-                CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards)))
-            )
-            val serverContact = createResponse.responses.firstOrNull()?.response?.contact
-            assertNotNull("server must return the created contact", serverContact)
-            createdId = serverContact!!.id
-            println("  create: OK (id=${createdId.take(8)}...)")
-
-            // --- Step 2: Fetch back + decrypt ---
-            val fetchResponse = apiFactory.contacts.getContact(createdId)
-            val fetched = fetchResponse.contact
-            assertEquals("fetched contact ID must match", createdId, fetched.id)
-
-            val decrypted = processor.process(fetched)
-            println("  fetch+decrypt: OK")
-            println("    fullName: ${decrypted.fullName}")
-            println("    emails: ${decrypted.emails.size}")
-            println("    phones: ${decrypted.phones.size}")
-            println("    notes: ${decrypted.notes.size}")
-            println("    verified: ${decrypted.verified}")
-
-            // --- Step 3: Assert round-trip ---
-            assertEquals("fullName", testContact.fullName, decrypted.fullName)
-            assertEquals("email count", testContact.emails.size, decrypted.emails.size)
-            assertEquals("email address",
-                testContact.emails[0].address, decrypted.emails[0].address)
-            assertEquals("phone count", testContact.phones.size, decrypted.phones.size)
-            assertEquals("phone number",
-                testContact.phones[0].number, decrypted.phones[0].number)
-            assertTrue("notes must contain marker",
-                decrypted.notes.any { it.contains(marker) })
-            assertTrue("all cards must verify", decrypted.verified)
-            println("  round-trip assertions: PASS")
-
-            // --- Step 4: Delete ---
             apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = listOf(createdId)))
             println("  delete: OK")
             createdId = null
@@ -175,5 +87,97 @@ class LiveProtonWriteTest {
         }
 
         println("=== LiveProtonWriteTest PASS ===")
+    }
+
+    private data class CryptoContext(
+        val apiFactory: ProtonApiFactory,
+        val serializer: ContactSerializer,
+        val processor: ContactProcessor
+    )
+
+    private suspend fun loginAndBuildCrypto(username: String, password: CharArray): CryptoContext {
+        val secretStore = InMemorySecretStore()
+        val session = InMemorySession()
+        val apiFactory = ProtonApiFactory(config = ProtonApiConfig(), session = session)
+        val orchestrator = SrpLoginOrchestrator(
+            api = apiFactory.auth,
+            usersApi = apiFactory.users,
+            srp = SrpClient(random = SecureRandom()),
+            secretStore = secretStore,
+            session = session
+        )
+        val result = orchestrator.login(username, password)
+        assertTrue("login must succeed", result is LoginResult.Success)
+
+        val keyPasswordBytes = secretStore.keyPassword()!!
+        val keyPassword = String(keyPasswordBytes, Charsets.UTF_8).toCharArray()
+        val primaryKey = apiFactory.users.getUser().user.keys.first { it.primary == 1 && it.active == 1 }
+        val unlockedKey = BouncyCastleKeyUnlock.unlock(primaryKey.privateKey, keyPassword)
+        val openPgp = BouncyCastleOpenPgpService()
+        val cryptoOp = OpenPgpCardCryptoOp.build(
+            openPgp = openPgp,
+            decryptionKeys = unlockedKey.allPrivateKeys,
+            verificationKeys = listOf(unlockedKey.public)
+        )
+        return CryptoContext(
+            apiFactory = apiFactory,
+            serializer = ContactEncryptBootstrap.createSerializer(openPgp, unlockedKey),
+            processor = ContactProcessor(ContactDecrypter(cryptoOp))
+        )
+    }
+
+    private fun buildTestContact(marker: String) = DecryptedContact(
+        protonContactId = "",
+        protonUid = "urn:uuid:${UUID.randomUUID()}",
+        fullName = "pcontacts Canary $marker",
+        structuredName = DecryptedStructuredName(given = "Canary", family = "pcontacts $marker"),
+        emails = listOf(DecryptedEmail(address = "canary-$marker@test.invalid", types = listOf("home"))),
+        phones = listOf(DecryptedPhone(number = "+1-555-0100", types = listOf("cell"))),
+        notes = listOf("pcontacts-canary-$marker — safe to delete"),
+        verified = true,
+        cardCount = 2,
+        unverifiedCardCount = 0
+    )
+
+    private suspend fun createOnServer(
+        apiFactory: ProtonApiFactory,
+        serializer: ContactSerializer,
+        testContact: DecryptedContact,
+        marker: String
+    ): String {
+        val cards = serializer.serialize(testContact)
+        assertEquals("serializer must produce 2 cards (SIGNED + E&S)", 2, cards.size)
+        println("  serialize: OK (${cards.size} cards)")
+        val createResponse = apiFactory.contacts.createContacts(
+            CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards)))
+        )
+        val serverContact = createResponse.responses.firstOrNull()?.response?.contact
+        assertNotNull("server must return the created contact", serverContact)
+        val createdId = serverContact!!.id
+        println("  create: OK (id=${createdId.take(8)}...) marker=$marker")
+        return createdId
+    }
+
+    private suspend fun fetchAndDecrypt(
+        apiFactory: ProtonApiFactory,
+        processor: ContactProcessor,
+        createdId: String
+    ): DecryptedContact {
+        val fetchResponse = apiFactory.contacts.getContact(createdId)
+        assertEquals("fetched contact ID must match", createdId, fetchResponse.contact.id)
+        val decrypted = processor.process(fetchResponse.contact)
+        println("  fetch+decrypt: OK fullName=${decrypted.fullName} emails=${decrypted.emails.size}")
+        return decrypted
+    }
+
+    private fun assertRoundTrip(expected: DecryptedContact, actual: DecryptedContact, marker: String) {
+        assertEquals("fullName", expected.fullName, actual.fullName)
+        assertEquals("email count", expected.emails.size, actual.emails.size)
+        assertEquals("email address", expected.emails[0].address, actual.emails[0].address)
+        assertEquals("phone count", expected.phones.size, actual.phones.size)
+        assertEquals("phone number", expected.phones[0].number, actual.phones[0].number)
+        assertTrue("notes must contain marker", actual.notes.any { it.contains(marker) })
+        assertTrue("all cards must verify", actual.verified)
+        println("  round-trip assertions: PASS")
     }
 }

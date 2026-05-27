@@ -19,11 +19,11 @@ import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
-import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope

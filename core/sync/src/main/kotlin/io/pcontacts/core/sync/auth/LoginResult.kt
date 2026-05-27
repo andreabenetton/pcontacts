@@ -17,5 +17,9 @@ sealed interface LoginResult {
 
     data class Success(override val uid: String, override val username: String) : LoginResult
     data class TwoFactorRequired(override val uid: String, override val username: String) : LoginResult
-    data class Failed(val reason: String, override val uid: String? = null, override val username: String? = null) : LoginResult
+    data class Failed(
+        val reason: String,
+        override val uid: String? = null,
+        override val username: String? = null
+    ) : LoginResult
 }
