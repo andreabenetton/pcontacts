@@ -204,7 +204,8 @@ class SettingsActivity : ComponentActivity() {
                     pm.checkPermission(
                         android.Manifest.permission.READ_CONTACTS,
                         pkg.packageName
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                    pm.getLaunchIntentForPackage(pkg.packageName) != null
             }
             .map { pkg ->
                 ContactsAccessApp(
