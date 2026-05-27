@@ -35,7 +35,7 @@ class LoginViewModelTest {
 
     @Test fun success_transitions_idle_submitting_success() = runTest {
         val vm = LoginViewModel(
-            attemptLogin = { _, _ -> LoginResult.Success(uid = "uid-1") },
+            attemptLogin = { _, _ -> LoginResult.Success(uid = "uid-1", username = "alice") },
             submitTotp = unusedSubmitTotp,
             workDispatcher = testDispatcher
         )
@@ -45,18 +45,18 @@ class LoginViewModelTest {
         assertEquals(LoginUiState.Submitting, vm.uiState.value)
 
         advanceUntilIdle()
-        assertEquals(LoginUiState.Success(uid = "uid-1"), vm.uiState.value)
+        assertEquals(LoginUiState.Success(uid = "uid-1", username = "alice"), vm.uiState.value)
     }
 
     @Test fun two_factor_required_surfaces_in_state() = runTest {
         val vm = LoginViewModel(
-            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-2fa") },
+            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-2fa", username = "u") },
             submitTotp = unusedSubmitTotp,
             workDispatcher = testDispatcher
         )
         vm.login("u", "p".toCharArray())
         advanceUntilIdle()
-        assertEquals(LoginUiState.TwoFactorRequired(uid = "uid-2fa"), vm.uiState.value)
+        assertEquals(LoginUiState.TwoFactorRequired(uid = "uid-2fa", username = "u"), vm.uiState.value)
     }
 
     @Test fun failure_surfaces_reason_in_state() = runTest {
@@ -92,9 +92,9 @@ class LoginViewModelTest {
         assertEquals(LoginUiState.Submitting, vm.uiState.value)
         assertEquals("second tap must not invoke orchestrator a second time", 1, callCount)
 
-        gate.complete(LoginResult.Success(uid = "uid-late"))
+        gate.complete(LoginResult.Success(uid = "uid-late", username = "u"))
         advanceUntilIdle()
-        assertEquals(LoginUiState.Success(uid = "uid-late"), vm.uiState.value)
+        assertEquals(LoginUiState.Success(uid = "uid-late", username = "u"), vm.uiState.value)
     }
 
     @Test fun reset_returns_to_idle_and_cancels_pending_job() = runTest {
@@ -117,29 +117,29 @@ class LoginViewModelTest {
     @Test fun submitTwoFactor_success_transitions_required_submitting_success() = runTest {
         var capturedCode: String? = null
         val vm = LoginViewModel(
-            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-2fa") },
+            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-2fa", username = "u") },
             submitTotp = { code ->
                 capturedCode = code
-                LoginResult.Success(uid = "uid-2fa")
+                LoginResult.Success(uid = "uid-2fa", username = "u")
             },
             workDispatcher = testDispatcher
         )
 
         vm.login("u", "p".toCharArray())
         advanceUntilIdle()
-        assertEquals(LoginUiState.TwoFactorRequired(uid = "uid-2fa"), vm.uiState.value)
+        assertEquals(LoginUiState.TwoFactorRequired(uid = "uid-2fa", username = "u"), vm.uiState.value)
 
         vm.submitTwoFactor("123456")
-        assertEquals(LoginUiState.TwoFactorSubmitting(uid = "uid-2fa"), vm.uiState.value)
+        assertEquals(LoginUiState.TwoFactorSubmitting(uid = "uid-2fa", username = "u"), vm.uiState.value)
 
         advanceUntilIdle()
-        assertEquals(LoginUiState.Success(uid = "uid-2fa"), vm.uiState.value)
+        assertEquals(LoginUiState.Success(uid = "uid-2fa", username = "u"), vm.uiState.value)
         assertEquals("123456", capturedCode)
     }
 
     @Test fun submitTwoFactor_failure_surfaces_TwoFactorFailed_preserving_uid() = runTest {
         val vm = LoginViewModel(
-            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-fail") },
+            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-fail", username = "u") },
             submitTotp = { _ -> LoginResult.Failed(reason = "two_factor_rejected") },
             workDispatcher = testDispatcher
         )
@@ -149,7 +149,7 @@ class LoginViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            LoginUiState.TwoFactorFailed(uid = "uid-fail", reason = "two_factor_rejected"),
+            LoginUiState.TwoFactorFailed(uid = "uid-fail", username = "u", reason = "two_factor_rejected"),
             vm.uiState.value
         )
     }
@@ -157,11 +157,11 @@ class LoginViewModelTest {
     @Test fun submitTwoFactor_from_failed_state_retries() = runTest {
         var attempts = 0
         val vm = LoginViewModel(
-            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-retry") },
+            attemptLogin = { _, _ -> LoginResult.TwoFactorRequired(uid = "uid-retry", username = "u") },
             submitTotp = { _ ->
                 attempts += 1
                 if (attempts == 1) LoginResult.Failed("two_factor_rejected")
-                else LoginResult.Success(uid = "uid-retry")
+                else LoginResult.Success(uid = "uid-retry", username = "u")
             },
             workDispatcher = testDispatcher
         )
@@ -171,23 +171,23 @@ class LoginViewModelTest {
         vm.submitTwoFactor("111111")
         advanceUntilIdle()
         assertEquals(
-            LoginUiState.TwoFactorFailed(uid = "uid-retry", reason = "two_factor_rejected"),
+            LoginUiState.TwoFactorFailed(uid = "uid-retry", username = "u", reason = "two_factor_rejected"),
             vm.uiState.value
         )
 
         vm.submitTwoFactor("222222")
         advanceUntilIdle()
-        assertEquals(LoginUiState.Success(uid = "uid-retry"), vm.uiState.value)
+        assertEquals(LoginUiState.Success(uid = "uid-retry", username = "u"), vm.uiState.value)
         assertEquals(2, attempts)
     }
 
     @Test fun submitTwoFactor_ignored_when_not_in_2fa_state() = runTest {
         var totpCalled = false
         val vm = LoginViewModel(
-            attemptLogin = { _, _ -> LoginResult.Success(uid = "no-2fa-here") },
+            attemptLogin = { _, _ -> LoginResult.Success(uid = "no-2fa-here", username = "u") },
             submitTotp = { _ ->
                 totpCalled = true
-                LoginResult.Success(uid = "x")
+                LoginResult.Success(uid = "x", username = "u")
             },
             workDispatcher = testDispatcher
         )

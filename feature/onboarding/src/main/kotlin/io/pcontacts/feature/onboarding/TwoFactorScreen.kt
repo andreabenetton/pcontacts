@@ -48,7 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun TwoFactorScreen(
     viewModel: LoginViewModel,
-    onSuccess: (uid: String) -> Unit,
+    onSuccess: (uid: String, username: String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -124,7 +124,7 @@ fun TwoFactorScreen(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium
             )
-            is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid) }
+            is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid, s.username) }
         }
     }
 }

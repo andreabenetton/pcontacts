@@ -41,8 +41,8 @@ class LoginViewModel(
         pendingJob = viewModelScope.launch {
             val result = withContext(workDispatcher) { attemptLogin(username, password) }
             _uiState.value = when (result) {
-                is LoginResult.Success -> LoginUiState.Success(result.uid)
-                is LoginResult.TwoFactorRequired -> LoginUiState.TwoFactorRequired(result.uid)
+                is LoginResult.Success -> LoginUiState.Success(result.uid, result.username)
+                is LoginResult.TwoFactorRequired -> LoginUiState.TwoFactorRequired(result.uid, result.username)
                 is LoginResult.Failed -> LoginUiState.Failed(result.reason)
             }
         }
@@ -50,20 +50,20 @@ class LoginViewModel(
 
     fun submitTwoFactor(code: String) {
         val current = _uiState.value
-        val uid = when (current) {
-            is LoginUiState.TwoFactorRequired -> current.uid
-            is LoginUiState.TwoFactorFailed -> current.uid
+        val (uid, username) = when (current) {
+            is LoginUiState.TwoFactorRequired -> current.uid to current.username
+            is LoginUiState.TwoFactorFailed -> current.uid to current.username
             else -> return
         }
 
-        _uiState.value = LoginUiState.TwoFactorSubmitting(uid)
+        _uiState.value = LoginUiState.TwoFactorSubmitting(uid, username)
         pendingJob = viewModelScope.launch {
             val result = withContext(workDispatcher) { submitTotp(code) }
             _uiState.value = when (result) {
-                is LoginResult.Success -> LoginUiState.Success(result.uid)
-                is LoginResult.Failed -> LoginUiState.TwoFactorFailed(uid, result.reason)
+                is LoginResult.Success -> LoginUiState.Success(result.uid, result.username)
+                is LoginResult.Failed -> LoginUiState.TwoFactorFailed(uid, result.username ?: username, result.reason)
                 is LoginResult.TwoFactorRequired -> {
-                    LoginUiState.TwoFactorFailed(uid, "unexpected_state")
+                    LoginUiState.TwoFactorFailed(uid, username, "unexpected_state")
                 }
             }
         }

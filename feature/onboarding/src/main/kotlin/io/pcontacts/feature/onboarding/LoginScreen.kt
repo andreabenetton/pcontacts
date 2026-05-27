@@ -50,7 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onSuccess: (uid: String) -> Unit,
+    onSuccess: (uid: String, username: String) -> Unit,
     onTwoFactorRequired: (uid: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -123,7 +123,7 @@ fun LoginScreen(
             LoginUiState.Idle -> Unit
             LoginUiState.Submitting ->
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid) }
+            is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid, s.username) }
             is LoginUiState.TwoFactorRequired -> LaunchedEffect(s.uid) { onTwoFactorRequired(s.uid) }
             // The 2FA-side states belong to TwoFactorScreen; the host Activity
             // is expected to have navigated there as soon as we crossed into

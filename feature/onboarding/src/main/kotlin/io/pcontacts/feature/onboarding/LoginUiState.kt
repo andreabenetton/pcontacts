@@ -21,9 +21,9 @@ package io.pcontacts.feature.onboarding
 sealed interface LoginUiState {
     data object Idle : LoginUiState
     data object Submitting : LoginUiState
-    data class Success(val uid: String) : LoginUiState
-    data class TwoFactorRequired(val uid: String) : LoginUiState
-    data class TwoFactorSubmitting(val uid: String) : LoginUiState
-    data class TwoFactorFailed(val uid: String, val reason: String) : LoginUiState
+    data class Success(val uid: String, val username: String) : LoginUiState
+    data class TwoFactorRequired(val uid: String, val username: String) : LoginUiState
+    data class TwoFactorSubmitting(val uid: String, val username: String) : LoginUiState
+    data class TwoFactorFailed(val uid: String, val username: String, val reason: String) : LoginUiState
     data class Failed(val reason: String) : LoginUiState
 }
