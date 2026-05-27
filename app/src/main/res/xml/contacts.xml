@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+  Declares which ContactsContract data kinds the pcontacts account
+  supports. Referenced from AndroidManifest.xml via
+  android.provider.CONTACTS_STRUCTURE on the SyncAdapter service.
+
+  This makes the account appear in the system Contacts app's
+  "Save contact to" picker, allowing users to create new contacts
+  directly under the pcontacts account (bidirectional sync pushes
+  them to Proton).
+-->
+<ContactsAccountType xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/name"
+        android:summaryColumn="data1"
+        android:detailColumn="data2" />
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/email_v2"
+        android:summaryColumn="data1"
+        android:detailColumn="data2" />
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/phone_v2"
+        android:summaryColumn="data1"
+        android:detailColumn="data2" />
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/postal-address_v2"
+        android:summaryColumn="data1"
+        android:detailColumn="data2" />
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/organization"
+        android:summaryColumn="data1"
+        android:detailColumn="data4" />
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/note"
+        android:summaryColumn="data1" />
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/im"
+        android:summaryColumn="data1"
+        android:detailColumn="data2" />
+
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/photo"
+        android:summaryColumn="data15" />
+
+</ContactsAccountType>
