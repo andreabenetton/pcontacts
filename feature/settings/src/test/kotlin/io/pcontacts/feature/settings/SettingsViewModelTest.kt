@@ -307,6 +307,38 @@ class SettingsViewModelTest {
         )
     }
 
+    @Test fun contacts_access_apps_loaded_on_init() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val apps = listOf(
+            ContactsAccessApp("WhatsApp", "com.whatsapp"),
+            ContactsAccessApp("Telegram", "org.telegram.messenger")
+        )
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryContactsAccessApps = { apps },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(2, vm.contactsAccessApps.value.size)
+        assertEquals("WhatsApp", vm.contactsAccessApps.value[0].appName)
+        assertEquals("com.whatsapp", vm.contactsAccessApps.value[0].packageName)
+    }
+
+    @Test fun contacts_access_apps_empty_on_query_failure() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryContactsAccessApps = { error("pm error") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(emptyList<ContactsAccessApp>(), vm.contactsAccessApps.value)
+    }
+
     @Test fun outbox_stats_default_on_query_failure() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = SettingsViewModel(

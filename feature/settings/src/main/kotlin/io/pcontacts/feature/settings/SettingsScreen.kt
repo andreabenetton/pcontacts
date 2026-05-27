@@ -57,6 +57,7 @@ fun SettingsScreen(
     val outboxStats by viewModel.outboxStats.collectAsStateWithLifecycle()
     val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
+    val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
     val busy = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
 
     Column(
@@ -153,6 +154,11 @@ fun SettingsScreen(
                 conflicts = conflicts,
                 onResolve = viewModel::resolveContactConflict
             )
+        }
+
+        if (contactsAccessApps.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            ContactsAccessBanner(contactsAccessApps)
         }
     }
 }
@@ -357,6 +363,37 @@ private fun ConflictBanner(
             },
             onDismiss = { selectedConflict = null }
         )
+    }
+}
+
+@Composable
+private fun ContactsAccessBanner(apps: List<ContactsAccessApp>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(12.dp)
+    ) {
+        Text(
+            text = pluralStringResource(R.plurals.contacts_access_count, apps.size, apps.size),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = stringResource(R.string.contacts_access_detail),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(8.dp))
+        apps.forEach { app ->
+            Text(
+                text = app.appName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+        }
     }
 }
 

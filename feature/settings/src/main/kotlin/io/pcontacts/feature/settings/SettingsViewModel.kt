@@ -37,6 +37,7 @@ class SettingsViewModel(
     private val queryConflicts: suspend () -> List<ConflictInfo> = { emptyList() },
     private val cancelDelete: suspend (String) -> Unit = {},
     private val resolveConflict: suspend (String, ConflictResolution) -> Unit = { _, _ -> },
+    private val queryContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val onSyncIntervalChanged: (Long) -> Unit = {},
     initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours,
     private val scope: CoroutineScope = MainScope(),
@@ -56,6 +57,9 @@ class SettingsViewModel(
 
     private val _conflicts = MutableStateFlow<List<ConflictInfo>>(emptyList())
     val conflicts: StateFlow<List<ConflictInfo>> = _conflicts.asStateFlow()
+
+    private val _contactsAccessApps = MutableStateFlow<List<ContactsAccessApp>>(emptyList())
+    val contactsAccessApps: StateFlow<List<ContactsAccessApp>> = _contactsAccessApps.asStateFlow()
 
     private val _syncInterval = MutableStateFlow(SyncInterval.fromHours(initialSyncIntervalHours))
     val syncInterval: StateFlow<SyncInterval> = _syncInterval.asStateFlow()
@@ -77,6 +81,7 @@ class SettingsViewModel(
             _outboxStats.value = try { queryOutboxStats() } catch (_: Exception) { OutboxStats(0, 0) }
             _pendingDeletes.value = try { queryPendingDeletes() } catch (_: Exception) { emptyList() }
             _conflicts.value = try { queryConflicts() } catch (_: Exception) { emptyList() }
+            _contactsAccessApps.value = try { queryContactsAccessApps() } catch (_: Exception) { emptyList() }
         }
     }
 

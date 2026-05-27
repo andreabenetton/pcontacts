@@ -36,3 +36,8 @@ data class ConflictInfo(
 )
 
 enum class ConflictResolution { USE_LOCAL, USE_SERVER }
+
+data class ContactsAccessApp(
+    val appName: String,
+    val packageName: String
+)

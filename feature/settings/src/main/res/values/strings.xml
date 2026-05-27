@@ -44,4 +44,10 @@
     <string name="conflict_dialog_prompt">Choose which version to keep:</string>
     <string name="conflict_use_local">Use phone version</string>
     <string name="conflict_use_server">Use Proton version</string>
+
+    <plurals name="contacts_access_count">
+        <item quantity="one">%d app can read your contacts</item>
+        <item quantity="other">%d apps can read your contacts</item>
+    </plurals>
+    <string name="contacts_access_detail">These apps have the READ_CONTACTS permission and can see your synced Proton contacts.</string>
 </resources>
