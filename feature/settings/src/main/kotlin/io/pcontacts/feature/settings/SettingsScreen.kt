@@ -388,7 +388,7 @@ private fun ContactsAccessBanner(apps: List<ContactsAccessApp>) {
         Spacer(Modifier.height(8.dp))
         apps.forEach { app ->
             Text(
-                text = app.appName,
+                text = "${app.appName} (${app.packageName})",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 2.dp)
