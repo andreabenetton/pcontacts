@@ -7,6 +7,7 @@ import io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword
 import io.pcontacts.core.crypto.bcrypt.SrpHashPassword
 import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
+import io.pcontacts.core.crypto.openpgp.UnlockedKey
 import io.pcontacts.core.crypto.openpgp.VerificationStatus
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -87,98 +88,119 @@ class CapturedVectorsTest {
 
         val service = BouncyCastleOpenPgpService()
         var checked = 0
-
         for (entry in entries) {
-            val label = entry.jsonString("label")!!
-            val operation = entry.jsonString("operation")!!
-            val plaintext = unescapeJson(entry.jsonStringRaw("plaintext")!!)
-            val armoredPrivateKey = unescapeJson(entry.jsonStringRaw("armoredPrivateKey")!!)
-
-            // Import the OpenPGP.js-generated key via BouncyCastle.
-            // The public key is extracted from the secret key ring — we don't
-            // need to parse armoredPublicKey separately.
-            val unlocked = BouncyCastleKeyUnlock.unlock(armoredPrivateKey, CharArray(0))
-
-            when (operation) {
-                "signDetached" -> {
-                    val armoredSignature = unescapeJson(entry.jsonStringRaw("armoredSignature")!!)
-
-                    // Verify the JS-produced signature with the BouncyCastle verifier.
-                    // OpenPGP.js binary-mode signatures use BINARY_DOCUMENT type.
-                    val status = service.verifyDetached(
-                        plaintext = plaintext.toByteArray(Charsets.UTF_8),
-                        armoredSignature = armoredSignature,
-                        verificationKeys = listOf(unlocked.public),
-                        canonicalText = false,
-                        stripTrailingSpaces = false
-                    )
-                    assertEquals(
-                        "openPgp vector '$label': JS signature should verify in BC",
-                        VerificationStatus.SIGNED_AND_VALID,
-                        status
-                    )
-
-                    // Also sign with BouncyCastle and verify our own signature —
-                    // proves the round-trip path works with the imported key.
-                    val bcSig = service.signDetached(
-                        plaintext = plaintext.toByteArray(Charsets.UTF_8),
-                        signingKey = unlocked.private,
-                        canonicalText = false,
-                        stripTrailingSpaces = false
-                    )
-                    assertTrue(
-                        "openPgp vector '$label': BC signature should be armored",
-                        bcSig.contains("-----BEGIN PGP SIGNATURE-----")
-                    )
-                    val bcStatus = service.verifyDetached(
-                        plaintext = plaintext.toByteArray(Charsets.UTF_8),
-                        armoredSignature = bcSig,
-                        verificationKeys = listOf(unlocked.public),
-                        canonicalText = false,
-                        stripTrailingSpaces = false
-                    )
-                    assertEquals(
-                        "openPgp vector '$label': BC-produced signature should verify",
-                        VerificationStatus.SIGNED_AND_VALID,
-                        bcStatus
-                    )
-                }
-                "encryptAndSignDetached" -> {
-                    val armoredMessage = unescapeJson(entry.jsonStringRaw("armoredMessage")!!)
-                    val armoredDetachedSig = unescapeJson(entry.jsonStringRaw("armoredDetachedSignature")!!)
-
-                    // Decrypt the JS-encrypted message with BouncyCastle.
-                    val decrypted = service.decryptAndVerify(
-                        armoredMessage = armoredMessage,
-                        detachedSignature = null,
-                        decryptionKeys = unlocked.allPrivateKeys,
-                        verificationKeys = listOf(unlocked.public)
-                    )
-                    assertArrayEquals(
-                        "openPgp vector '$label': decrypted plaintext should match",
-                        plaintext.toByteArray(Charsets.UTF_8),
-                        decrypted.plaintext
-                    )
-
-                    // Verify the JS-produced detached signature separately.
-                    val sigStatus = service.verifyDetached(
-                        plaintext = plaintext.toByteArray(Charsets.UTF_8),
-                        armoredSignature = armoredDetachedSig,
-                        verificationKeys = listOf(unlocked.public),
-                        canonicalText = false,
-                        stripTrailingSpaces = false
-                    )
-                    assertEquals(
-                        "openPgp vector '$label': JS detached signature should verify in BC",
-                        VerificationStatus.SIGNED_AND_VALID,
-                        sigStatus
-                    )
-                }
-                else -> error("unknown openPgp operation: $operation")
-            }
+            verifyOpenPgpEntry(service, entry)
             checked += 1
         }
         assertTrue("expected at least 1 openPgp vector", checked > 0)
+    }
+
+    private fun verifyOpenPgpEntry(service: BouncyCastleOpenPgpService, entry: String) {
+        val label = entry.jsonString("label")!!
+        val operation = entry.jsonString("operation")!!
+        val plaintext = unescapeJson(entry.jsonStringRaw("plaintext")!!)
+        val armoredPrivateKey = unescapeJson(entry.jsonStringRaw("armoredPrivateKey")!!)
+
+        // Import the OpenPGP.js-generated key via BouncyCastle.
+        // The public key is extracted from the secret key ring — we don't
+        // need to parse armoredPublicKey separately.
+        val unlocked = BouncyCastleKeyUnlock.unlock(armoredPrivateKey, CharArray(0))
+
+        when (operation) {
+            "signDetached" -> verifySignDetached(service, label, plaintext, entry, unlocked)
+            "encryptAndSignDetached" -> verifyEncryptAndSignDetached(service, label, plaintext, entry, unlocked)
+            else -> error("unknown openPgp operation: $operation")
+        }
+    }
+
+    private fun verifySignDetached(
+        service: BouncyCastleOpenPgpService,
+        label: String,
+        plaintext: String,
+        entry: String,
+        unlocked: UnlockedKey,
+    ) {
+        val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
+        val armoredSignature = unescapeJson(entry.jsonStringRaw("armoredSignature")!!)
+
+        // Verify the JS-produced signature with the BouncyCastle verifier.
+        // OpenPGP.js binary-mode signatures use BINARY_DOCUMENT type.
+        val status = service.verifyDetached(
+            plaintext = plaintextBytes,
+            armoredSignature = armoredSignature,
+            verificationKeys = listOf(unlocked.public),
+            canonicalText = false,
+            stripTrailingSpaces = false
+        )
+        assertEquals(
+            "openPgp vector '$label': JS signature should verify in BC",
+            VerificationStatus.SIGNED_AND_VALID,
+            status
+        )
+
+        // Also sign with BouncyCastle and verify our own signature —
+        // proves the round-trip path works with the imported key.
+        val bcSig = service.signDetached(
+            plaintext = plaintextBytes,
+            signingKey = unlocked.private,
+            canonicalText = false,
+            stripTrailingSpaces = false
+        )
+        assertTrue(
+            "openPgp vector '$label': BC signature should be armored",
+            bcSig.contains("-----BEGIN PGP SIGNATURE-----")
+        )
+        val bcStatus = service.verifyDetached(
+            plaintext = plaintextBytes,
+            armoredSignature = bcSig,
+            verificationKeys = listOf(unlocked.public),
+            canonicalText = false,
+            stripTrailingSpaces = false
+        )
+        assertEquals(
+            "openPgp vector '$label': BC-produced signature should verify",
+            VerificationStatus.SIGNED_AND_VALID,
+            bcStatus
+        )
+    }
+
+    private fun verifyEncryptAndSignDetached(
+        service: BouncyCastleOpenPgpService,
+        label: String,
+        plaintext: String,
+        entry: String,
+        unlocked: UnlockedKey,
+    ) {
+        val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
+        val armoredMessage = unescapeJson(entry.jsonStringRaw("armoredMessage")!!)
+        val armoredDetachedSig = unescapeJson(entry.jsonStringRaw("armoredDetachedSignature")!!)
+
+        // Decrypt the JS-encrypted message with BouncyCastle.
+        val decrypted = service.decryptAndVerify(
+            armoredMessage = armoredMessage,
+            detachedSignature = null,
+            decryptionKeys = unlocked.allPrivateKeys,
+            verificationKeys = listOf(unlocked.public)
+        )
+        assertArrayEquals(
+            "openPgp vector '$label': decrypted plaintext should match",
+            plaintextBytes,
+            decrypted.plaintext
+        )
+
+        // Verify the JS-produced detached signature separately.
+        val sigStatus = service.verifyDetached(
+            plaintext = plaintextBytes,
+            armoredSignature = armoredDetachedSig,
+            verificationKeys = listOf(unlocked.public),
+            canonicalText = false,
+            stripTrailingSpaces = false
+        )
+        assertEquals(
+            "openPgp vector '$label': JS detached signature should verify in BC",
+            VerificationStatus.SIGNED_AND_VALID,
+            sigStatus
+        )
     }
 
     // ------------------------------------------------------------------
@@ -201,21 +223,7 @@ class CapturedVectorsTest {
             when (json[i]) {
                 '{' -> {
                     val objStart = i
-                    var depth = 1
-                    var inString = false
-                    var escaped = false
-                    i++
-                    while (i < json.length && depth > 0) {
-                        val c = json[i]
-                        if (escaped) { escaped = false; i++; continue }
-                        if (c == '\\' && inString) { escaped = true; i++; continue }
-                        if (c == '"') inString = !inString
-                        if (!inString) {
-                            if (c == '{') depth++
-                            else if (c == '}') depth--
-                        }
-                        i++
-                    }
+                    i = scanJsonObject(json, i + 1)
                     entries += json.substring(objStart, i)
                 }
                 ']' -> break
@@ -223,6 +231,45 @@ class CapturedVectorsTest {
             }
         }
         return entries
+    }
+
+    /**
+     * Scans a JSON object body starting after the opening `{`, tracking
+     * nesting depth and string boundaries. Returns the index after the
+     * closing `}`.
+     */
+    private fun scanJsonObject(json: String, startAfterBrace: Int): Int {
+        var depth = 1
+        var inString = false
+        var escaped = false
+        var i = startAfterBrace
+        while (i < json.length && depth > 0) {
+            val c = json[i]
+            when {
+                escaped -> {
+                    escaped = false
+                    i++
+                }
+                c == '\\' && inString -> {
+                    escaped = true
+                    i++
+                }
+                c == '"' -> {
+                    inString = !inString
+                    i++
+                }
+                !inString && c == '{' -> {
+                    depth++
+                    i++
+                }
+                !inString && c == '}' -> {
+                    depth--
+                    i++
+                }
+                else -> i++
+            }
+        }
+        return i
     }
 
     /**
@@ -234,23 +281,54 @@ class CapturedVectorsTest {
         val needle = "\"$fieldName\""
         var pos = indexOf(needle)
         while (pos >= 0) {
-            var i = pos + needle.length
-            // skip whitespace and colon
-            while (i < length && this[i].let { it == ' ' || it == '\t' || it == '\n' || it == '\r' }) i++
-            if (i >= length || this[i] != ':') { pos = indexOf(needle, pos + 1); continue }
+            val result = tryReadJsonStringAt(needle, pos)
+            if (result != null) return result
+            pos = indexOf(needle, pos + 1)
+        }
+        return null
+    }
+
+    /**
+     * Attempts to read a JSON string value for [needle] found at [pos].
+     * Returns the raw (still JSON-escaped) string content, or null if the
+     * token at this position is not a valid `"key": "value"` pair.
+     */
+    private fun String.tryReadJsonStringAt(needle: String, pos: Int): String? {
+        val colonIdx = skipWhitespace(pos + needle.length)
+        if (colonIdx >= length || this[colonIdx] != ':') return null
+        val quoteIdx = skipWhitespace(colonIdx + 1)
+        if (quoteIdx >= length || this[quoteIdx] != '"') return null
+        // Now at the opening quote — scan for the unescaped closing quote
+        return scanJsonStringValue(quoteIdx + 1)
+    }
+
+    /** Advances past whitespace characters starting at [from], returns the new index. */
+    private fun String.skipWhitespace(from: Int): Int {
+        var i = from
+        while (i < length) {
+            val ch = this[i]
+            val isWhitespace = ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+            if (!isWhitespace) break
             i++
-            while (i < length && this[i].let { it == ' ' || it == '\t' || it == '\n' || it == '\r' }) i++
-            if (i >= length || this[i] != '"') { pos = indexOf(needle, pos + 1); continue }
-            // Now at the opening quote — scan for the unescaped closing quote
-            i++ // skip opening "
-            val start = i
-            while (i < length) {
-                val c = this[i]
-                if (c == '\\') { i += 2; continue }
-                if (c == '"') return substring(start, i)
-                i++
+        }
+        return i
+    }
+
+    /**
+     * Scans a JSON string value starting at [contentStart] (the index after the
+     * opening `"`). Returns the raw content up to (but not including) the closing
+     * `"`, or null if the string is unterminated.
+     */
+    private fun String.scanJsonStringValue(contentStart: Int): String? {
+        var i = contentStart
+        while (i < length) {
+            val c = this[i]
+            if (c == '\\') {
+                i += 2
+                continue
             }
-            return null
+            if (c == '"') return substring(contentStart, i)
+            i++
         }
         return null
     }
