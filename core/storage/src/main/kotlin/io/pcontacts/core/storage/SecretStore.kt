@@ -39,6 +39,22 @@ interface SecretStore {
     fun setKeyPassword(value: ByteArray?)
 
     /**
+     * Human-verification token (`x-pm-human-verification-token`) and its
+     * type (`x-pm-human-verification-token-type`, e.g. `"captcha"`).
+     * Stored after the user completes a 9001 challenge so subsequent
+     * requests can attach the two headers transparently
+     * (see HumanVerificationHeadersInterceptor in :core:proton-api).
+     *
+     * Same threat profile as `accessToken` — session-scoped opaque
+     * value, no KEK wrap. Cleared by `logout()` and by the interceptor
+     * on a subsequent 9001 (stale-token detection).
+     */
+    fun humanVerificationToken(): String?
+    fun setHumanVerificationToken(value: String?)
+    fun humanVerificationTokenType(): String?
+    fun setHumanVerificationTokenType(value: String?)
+
+    /**
      * Wipes every secret and deletes the Keystore AEAD key. Subsequent
      * reads return null. Called from the sign-out flow and during the
      * "Forget account" path.

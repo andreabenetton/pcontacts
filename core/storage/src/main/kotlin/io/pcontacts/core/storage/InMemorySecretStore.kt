@@ -17,6 +17,8 @@ class InMemorySecretStore : SecretStore {
     private var accessToken: String? = null
     private var refreshToken: String? = null
     private var keyPassword: ByteArray? = null
+    private var humanVerificationToken: String? = null
+    private var humanVerificationTokenType: String? = null
 
     override fun uid(): String? = uid
     override fun setUid(value: String?) { uid = value }
@@ -34,11 +36,18 @@ class InMemorySecretStore : SecretStore {
         keyPassword = value?.copyOf()
     }
 
+    override fun humanVerificationToken(): String? = humanVerificationToken
+    override fun setHumanVerificationToken(value: String?) { humanVerificationToken = value }
+    override fun humanVerificationTokenType(): String? = humanVerificationTokenType
+    override fun setHumanVerificationTokenType(value: String?) { humanVerificationTokenType = value }
+
     override fun logout() {
         uid = null
         accessToken = null
         refreshToken = null
         keyPassword?.fill(0)
         keyPassword = null
+        humanVerificationToken = null
+        humanVerificationTokenType = null
     }
 }

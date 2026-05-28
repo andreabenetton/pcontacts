@@ -53,16 +53,32 @@ class InMemorySecretStoreTest {
         assertArrayEquals(ByteArray(8) { it.toByte() }, tracked)
     }
 
+    @Test fun human_verification_token_and_type_round_trip() {
+        val store = InMemorySecretStore()
+        store.setHumanVerificationToken("opaque-hv-token-xyz")
+        store.setHumanVerificationTokenType("captcha")
+        assertEquals("opaque-hv-token-xyz", store.humanVerificationToken())
+        assertEquals("captcha", store.humanVerificationTokenType())
+
+        store.setHumanVerificationToken(null)
+        assertNull(store.humanVerificationToken())
+        assertEquals("captcha", store.humanVerificationTokenType())
+    }
+
     @Test fun logout_wipes_everything() {
         val store = InMemorySecretStore()
         store.setUid("u")
         store.setAccessToken("a")
         store.setRefreshToken("r")
         store.setKeyPassword("kp".toByteArray())
+        store.setHumanVerificationToken("hv-tok")
+        store.setHumanVerificationTokenType("captcha")
         store.logout()
         assertNull(store.uid())
         assertNull(store.accessToken())
         assertNull(store.refreshToken())
         assertNull(store.keyPassword())
+        assertNull(store.humanVerificationToken())
+        assertNull(store.humanVerificationTokenType())
     }
 }

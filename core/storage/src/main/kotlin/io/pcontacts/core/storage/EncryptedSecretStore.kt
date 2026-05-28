@@ -51,12 +51,20 @@ class EncryptedSecretStore private constructor(
         prefs.put(KEY_PASSWORD_WRAPPED, Base64.getEncoder().encodeToString(wrapped))
     }
 
+    override fun humanVerificationToken(): String? = prefs.getString(KEY_HV_TOKEN, null)
+    override fun setHumanVerificationToken(value: String?) = prefs.put(KEY_HV_TOKEN, value)
+
+    override fun humanVerificationTokenType(): String? = prefs.getString(KEY_HV_TOKEN_TYPE, null)
+    override fun setHumanVerificationTokenType(value: String?) = prefs.put(KEY_HV_TOKEN_TYPE, value)
+
     override fun logout() {
         prefs.edit()
             .remove(KEY_UID)
             .remove(KEY_ACCESS_TOKEN)
             .remove(KEY_REFRESH_TOKEN)
             .remove(KEY_PASSWORD_WRAPPED)
+            .remove(KEY_HV_TOKEN)
+            .remove(KEY_HV_TOKEN_TYPE)
             .apply()
         kek.delete()
     }
@@ -71,6 +79,8 @@ class EncryptedSecretStore private constructor(
         private const val KEY_ACCESS_TOKEN: String = "access_token"
         private const val KEY_REFRESH_TOKEN: String = "refresh_token"
         private const val KEY_PASSWORD_WRAPPED: String = "key_password_wrapped"
+        private const val KEY_HV_TOKEN: String = "hv_token"
+        private const val KEY_HV_TOKEN_TYPE: String = "hv_token_type"
 
         fun create(context: Context): EncryptedSecretStore {
             val masterKey = MasterKey.Builder(context.applicationContext)
