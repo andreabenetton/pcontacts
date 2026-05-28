@@ -70,6 +70,16 @@
             android:exported="false"
             android:theme="@style/Theme.Pcontacts" />
 
+        <!-- ADR / plan §20 - In-app WebView that hosts Proton's hosted
+             captcha page (`verify.proton.me`) and writes the resulting
+             verification token into SecretStore. Replaces the previous
+             Chrome Custom Tabs flow whose cookie jar never shared with
+             our OkHttp client. -->
+        <activity
+            android:name=".verification.HumanVerificationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pcontacts" />
+
         <!-- ADR-0004: AccountAuthenticator surface. The android:exported="true"
              is required for AccountManager to bind across processes; the
              intent-filter restricts who can use the binding. -->

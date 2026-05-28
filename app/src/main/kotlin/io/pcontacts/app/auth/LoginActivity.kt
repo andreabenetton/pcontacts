@@ -7,11 +7,14 @@ import android.accounts.Account
 import android.accounts.AccountAuthenticatorResponse
 import android.accounts.AccountManager
 import android.content.ContentResolver
+import android.app.Activity
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.ui.PcontactsTheme
-import io.pcontacts.app.verification.HumanVerificationLauncher
+import io.pcontacts.app.verification.HumanVerificationActivity
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.feature.onboarding.LoginScreen
 import io.pcontacts.feature.onboarding.LoginUiState
@@ -51,11 +54,19 @@ class LoginActivity : ComponentActivity() {
     }
     private var response: AccountAuthenticatorResponse? = null
 
-    // Set when we launch the captcha Custom Tab and consumed on the
-    // next onResume(). Mirrors MainActivity's same-name field — when
-    // the user returns from verify.proton.me we re-invoke /auth so
-    // Proton's server picks up the verification cookies set by the page.
-    private var pendingVerificationReturn = false
+    // Receives the result of the HV WebView Activity. RESULT_OK means
+    // the JS bridge wrote a verification token to SecretStore; we then
+    // retry the original /auth (now carrying the HV headers). Anything
+    // else (back-button, ESC) means the user gave up — reset the VM to
+    // Idle instead of looping into the captcha screen forever.
+    private val humanVerificationLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                viewModel.retryAfterVerification()
+            } else {
+                viewModel.reset()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,25 +96,18 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (pendingVerificationReturn) {
-            pendingVerificationReturn = false
-            viewModel.retryAfterVerification()
-        }
-    }
-
     private fun launchHumanVerification(url: String?) {
         if (url == null) {
-            // [U] 9001 without a captcha Details block — recovery-email/SMS
-            // path. Without a captcha URL we can't drive the flow from the
-            // Custom Tab; surface as a Failed state so the user can retry
-            // after verifying on Proton's web UI in their own browser.
+            // [U] 9001 without a captcha Details block — recovery-email / SMS
+            // / device-verification path. Without a captcha URL we can't
+            // drive the flow in-app; reset so the user can retry after
+            // verifying on Proton's web UI in their own browser.
             viewModel.reset()
             return
         }
-        pendingVerificationReturn = true
-        HumanVerificationLauncher.launch(this, url)
+        val intent = Intent(this, HumanVerificationActivity::class.java)
+            .putExtra(HumanVerificationActivity.EXTRA_URL, url)
+        humanVerificationLauncher.launch(intent)
     }
 
     override fun finish() {
