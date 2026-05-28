@@ -79,16 +79,21 @@ class HumanVerificationActivity : ComponentActivity() {
     private inner class Bridge(
         private val onToken: (token: String, type: String) -> Unit
     ) {
+        // [V] Method name and single-String signature ported from
+        // protoncore_android/human-verification/.../hv3/HV3DialogFragment.kt:291
+        // — `@JavascriptInterface fun dispatch(response: String)`. The JS
+        // side calls `window.AndroidInterface.dispatch(JSON.stringify(env))`.
         @JavascriptInterface
-        fun onMessage(rawPayload: String) {
+        fun dispatch(response: String) {
             val root = try {
-                JSONObject(rawPayload)
+                JSONObject(response)
             } catch (_: Throwable) {
                 logger.warn { "HV bridge: malformed JSON payload, ignoring" }
                 return
             }
             if (root.optString("type") != "HUMAN_VERIFICATION_SUCCESS") {
-                logger.warn { "HV bridge: unrecognized envelope type, ignoring" }
+                // Other envelope types (NOTIFICATION, RESIZE, etc.) are fired
+                // by the captcha widget during interaction — silently ignore.
                 return
             }
             val payload = root.optJSONObject("payload")
