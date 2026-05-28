@@ -112,6 +112,7 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the STRIDE pass. Highligh
 - ContactsContract is shared by design — every app the user grants `READ_CONTACTS` to can read synced contacts. That's the point.
 - Heap-memory exposure on rooted devices is an accepted residual risk; the JVM can't guarantee memory zeroization.
 - SPKI certificate pins (ISRG Root X1 + X2) are enforced via OkHttp's `CertificatePinner`. Release builds gate on non-empty pins. SRP modulus signature verification provides a second TLS-independent layer.
+- When Proton requires a captcha (Code 9001), the verification page (`verify.proton.me`) is loaded in an in-app `WebView` with JavaScript enabled. Navigation is restricted to `*.proton.me`, DOM storage / file / content access are disabled, and the only JS bridge call accepted is the success envelope from Proton's own page. The resulting verification token is stored in `EncryptedSharedPreferences` and attached to subsequent requests via the `x-pm-human-verification-token{,-type}` headers. The pattern mirrors `ProtonMail/protoncore_android`'s `HV3DialogFragment`; see [ADR-0019](docs/adr/0019-human-verification-webview-flow.md).
 
 ## Contributing
 
