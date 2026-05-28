@@ -15,6 +15,7 @@ import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.SecretStore
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
+import io.pcontacts.core.sync.auth.SecretStoreHumanVerificationSource
 import io.pcontacts.core.sync.auth.SrpLoginOrchestrator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,7 +41,8 @@ object AuthBootstrap {
         val session = InMemorySession()
         val apis = ProtonApiFactory(
             config = ProtonApiConfig(),
-            session = session
+            session = session,
+            humanVerificationTokens = SecretStoreHumanVerificationSource(secretStore)
         )
         return SrpLoginOrchestrator(
             api = apis.auth,
@@ -83,7 +85,8 @@ object AuthBootstrap {
         val apis = ProtonApiFactory(
             config = ProtonApiConfig(),
             session = session,
-            refreshConfig = refreshConfig
+            refreshConfig = refreshConfig,
+            humanVerificationTokens = SecretStoreHumanVerificationSource(secretStore)
         )
         val db = DatabaseFactory.create(appContext)
         val applier = BatchApplier(provider)

@@ -29,6 +29,7 @@ import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.PcontactsDatabase
+import io.pcontacts.core.sync.auth.SecretStoreHumanVerificationSource
 import io.pcontacts.core.sync.contacts.decrypt.ContactDecryptBootstrap
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
 import io.pcontacts.core.sync.contacts.decrypt.OpenPgpCardCryptoOp
@@ -95,7 +96,11 @@ object SyncBootstrap {
             val token = secretStore.accessToken()
             if (uid != null && token != null) update(uid = uid, accessToken = token)
         }
-        val api = ProtonApiFactory(config = ProtonApiConfig(), session = session)
+        val api = ProtonApiFactory(
+            config = ProtonApiConfig(),
+            session = session,
+            humanVerificationTokens = SecretStoreHumanVerificationSource(secretStore)
+        )
         val pager = ContactEmailsPager(api = api.contacts)
         val db = DatabaseFactory.create(appContext)
         val reader = RawContactReader(provider)
@@ -140,7 +145,8 @@ object SyncBootstrap {
         val apis = ProtonApiFactory(
             config = ProtonApiConfig(),
             session = session,
-            refreshConfig = refreshConfig
+            refreshConfig = refreshConfig,
+            humanVerificationTokens = SecretStoreHumanVerificationSource(secretStore)
         )
         val openPgp = BouncyCastleOpenPgpService()
         val processor = ContactDecryptBootstrap.createProcessor(
@@ -201,7 +207,8 @@ object SyncBootstrap {
         val apis = ProtonApiFactory(
             config = ProtonApiConfig(),
             session = session,
-            refreshConfig = refreshConfig
+            refreshConfig = refreshConfig,
+            humanVerificationTokens = SecretStoreHumanVerificationSource(secretStore)
         )
         val openPgp = BouncyCastleOpenPgpService()
         val unlocked = unlockPrimaryKey(secretStore, apis)
