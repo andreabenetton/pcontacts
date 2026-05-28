@@ -105,4 +105,31 @@ class HumanVerificationHeadersInterceptorTest {
         assertNull(tokens.token())
         assertNull(tokens.tokenType())
     }
+
+    @Test fun stale_token_12087_clears_store_via_paired_interceptor() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"Code":12087,"Error":"CAPTCHA validation failed","Details":{}}""")
+        )
+        val tokens = MutableTokens(t = "stale-token", ty = "captcha")
+        val client = OkHttpClient.Builder()
+            .addInterceptor(HumanVerificationHeadersInterceptor(tokens))
+            .addInterceptor(HumanVerificationInterceptor(tokens = tokens))
+            .build()
+
+        val thrown = runCatching {
+            client.newCall(Request.Builder().url(server.url("/x").toString()).build()).execute()
+        }.exceptionOrNull()
+
+        assertTrue(
+            "expected HumanVerificationRequiredException, was $thrown",
+            thrown is HumanVerificationRequiredException
+        )
+        assertNull((thrown as HumanVerificationRequiredException).verificationUrl)
+        assertTrue("12087 must trigger token clear", tokens.cleared)
+        assertNull(tokens.token())
+        assertNull(tokens.tokenType())
+    }
 }

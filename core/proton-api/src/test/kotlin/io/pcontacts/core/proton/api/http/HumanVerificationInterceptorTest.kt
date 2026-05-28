@@ -129,64 +129,84 @@ class HumanVerificationInterceptorTest {
     // ---- Unit tests for parse9001 directly ----
 
     @Test fun parse9001_minified() {
-        assertNotNull(HumanVerificationInterceptor.parse9001("""{"Code":9001}"""))
+        assertNotNull(HumanVerificationInterceptor.parseHvCode("""{"Code":9001}"""))
     }
 
     @Test fun parse9001_with_spaces() {
-        assertNotNull(HumanVerificationInterceptor.parse9001("""{ "Code" : 9001 }"""))
+        assertNotNull(HumanVerificationInterceptor.parseHvCode("""{ "Code" : 9001 }"""))
     }
 
     @Test fun parse9001_different_code() {
-        assertNull(HumanVerificationInterceptor.parse9001("""{"Code":1000}"""))
+        assertNull(HumanVerificationInterceptor.parseHvCode("""{"Code":1000}"""))
     }
 
     @Test fun parse9001_no_Code_field() {
-        assertNull(HumanVerificationInterceptor.parse9001("""{"Error":"x"}"""))
+        assertNull(HumanVerificationInterceptor.parseHvCode("""{"Error":"x"}"""))
     }
 
     @Test fun parse9001_invalid_json() {
-        assertNull(HumanVerificationInterceptor.parse9001("not json at all"))
+        assertNull(HumanVerificationInterceptor.parseHvCode("not json at all"))
     }
 
     @Test fun parse9001_code_as_string_9001_still_detected() {
-        assertNotNull(HumanVerificationInterceptor.parse9001("""{"Code":"9001"}"""))
+        assertNotNull(HumanVerificationInterceptor.parseHvCode("""{"Code":"9001"}"""))
     }
 
     @Test fun parse9001_code_as_non_numeric_string() {
-        assertNull(HumanVerificationInterceptor.parse9001("""{"Code":"not-a-number"}"""))
+        assertNull(HumanVerificationInterceptor.parseHvCode("""{"Code":"not-a-number"}"""))
     }
 
     @Test fun parse9001_with_captcha_details_extracts_url() {
         val body = """{"Code":9001,"Details":{"HumanVerificationToken":"tok42","HumanVerificationMethods":["captcha"]}}"""
-        val result = HumanVerificationInterceptor.parse9001(body)
+        val result = HumanVerificationInterceptor.parseHvCode(body)
         assertNotNull(result)
         assertEquals("https://verify.proton.me/?token=tok42&methods=captcha", result!!.verificationUrl)
     }
 
     @Test fun parse9001_with_empty_details_returns_null_url() {
-        val result = HumanVerificationInterceptor.parse9001("""{"Code":9001,"Details":{}}""")
+        val result = HumanVerificationInterceptor.parseHvCode("""{"Code":9001,"Details":{}}""")
         assertNotNull(result)
         assertNull(result!!.verificationUrl)
     }
 
     @Test fun parse9001_with_missing_token_returns_null_url() {
         val body = """{"Code":9001,"Details":{"HumanVerificationMethods":["captcha"]}}"""
-        val result = HumanVerificationInterceptor.parse9001(body)
+        val result = HumanVerificationInterceptor.parseHvCode(body)
         assertNotNull(result)
         assertNull(result!!.verificationUrl)
     }
 
     @Test fun parse9001_with_blank_token_returns_null_url() {
         val body = """{"Code":9001,"Details":{"HumanVerificationToken":"","HumanVerificationMethods":["captcha"]}}"""
-        val result = HumanVerificationInterceptor.parse9001(body)
+        val result = HumanVerificationInterceptor.parseHvCode(body)
         assertNotNull(result)
         assertNull(result!!.verificationUrl)
     }
 
     @Test fun parse9001_without_captcha_method_returns_null_url() {
         val body = """{"Code":9001,"Details":{"HumanVerificationToken":"tok","HumanVerificationMethods":["email","sms"]}}"""
-        val result = HumanVerificationInterceptor.parse9001(body)
+        val result = HumanVerificationInterceptor.parseHvCode(body)
         assertNotNull(result)
         assertNull(result!!.verificationUrl)
+    }
+
+    @Test fun parseHvCode_detects_12087_stale_captcha() {
+        val result = HumanVerificationInterceptor.parseHvCode(
+            """{"Code":12087,"Error":"CAPTCHA validation failed","Details":{}}"""
+        )
+        assertNotNull(result)
+        assertEquals(12087, result!!.code)
+        assertNull(result.verificationUrl)
+    }
+
+    @Test fun `12087 body throws HV exception with null verificationUrl`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"Code":12087,"Error":"CAPTCHA validation failed","Details":{}}""")
+        )
+        val ex = assertThrows(HumanVerificationRequiredException::class.java) { get() }
+        assertNull(ex.verificationUrl)
     }
 }

@@ -69,21 +69,40 @@ class HumanVerificationInterceptor(
             return response
         }
 
-        val parsed = parse9001(snippet) ?: return response
+        val parsed = parseHvCode(snippet) ?: return response
         response.close()
-        if (request.header("x-pm-human-verification-token") != null) {
-            // Stale token — drop it so the next attempt re-prompts the user.
-            logger.warn { "Code:9001 with HV headers already set — clearing stored token" }
-            tokens.clear()
-        } else {
-            logger.warn { "Proton returned Code:9001 (human verification) on ${request.url.encodedPath}" }
+        when (parsed.code) {
+            HUMAN_VERIFICATION_CODE -> {
+                if (request.header("x-pm-human-verification-token") != null) {
+                    // Stale token — drop it so the next attempt re-prompts the user.
+                    logger.warn { "Code:9001 with HV headers already set — clearing stored token" }
+                    tokens.clear()
+                } else {
+                    logger.warn { "Proton returned Code:9001 (human verification) on ${request.url.encodedPath}" }
+                }
+                throw HumanVerificationRequiredException(verificationUrl = parsed.verificationUrl)
+            }
+            // [V] Code 12087 ("CAPTCHA validation failed") signals the stored HV
+            // token is no longer accepted — typically because it was bound to a
+            // prior SRP session. Body's Details block is empty (no fresh URL to
+            // hand the UI). Clear the token + surface as HV with null URL;
+            // LoginActivity's null-URL fail-closed branch resets the form, and
+            // the user's next sign-in tap fires /auth with no HV header, which
+            // Proton answers with a fresh 9001 the existing flow handles.
+            STALE_CAPTCHA_CODE -> {
+                logger.warn { "Code:12087 (stale captcha token) on ${request.url.encodedPath} — clearing stored token" }
+                tokens.clear()
+                throw HumanVerificationRequiredException(verificationUrl = null)
+            }
         }
-        throw HumanVerificationRequiredException(verificationUrl = parsed.verificationUrl)
+        @Suppress("UNREACHABLE_CODE")
+        return response
     }
 
     companion object {
         const val DEFAULT_MAX_PEEK_BYTES: Long = 8 * 1024
         const val HUMAN_VERIFICATION_CODE = 9001
+        const val STALE_CAPTCHA_CODE = 12087
 
         private val lenientJson = Json {
             ignoreUnknownKeys = true
@@ -91,19 +110,17 @@ class HumanVerificationInterceptor(
         }
 
         /**
-         * Returns non-null if `body` is a JSON object with `Code: 9001`.
-         * The returned [Parsed9001] carries the verification URL when
-         * extractable, or null when the `Details` block is absent or
-         * does not contain the expected fields.
+         * Returns non-null if `body` is a JSON object with `Code: 9001`
+         * or `Code: 12087`. For 9001, [ParsedHv.verificationUrl] carries
+         * the captcha URL when extractable from `Details`; for 12087 it
+         * is always null (Proton's 12087 body has an empty Details).
          */
-        internal fun parse9001(body: String): Parsed9001? = try {
+        internal fun parseHvCode(body: String): ParsedHv? = try {
             val root = lenientJson.parseToJsonElement(body).jsonObject
-            val code = root["Code"]?.jsonPrimitive?.int
-            if (code != HUMAN_VERIFICATION_CODE) {
-                null
-            } else {
-                val url = extractVerificationUrl(root)
-                Parsed9001(verificationUrl = url)
+            when (val code = root["Code"]?.jsonPrimitive?.int) {
+                HUMAN_VERIFICATION_CODE -> ParsedHv(code = code, verificationUrl = extractVerificationUrl(root))
+                STALE_CAPTCHA_CODE -> ParsedHv(code = code, verificationUrl = null)
+                else -> null
             }
         } catch (_: Exception) {
             null
@@ -147,7 +164,7 @@ class HumanVerificationInterceptor(
     }
 }
 
-internal data class Parsed9001(val verificationUrl: String?)
+internal data class ParsedHv(val code: Int, val verificationUrl: String?)
 
 /**
  * Thrown when Proton's server requires human verification (Code 9001).
