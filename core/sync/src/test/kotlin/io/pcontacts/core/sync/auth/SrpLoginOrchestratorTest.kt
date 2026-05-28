@@ -143,6 +143,61 @@ class SrpLoginOrchestratorTest {
         assertTrue("missing SRPSession", body.contains("\"SRPSession\":\"session-id\""))
     }
 
+    @Test fun auth_9001_with_captcha_details_returns_HumanVerificationRequired_with_url() = runTest {
+        enqueueInfoResponse()
+        // [V] WebClients withApiHandlers.ts: a 9001 on /auth carries
+        // Details.HumanVerificationToken + Methods; the captcha URL is
+        // derived from those by HumanVerificationInterceptor.
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"Code":9001,"Error":"Human verification required",""" +
+                        """"Details":{"HumanVerificationToken":"abc123",""" +
+                        """"HumanVerificationMethods":["captcha","email"]}}"""
+                )
+        )
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertTrue(
+            "expected HumanVerificationRequired, was $result",
+            result is LoginResult.HumanVerificationRequired
+        )
+        assertEquals(
+            "https://verify.proton.me/?token=abc123&methods=captcha",
+            (result as LoginResult.HumanVerificationRequired).verificationUrl
+        )
+        // No session persisted — captcha must complete first.
+        assertNull(secretStore.uid())
+        assertNull(secretStore.accessToken())
+    }
+
+    @Test fun auth_9001_without_captcha_method_returns_HumanVerificationRequired_with_null_url() = runTest {
+        enqueueInfoResponse()
+        // 9001 with only email/sms methods — the interceptor returns null URL
+        // so the UI falls back to a "verify on the web" dialog.
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"Code":9001,"Error":"Human verification required",""" +
+                        """"Details":{"HumanVerificationToken":"t1",""" +
+                        """"HumanVerificationMethods":["email","sms"]}}"""
+                )
+        )
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertTrue(
+            "expected HumanVerificationRequired, was $result",
+            result is LoginResult.HumanVerificationRequired
+        )
+        assertNull((result as LoginResult.HumanVerificationRequired).verificationUrl)
+    }
+
     @Test fun submitTwoFactorCode_success_returns_Success_and_carries_session_headers() = runTest {
         // Bootstrap: full SRP login → TwoFactorRequired persists session.
         enqueueInfoResponse()

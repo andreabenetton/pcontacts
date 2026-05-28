@@ -106,6 +106,11 @@ class LiveProtonLoginTest {
                     println("  logout: ${t.message}")
                 }
             }
+            is LoginResult.HumanVerificationRequired -> {
+                println("HUMAN_VERIFICATION_REQUIRED — Proton demanded captcha at /auth")
+                println("  verificationUrl: ${result.verificationUrl ?: "(none — fail-closed fallback)"}")
+                println("  This still validates: modulus sig, SRP math, DTO shapes, 9001 interceptor")
+            }
             is LoginResult.Failed -> {
                 println("FAILED — reason: ${result.reason}")
                 println("  This indicates a bug in our implementation.")
