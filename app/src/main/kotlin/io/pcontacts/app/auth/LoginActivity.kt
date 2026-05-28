@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.ui.PcontactsTheme
+import io.pcontacts.app.verification.HumanVerificationLauncher
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.feature.onboarding.LoginScreen
 import io.pcontacts.feature.onboarding.LoginUiState
@@ -50,6 +51,12 @@ class LoginActivity : ComponentActivity() {
     }
     private var response: AccountAuthenticatorResponse? = null
 
+    // Set when we launch the captcha Custom Tab and consumed on the
+    // next onResume(). Mirrors MainActivity's same-name field — when
+    // the user returns from verify.proton.me we re-invoke /auth so
+    // Proton's server picks up the verification cookies set by the page.
+    private var pendingVerificationReturn = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         response = extractAuthenticatorResponse()
@@ -69,12 +76,34 @@ class LoginActivity : ComponentActivity() {
                         else -> LoginScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
-                            onTwoFactorRequired = { /* handled by state-driven branch */ }
+                            onTwoFactorRequired = { /* handled by state-driven branch */ },
+                            onHumanVerificationRequired = { url -> launchHumanVerification(url) }
                         )
                     }
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (pendingVerificationReturn) {
+            pendingVerificationReturn = false
+            viewModel.retryAfterVerification()
+        }
+    }
+
+    private fun launchHumanVerification(url: String?) {
+        if (url == null) {
+            // [U] 9001 without a captcha Details block — recovery-email/SMS
+            // path. Without a captcha URL we can't drive the flow from the
+            // Custom Tab; surface as a Failed state so the user can retry
+            // after verifying on Proton's web UI in their own browser.
+            viewModel.reset()
+            return
+        }
+        pendingVerificationReturn = true
+        HumanVerificationLauncher.launch(this, url)
     }
 
     override fun finish() {
