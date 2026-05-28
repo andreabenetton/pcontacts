@@ -100,6 +100,7 @@ const KEY_PASSWORD_INPUTS = [
   { label: 'ascii-short',  password: 'pass',                         saltB64: 'AAECAwQFBgcICQoLDA0ODw==' },
   { label: 'ascii-long',   password: 'correct horse battery staple', saltB64: 'qrvM3e7/ABEiM0RVZneImQ==' },
   { label: 'utf8-unicode', password: 'pässwörd-Ω',                  saltB64: '3q2+78r+/s7wDbrqEjRWeA==' },
+  { label: 'special-chars', password: 'my)p@ss!w0rd#2024',           saltB64: 'AAECAwQFBgcICQoLDA0ODw==' },
 ];
 
 // A 256-byte (2048-bit) modulus for SRP vector capture. This is the
@@ -127,6 +128,7 @@ const SRP_INPUTS = [
   { label: 'ascii-short-v4',  password: 'pass',                         saltB64: 'AAECAwQFBgcICQoLDA0ODw==', modulusHex: TEST_MODULUS_HEX, version: 4 },
   { label: 'ascii-long-v4',   password: 'correct horse battery staple', saltB64: 'qrvM3e7/ABEiM0RVZneImQ==', modulusHex: TEST_MODULUS_HEX, version: 4 },
   { label: 'utf8-unicode-v4', password: 'pässwörd-Ω',                  saltB64: '3q2+78r+/s7wDbrqEjRWeA==', modulusHex: TEST_MODULUS_HEX, version: 4 },
+  { label: 'special-chars-v4', password: 'my)p@ss!w0rd#2024',           saltB64: 'AAECAwQFBgcICQoLDA0ODw==', modulusHex: TEST_MODULUS_HEX, version: 4 },
 ];
 
 // ---------------------------------------------------------------------------
