@@ -20,6 +20,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
+@Suppress("DEPRECATION")
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginScreenTest {
 
