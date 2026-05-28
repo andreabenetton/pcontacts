@@ -136,9 +136,6 @@ dependencies {
     // where the SyncAdapter scheduling is unreliable (plan §3.5).
     implementation(libs.androidx.work.runtime.ktx)
 
-    // Chrome Custom Tabs — human-verification captcha flow (9001 recovery).
-    implementation(libs.androidx.browser)
-
     // ADR-0015: enforce no direct Log / println / System.out.* calls.
     lintChecks(project(":tools:lint"))
 
