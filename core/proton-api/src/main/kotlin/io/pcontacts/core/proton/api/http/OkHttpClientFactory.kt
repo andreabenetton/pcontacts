@@ -45,10 +45,16 @@ object OkHttpClientFactory {
     fun create(
         config: ProtonApiConfig,
         session: Session,
-        authenticator: Authenticator? = null
+        authenticator: Authenticator? = null,
+        humanVerificationTokens: HumanVerificationTokenSource = HumanVerificationTokenSource.Empty
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .addInterceptor(HeadersInterceptor(config))
+            // HV-token headers attach to every request when a captcha has
+            // been solved this session. Runs immediately after the static
+            // header layer so AuthInterceptor still has a chance to set
+            // x-pm-uid/Authorization on top.
+            .addInterceptor(HumanVerificationHeadersInterceptor(humanVerificationTokens))
             .addInterceptor(AuthInterceptor(session))
             // Application-layer (not network) — network interceptors must
             // proceed() exactly once. The request is stamped with headers
@@ -57,8 +63,9 @@ object OkHttpClientFactory {
             .addInterceptor(FibonacciBackoffInterceptor())
             // Human-verification (9001) detection — peeks the JSON body
             // and throws HumanVerificationRequiredException so 9001 is
-            // never silently auto-retried.
-            .addInterceptor(HumanVerificationInterceptor())
+            // never silently auto-retried. Receives the same token source
+            // so it can clear stale tokens on a fresh 9001.
+            .addInterceptor(HumanVerificationInterceptor(tokens = humanVerificationTokens))
             // App-version rejection (5003/5004) — must run after 9001
             // so the more-specific human-verification is caught first.
             .addInterceptor(AppVersionRejectionInterceptor())

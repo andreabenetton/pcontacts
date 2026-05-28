@@ -8,6 +8,7 @@ import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.Session
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
+import io.pcontacts.core.proton.api.http.HumanVerificationTokenSource
 import io.pcontacts.core.proton.api.http.OkHttpClientFactory
 import io.pcontacts.core.proton.api.http.RefreshingAuthenticator
 import io.pcontacts.core.proton.api.http.TokenRefresher
@@ -38,7 +39,8 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 class ProtonApiFactory(
     config: ProtonApiConfig,
     session: Session,
-    refreshConfig: RefreshConfig? = null
+    refreshConfig: RefreshConfig? = null,
+    humanVerificationTokens: HumanVerificationTokenSource = HumanVerificationTokenSource.Empty
 ) {
 
     /**
@@ -66,8 +68,12 @@ class ProtonApiFactory(
     // Stage 1: refresh-only client — no authenticator. The auth API surface
     // built on top of this client is reserved for the refresher itself so
     // /auth/refresh can never recurse through the authenticator.
-    private val refreshOnlyClient: OkHttpClient =
-        OkHttpClientFactory.create(config, session, authenticator = null)
+    private val refreshOnlyClient: OkHttpClient = OkHttpClientFactory.create(
+        config = config,
+        session = session,
+        authenticator = null,
+        humanVerificationTokens = humanVerificationTokens
+    )
     private val refreshOnlyAuthApi: ProtonAuthApi =
         buildRetrofit(config, refreshOnlyClient).create(ProtonAuthApi::class.java)
 
@@ -84,7 +90,8 @@ class ProtonApiFactory(
         OkHttpClientFactory.create(
             config = config,
             session = session,
-            authenticator = RefreshingAuthenticator(refresher, refreshConfig.mutableSession)
+            authenticator = RefreshingAuthenticator(refresher, refreshConfig.mutableSession),
+            humanVerificationTokens = humanVerificationTokens
         )
     } else {
         refreshOnlyClient

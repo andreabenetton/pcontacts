@@ -45,26 +45,39 @@ import java.io.IOException
  * Retrofit propagates it from `Call.execute()` / suspend functions
  * without wrapping.
  */
+// [tokens] is consulted on every 9001 — when the request that triggered
+// the 9001 was already carrying x-pm-human-verification-token, the stored
+// token is stale. Clearing it via [tokens].clear() drops the headers from
+// the next attempt so the UI re-prompts instead of looping the stale token.
+// Defaults to Empty so existing call sites without a token store still work.
 class HumanVerificationInterceptor(
     private val maxPeekBytes: Long = DEFAULT_MAX_PEEK_BYTES,
+    private val tokens: HumanVerificationTokenSource = HumanVerificationTokenSource.Empty,
     private val logger: Logger = RedactingLogger(tag = "HumanVerify", sink = NoOpSink)
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val response = chain.proceed(chain.request())
+        val request = chain.request()
+        val response = chain.proceed(request)
         val contentType = response.body.contentType()?.subtype ?: ""
         if (!contentType.contains("json", ignoreCase = true)) return response
 
         val snippet = try {
             response.peekBody(maxPeekBytes).string()
         } catch (_: Throwable) {
-            logger.warn { "peekBody failed on ${chain.request().url.encodedPath}; skipping 9001 check" }
+            logger.warn { "peekBody failed on ${request.url.encodedPath}; skipping 9001 check" }
             return response
         }
 
         val parsed = parse9001(snippet) ?: return response
         response.close()
-        logger.warn { "Proton returned Code:9001 (human verification) on ${chain.request().url.encodedPath}" }
+        if (request.header("x-pm-human-verification-token") != null) {
+            // Stale token — drop it so the next attempt re-prompts the user.
+            logger.warn { "Code:9001 with HV headers already set — clearing stored token" }
+            tokens.clear()
+        } else {
+            logger.warn { "Proton returned Code:9001 (human verification) on ${request.url.encodedPath}" }
+        }
         throw HumanVerificationRequiredException(verificationUrl = parsed.verificationUrl)
     }
 
