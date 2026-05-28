@@ -28,6 +28,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0016](0016-no-accountmanager-token-retrieval.md) | No AccountManager token retrieval — getAuthToken returns re-auth intent | Accepted |
 | [0017](0017-bidirectional-sync-scope-and-policies.md) | Bidirectional sync — scope and policies | Accepted |
 | [0018](0018-scope-expansion-bidirectional-sync.md) | Scope expansion — bidirectional sync (supersedes ADR-0006) | Accepted |
+| [0019](0019-human-verification-webview-flow.md) | Human-verification (9001) handled via in-app WebView | Accepted |
 
 ## Template
 
