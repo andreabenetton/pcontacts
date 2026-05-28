@@ -27,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -79,6 +81,10 @@ fun LoginScreen(
             label = { Text(stringResource(R.string.login_username_label)) },
             singleLine = true,
             enabled = state !is LoginUiState.Submitting,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                autoCorrectEnabled = false
+            ),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(12.dp))
@@ -89,6 +95,10 @@ fun LoginScreen(
             label = { Text(stringResource(R.string.login_password_label)) },
             singleLine = true,
             enabled = state !is LoginUiState.Submitting,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                autoCorrectEnabled = false
+            ),
             visualTransformation = if (passwordVisible) {
                 VisualTransformation.None
             } else {
