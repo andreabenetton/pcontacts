@@ -221,7 +221,8 @@ class SrpLoginOrchestrator(
             logger.warn { "auth returned 9001 — human verification required" }
             return Step.Abort(LoginResult.HumanVerificationRequired(verificationUrl = e.verificationUrl))
         } catch (t: Throwable) {
-            logger.error(t) { "auth call failed" }
+            val code = t.httpStatusCode()
+            logger.error(t) { "auth call failed http=$code" }
             return Step.Abort(LoginResult.Failed(reason = "auth_failed"))
         }
 
