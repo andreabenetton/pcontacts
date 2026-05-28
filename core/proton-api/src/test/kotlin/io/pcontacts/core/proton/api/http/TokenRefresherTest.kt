@@ -89,6 +89,32 @@ class TokenRefresherTest {
         assertEquals(0, fake.callCount)
     }
 
+    @Test fun refresh_9001_propagates_HumanVerificationRequiredException() {
+        val session = InMemorySession(uid = "uid-1", accessToken = "stale")
+        val hvApi = object : NoOpAuthApi() {
+            override suspend fun refresh(request: RefreshRequest): RefreshResponse =
+                throw HumanVerificationRequiredException(verificationUrl = "https://verify.proton.me/?token=t&methods=captcha")
+        }
+        val refresher = TokenRefresher(
+            refreshOnlyAuthApi = hvApi,
+            mutableSession = session,
+            getRefreshToken = { "stored-refresh" },
+            onTokensRefreshed = { _, _ -> error("must not persist") }
+        )
+
+        val thrown = runCatching {
+            refresher.refreshIfStillStale(tokenObservedDuring401 = "stale")
+        }.exceptionOrNull()
+
+        assertTrue(
+            "expected HumanVerificationRequiredException, was $thrown",
+            thrown is HumanVerificationRequiredException
+        )
+        // Session left intact — captcha completion happens out of band; on
+        // retry the same refresh attempt will run with the new HV headers.
+        assertEquals("stale", session.accessToken())
+    }
+
     @Test fun concurrent_callers_observing_the_same_stale_token_fire_exactly_one_refresh() {
         val session = InMemorySession(uid = "uid-1", accessToken = "stale")
         // A refresh API that counts invocations AND blocks until released so

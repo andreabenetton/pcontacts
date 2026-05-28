@@ -58,6 +58,12 @@ class TokenRefresher(
         val refreshToken = getRefreshToken() ?: return@withLock false
         val response = try {
             runBlocking { refreshOnlyAuthApi.refresh(RefreshRequest(refreshToken = refreshToken)) }
+        } catch (e: HumanVerificationRequiredException) {
+            // 9001 on /auth/refresh — propagate so OkHttp surfaces it to the
+            // caller (the original Call.execute()), not demote to a generic
+            // refresh-failed silent retry that would loop or trigger logout.
+            logger.warn { "auth/refresh returned 9001 — human verification required" }
+            throw e
         } catch (t: Throwable) {
             logger.error(t) { "auth/refresh call failed" }
             return@withLock false
