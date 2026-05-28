@@ -17,6 +17,7 @@ import io.pcontacts.core.proton.api.contacts.ContactCardBundle
 import io.pcontacts.core.proton.api.contacts.CreateContactsRequest
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
+import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.storage.db.dao.ContactMapDao
@@ -206,6 +207,11 @@ class ContactWriteEngine(
             contactMapDao.deleteByProtonId(entry.protonContactId)
             outboxDao.deleteById(entry.id)
             WriteReport(pushed = 1, deleted = 1)
+        } catch (e: HumanVerificationRequiredException) {
+            // Don't quarantine the outbox entry — the user just needs to
+            // solve captcha and the next push will succeed. Surface to the
+            // SyncAdapter which fires the HV notification.
+            throw e
         } catch (e: Exception) {
             handleFailure(entry, e)
         }
@@ -267,6 +273,8 @@ class ContactWriteEngine(
             }
             outboxDao.deleteById(entry.id)
             WriteReport(pushed = 1, updated = 1)
+        } catch (e: HumanVerificationRequiredException) {
+            throw e
         } catch (e: Exception) {
             logger.warn { "pushUpdate: failed ${e.javaClass.simpleName}" }
             handleFailure(entry, e)
@@ -300,6 +308,8 @@ class ContactWriteEngine(
             }
             outboxDao.deleteByContact(entry.protonContactId)
             WriteReport(pushed = 1, created = 1)
+        } catch (e: HumanVerificationRequiredException) {
+            throw e
         } catch (e: Exception) {
             handleFailure(entry, e)
         }

@@ -143,6 +143,64 @@ class SrpLoginOrchestratorTest {
         assertTrue("missing SRPSession", body.contains("\"SRPSession\":\"session-id\""))
     }
 
+    @Test fun info_9001_returns_HumanVerificationRequired_before_srp_starts() = runTest {
+        // Pre-session captcha path — 9001 on /auth/info itself, before SRP.
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"Code":9001,"Error":"Human verification required",""" +
+                        """"Details":{"HumanVerificationToken":"pre-session-tok",""" +
+                        """"HumanVerificationMethods":["captcha"]}}"""
+                )
+        )
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertTrue(
+            "expected HumanVerificationRequired, was $result",
+            result is LoginResult.HumanVerificationRequired
+        )
+        assertEquals(
+            "https://verify.proton.me/?token=pre-session-tok&methods=captcha",
+            (result as LoginResult.HumanVerificationRequired).verificationUrl
+        )
+        assertNull(secretStore.uid())
+    }
+
+    @Test fun submitTwoFactorCode_9001_returns_HumanVerificationRequired() = runTest {
+        // Bootstrap a 2FA session — SRP succeeds, TwoFactorRequired surfaces.
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-hv", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        server.takeRequest(); server.takeRequest(); server.takeRequest()
+
+        // Now 9001 fires on the TOTP submit — Proton can re-challenge here
+        // if IP reputation degrades mid-session.
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"Code":9001,"Error":"Human verification required",""" +
+                        """"Details":{"HumanVerificationToken":"mid-2fa-tok",""" +
+                        """"HumanVerificationMethods":["captcha"]}}"""
+                )
+        )
+
+        val result = orchestrator.submitTwoFactorCode("123456")
+
+        assertTrue(
+            "expected HumanVerificationRequired, was $result",
+            result is LoginResult.HumanVerificationRequired
+        )
+        val hv = result as LoginResult.HumanVerificationRequired
+        assertEquals("uid-2fa-hv", hv.uid)
+        assertEquals("https://verify.proton.me/?token=mid-2fa-tok&methods=captcha", hv.verificationUrl)
+    }
+
     @Test fun auth_9001_with_captcha_details_returns_HumanVerificationRequired_with_url() = runTest {
         enqueueInfoResponse()
         // [V] WebClients withApiHandlers.ts: a 9001 on /auth carries

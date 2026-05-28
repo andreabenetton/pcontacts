@@ -14,6 +14,7 @@ import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
+import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.proton.api.labels.LabelType
 import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.protoncontacts.ContactProcessor
@@ -77,6 +78,10 @@ class ContactDetailSyncEngine(
             val labels = labelsApi.listLabels(LabelType.CONTACT_GROUP).labels
                 .map { ProtonLabel(id = it.id, name = it.name.ifBlank { it.id }) }
             reconcileGroups(account, labels)
+        } catch (e: HumanVerificationRequiredException) {
+            // Don't degrade to "sync without groups" — abort the whole sync so
+            // ProtonSyncAdapter shows the captcha notification.
+            throw e
         } catch (t: Throwable) {
             logger.warn(t) { "labels fetch / reconcile failed; contacts will sync without groups" }
             emptyMap()
@@ -113,6 +118,11 @@ class ContactDetailSyncEngine(
 
             val response = try {
                 contactsApi.getContact(sourceId)
+            } catch (e: HumanVerificationRequiredException) {
+                // 9001 on /contacts/v4/contacts/{id} — every subsequent fetch
+                // will hit the same gate. Abort so SyncAdapter notifies the
+                // user once instead of looping N times.
+                throw e
             } catch (t: Throwable) {
                 fetchFailures += 1
                 logger.error(t) { "failed to fetch contact (id hash-redacted); skipping this run" }
