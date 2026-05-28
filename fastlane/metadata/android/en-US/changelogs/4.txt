@@ -1,0 +1,3 @@
+Version 1.0.2.
+
+* Login password field uses the Password keyboard with autocorrect disabled, so Android no longer alters passwords during entry.

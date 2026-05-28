@@ -1,0 +1,5 @@
+Versione 1.0.3.
+
+* Verifica umana (captcha) gestita in-app tramite WebView isolata, sostituendo il percorso Custom Tabs che perdeva il token di verifica tra Chrome e l'app.
+* Recupero automatico dei token captcha non più validi: un token memorizzato che Proton non accetta più viene ora cancellato, così il prossimo accesso richiede una nuova verifica.
+* Cinque punti che nascondevano "verifica umana richiesta" come errore generico ora la propagano correttamente, facendo apparire la schermata captcha durante accesso, 2FA e sincronizzazione.

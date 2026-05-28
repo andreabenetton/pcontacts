@@ -10,6 +10,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-05-28
+
+### Added
+
+- In-app captcha (human verification) flow: when Proton issues a
+  `Code 9001` challenge during login or sync, an isolated WebView
+  loads `verify.proton.me`. After the captcha is solved, the
+  verification token is attached to subsequent requests via
+  `x-pm-human-verification-token{,-type}` headers until the session
+  invalidates it. Replaces the previous Custom Tabs implementation,
+  whose cookie-jar isolation prevented the token from reaching the
+  app's HTTP stack. See ADR-0019.
+
+### Fixed
+
+- Stale captcha-token recovery: `Code 12087` ("CAPTCHA validation
+  failed") now clears the stored verification token instead of
+  looping indefinitely; the next sign-in attempt triggers a fresh
+  captcha.
+- Five exception-demotion sites that previously swallowed
+  `HumanVerificationRequiredException` as generic auth or sync
+  failures now propagate it so the captcha UI fires correctly across
+  login, 2FA, contact-detail pulls, and outbox pushes.
+
+### Removed
+
+- `androidx.browser` (Custom Tabs) dependency — the in-app WebView
+  replaces it.
+
+## [1.0.2] - 2026-05-28
+
+### Fixed
+
+- Login password field uses `KeyboardType.Password` and disables
+  autocorrect to prevent Android's input methods from altering
+  passwords during entry.
+- Crypto: added captured test vector covering `)@` special
+  characters in passwords.
+- F-Droid build metadata: updated build commit hash to include the
+  APK signing-block fix.
+
 ## [1.0.1] - 2026-05-27
 
 ### Fixed

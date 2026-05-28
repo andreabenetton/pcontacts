@@ -1,0 +1,3 @@
+Versione 1.0.2.
+
+* Il campo password di accesso usa la tastiera Password con l'autocorrezione disabilitata, così Android non altera più le password durante la digitazione.

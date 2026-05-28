@@ -23,9 +23,23 @@ Builds:
     gradle:
       - yes
 
+  - versionName: 1.0.2
+    versionCode: 4
+    commit: v1.0.2
+    subdir: app
+    gradle:
+      - yes
+
+  - versionName: 1.0.3
+    versionCode: 5
+    commit: v1.0.3
+    subdir: app
+    gradle:
+      - yes
+
 AllowedAPKSigningKeys: 3921a44bd80bb8f4a2bae80a1cabd585d08353cdeb54d807e4d1aca8ab099366
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.1
-CurrentVersionCode: 3
+CurrentVersion: 1.0.3
+CurrentVersionCode: 5

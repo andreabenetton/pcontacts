@@ -1,0 +1,3 @@
+Version 1.0.2.
+
+* Das Passwortfeld bei der Anmeldung verwendet die Passwort-Tastatur mit deaktivierter Autokorrektur, damit Android Passwörter bei der Eingabe nicht mehr verändert.

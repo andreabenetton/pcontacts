@@ -1,0 +1,5 @@
+Version 1.0.3.
+
+* Captcha (human verification) handled in-app via an isolated WebView, replacing the Custom Tabs path that lost the verification token between Chrome and the app.
+* Stale captcha-token recovery: a stored token Proton no longer accepts is now cleared automatically so the next sign-in prompts a fresh captcha.
+* Five places that swallowed "human verification required" as a generic error now surface it, so login, 2FA, and sync correctly trigger the captcha screen.

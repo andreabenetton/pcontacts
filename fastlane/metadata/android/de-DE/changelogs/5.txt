@@ -1,0 +1,5 @@
+Version 1.0.3.
+
+* Captcha-Verifikation (Human Verification) wird jetzt in einer isolierten In-App-WebView abgewickelt und ersetzt den Custom-Tabs-Pfad, bei dem das Verifikations-Token zwischen Chrome und der App verlorenging.
+* Automatische Bereinigung abgelaufener Captcha-Tokens: Ein gespeichertes Token, das Proton nicht mehr akzeptiert, wird jetzt entfernt, sodass die nächste Anmeldung ein neues Captcha anfordert.
+* Fünf Stellen, an denen "Human Verification required" als generischer Fehler verschluckt wurde, leiten den Fehler nun korrekt weiter, sodass die Captcha-Anzeige bei Anmeldung, 2FA und Synchronisation funktioniert.
