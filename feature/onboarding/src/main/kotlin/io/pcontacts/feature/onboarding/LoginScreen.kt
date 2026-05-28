@@ -54,6 +54,7 @@ fun LoginScreen(
     viewModel: LoginViewModel,
     onSuccess: (uid: String, username: String) -> Unit,
     onTwoFactorRequired: (uid: String) -> Unit,
+    onHumanVerificationRequired: (verificationUrl: String?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -135,6 +136,9 @@ fun LoginScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid, s.username) }
             is LoginUiState.TwoFactorRequired -> LaunchedEffect(s.uid) { onTwoFactorRequired(s.uid) }
+            is LoginUiState.HumanVerificationRequired -> LaunchedEffect(s.verificationUrl) {
+                onHumanVerificationRequired(s.verificationUrl)
+            }
             // The 2FA-side states belong to TwoFactorScreen; the host Activity
             // is expected to have navigated there as soon as we crossed into
             // TwoFactorRequired. If we still observe them here it's a stale

@@ -59,6 +59,79 @@ class LoginViewModelTest {
         assertEquals(LoginUiState.TwoFactorRequired(uid = "uid-2fa", username = "u"), vm.uiState.value)
     }
 
+    @Test fun human_verification_required_surfaces_url_in_state() = runTest {
+        val vm = LoginViewModel(
+            attemptLogin = { _, _ ->
+                LoginResult.HumanVerificationRequired(verificationUrl = "https://verify.proton.me/?token=t&methods=captcha")
+            },
+            submitTotp = unusedSubmitTotp,
+            workDispatcher = testDispatcher
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        assertEquals(
+            LoginUiState.HumanVerificationRequired("https://verify.proton.me/?token=t&methods=captcha"),
+            vm.uiState.value
+        )
+    }
+
+    @Test fun retry_after_verification_reruns_attempt_login_with_stored_credentials() = runTest {
+        var calls = 0
+        var lastUsername: String? = null
+        var lastPasswordChars: CharArray? = null
+        val vm = LoginViewModel(
+            attemptLogin = { u, p ->
+                calls += 1
+                lastUsername = u
+                lastPasswordChars = p.copyOf()
+                if (calls == 1) {
+                    LoginResult.HumanVerificationRequired(verificationUrl = "https://verify.proton.me/?token=t&methods=captcha")
+                } else {
+                    LoginResult.Success(uid = "uid-after-hv", username = u)
+                }
+            },
+            submitTotp = unusedSubmitTotp,
+            workDispatcher = testDispatcher
+        )
+
+        vm.login("alice", "p4ssw0rd".toCharArray())
+        advanceUntilIdle()
+        assertEquals(
+            LoginUiState.HumanVerificationRequired("https://verify.proton.me/?token=t&methods=captcha"),
+            vm.uiState.value
+        )
+
+        vm.retryAfterVerification()
+        advanceUntilIdle()
+        assertEquals(LoginUiState.Success(uid = "uid-after-hv", username = "alice"), vm.uiState.value)
+        assertEquals(2, calls)
+        assertEquals("alice", lastUsername)
+        // Each attempt receives its own CharArray copy (the orchestrator
+        // zeroes the one it receives in finally).
+        assertEquals("p4ssw0rd".toCharArray().toList(), lastPasswordChars?.toList())
+    }
+
+    @Test fun retry_after_verification_is_a_noop_when_not_in_human_verification_state() = runTest {
+        var attemptCount = 0
+        val vm = LoginViewModel(
+            attemptLogin = { _, _ ->
+                attemptCount += 1
+                LoginResult.Failed(reason = "auth_failed")
+            },
+            submitTotp = unusedSubmitTotp,
+            workDispatcher = testDispatcher
+        )
+
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        assertEquals(1, attemptCount)
+
+        // After Failed, retry should not fire — captcha never happened.
+        vm.retryAfterVerification()
+        advanceUntilIdle()
+        assertEquals("retryAfterVerification must not re-run from Failed state", 1, attemptCount)
+    }
+
     @Test fun failure_surfaces_reason_in_state() = runTest {
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.Failed(reason = "auth_failed") },

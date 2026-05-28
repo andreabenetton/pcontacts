@@ -116,7 +116,8 @@ fun TwoFactorScreen(
             LoginUiState.Idle,
             LoginUiState.Submitting,
             is LoginUiState.Failed,
-            is LoginUiState.TwoFactorRequired -> Unit
+            is LoginUiState.TwoFactorRequired,
+            is LoginUiState.HumanVerificationRequired -> Unit
             is LoginUiState.TwoFactorSubmitting ->
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             is LoginUiState.TwoFactorFailed -> Text(
