@@ -48,6 +48,7 @@ import io.pcontacts.feature.settings.PendingDelete
 import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SettingsViewModel
+import io.pcontacts.feature.settings.UnverifiedContactSummary
 import io.pcontacts.feature.settings.VerificationStats
 
 /**
@@ -77,6 +78,8 @@ class SettingsActivity : ComponentActivity() {
             syncNow = ::performSyncNow,
             signOut = ::performSignOut,
             queryVerificationStats = ::queryVerificationStats,
+            queryUnverifiedContacts = ::queryUnverifiedContacts,
+            openContactInSystem = ::openContactInSystem,
             queryOutboxStats = ::queryOutboxStats,
             queryPendingDeletes = ::queryPendingDeletes,
             queryConflicts = ::queryConflicts,
@@ -162,6 +165,72 @@ class SettingsActivity : ComponentActivity() {
     private suspend fun queryVerificationStats(): VerificationStats {
         val (total, unverified) = SyncBootstrap.countVerificationStats(applicationContext)
         return VerificationStats(totalContacts = total, unverifiedContacts = unverified)
+    }
+
+    private suspend fun queryUnverifiedContacts(): List<UnverifiedContactSummary> {
+        val refs = SyncBootstrap.listUnverifiedContacts(applicationContext)
+        if (refs.isEmpty()) return emptyList()
+        val names = resolveDisplayNames(refs.map { it.androidRawContactId })
+        return refs.map { ref ->
+            UnverifiedContactSummary(
+                rawContactId = ref.androidRawContactId,
+                protonContactId = ref.protonContactId,
+                displayName = names[ref.androidRawContactId],
+                lastError = ref.lastError
+            )
+        }
+    }
+
+    /**
+     * Resolves the aggregated display name (the name Contacts apps
+     * show — may come from a merged WhatsApp / Telegram row, not
+     * just our Proton row) for each of the supplied
+     * RawContacts._ID values. Returns a map keyed by rawContactId.
+     */
+    private fun resolveDisplayNames(rawIds: List<Long>): Map<Long, String?> {
+        if (rawIds.isEmpty()) return emptyMap()
+        val placeholders = rawIds.joinToString(",") { "?" }
+        val selection = "${ContactsContract.RawContacts._ID} IN ($placeholders)"
+        val args = rawIds.map { it.toString() }.toTypedArray()
+        val projection = arrayOf(
+            ContactsContract.RawContacts._ID,
+            ContactsContract.RawContacts.DISPLAY_NAME_PRIMARY
+        )
+        return contentResolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            projection,
+            selection,
+            args,
+            null
+        )?.use { cursor ->
+            val out = HashMap<Long, String?>(rawIds.size)
+            while (cursor.moveToNext()) {
+                out[cursor.getLong(0)] = cursor.getString(1)
+            }
+            out
+        } ?: emptyMap()
+    }
+
+    /**
+     * Opens the aggregated Contact (not just our RawContact) in
+     * whichever Contacts app handles ACTION_VIEW. The user sees the
+     * full merged view — Proton + WhatsApp + Telegram rows together
+     * — which matches how they'd inspect the contact normally.
+     */
+    private fun openContactInSystem(rawContactId: Long) {
+        val rawUri = Uri.withAppendedPath(
+            ContactsContract.RawContacts.CONTENT_URI,
+            rawContactId.toString()
+        )
+        val lookupUri = ContactsContract.RawContacts.getContactLookupUri(contentResolver, rawUri)
+            ?: return
+        val view = Intent(Intent.ACTION_VIEW, lookupUri)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(view)
+        } catch (_: android.content.ActivityNotFoundException) {
+            // No Contacts app available — silently no-op rather than crash.
+        }
     }
 
     private fun handleSyncIntervalChanged(hours: Long) {
