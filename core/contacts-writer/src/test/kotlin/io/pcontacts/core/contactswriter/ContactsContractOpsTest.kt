@@ -53,6 +53,50 @@ class ContactsContractOpsTest {
         assertEquals("true", ops[2].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
     }
 
+    @Test fun create_with_no_name_omits_StructuredName_row() {
+        // Phone-only Proton contact with no FN and no N. Writing a
+        // synthetic DISPLAY_NAME = "+39 …" would let Android's aggregator
+        // overwrite a local RawContact's real name (e.g. a WhatsApp /
+        // SIM entry sharing the same phone) — see ContactRow KDoc.
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "c-nameless",
+                    displayName = null,
+                    structuredName = null,
+                    emails = emptyList(),
+                    phones = listOf(PhoneEntry(number = "+39 333 0000000"))
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 RawContacts + 1 Phone — no StructuredName.
+        assertEquals(2, ops.size)
+        assertTrue("op 0 must be RawContacts insert", ops[0].isInsert)
+        assertTrue("op 1 must be Phone insert", ops[1].isInsert)
+    }
+
+    @Test fun update_with_no_name_omits_StructuredName_row() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.UpdateContact(
+                rawContactId = 42L,
+                row = ContactRow(
+                    sourceId = "c-nameless",
+                    displayName = null,
+                    structuredName = null,
+                    emails = emptyList(),
+                    phones = listOf(PhoneEntry(number = "+39 333 0000000"))
+                )
+            )
+        )
+        // 1 Delete (wipe child rows) + 1 Phone — no StructuredName re-insert.
+        assertEquals(2, ops.size)
+        assertTrue("op 0 must be delete", ops[0].isDelete)
+        assertTrue("op 1 must be Phone insert", ops[1].isInsert)
+    }
+
     @Test fun update_emits_delete_data_then_two_data_reinserts() {
         val ops = ContactsContractOps.build(
             account = account,

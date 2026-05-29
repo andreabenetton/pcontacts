@@ -83,7 +83,9 @@ object ContactsContractOps {
             .withValue(RawContacts.SOURCE_ID, row.sourceId)
             .build()
 
-        ops += newStructuredNameInsertWithBackRef(dataUri, rawIdx, row.displayName, row.structuredName)
+        if (hasNameContent(row)) {
+            ops += newStructuredNameInsertWithBackRef(dataUri, rawIdx, row.displayName, row.structuredName)
+        }
         appendChildDataInsertsWithBackRef(ops, dataUri, rawIdx, row)
         return ops
     }
@@ -102,9 +104,28 @@ object ContactsContractOps {
             .build()
 
         // 2) Re-insert with the known absolute RawContacts._ID — no back-refs.
-        ops += newStructuredNameInsertForExisting(dataUri, rawContactId, row.displayName, row.structuredName)
+        if (hasNameContent(row)) {
+            ops += newStructuredNameInsertForExisting(dataUri, rawContactId, row.displayName, row.structuredName)
+        }
         appendChildDataInsertsForExisting(ops, dataUri, rawContactId, row)
         return ops
+    }
+
+    /**
+     * StructuredName row is emitted only when Proton supplied a real name —
+     * a non-blank displayName (typically `FN`) or any structured-name piece
+     * (`N`'s given/family/...). For pure phone-only / email-only contacts
+     * we omit the row entirely so Android's aggregator can adopt the name
+     * from a peer RawContact (e.g. a local SIM / WhatsApp entry with the
+     * same phone number) rather than overwriting it with a phone-string
+     * fallback.
+     */
+    private fun hasNameContent(row: ContactRow): Boolean {
+        if (!row.displayName.isNullOrBlank()) return true
+        val s = row.structuredName ?: return false
+        return !s.given.isNullOrBlank() || !s.family.isNullOrBlank() ||
+            !s.middle.isNullOrBlank() || !s.prefix.isNullOrBlank() ||
+            !s.suffix.isNullOrBlank()
     }
 
     private fun appendChildDataInsertsWithBackRef(
@@ -182,13 +203,14 @@ object ContactsContractOps {
     private fun newStructuredNameInsertWithBackRef(
         dataUri: Uri,
         rawIdx: Int,
-        displayName: String,
+        displayName: String?,
         structured: StructuredName?
     ): ContentProviderOperation {
         val builder = ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, CCStructuredName.CONTENT_ITEM_TYPE)
-            .withValue(CCStructuredName.DISPLAY_NAME, displayName)
+        displayName?.takeIf { it.isNotBlank() }
+            ?.let { builder.withValue(CCStructuredName.DISPLAY_NAME, it) }
         applyStructuredNamePieces(builder, structured)
         return builder.build()
     }
@@ -196,13 +218,14 @@ object ContactsContractOps {
     private fun newStructuredNameInsertForExisting(
         dataUri: Uri,
         rawContactId: Long,
-        displayName: String,
+        displayName: String?,
         structured: StructuredName?
     ): ContentProviderOperation {
         val builder = ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, CCStructuredName.CONTENT_ITEM_TYPE)
-            .withValue(CCStructuredName.DISPLAY_NAME, displayName)
+        displayName?.takeIf { it.isNotBlank() }
+            ?.let { builder.withValue(CCStructuredName.DISPLAY_NAME, it) }
         applyStructuredNamePieces(builder, structured)
         return builder.build()
     }

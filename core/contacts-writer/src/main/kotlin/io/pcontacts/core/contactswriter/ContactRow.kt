@@ -11,7 +11,12 @@ package io.pcontacts.core.contactswriter
  * so the next sync run can find this row again without consulting Room.
  *
  * Field semantics:
- *   - `displayName` always lands in StructuredName.DISPLAY_NAME.
+ *   - `displayName` lands in StructuredName.DISPLAY_NAME when non-null
+ *     and non-blank. When both `displayName` and `structuredName` are
+ *     absent the writer emits no StructuredName row at all so Android's
+ *     aggregator can adopt a name from any RawContact we merge into
+ *     (e.g. a phone-only Proton entry that aggregates with a local
+ *     WhatsApp / SIM contact must not steal that contact's name).
  *   - `structuredName` populates the per-piece columns (GIVEN/FAMILY/
  *     MIDDLE/PREFIX/SUFFIX) on the same Data row when non-null.
  *   - `emails` order is significant: position 0 is the "primary"
@@ -33,7 +38,7 @@ package io.pcontacts.core.contactswriter
  */
 data class ContactRow(
     val sourceId: String,
-    val displayName: String,
+    val displayName: String?,
     val structuredName: StructuredName? = null,
     val emails: List<String>,
     val phones: List<PhoneEntry> = emptyList(),

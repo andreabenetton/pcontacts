@@ -168,7 +168,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
 
             return ContactRow(
                 sourceId = sourceId,
-                displayName = displayName ?: "",
+                displayName = displayName,
                 structuredName = structuredName,
                 emails = sortedEmails,
                 phones = phones,
