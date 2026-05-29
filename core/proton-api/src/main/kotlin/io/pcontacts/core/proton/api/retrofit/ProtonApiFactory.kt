@@ -6,6 +6,7 @@ package io.pcontacts.core.proton.api.retrofit
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.Session
+import io.pcontacts.core.proton.api.addresses.ProtonAddressesApi
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.http.HumanVerificationTokenSource
@@ -103,6 +104,7 @@ class ProtonApiFactory(
     val contacts: ProtonContactsApi = retrofit.create(ProtonContactsApi::class.java)
     val users: ProtonUsersApi = retrofit.create(ProtonUsersApi::class.java)
     val labels: ProtonLabelsApi = retrofit.create(ProtonLabelsApi::class.java)
+    val addresses: ProtonAddressesApi = retrofit.create(ProtonAddressesApi::class.java)
 
     private fun buildRetrofit(config: ProtonApiConfig, client: OkHttpClient): Retrofit =
         Retrofit.Builder()
