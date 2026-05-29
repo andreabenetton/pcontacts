@@ -1,0 +1,11 @@
+Versione 1.1.0.
+
+* Decifratura dei contatti con più chiavi: i contatti cifrati con le chiavi degli indirizzi (il caso comune sulle caselle Proton reali) ora vengono decifrati correttamente. In precedenza la sincronizzazione si interrompeva con un errore "no encrypted data block".
+* Nuovo chip "Invia con Proton Mail" per ogni email nel contatto dell'app Contatti di sistema. Apre Proton Mail Android se installata, altrimenti l'URL di composizione web.
+* L'avviso "contatti non verificati" è ora toccabile e apre l'elenco dei contatti interessati; toccare una riga apre quel contatto nell'app Contatti predefinita.
+* Il banner "app con accesso ai contatti" si chiude in una finestra di dialogo invece di mostrare 12 righe in linea.
+* Risolta la notifica spuria "accesso richiesto" che appariva circa 10 secondi dopo la sincronizzazione sugli account con 2FA: la derivazione di keyPassword è ora rinviata fino al completamento del 2FA, così il token di accesso ha lo scope corretto.
+* Risolto il problema dei contatti WhatsApp / Telegram che perdevano il nome locale quando Proton non ne aveva uno impostato: i nomi visualizzati sintetici non vengono più scritti.
+* Impostazioni: l'icona dell'origine dell'account accanto a ogni riga collegata mostra ora il logo pcontacts invece di una silhouette generica.
+
+La prima sincronizzazione dopo l'aggiornamento riscrive ogni contatto una volta per migrare al nuovo formato sul dispositivo (~10–12 minuti su una casella da ~1100 contatti); le sincronizzazioni successive tornano alla modalità incrementale veloce.

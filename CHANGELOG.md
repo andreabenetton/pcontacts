@@ -10,6 +10,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-05-29
+
+### Added
+
+- Multi-key contact decrypt (ADR-0020). Sync now fetches
+  `/core/v4/addresses`, decrypts each AddressKey's Token under the
+  user primary, unlocks the address keys, and unions all unlockable
+  user + address private keys into the decrypt path. Previously the
+  first contact encrypted to an address key (the common case on real
+  Proton mailboxes) aborted sync with
+  `no encrypted data block for any of our N key(s)`.
+- "Send via Proton Mail" per-email action chip (ADR-0021). One
+  chip per email address on a Proton contact, rendered next to the
+  Email row in the system Contacts app. Tap routes to Proton Mail
+  Android via explicit-package `ACTION_SENDTO mailto:`, falling
+  back to the Proton Mail web compose URL if the Android app isn't
+  installed.
+- Tap-to-expand dialogs for the unverified-contacts warning and the
+  apps-with-contacts-access banner. The verification banner now
+  opens a list of the affected contacts (resolved through
+  `ContactsContract` so the user sees the merged display name);
+  tapping a row opens that contact in the system Contacts app. The
+  contacts-access banner collapses its 12-row inline list into a
+  scrollable dialog.
+- Dedicated 24dp brand drawable for the account-source icon
+  Contacts apps render next to each linked-source row. Replaces the
+  launcher-mipmap fallback that rendered as a generic silhouette
+  in Fossify Contacts.
+- README note that the synced list mirrors Proton's full address
+  book, including auto-saved senders if the Proton-side setting is
+  on. Documents why client-side filtering isn't an option (the
+  metadata DTO carries no flag distinguishing manual vs auto-saved
+  contacts).
+
+### Fixed
+
+- Sign-in-required notification fired ~10s after every sync on
+  2FA accounts. SrpLoginOrchestrator now defers keyPassword
+  derivation until after `/auth/2fa` succeeds, so the access token
+  carries `scope=full` when `/users` + `/keys/salts` run.
+  Previously those calls hit HTTP 403 (scope=self) and the failure
+  was swallowed, leaving an unusable half-set-up session.
+- WhatsApp / Telegram contact aggregation no longer loses the
+  local name. Proton contacts with no FN/N now write a null
+  `DISPLAY_NAME`, so Android's aggregator preserves the local
+  RawContact's real name instead of overwriting it with a
+  synthetic phone-number or email string.
+- `StructuredName` Data row is omitted entirely when a Proton
+  contact has no name pieces — avoids contributing an empty row
+  the aggregator could still resolve to a degenerate default.
+- Login orchestrator's diagnostic log line is no longer swallowed
+  by the default `NoOpSink`. Debug builds wire `AndroidLogcatSink`
+  so failures (KEY_PASSWORD_MISSING, KEY_UNLOCK_FAILED) are
+  visible in logcat for on-device diagnosis.
+
+### Changed
+
+- `EmailSyncHash` bumped to a `v2:` format prefix so the writer's
+  new chip rows land. First sync after upgrade rewrites every
+  existing contact once to migrate the on-device hash; subsequent
+  runs return to fast incremental skip. The one-shot rewrite
+  takes ~10–12 min on a ~1100-contact mailbox.
+
 ## [1.0.3] - 2026-05-28
 
 ### Added
@@ -117,6 +180,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.1.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.1.0
+[1.0.3]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.0.3
+[1.0.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.0.2
 [1.0.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.0.1
 [1.0.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.0.0
 [0.1.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v0.1.0

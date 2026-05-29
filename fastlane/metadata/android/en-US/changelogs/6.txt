@@ -1,0 +1,11 @@
+Version 1.1.0.
+
+* Multi-key contact decrypt: contacts encrypted to address keys (the common case on real Proton mailboxes) now decrypt successfully. Previously aborted with a "no encrypted data block" error.
+* New per-email "Send via Proton Mail" chip in the system Contacts app. Routes to Proton Mail Android if installed, or to the web compose URL otherwise.
+* The "contacts could not be verified" warning is now tappable and opens a list of the affected contacts; tapping a row jumps to that contact in your default Contacts app.
+* The "apps with contact access" banner collapses to a tap-to-expand dialog instead of an inline 12-row wall.
+* Fixed the spurious "sign-in required" notification ~10 seconds after sync on 2FA accounts: keyPassword derivation is now deferred until after 2FA so the access token has the right scope.
+* Fixed WhatsApp / Telegram contacts losing their local name when Proton has no name set: synthetic display-name fallbacks are no longer written.
+* Settings: account-source icon next to each linked-source row now renders the pcontacts brand mark instead of a generic silhouette.
+
+First sync after upgrade rewrites every contact once to migrate to the new on-device format (~10-12 minutes on a ~1100-contact mailbox); subsequent syncs return to fast incremental skip.

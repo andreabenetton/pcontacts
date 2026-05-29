@@ -1,0 +1,11 @@
+Version 1.1.0.
+
+* Mehrfach-Schlüssel-Entschlüsselung von Kontakten: Kontakte, die mit Adressschlüsseln verschlüsselt sind (der typische Fall bei echten Proton-Postfächern), werden jetzt erfolgreich entschlüsselt. Zuvor brach die Synchronisation mit "no encrypted data block" ab.
+* Neuer Chip "Mit Proton Mail senden" pro E-Mail-Adresse in der System-Kontakte-App. Öffnet Proton Mail Android, falls installiert, ansonsten die Web-Compose-URL.
+* Die Warnung "Kontakte konnten nicht verifiziert werden" ist jetzt antippbar und öffnet eine Liste der betroffenen Kontakte; Tippen einer Zeile öffnet den Kontakt in der Standard-Kontakte-App.
+* Das Banner "Apps mit Kontaktzugriff" klappt zu einem Dialog statt einer 12-zeiligen Inline-Liste.
+* Die spurious "Anmeldung erforderlich"-Benachrichtigung etwa 10 Sekunden nach der Synchronisation bei 2FA-Konten wurde behoben: Die keyPassword-Ableitung wird jetzt bis nach Abschluss von 2FA verzögert, sodass das Zugriffstoken den richtigen Scope hat.
+* Behoben, dass WhatsApp- / Telegram-Kontakte ihren lokalen Namen verloren, wenn Proton keinen Namen gesetzt hatte: synthetische Anzeigenamen werden nicht mehr geschrieben.
+* Einstellungen: Das Konto-Quellsymbol neben jeder verknüpften Zeile zeigt jetzt das pcontacts-Markenzeichen statt einer generischen Silhouette.
+
+Die erste Synchronisation nach dem Upgrade schreibt jeden Kontakt einmal neu, um auf das neue On-Device-Format zu migrieren (~10–12 Minuten bei einem ~1100-Kontakte-Postfach); spätere Synchronisationen kehren zur schnellen inkrementellen Übersprung-Logik zurück.

@@ -618,6 +618,8 @@ private class DetailFakeContactMapDao : ContactMapDao {
         rows.values.count { !it.deleted }
     override suspend fun countUnverified(): Int =
         rows.values.count { !it.deleted && !it.isVerified }
+    override suspend fun listUnverified(): List<ContactMapEntity> =
+        rows.values.filter { !it.deleted && !it.isVerified }
     override suspend fun markDeleted(id: String) {
         rows[id]?.let { rows[id] = it.copy(deleted = true) }
     }
