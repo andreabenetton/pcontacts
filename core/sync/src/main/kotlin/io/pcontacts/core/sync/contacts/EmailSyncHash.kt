@@ -32,25 +32,28 @@ import java.security.MessageDigest
 object EmailSyncHash {
 
     /**
-     * Prepended to the hash payload so that any cross-version change
-     * to what the writer EMITS (not what's in ContactRow) — for
-     * example the Phase 12 chip rows added per email — invalidates
-     * every existing `contact_map.content_hash` and forces a one-shot
-     * rewrite of every contact on the next sync. Bump when the
-     * writer's per-row op set changes.
+     * Plaintext prefix on the hash string (NOT folded into the SHA
+     * payload). Marks cross-version changes to what the writer EMITS
+     * for a given [ContactRow] — for example the Phase 12 chip rows
+     * added per email. Exposing the version as a prefix lets the sync
+     * engine cheap-detect a format mismatch on the stored hash without
+     * having to recompute it, so the modify-time skip path can bypass
+     * stale rows and force a one-shot rewrite. Bump when the writer's
+     * per-row op set changes.
      *
      *   v1 — original shape (RawContacts + StructuredName + Data rows).
+     *        No format prefix on the stored hash; engine treats absent
+     *        prefix as v1.
      *   v2 — adds the Send-via-Proton-Mail chip row per email
-     *        (ADR-0021).
+     *        (ADR-0021). Stored as "v2:<sha-hex>".
      */
-    private const val FORMAT_VERSION = "v2"
+    const val FORMAT_PREFIX = "v2:"
 
     fun compute(row: ContactRow): String {
         val sink = ByteArrayOutputStream()
         fun write(s: String) = sink.write(s.toByteArray(Charsets.UTF_8))
         fun sep() = sink.write(byteArrayOf(0x1F))   // ASCII unit separator
 
-        write(FORMAT_VERSION); sep()
         write(row.sourceId); sep()
         write(row.displayName.orEmpty()); sep()
 
@@ -79,7 +82,7 @@ object EmailSyncHash {
         row.photo?.data?.let(sink::write)
 
         val digest = MessageDigest.getInstance("SHA-256").digest(sink.toByteArray())
-        return digest.joinToString("") { "%02x".format(it) }
+        return FORMAT_PREFIX + digest.joinToString("") { "%02x".format(it) }
     }
 
     private fun phoneFingerprint(p: PhoneEntry): String =

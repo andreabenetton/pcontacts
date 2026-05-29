@@ -109,8 +109,17 @@ class ContactDetailSyncEngine(
 
         for ((sourceId, serverModifyTime) in serverModifyTimes) {
             val stored = storedMappings[sourceId]
-            if (stored != null && stored.modifyTime >= serverModifyTime && serverModifyTime > 0L) {
-                // Cheap-skip: server says unchanged. Just refresh bookkeeping.
+            val storedFormatCurrent =
+                stored?.contentHash?.startsWith(EmailSyncHash.FORMAT_PREFIX) == true
+            if (stored != null && storedFormatCurrent &&
+                stored.modifyTime >= serverModifyTime && serverModifyTime > 0L
+            ) {
+                // Cheap-skip: server says unchanged AND the stored hash
+                // is in the current writer format. If the hash format
+                // has rolled (Phase 12 hash bump for the chip row), we
+                // fall through to fetch+rewrite even when the server
+                // ModifyTime hasn't advanced — otherwise the one-shot
+                // migration never lands.
                 modifyTimeSkips += 1
                 contactMapDao.upsert(stored.copy(lastSyncedAt = now))
                 continue
