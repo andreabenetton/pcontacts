@@ -3,7 +3,12 @@
 
 package io.pcontacts.core.sync.contacts.decrypt
 
+import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
+import io.pcontacts.core.proton.api.addresses.AddressDto
+import io.pcontacts.core.proton.api.addresses.AddressKeyDto
+import io.pcontacts.core.proton.api.addresses.GetAddressesResponse
+import io.pcontacts.core.proton.api.addresses.ProtonAddressesApi
 import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import io.pcontacts.core.proton.api.contacts.ContactDto
 import io.pcontacts.core.proton.api.users.GetKeySaltsResponse
@@ -14,6 +19,7 @@ import io.pcontacts.core.proton.api.users.UserKeyDto
 import io.pcontacts.core.storage.InMemorySecretStore
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -78,7 +84,7 @@ class ContactDecryptBootstrapTest {
         val contact = ContactDto(id = "c-1", cards = listOf(signedCard, encryptedSignedCard))
 
         // Act under test — bootstrap unlocks + builds the processor.
-        val processor = ContactDecryptBootstrap.createProcessor(secretStore, usersApi, openPgp)
+        val processor = ContactDecryptBootstrap.createProcessor(secretStore, usersApi, FakeAddressesApi.empty(), openPgp)
         val out = processor.process(contact)
 
         assertEquals("c-1", out.protonContactId)
@@ -108,7 +114,7 @@ class ContactDecryptBootstrapTest {
         val secretStore = InMemorySecretStore()    // empty
         val usersApi = FakeUsersApi(armoredPrivateKey = "irrelevant")
         try {
-            ContactDecryptBootstrap.createProcessor(secretStore, usersApi, openPgp)
+            ContactDecryptBootstrap.createProcessor(secretStore, usersApi, FakeAddressesApi.empty(), openPgp)
             fail("expected DecryptUnavailableException(KEY_PASSWORD_MISSING)")
         } catch (ex: DecryptUnavailableException) {
             assertEquals("KEY_PASSWORD_MISSING", ex.message)
@@ -121,7 +127,7 @@ class ContactDecryptBootstrapTest {
         }
         val usersApi = FakeUsersApi(armoredPrivateKey = "irrelevant", primaryFlag = 0)
         try {
-            ContactDecryptBootstrap.createProcessor(secretStore, usersApi, openPgp)
+            ContactDecryptBootstrap.createProcessor(secretStore, usersApi, FakeAddressesApi.empty(), openPgp)
             fail("expected DecryptUnavailableException(NO_PRIMARY_KEY)")
         } catch (ex: DecryptUnavailableException) {
             assertEquals("NO_PRIMARY_KEY", ex.message)
@@ -138,12 +144,208 @@ class ContactDecryptBootstrapTest {
         }
         val usersApi = FakeUsersApi(armoredPrivateKey = armored)
         try {
-            ContactDecryptBootstrap.createProcessor(secretStore, usersApi, openPgp)
+            ContactDecryptBootstrap.createProcessor(secretStore, usersApi, FakeAddressesApi.empty(), openPgp)
             fail("expected DecryptUnavailableException(KEY_UNLOCK_FAILED)")
         } catch (ex: DecryptUnavailableException) {
             assertEquals("KEY_UNLOCK_FAILED", ex.message)
             assertNotNull(ex.cause)
         }
+    }
+
+    @Test fun decrypts_card_encrypted_only_to_address_key_end_to_end() = runTest {
+        // Regression for the field bug: a real Proton mailbox encrypts
+        // contacts to ADDRESS keys, not user keys. Before Phase 11 the
+        // decrypt path passed only the user-key ring; decryptToBytes
+        // raised "no encrypted data block for any of our N key(s)".
+        val userPassphrase = "user-P4ss-correct".toCharArray()
+        val (userArmored, userUnlocked) = TestKeys.armoredAndUnlocked(userPassphrase)
+
+        // Generate a fresh address key with a random passphrase, encrypt
+        // that passphrase to the user public to form the Token, then
+        // encrypt the contact card to the address public ONLY.
+        val addressPassphrase = "addr-secret-T0ken-passphrase"
+        val addressArmored = TestKeys.armoredKey(addressPassphrase.toCharArray())
+        val addressUnlocked = BouncyCastleKeyUnlock.unlock(addressArmored, addressPassphrase.toCharArray())
+
+        val tokenArmored = openPgp.encryptAndSignDetached(
+            plaintext = addressPassphrase.toByteArray(Charsets.US_ASCII),
+            encryptionKeys = listOf(userUnlocked.public),
+            signingKey = userUnlocked.private
+        ).armoredMessage
+
+        val signedPlaintext = """
+            BEGIN:VCARD
+            VERSION:4.0
+            UID:urn:uuid:addr-key-contact
+            FN:Bob Address
+            END:VCARD
+        """.trimIndent()
+        val signedCard = ContactCardDto(
+            type = 2,
+            data = signedPlaintext,
+            signature = openPgp.signDetached(signedPlaintext.toByteArray(Charsets.UTF_8), userUnlocked.private)
+        )
+
+        val encryptedPlaintext = """
+            BEGIN:VCARD
+            VERSION:4.0
+            EMAIL;TYPE=work:bob@proton.me
+            END:VCARD
+        """.trimIndent()
+        val encrypted = openPgp.encryptAndSignDetached(
+            plaintext = encryptedPlaintext.toByteArray(Charsets.UTF_8),
+            encryptionKeys = listOf(addressUnlocked.public),     // address-only recipient
+            signingKey = addressUnlocked.private
+        )
+        val encryptedCard = ContactCardDto(
+            type = 3,
+            data = encrypted.armoredMessage,
+            signature = encrypted.armoredDetachedSignature
+        )
+        val contact = ContactDto(id = "c-addr", cards = listOf(signedCard, encryptedCard))
+
+        val secretStore = InMemorySecretStore().apply {
+            setKeyPassword(String(userPassphrase).toByteArray(Charsets.UTF_8))
+        }
+        val usersApi = FakeUsersApi(armoredPrivateKey = userArmored)
+        val addressesApi = FakeAddressesApi(
+            keys = listOf(
+                AddressKeyDto(
+                    id = "akey-1",
+                    addressId = "addr-1",
+                    primary = 1,
+                    active = 1,
+                    privateKey = addressArmored,
+                    token = tokenArmored,
+                    signature = null
+                )
+            )
+        )
+
+        val processor = ContactDecryptBootstrap.createProcessor(secretStore, usersApi, addressesApi, openPgp)
+        val out = processor.process(contact)
+
+        assertEquals("Bob Address", out.fullName)
+        assertEquals(setOf("bob@proton.me"), out.emails.map { it.address }.toSet())
+        assertEquals(2, out.cardCount)
+    }
+
+    @Test fun address_key_with_undecryptable_token_is_skipped_and_user_key_decrypt_still_works() = runTest {
+        val userPassphrase = "user-P4ss-correct".toCharArray()
+        val (userArmored, userUnlocked) = TestKeys.armoredAndUnlocked(userPassphrase)
+
+        // Encrypt the contact to the USER public (so user-key path still works).
+        val plaintext = """
+            BEGIN:VCARD
+            VERSION:4.0
+            UID:urn:uuid:user-key-contact
+            FN:Carol User
+            END:VCARD
+        """.trimIndent()
+        val signed = ContactCardDto(
+            type = 2, data = plaintext,
+            signature = openPgp.signDetached(plaintext.toByteArray(Charsets.UTF_8), userUnlocked.private)
+        )
+        val encrypted = openPgp.encryptAndSignDetached(
+            plaintext = plaintext.toByteArray(Charsets.UTF_8),
+            encryptionKeys = listOf(userUnlocked.public),
+            signingKey = userUnlocked.private
+        )
+        val encryptedCard = ContactCardDto(type = 3, data = encrypted.armoredMessage, signature = encrypted.armoredDetachedSignature)
+        val contact = ContactDto(id = "c-1", cards = listOf(signed, encryptedCard))
+
+        // Token armor that cannot be decrypted: encrypt the passphrase
+        // to a fresh, throwaway user key the bootstrap will never see.
+        val foreignPassphrase = "foreign-P4ss".toCharArray()
+        val (_, foreignUnlocked) = TestKeys.armoredAndUnlocked(foreignPassphrase)
+        val badTokenArmored = openPgp.encryptAndSignDetached(
+            plaintext = "doesnt-matter".toByteArray(Charsets.US_ASCII),
+            encryptionKeys = listOf(foreignUnlocked.public),
+            signingKey = foreignUnlocked.private
+        ).armoredMessage
+        val addressArmored = TestKeys.armoredKey("addr-secret".toCharArray())
+
+        val secretStore = InMemorySecretStore().apply {
+            setKeyPassword(String(userPassphrase).toByteArray(Charsets.UTF_8))
+        }
+        val usersApi = FakeUsersApi(armoredPrivateKey = userArmored)
+        val addressesApi = FakeAddressesApi(
+            keys = listOf(
+                AddressKeyDto(
+                    id = "akey-bad",
+                    addressId = "addr-1",
+                    primary = 1,
+                    active = 1,
+                    privateKey = addressArmored,
+                    token = badTokenArmored,
+                    signature = null
+                )
+            )
+        )
+
+        // Skip-and-continue: the address key drops out silently, user
+        // key decrypt still produces a full DecryptedContact.
+        val processor = ContactDecryptBootstrap.createProcessor(secretStore, usersApi, addressesApi, openPgp)
+        val out = processor.process(contact)
+        assertEquals("Carol User", out.fullName)
+    }
+
+    @Test fun legacy_v1_address_key_with_null_token_unlocks_with_user_keyPassword() = runTest {
+        val userPassphrase = "user-P4ss-correct".toCharArray()
+        val (userArmored, userUnlocked) = TestKeys.armoredAndUnlocked(userPassphrase)
+
+        // Legacy v1 address keys are unlocked with the user keyPassword
+        // directly (see WebClients getDecryptedAddressKeys.ts
+        // hasMigratedKeys=false branch). Build one armored under the
+        // SAME passphrase as the user key.
+        val legacyAddressArmored = TestKeys.armoredKey(userPassphrase.copyOf())
+        val legacyAddressUnlocked = BouncyCastleKeyUnlock.unlock(legacyAddressArmored, userPassphrase.copyOf())
+
+        val plaintext = """
+            BEGIN:VCARD
+            VERSION:4.0
+            UID:urn:uuid:legacy
+            FN:Dave Legacy
+            END:VCARD
+        """.trimIndent()
+        val signed = ContactCardDto(
+            type = 2, data = plaintext,
+            signature = openPgp.signDetached(plaintext.toByteArray(Charsets.UTF_8), userUnlocked.private)
+        )
+        val encrypted = openPgp.encryptAndSignDetached(
+            plaintext = plaintext.toByteArray(Charsets.UTF_8),
+            encryptionKeys = listOf(legacyAddressUnlocked.public),    // address-only
+            signingKey = legacyAddressUnlocked.private
+        )
+        val encryptedCard = ContactCardDto(type = 3, data = encrypted.armoredMessage, signature = encrypted.armoredDetachedSignature)
+        val contact = ContactDto(id = "c-legacy", cards = listOf(signed, encryptedCard))
+
+        val secretStore = InMemorySecretStore().apply {
+            setKeyPassword(String(userPassphrase).toByteArray(Charsets.UTF_8))
+        }
+        val usersApi = FakeUsersApi(armoredPrivateKey = userArmored)
+        val addressesApi = FakeAddressesApi(
+            keys = listOf(
+                AddressKeyDto(
+                    id = "akey-legacy",
+                    addressId = "addr-1",
+                    primary = 1,
+                    active = 1,
+                    privateKey = legacyAddressArmored,
+                    token = null,        // v1
+                    signature = null
+                )
+            )
+        )
+
+        val processor = ContactDecryptBootstrap.createProcessor(secretStore, usersApi, addressesApi, openPgp)
+        val out = processor.process(contact)
+        assertEquals("Dave Legacy", out.fullName)
+        // Signature on the E&S card was made by the address key but our
+        // verificationKeys union includes the address public, so the
+        // card MUST verify.
+        assertTrue("E&S card signed by address key must verify", out.verified)
+        assertFalse("nothing should be unverified", out.unverifiedCardCount > 0)
     }
 
     private class FakeUsersApi(
@@ -166,5 +368,19 @@ class ContactDecryptBootstrapTest {
         )
         override suspend fun getKeySalts(): GetKeySaltsResponse =
             error("ContactDecryptBootstrap does not need salts — keyPassword is already persisted")
+    }
+
+    private class FakeAddressesApi(
+        private val keys: List<AddressKeyDto>
+    ) : ProtonAddressesApi {
+        override suspend fun getAddresses(): GetAddressesResponse = GetAddressesResponse(
+            code = 1000,
+            addresses = if (keys.isEmpty()) emptyList() else listOf(
+                AddressDto(id = "addr-1", email = "test@proton.me", keys = keys)
+            )
+        )
+        companion object {
+            fun empty(): FakeAddressesApi = FakeAddressesApi(keys = emptyList())
+        }
     }
 }

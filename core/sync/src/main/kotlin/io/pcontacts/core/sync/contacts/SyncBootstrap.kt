@@ -11,10 +11,7 @@ import io.pcontacts.core.contactswriter.DirtyFlagClearer
 import io.pcontacts.core.contactswriter.LocalGroupsWriter
 import io.pcontacts.core.contactswriter.RawContactDataReader
 import io.pcontacts.core.contactswriter.RawContactReader
-import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
-import io.pcontacts.core.crypto.openpgp.KeyUnlockException
-import io.pcontacts.core.crypto.openpgp.UnlockedKey
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
@@ -152,6 +149,7 @@ object SyncBootstrap {
         val processor = ContactDecryptBootstrap.createProcessor(
             secretStore = secretStore,
             usersApi = apis.users,
+            addressesApi = apis.addresses,
             openPgp = openPgp
         )
 
@@ -211,15 +209,24 @@ object SyncBootstrap {
             humanVerificationTokens = SecretStoreHumanVerificationSource(secretStore)
         )
         val openPgp = BouncyCastleOpenPgpService()
-        val unlocked = unlockPrimaryKey(secretStore, apis)
+        val keySet = ContactDecryptBootstrap.unlockAllKeys(
+            secretStore = secretStore,
+            usersApi = apis.users,
+            addressesApi = apis.addresses,
+            openPgp = openPgp,
+            logger = logger
+        )
 
         val cardCryptoOp = OpenPgpCardCryptoOp.build(
             openPgp = openPgp,
-            decryptionKeys = unlocked.allPrivateKeys,
-            verificationKeys = listOf(unlocked.public)
+            decryptionKeys = keySet.decryptionKeys,
+            verificationKeys = keySet.verificationKeys
         )
         val processor = ContactProcessor(ContactDecrypter(cardCryptoOp))
-        val serializer = ContactEncryptBootstrap.createSerializer(openPgp, unlocked)
+        // Encrypt path uses the user primary only — contacts are self-
+        // encrypted to the user primary (not address keys), and the
+        // detached signature is by the user primary too.
+        val serializer = ContactEncryptBootstrap.createSerializer(openPgp, keySet.primary)
 
         val metadataPager = ContactsMetadataPager(api = apis.contacts)
         val db = DatabaseFactory.create(appContext)
@@ -242,30 +249,6 @@ object SyncBootstrap {
 
         val writeEngine = buildWriteEngine(apis, db, provider, processor, serializer, logger)
         return writeEngine to readEngine
-    }
-
-    private suspend fun unlockPrimaryKey(
-        secretStore: EncryptedSecretStore,
-        apis: ProtonApiFactory
-    ): UnlockedKey {
-        val keyPasswordBytes = secretStore.keyPassword()
-            ?: throw DecryptUnavailableException("KEY_PASSWORD_MISSING")
-        val primary = apis.users.getUser().user.keys
-            .firstOrNull { it.primary == 1 && it.active == 1 }
-            ?: throw DecryptUnavailableException("NO_PRIMARY_KEY")
-        return unlockKey(primary.privateKey, keyPasswordBytes)
-    }
-
-    private fun unlockKey(armoredKey: String, keyPasswordBytes: ByteArray): UnlockedKey {
-        val passphrase = String(keyPasswordBytes, Charsets.UTF_8).toCharArray()
-        return try {
-            BouncyCastleKeyUnlock.unlock(armoredKey, passphrase)
-        } catch (kue: KeyUnlockException) {
-            throw DecryptUnavailableException("KEY_UNLOCK_FAILED", kue)
-        } finally {
-            passphrase.fill(' ')
-            keyPasswordBytes.fill(0)
-        }
     }
 
     private fun buildWriteEngine(
