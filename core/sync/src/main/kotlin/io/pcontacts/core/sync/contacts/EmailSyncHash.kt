@@ -37,7 +37,7 @@ object EmailSyncHash {
         fun sep() = sink.write(byteArrayOf(0x1F))   // ASCII unit separator
 
         write(row.sourceId); sep()
-        write(row.displayName); sep()
+        write(row.displayName.orEmpty()); sep()
 
         val sn = row.structuredName
         write(sn?.given.orEmpty()); sep()

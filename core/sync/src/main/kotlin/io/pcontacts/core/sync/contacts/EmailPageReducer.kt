@@ -28,7 +28,13 @@ object EmailPageReducer {
                 val primary = sorted.first()
                 ContactRow(
                     sourceId = primary.contactId,
-                    displayName = primary.name.ifBlank { primary.email },
+                    // Only use Proton's Name field; don't fall back to email
+                    // address. Falling back synthesizes a name we then write
+                    // into StructuredName.DISPLAY_NAME, which Android's
+                    // aggregator can adopt over a local RawContact's real
+                    // name. See ContactRow KDoc for the aggregation
+                    // contention this avoids.
+                    displayName = primary.name.takeIf { it.isNotBlank() },
                     emails = sorted.map { it.email }
                 )
             }

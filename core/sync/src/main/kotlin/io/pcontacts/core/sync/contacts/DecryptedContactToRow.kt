@@ -70,11 +70,14 @@ internal object DecryptedContactToRow {
             return null
         }
 
+        // Use only real Proton names (FN or projected from N). DO NOT
+        // synthesize a displayName from a phone / email / IM handle —
+        // that string lands in StructuredName.DISPLAY_NAME and lets
+        // Android's aggregator overwrite the real name of a local
+        // RawContact we merged into (e.g. a WhatsApp / SIM entry with
+        // the same phone). When this is null, ContactsContractOps omits
+        // the StructuredName row entirely.
         val displayName = decrypted.fullName?.takeIf { it.isNotBlank() }
-            ?: emails.firstOrNull()
-            ?: phones.firstOrNull()?.number
-            ?: addresses.firstOrNull()?.let { it.city ?: it.street }
-            ?: imAccounts.first().handle
 
         return ContactRow(
             sourceId = decrypted.protonContactId,
