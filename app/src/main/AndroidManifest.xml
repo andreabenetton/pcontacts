@@ -80,6 +80,26 @@
             android:exported="false"
             android:theme="@style/Theme.Pcontacts" />
 
+        <!-- ADR-0021: tap target for the per-email "Send via Proton
+             Mail" chip rendered next to every Email row on a Proton
+             contact. Exported true so Android's Contacts UI can
+             dispatch ACTION_VIEW on the row's Data URI. NoDisplay +
+             noHistory because the activity is a thin intent router
+             that never draws a window. -->
+        <activity
+            android:name=".intent.SendViaProtonMailActivity"
+            android:exported="true"
+            android:icon="@drawable/ic_send_via_proton_mail"
+            android:label="@string/chip_send_via_proton_mail"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/vnd.io.pcontacts.send_via_proton_mail" />
+            </intent-filter>
+        </activity>
+
         <!-- ADR-0004: AccountAuthenticator surface. The android:exported="true"
              is required for AccountManager to bind across processes; the
              intent-filter restricts who can use the binding. -->

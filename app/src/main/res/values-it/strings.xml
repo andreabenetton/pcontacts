@@ -43,4 +43,6 @@
         <item quantity="one">%d modifica non riuscita</item>
         <item quantity="other">%d modifiche non riuscite</item>
     </plurals>
+
+    <string name="chip_send_via_proton_mail">Invia con Proton Mail</string>
 </resources>

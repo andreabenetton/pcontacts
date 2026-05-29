@@ -39,4 +39,9 @@
         <item quantity="one">%d change failed</item>
         <item quantity="other">%d changes failed</item>
     </plurals>
+
+    <!-- ADR-0021: per-email action chip rendered next to every Email
+         row on a Proton contact. Tap routes the user to Proton Mail
+         (Android app if installed, web fallback otherwise). -->
+    <string name="chip_send_via_proton_mail">Send via Proton Mail</string>
 </resources>

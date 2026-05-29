@@ -52,4 +52,19 @@
         android:mimeType="vnd.android.cursor.item/photo"
         android:summaryColumn="data15" />
 
+    <!--
+        ADR-0021: "Send via Proton Mail" per-email action chip. The
+        custom MIMETYPE is written by :core:contacts-writer
+        (PContactsMimeTypes.SEND_VIA_PROTON_MAIL); the row's icon and
+        label render via this ContactsDataKind entry on apps that
+        honor it (AOSP Contacts), or via the matching activity's
+        android:icon + android:label on apps that use the
+        intent-filter discovery path (Fossify).
+    -->
+    <ContactsDataKind
+        android:mimeType="vnd.android.cursor.item/vnd.io.pcontacts.send_via_proton_mail"
+        android:icon="@drawable/ic_send_via_proton_mail"
+        android:summaryColumn="data2"
+        android:detailColumn="data1" />
+
 </ContactsAccountType>
