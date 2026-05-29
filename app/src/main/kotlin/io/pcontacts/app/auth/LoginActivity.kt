@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
+import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationActivity
 import io.pcontacts.core.sync.AuthBootstrap
@@ -45,7 +46,9 @@ import io.pcontacts.feature.onboarding.TwoFactorScreen
  */
 class LoginActivity : ComponentActivity() {
 
-    private val orchestrator by lazy { AuthBootstrap.createLoginOrchestrator(this) }
+    private val orchestrator by lazy {
+        AuthBootstrap.createLoginOrchestrator(this, logSink = AndroidLogcatSink())
+    }
     private val viewModel: LoginViewModel by viewModels {
         LoginViewModel.Factory(
             attemptLogin = orchestrator::login,
