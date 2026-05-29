@@ -50,10 +50,11 @@ class SrpLoginOrchestratorTest {
     @Before fun setUp() {
         server = MockWebServer().apply {
             // Default MockWebServer queue blocks until a response is enqueued.
-            // The orchestrator now makes optional post-auth /users + /keys/salts
-            // calls; tests that don't drive the key-password path shouldn't
-            // hang waiting for those — return a 404 by default so those calls
-            // throw and are swallowed by the orchestrator's catch.
+            // The orchestrator's persistSession now requires /users + /keys/salts
+            // to succeed for login to return Success or TwoFactorRequired; tests
+            // that drive only the pre-auth path (modulus / appversion / SRP-fail)
+            // never reach those calls. Tests that fail intentionally on /users
+            // (key_derivation_failed) rely on this 404 fallback.
             dispatcher = QueueDispatcher().apply {
                 setFailFast(MockResponse().setResponseCode(404))
             }
@@ -70,6 +71,8 @@ class SrpLoginOrchestratorTest {
     @Test fun login_success_persists_tokens_and_propagates_session() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-success", twoFactor = 0)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
 
         val result = newOrchestrator().login(username = "alice@proton.test", password = "p4ssw0rd".toCharArray())
 
@@ -84,6 +87,9 @@ class SrpLoginOrchestratorTest {
     @Test fun login_with_two_factor_returns_TwoFactorRequired_and_still_persists() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-2fa", twoFactor = 1)
+        // No /users + /keys/salts: /auth's access token is scope=self
+        // until /auth/2fa promotes it to scope=full, so keyPassword
+        // derivation is deferred to submitTwoFactorCode.
 
         val result = newOrchestrator().login("bob@proton.test", "x".toCharArray())
 
@@ -175,7 +181,7 @@ class SrpLoginOrchestratorTest {
         enqueueAuthResponse(uid = "uid-2fa-hv", twoFactor = 1)
         val orchestrator = newOrchestrator()
         orchestrator.login("u", "p".toCharArray())
-        server.takeRequest(); server.takeRequest(); server.takeRequest()
+        repeat(2) { server.takeRequest() }   // /info, /auth (no /users yet — scope=self)
 
         // Now 9001 fires on the TOTP submit — Proton can re-challenge here
         // if IP reputation degrades mid-session.
@@ -265,10 +271,13 @@ class SrpLoginOrchestratorTest {
         assertTrue("expected TwoFactorRequired, was $first", first is LoginResult.TwoFactorRequired)
         server.takeRequest()    // /info
         server.takeRequest()    // /auth
-        server.takeRequest()    // /users — best-effort key-password fetch, 404 by failFast
 
-        // Now the TOTP submission.
+        // 2FA submit promotes the access token; keyPassword derivation
+        // (the deferred /users + /keys/salts pair) runs immediately after
+        // the /auth/2fa response.
         server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
+        enqueueUserResponse(primaryKeyId = "kp-2fa-h")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-2fa-h", saltB64 = SAMPLE_SALT_B64)
         val second = orchestrator.submitTwoFactorCode("654321")
 
         assertEquals(LoginResult.Success(uid = "uid-2fa", username = "u"), second)
@@ -292,7 +301,7 @@ class SrpLoginOrchestratorTest {
         enqueueAuthResponse(uid = "uid-2fa-fail", twoFactor = 1)
         val orchestrator = newOrchestrator()
         orchestrator.login("u", "p".toCharArray())
-        server.takeRequest(); server.takeRequest(); server.takeRequest()  // /info, /auth, /users (best-effort, 404)
+        repeat(2) { server.takeRequest() }   // /info, /auth (no /users — scope=self)
 
         server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":8002,"Error":"Invalid code"}"""))
         val result = orchestrator.submitTwoFactorCode("999999")
@@ -307,7 +316,7 @@ class SrpLoginOrchestratorTest {
         enqueueAuthResponse(uid = "uid-2fa-reject", twoFactor = 1)
         val orchestrator = newOrchestrator()
         orchestrator.login("u", "p".toCharArray())
-        server.takeRequest(); server.takeRequest(); server.takeRequest()  // /info, /auth, /users (best-effort, 404)
+        repeat(2) { server.takeRequest() }   // /info, /auth (no /users — scope=self)
 
         // HTTP 200 but app-level Code is not 1000.
         server.enqueue(MockResponse().setBody("""{"Code":9001,"Scopes":[]}"""))
@@ -392,18 +401,26 @@ class SrpLoginOrchestratorTest {
             result is LoginResult.Failed && result.reason == "appversion_rejected")
     }
 
-    @Test fun login_success_when_users_endpoint_fails_still_succeeds_without_keyPassword() = runTest {
+    @Test fun login_fails_when_users_endpoint_fails_and_clears_half_persisted_tokens() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-no-key", twoFactor = 0)
         // No /users response enqueued — MockWebServer's default dispatcher
-        // returns 404 → Retrofit throws → orchestrator swallows.
+        // returns 404 → Retrofit throws → key-derivation step fails.
 
         val result = newOrchestrator().login("u", "p".toCharArray())
 
-        assertEquals(LoginResult.Success(uid = "uid-no-key", username = "u"), result)
-        // Tokens still persisted; keyPassword absent — sync will refuse
-        // to run loudly until the user re-logs.
-        assertEquals("uid-no-key", secretStore.uid())
+        // The earlier silent-swallow path returned Success with tokens
+        // persisted but no keyPassword, which surfaced as a misleading
+        // KEY_PASSWORD_MISSING reauth notification on the next sync.
+        // Surface Failed instead so the UI re-prompts immediately, and
+        // wipe the half-written tokens so SecretStore stays consistent.
+        assertTrue(
+            "expected Failed(key_derivation_failed), was $result",
+            result is LoginResult.Failed && result.reason == "key_derivation_failed"
+        )
+        assertNull(secretStore.uid())
+        assertNull(secretStore.accessToken())
+        assertNull(secretStore.refreshToken())
         assertNull(secretStore.keyPassword())
     }
 

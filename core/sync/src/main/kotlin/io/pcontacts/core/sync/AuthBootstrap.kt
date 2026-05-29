@@ -8,6 +8,9 @@ import android.content.ContentProviderClient
 import android.content.Context
 import io.pcontacts.core.contactswriter.BatchApplier
 import io.pcontacts.core.crypto.srp.SrpClient
+import io.pcontacts.core.logging.LogSink
+import io.pcontacts.core.logging.NoOpSink
+import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
@@ -35,7 +38,10 @@ import kotlinx.coroutines.withContext
  */
 object AuthBootstrap {
 
-    fun createLoginOrchestrator(context: Context): SrpLoginOrchestrator {
+    fun createLoginOrchestrator(
+        context: Context,
+        logSink: LogSink = NoOpSink
+    ): SrpLoginOrchestrator {
         val appContext = context.applicationContext
         val secretStore: SecretStore = EncryptedSecretStore.create(appContext)
         val session = InMemorySession()
@@ -49,7 +55,8 @@ object AuthBootstrap {
             usersApi = apis.users,
             srp = SrpClient(),
             secretStore = secretStore,
-            session = session
+            session = session,
+            logger = RedactingLogger(tag = "SrpLogin", sink = logSink)
         )
     }
 

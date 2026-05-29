@@ -73,6 +73,21 @@ class SrpLoginOrchestrator(
 
     @Volatile private var lastUsername: String? = null
 
+    /**
+     * `/auth`'s access token carries `scope=self` only when 2FA is required;
+     * `scope=full` (needed for `/users`) lands only after `/auth/2fa` succeeds.
+     * So when 2FA is required we stash a private copy of the user's password,
+     * defer the keyPassword derivation, and finish it inside
+     * `submitTwoFactorCode` — at which point the scope has been promoted and
+     * `/users` no longer returns 403.
+     *
+     * The stash is zeroed on success, on 2FA rejection, and on any new
+     * `login()` attempt. It is the only place the password lingers past
+     * `login()` returning; on process death the GC drops it without zeroing
+     * (acceptable — process memory is wiped).
+     */
+    @Volatile private var pendingTwoFactorPassword: CharArray? = null
+
     private sealed interface Step<out T> {
         data class Ok<T>(val value: T) : Step<T>
         // Carries any terminal LoginResult — Failed, HumanVerificationRequired,
@@ -97,33 +112,70 @@ class SrpLoginOrchestrator(
     private suspend fun loginInternal(username: String, password: CharArray): LoginResult {
         logger.info { "login: getInfo user=<redacted>" }
         lastUsername = username
+        clearPendingTwoFactorPassword()   // drop any stash from a prior attempt
 
         val info = fetchInfo(username).orReturn { return it }
         val mod = decodeAndVerifyModulus(info).orReturn { return it }
         val proof = computeSrpProof(password, info, mod).orReturn { return it }
         val authResp = submitAuthAndVerifyProof(username, info, proof, mod.padLen).orReturn { return it }
-        try {
-            persistSession(authResp, password, username)
-        } catch (e: HumanVerificationRequiredException) {
-            // /users or /keys/salts (the post-auth key-password derivation)
-            // returned 9001. Session tokens were already persisted above —
-            // but without keyPassword the session is unusable for sync.
-            // Surface as HV so the UI prompts captcha then retries login()
-            // from scratch (re-running SRP overwrites the partial session).
-            logger.warn { "keyPassword derivation returned 9001 — human verification required" }
-            return LoginResult.HumanVerificationRequired(
-                verificationUrl = e.verificationUrl,
-                uid = authResp.uid,
-                username = username
-            )
-        }
+
+        secretStore.setUid(authResp.uid)
+        secretStore.setAccessToken(authResp.accessToken)
+        secretStore.setRefreshToken(authResp.refreshToken)
+        session.update(uid = authResp.uid, accessToken = authResp.accessToken)
 
         // [V] TwoFactor bit semantics from packages/shared/lib/authentication/twoFactor.ts.
-        return if (authResp.twoFactor and TWO_FACTOR_TOTP_BIT != 0) {
-            LoginResult.TwoFactorRequired(uid = authResp.uid, username = username)
-        } else {
-            LoginResult.Success(uid = authResp.uid, username = username)
+        val needsTwoFactor = authResp.twoFactor and TWO_FACTOR_TOTP_BIT != 0
+        if (needsTwoFactor) {
+            // Stash a private copy of the password; submitTwoFactorCode will
+            // consume it to finish keyPassword derivation once /auth/2fa has
+            // promoted the access token from scope=self to scope=full.
+            pendingTwoFactorPassword = password.copyOf()
+            return LoginResult.TwoFactorRequired(uid = authResp.uid, username = username)
         }
+
+        // No 2FA — access token already carries scope=full; derive now.
+        return finishKeyDerivation(password, authResp.uid, username)
+    }
+
+    /**
+     * Runs `/users` + `/keys/salts`, computes bcrypt-SHA512(password, salt),
+     * and persists the result. Maps all failure modes to a typed
+     * `LoginResult`. On non-HV failure also clears the half-written session
+     * tokens so the next sync doesn't fire a misleading KEY_PASSWORD_MISSING
+     * notification.
+     */
+    private suspend fun finishKeyDerivation(
+        password: CharArray,
+        uid: String,
+        username: String
+    ): LoginResult = try {
+        deriveAndPersistKeyPassword(password)
+        LoginResult.Success(uid = uid, username = username)
+    } catch (e: HumanVerificationRequiredException) {
+        logger.warn { "key-derivation step returned 9001 — human verification required" }
+        LoginResult.HumanVerificationRequired(
+            verificationUrl = e.verificationUrl,
+            uid = uid,
+            username = username
+        )
+    } catch (t: Throwable) {
+        val code = t.httpStatusCode()
+        logger.error(t) { "key-derivation step failed http=$code" }
+        secretStore.setUid(null)
+        secretStore.setAccessToken(null)
+        secretStore.setRefreshToken(null)
+        session.update(uid = null, accessToken = null)
+        LoginResult.Failed(
+            reason = "key_derivation_failed",
+            uid = uid,
+            username = username
+        )
+    }
+
+    private fun clearPendingTwoFactorPassword() {
+        pendingTwoFactorPassword?.fill('\u0000')
+        pendingTwoFactorPassword = null
     }
 
     private suspend fun fetchInfo(username: String): Step<InfoResponse> = try {
@@ -241,25 +293,6 @@ class SrpLoginOrchestrator(
         return Step.Ok(authResp)
     }
 
-    private suspend fun persistSession(authResp: AuthResponse, password: CharArray, username: String) {
-        secretStore.setUid(authResp.uid)
-        secretStore.setAccessToken(authResp.accessToken)
-        secretStore.setRefreshToken(authResp.refreshToken)
-        session.update(uid = authResp.uid, accessToken = authResp.accessToken)
-
-        // Plan §2.7 steps 11-13: with the session live, derive and persist
-        // the keyPassword. Non-HV failures here don't abort login — sync
-        // will refuse to run until keyPassword is available (logged loudly).
-        // HV propagates so the caller can surface the captcha and retry.
-        try {
-            deriveAndPersistKeyPassword(password)
-        } catch (e: HumanVerificationRequiredException) {
-            throw e
-        } catch (t: Throwable) {
-            logger.error(t) { "keyPassword derivation failed; sync will require re-login" }
-        }
-    }
-
     /**
      * Fetches User + KeySalts, computes `keyPassword = bcrypt-SHA-512(
      * password, primaryKeySalt)` (Plan §2.7 step 12), and stores the
@@ -322,10 +355,24 @@ class SrpLoginOrchestrator(
 
         if (response.code != PROTON_SUCCESS_CODE) {
             logger.warn { "auth2FA returned non-success Code=${response.code}" }
+            clearPendingTwoFactorPassword()
             return LoginResult.Failed(reason = "two_factor_rejected", uid = uid, username = username)
         }
 
-        return LoginResult.Success(uid = uid, username = username)
+        // 2FA accepted — the access token has been promoted from scope=self
+        // to scope=full, so /users and /keys/salts are now reachable. Finish
+        // the keyPassword derivation deferred by loginInternal.
+        val pending = pendingTwoFactorPassword
+        pendingTwoFactorPassword = null
+        if (pending == null) {
+            logger.warn { "submitTwoFactorCode success but no stashed password — login flow corrupted" }
+            return LoginResult.Failed(reason = "unexpected_state", uid = uid, username = username)
+        }
+        return try {
+            finishKeyDerivation(pending, uid, username)
+        } finally {
+            pending.fill(Char(0))
+        }
     }
 
     /**
