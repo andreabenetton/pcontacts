@@ -11,8 +11,15 @@
   The accountType value is load-bearing: changing it orphans every
   RawContacts row the app has ever written.
 -->
+<!--
+  `icon` is the full-size launcher asset shown in Settings → Accounts.
+  `smallIcon` is the 24dp chip rendered next to each linked-source row
+  in Contacts apps; the mipmap launcher is too large for that surface
+  and falls back to a generic silhouette in Fossify, so we point it at
+  a dedicated drawable.
+-->
 <account-authenticator xmlns:android="http://schemas.android.com/apk/res/android"
     android:accountType="io.pcontacts.account"
     android:icon="@mipmap/ic_launcher"
-    android:smallIcon="@mipmap/ic_launcher"
+    android:smallIcon="@drawable/ic_account_pcontacts"
     android:label="@string/account_label" />
