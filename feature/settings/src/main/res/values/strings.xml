@@ -16,6 +16,14 @@
     <string name="verification_icon">!</string>
     <string name="verification_warning">%1$d of %2$d contacts could not be verified</string>
     <string name="verification_detail">Signature verification failed. These contacts may have been tampered with.</string>
+    <string name="verification_tap_to_review">Tap to review</string>
+    <string name="unverified_dialog_title">Unverified contacts</string>
+    <string name="unverified_dialog_empty">No unverified contacts.</string>
+    <string name="unverified_dialog_close">Close</string>
+    <string name="unverified_no_name">(no name)</string>
+
+    <string name="contacts_access_tap_to_review">Tap to view list</string>
+    <string name="contacts_access_dialog_title">Apps with contact access</string>
 
     <plurals name="outbox_pending">
         <item quantity="one">%d change pending sync</item>

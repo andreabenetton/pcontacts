@@ -16,6 +16,14 @@
     <string name="verification_icon">!</string>
     <string name="verification_warning">%1$d von %2$d Kontakten konnten nicht verifiziert werden</string>
     <string name="verification_detail">Signaturverifizierung fehlgeschlagen. Diese Kontakte wurden möglicherweise manipuliert.</string>
+    <string name="verification_tap_to_review">Zum Überprüfen tippen</string>
+    <string name="unverified_dialog_title">Nicht verifizierte Kontakte</string>
+    <string name="unverified_dialog_empty">Keine nicht verifizierten Kontakte.</string>
+    <string name="unverified_dialog_close">Schließen</string>
+    <string name="unverified_no_name">(ohne Name)</string>
+
+    <string name="contacts_access_tap_to_review">Zum Anzeigen der Liste tippen</string>
+    <string name="contacts_access_dialog_title">Apps mit Kontaktzugriff</string>
 
     <plurals name="outbox_pending">
         <item quantity="one">%d Änderung wartet auf Synchronisierung</item>

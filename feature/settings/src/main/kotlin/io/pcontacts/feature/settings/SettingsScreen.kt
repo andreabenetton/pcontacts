@@ -4,6 +4,7 @@
 package io.pcontacts.feature.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -53,11 +54,14 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val verificationStats by viewModel.verificationStats.collectAsStateWithLifecycle()
+    val unverifiedContacts by viewModel.unverifiedContacts.collectAsStateWithLifecycle()
+    val unverifiedDialogOpen by viewModel.unverifiedDialogOpen.collectAsStateWithLifecycle()
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
     val outboxStats by viewModel.outboxStats.collectAsStateWithLifecycle()
     val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
     val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
+    val contactsAccessDialogOpen by viewModel.contactsAccessDialogOpen.collectAsStateWithLifecycle()
     val busy = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
 
     Column(
@@ -131,8 +135,19 @@ fun SettingsScreen(
         verificationStats?.let { stats ->
             if (stats.unverifiedContacts > 0) {
                 Spacer(Modifier.height(16.dp))
-                VerificationWarningBanner(stats)
+                VerificationWarningBanner(
+                    stats = stats,
+                    onClick = viewModel::showUnverifiedContactsDialog
+                )
             }
+        }
+
+        if (unverifiedDialogOpen) {
+            UnverifiedContactsDialog(
+                contacts = unverifiedContacts,
+                onOpenContact = viewModel::openUnverifiedContactInSystem,
+                onDismiss = viewModel::dismissUnverifiedContactsDialog
+            )
         }
 
         if (outboxStats.pending > 0 || outboxStats.quarantined > 0) {
@@ -158,7 +173,17 @@ fun SettingsScreen(
 
         if (contactsAccessApps.isNotEmpty()) {
             Spacer(Modifier.height(16.dp))
-            ContactsAccessBanner(contactsAccessApps)
+            ContactsAccessBanner(
+                apps = contactsAccessApps,
+                onClick = viewModel::showContactsAccessDialog
+            )
+        }
+
+        if (contactsAccessDialogOpen) {
+            ContactsAccessDialog(
+                apps = contactsAccessApps,
+                onDismiss = viewModel::dismissContactsAccessDialog
+            )
         }
     }
 }
@@ -211,12 +236,13 @@ private fun SyncIntervalSelector(
 }
 
 @Composable
-private fun VerificationWarningBanner(stats: VerificationStats) {
+private fun VerificationWarningBanner(stats: VerificationStats, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.errorContainer)
+            .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -237,8 +263,70 @@ private fun VerificationWarningBanner(stats: VerificationStats) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
+            Text(
+                text = stringResource(R.string.verification_tap_to_review),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
         }
     }
+}
+
+@Composable
+private fun UnverifiedContactsDialog(
+    contacts: List<UnverifiedContactSummary>,
+    onOpenContact: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.unverified_dialog_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = stringResource(R.string.verification_detail),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+                if (contacts.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.unverified_dialog_empty),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    contacts.forEach { c ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onOpenContact(c.rawContactId) }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = c.displayName
+                                        ?: stringResource(R.string.unverified_no_name),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                c.lastError?.takeIf { it.isNotBlank() }?.let { err ->
+                                    Text(
+                                        text = err,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.unverified_dialog_close))
+            }
+        }
+    )
 }
 
 @Composable
@@ -367,12 +455,13 @@ private fun ConflictBanner(
 }
 
 @Composable
-private fun ContactsAccessBanner(apps: List<ContactsAccessApp>) {
+private fun ContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
             .padding(12.dp)
     ) {
         Text(
@@ -385,16 +474,44 @@ private fun ContactsAccessBanner(apps: List<ContactsAccessApp>) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(8.dp))
-        apps.forEach { app ->
-            Text(
-                text = "${app.appName} (${app.packageName})",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
-        }
+        Text(
+            text = stringResource(R.string.contacts_access_tap_to_review),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
+}
+
+@Composable
+private fun ContactsAccessDialog(
+    apps: List<ContactsAccessApp>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.contacts_access_dialog_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = stringResource(R.string.contacts_access_detail),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+                apps.forEach { app ->
+                    Text(
+                        text = "${app.appName} (${app.packageName})",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.unverified_dialog_close))
+            }
+        }
+    )
 }
 
 @Composable

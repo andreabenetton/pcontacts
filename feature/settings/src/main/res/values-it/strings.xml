@@ -16,6 +16,14 @@
     <string name="verification_icon">!</string>
     <string name="verification_warning">%1$d contatti su %2$d non verificabili</string>
     <string name="verification_detail">La verifica della firma è fallita. Questi contatti potrebbero essere stati alterati.</string>
+    <string name="verification_tap_to_review">Tocca per rivedere</string>
+    <string name="unverified_dialog_title">Contatti non verificati</string>
+    <string name="unverified_dialog_empty">Nessun contatto non verificato.</string>
+    <string name="unverified_dialog_close">Chiudi</string>
+    <string name="unverified_no_name">(senza nome)</string>
+
+    <string name="contacts_access_tap_to_review">Tocca per vedere l\'elenco</string>
+    <string name="contacts_access_dialog_title">App con accesso ai contatti</string>
 
     <plurals name="outbox_pending">
         <item quantity="one">%d modifica in attesa di sincronizzazione</item>

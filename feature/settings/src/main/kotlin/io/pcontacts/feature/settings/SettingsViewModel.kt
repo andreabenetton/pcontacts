@@ -32,6 +32,8 @@ class SettingsViewModel(
     private val syncNow: suspend () -> SettingsActionResult,
     private val signOut: suspend () -> SettingsActionResult,
     private val queryVerificationStats: suspend () -> VerificationStats? = { null },
+    private val queryUnverifiedContacts: suspend () -> List<UnverifiedContactSummary> = { emptyList() },
+    private val openContactInSystem: (Long) -> Unit = {},
     private val queryOutboxStats: suspend () -> OutboxStats = { OutboxStats(0, 0) },
     private val queryPendingDeletes: suspend () -> List<PendingDelete> = { emptyList() },
     private val queryConflicts: suspend () -> List<ConflictInfo> = { emptyList() },
@@ -48,6 +50,15 @@ class SettingsViewModel(
 
     private val _verificationStats = MutableStateFlow<VerificationStats?>(null)
     val verificationStats: StateFlow<VerificationStats?> = _verificationStats.asStateFlow()
+
+    private val _unverifiedContacts = MutableStateFlow<List<UnverifiedContactSummary>>(emptyList())
+    val unverifiedContacts: StateFlow<List<UnverifiedContactSummary>> = _unverifiedContacts.asStateFlow()
+
+    private val _unverifiedDialogOpen = MutableStateFlow(false)
+    val unverifiedDialogOpen: StateFlow<Boolean> = _unverifiedDialogOpen.asStateFlow()
+
+    private val _contactsAccessDialogOpen = MutableStateFlow(false)
+    val contactsAccessDialogOpen: StateFlow<Boolean> = _contactsAccessDialogOpen.asStateFlow()
 
     private val _outboxStats = MutableStateFlow(OutboxStats(0, 0))
     val outboxStats: StateFlow<OutboxStats> = _outboxStats.asStateFlow()
@@ -78,11 +89,32 @@ class SettingsViewModel(
     private suspend fun refreshSyncStatus() {
         withContext(workDispatcher) {
             _verificationStats.value = try { queryVerificationStats() } catch (_: Exception) { null }
+            _unverifiedContacts.value = try { queryUnverifiedContacts() } catch (_: Exception) { emptyList() }
             _outboxStats.value = try { queryOutboxStats() } catch (_: Exception) { OutboxStats(0, 0) }
             _pendingDeletes.value = try { queryPendingDeletes() } catch (_: Exception) { emptyList() }
             _conflicts.value = try { queryConflicts() } catch (_: Exception) { emptyList() }
             _contactsAccessApps.value = try { queryContactsAccessApps() } catch (_: Exception) { emptyList() }
         }
+    }
+
+    fun showUnverifiedContactsDialog() {
+        _unverifiedDialogOpen.value = true
+    }
+
+    fun dismissUnverifiedContactsDialog() {
+        _unverifiedDialogOpen.value = false
+    }
+
+    fun openUnverifiedContactInSystem(rawContactId: Long) {
+        openContactInSystem(rawContactId)
+    }
+
+    fun showContactsAccessDialog() {
+        _contactsAccessDialogOpen.value = true
+    }
+
+    fun dismissContactsAccessDialog() {
+        _contactsAccessDialogOpen.value = false
     }
 
     fun triggerSyncNow() {
@@ -146,4 +178,23 @@ sealed interface SettingsActionResult {
 data class VerificationStats(
     val totalContacts: Int,
     val unverifiedContacts: Int
+)
+
+/**
+ * One row for the unverified-contacts dialog. `displayName` is
+ * resolved upstream (in `:app`) via ContentResolver against
+ * ContactsContract; null means the contact has no name in the
+ * system DB (either the Proton contact had no FN/N and lost the
+ * Issue 1 aggregation race, or the row was deleted under us).
+ *
+ * `lastError` is the persisted reason stored on
+ * `ContactMapEntity.lastError` — typically the exception's class
+ * name plus a short hint, never sensitive content (per
+ * `:core:logging` redactor).
+ */
+data class UnverifiedContactSummary(
+    val rawContactId: Long,
+    val protonContactId: String,
+    val displayName: String?,
+    val lastError: String?
 )
