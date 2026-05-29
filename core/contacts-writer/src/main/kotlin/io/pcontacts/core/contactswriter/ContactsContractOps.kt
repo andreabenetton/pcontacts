@@ -40,7 +40,8 @@ import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStr
  *
  * Per-contact op count (Create):
  *   1 RawContacts + 1 StructuredName
- *   + N Email + M Phone + K Address + L Note + I Im
+ *   + N Email + N Send-via-Proton-Mail chip (one per email)
+ *   + M Phone + K Address + L Note + I Im
  *   + (1 Organization?) + (1 Photo?).
  * Update adds 1 prepended Delete.
  *
@@ -136,6 +137,7 @@ object ContactsContractOps {
     ) {
         row.emails.forEachIndexed { idx, address ->
             ops += newEmailInsertWithBackRef(dataUri, rawIdx, address, isPrimary = idx == 0)
+            ops += newSendViaProtonMailInsertWithBackRef(dataUri, rawIdx, address)
         }
         val phonePrimaryIdx = resolvePrimaryPhoneIndex(row.phones)
         row.phones.forEachIndexed { idx, phone ->
@@ -163,6 +165,7 @@ object ContactsContractOps {
     ) {
         row.emails.forEachIndexed { idx, address ->
             ops += newEmailInsertForExisting(dataUri, rawContactId, address, isPrimary = idx == 0)
+            ops += newSendViaProtonMailInsertForExisting(dataUri, rawContactId, address)
         }
         val phonePrimaryIdx = resolvePrimaryPhoneIndex(row.phones)
         row.phones.forEachIndexed { idx, phone ->
@@ -183,7 +186,10 @@ object ContactsContractOps {
     }
 
     private fun estimateOps(row: ContactRow): Int =
-        2 + row.emails.size + row.phones.size + row.addresses.size +
+        // 1 RawContacts + 1 StructuredName + N Email + N "Send via Proton Mail"
+        // chip rows (one per email) + M Phone + K Address + L Note + I Im
+        // + (Organization?) + (Photo?) + groupRowIds.
+        2 + (row.emails.size * 2) + row.phones.size + row.addresses.size +
             row.notes.size + row.imAccounts.size + row.groupRowIds.size +
             (if (row.organization != null) 1 else 0) +
             (if (row.photo != null) 1 else 0)
@@ -286,6 +292,41 @@ object ContactsContractOps {
                 }
             }
             .build()
+
+    // ---- Send via Proton Mail (custom MIMETYPE chip) ----
+    //
+    // One row per email. DATA1 is the address the activity composes
+    // to; DATA2 keeps the row self-describing for content-resolver
+    // consumers (Contacts apps read the activity's android:label for
+    // the rendered chip text, so this string is a fallback only).
+    //
+    // See PContactsMimeTypes.SEND_VIA_PROTON_MAIL and ADR-0021.
+
+    private fun newSendViaProtonMailInsertWithBackRef(
+        dataUri: Uri,
+        rawIdx: Int,
+        address: String
+    ): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
+            .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
+            .withValue(Data.MIMETYPE, PContactsMimeTypes.SEND_VIA_PROTON_MAIL)
+            .withValue(Data.DATA1, address)
+            .withValue(Data.DATA2, SEND_VIA_PROTON_MAIL_SUMMARY)
+            .build()
+
+    private fun newSendViaProtonMailInsertForExisting(
+        dataUri: Uri,
+        rawContactId: Long,
+        address: String
+    ): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
+            .withValue(Data.RAW_CONTACT_ID, rawContactId)
+            .withValue(Data.MIMETYPE, PContactsMimeTypes.SEND_VIA_PROTON_MAIL)
+            .withValue(Data.DATA1, address)
+            .withValue(Data.DATA2, SEND_VIA_PROTON_MAIL_SUMMARY)
+            .build()
+
+    private const val SEND_VIA_PROTON_MAIL_SUMMARY = "Send via Proton Mail"
 
     // ---- Phone ----
 

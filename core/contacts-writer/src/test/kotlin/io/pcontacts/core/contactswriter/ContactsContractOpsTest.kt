@@ -29,7 +29,7 @@ class ContactsContractOpsTest {
 
     private val account = Account("alice@proton.me", "io.pcontacts.account")
 
-    @Test fun create_emits_one_RawContacts_insert_plus_two_Data_inserts() {
+    @Test fun create_emits_one_RawContacts_insert_plus_StructuredName_plus_Email_plus_chip() {
         val ops = ContactsContractOps.build(
             account = account,
             intent = RawContactOpIntent.CreateContact(
@@ -37,20 +37,21 @@ class ContactsContractOpsTest {
             ),
             baseIdx = 0
         )
-        assertEquals(3, ops.size)
-        assertTrue("op 0 must be insert", ops[0].isInsert)
-        assertTrue("op 1 must be insert", ops[1].isInsert)
-        assertTrue("op 2 must be insert", ops[2].isInsert)
+        // 1 RawContacts + 1 StructuredName + 1 Email + 1 Send-via-Proton-Mail chip = 4.
+        assertEquals(4, ops.size)
+        assertTrue("all ops in a Create batch must be inserts", ops.all { it.isInsert })
 
         // RawContacts URI carries caller_is_syncadapter and account params.
         val raw0Uri = ops[0].uri
         assertEquals("true", raw0Uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
         assertEquals("alice@proton.me", raw0Uri.getQueryParameter(RawContacts.ACCOUNT_NAME))
 
-        // Child Data inserts also carry caller_is_syncadapter to prevent
-        // Android from marking the parent RawContact as DIRTY (ADR-0010).
-        assertEquals("true", ops[1].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
-        assertEquals("true", ops[2].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
+        // Every child Data insert (including the chip) carries
+        // caller_is_syncadapter to prevent Android from marking the
+        // parent RawContact as DIRTY (ADR-0010).
+        ops.drop(1).forEach { op ->
+            assertEquals("true", op.uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
+        }
     }
 
     @Test fun create_with_no_name_omits_StructuredName_row() {
@@ -97,7 +98,7 @@ class ContactsContractOpsTest {
         assertTrue("op 1 must be Phone insert", ops[1].isInsert)
     }
 
-    @Test fun update_emits_delete_data_then_two_data_reinserts() {
+    @Test fun update_emits_delete_data_then_StructuredName_plus_Email_plus_chip_reinserts() {
         val ops = ContactsContractOps.build(
             account = account,
             intent = RawContactOpIntent.UpdateContact(
@@ -105,10 +106,10 @@ class ContactsContractOpsTest {
                 row = ContactRow(sourceId = "c1", displayName = "Alice", emails = listOf("alice@proton.me"))
             )
         )
-        assertEquals(3, ops.size)
+        // 1 Delete + 1 StructuredName + 1 Email + 1 Send-via-Proton-Mail chip = 4.
+        assertEquals(4, ops.size)
         assertTrue("op 0 must be delete", ops[0].isDelete)
-        assertTrue("op 1 must be insert", ops[1].isInsert)
-        assertTrue("op 2 must be insert", ops[2].isInsert)
+        assertTrue("ops 1..n must be inserts", ops.drop(1).all { it.isInsert })
 
         // Delete URI must carry CALLER_IS_SYNCADAPTER to avoid tombstone resurrection.
         assertEquals("true", ops[0].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
@@ -141,10 +142,9 @@ class ContactsContractOpsTest {
             ),
             baseIdx = 0
         )
-        // 1 RawContacts + 1 StructuredName + 3 Email = 5 ops.
-        assertEquals(5, ops.size)
+        // 1 RawContacts + 1 StructuredName + 3 Email + 3 chip = 8 ops.
+        assertEquals(8, ops.size)
         assertTrue("op 0 must be RawContacts insert", ops[0].isInsert)
-        // Op 0 RawContacts, op 1 StructuredName, ops 2..4 Email — all inserts.
         assertTrue(ops.all { it.isInsert })
     }
 
@@ -160,11 +160,10 @@ class ContactsContractOpsTest {
                 )
             )
         )
-        assertEquals(4, ops.size)
+        // 1 Delete + 1 StructuredName + 2 Email + 2 chip = 6 ops.
+        assertEquals(6, ops.size)
         assertTrue(ops[0].isDelete)        // wipe child Data rows
-        assertTrue(ops[1].isInsert)        // StructuredName
-        assertTrue(ops[2].isInsert)        // Email[0]
-        assertTrue(ops[3].isInsert)        // Email[1]
+        assertTrue("ops 1..n must be inserts", ops.drop(1).all { it.isInsert })
     }
 
     @Test fun contact_row_rejects_empty_email_AND_empty_phone_list() {
@@ -219,8 +218,8 @@ class ContactsContractOpsTest {
             ),
             baseIdx = 0
         )
-        // 1 RawContacts + 1 StructuredName + 1 Email + 2 Phone = 5 ops.
-        assertEquals(5, ops.size)
+        // 1 RawContacts + 1 StructuredName + 1 Email + 1 chip + 2 Phone = 6 ops.
+        assertEquals(6, ops.size)
         assertTrue(ops.all { it.isInsert })
     }
 
@@ -240,8 +239,8 @@ class ContactsContractOpsTest {
                 )
             )
         )
-        // 1 Delete + 1 StructuredName + 1 Email + 2 Phone = 5 ops.
-        assertEquals(5, ops.size)
+        // 1 Delete + 1 StructuredName + 1 Email + 1 chip + 2 Phone = 6 ops.
+        assertEquals(6, ops.size)
         assertTrue(ops[0].isDelete)
         assertTrue(ops.drop(1).all { it.isInsert })
     }
@@ -282,9 +281,9 @@ class ContactsContractOpsTest {
             ),
             baseIdx = 0
         )
-        // 1 RawContacts + 1 StructuredName + 1 Email + 1 Phone + 1 Postal
-        //   + 1 Organization + 2 Note + 2 Im + 1 Photo = 11.
-        assertEquals(11, ops.size)
+        // 1 RawContacts + 1 StructuredName + 1 Email + 1 chip + 1 Phone + 1 Postal
+        //   + 1 Organization + 2 Note + 2 Im + 1 Photo = 12.
+        assertEquals(12, ops.size)
         assertTrue("all ops in a Create batch must be inserts", ops.all { it.isInsert })
     }
 
@@ -304,9 +303,9 @@ class ContactsContractOpsTest {
                 )
             )
         )
-        // 1 Delete + 1 StructuredName + 1 Email + 1 Postal + 1 Organization
-        //   + 1 Note + 1 Im = 7.
-        assertEquals(7, ops.size)
+        // 1 Delete + 1 StructuredName + 1 Email + 1 chip + 1 Postal
+        //   + 1 Organization + 1 Note + 1 Im = 8.
+        assertEquals(8, ops.size)
         assertTrue(ops[0].isDelete)
         assertTrue(ops.drop(1).all { it.isInsert })
     }
@@ -353,6 +352,48 @@ class ContactsContractOpsTest {
             ),
             baseIdx = 449
         )
-        assertEquals(3, ops.size)
+        // 1 RawContacts + 1 StructuredName + 1 Email + 1 chip.
+        assertEquals(4, ops.size)
+    }
+
+    @Test fun create_emits_one_send_via_proton_mail_chip_per_email() {
+        // ADR-0021: a custom MIMETYPE row per email lets Fossify-style
+        // Contacts apps render a chip that routes the user to Proton
+        // Mail (Android app if installed, web fallback otherwise).
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = listOf("alice@proton.me", "alice.work@x.com")
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 RawContacts + 1 StructuredName + 2 Email + 2 chip = 6.
+        assertEquals(6, ops.size)
+        assertTrue(ops.all { it.isInsert })
+    }
+
+    @Test fun chip_emission_is_skipped_when_contact_has_no_emails() {
+        // Phone-only contact: no emails → no Send-via-Proton-Mail chip
+        // rows. Otherwise an email-less contact would carry an
+        // address-less chip Android can't route to anything useful.
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "c1",
+                    displayName = null,
+                    emails = emptyList(),
+                    phones = listOf(PhoneEntry(number = "+1 555 0100"))
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 RawContacts + 1 Phone = 2. No StructuredName (no name),
+        // no chip (no email).
+        assertEquals(2, ops.size)
     }
 }
