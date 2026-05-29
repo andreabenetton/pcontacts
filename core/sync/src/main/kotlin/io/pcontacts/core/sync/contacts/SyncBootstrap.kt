@@ -69,6 +69,26 @@ object SyncBootstrap {
         return dao.countLive() to dao.countUnverified()
     }
 
+    /**
+     * Returns the live (non-deleted) contacts whose signature
+     * verification failed during the last sync. Display name lookup
+     * is intentionally left to the caller — it requires a
+     * ContentResolver query against ContactsContract, which lives in
+     * `:app`. Each ref carries the [androidRawContactId] the caller
+     * can resolve and the [protonContactId] the caller can use to
+     * cross-reference with Proton's web UI if needed.
+     */
+    suspend fun listUnverifiedContacts(context: Context): List<UnverifiedContactRef> {
+        val db = DatabaseFactory.create(context.applicationContext)
+        return db.contactMapDao().listUnverified().map {
+            UnverifiedContactRef(
+                protonContactId = it.protonContactId,
+                androidRawContactId = it.androidRawContactId,
+                lastError = it.lastError
+            )
+        }
+    }
+
     suspend fun loadLauncherStatus(context: Context): LauncherStatus {
         val db = DatabaseFactory.create(context.applicationContext)
         val contactDao = db.contactMapDao()
