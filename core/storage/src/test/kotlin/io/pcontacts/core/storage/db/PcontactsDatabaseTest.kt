@@ -183,6 +183,23 @@ class PcontactsDatabaseTest {
         assertEquals(0, contactMapDao.countUnverified())
     }
 
+    @Test fun list_unverified_returns_only_live_unverified_rows() = runTest {
+        contactMapDao.upsertAll(
+            listOf(
+                sampleContact(id = "verified-1", rawId = 1L, verified = true),
+                sampleContact(id = "unverified-1", rawId = 2L, verified = false),
+                sampleContact(id = "unverified-2", rawId = 3L, verified = false),
+                sampleContact(id = "deleted-unverified", rawId = 4L, verified = false)
+            )
+        )
+        contactMapDao.markDeleted("deleted-unverified")
+        val rows = contactMapDao.listUnverified()
+        assertEquals(setOf("unverified-1", "unverified-2"), rows.map { it.protonContactId }.toSet())
+        // Returned rows must surface the rawId so the settings UI can
+        // resolve display names + build the open-in-Contacts intent.
+        assertEquals(setOf(2L, 3L), rows.map { it.androidRawContactId }.toSet())
+    }
+
     @Test fun max_last_synced_at_returns_latest_timestamp() = runTest {
         contactMapDao.upsertAll(
             listOf(

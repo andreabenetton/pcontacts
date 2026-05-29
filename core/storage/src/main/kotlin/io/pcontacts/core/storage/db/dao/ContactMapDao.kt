@@ -16,6 +16,7 @@ import io.pcontacts.core.storage.db.entity.ContactMapEntity
  * doesn't reinstate a server-deleted contact.
  */
 @Dao
+@Suppress("TooManyFunctions")  // Each query is a separate Room-generated SQL hook; collapsing into fewer methods loses type-safe parameters.
 interface ContactMapDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -50,6 +51,9 @@ interface ContactMapDao {
 
     @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0 AND is_verified = 0")
     suspend fun countUnverified(): Int
+
+    @Query("SELECT * FROM contact_map WHERE deleted = 0 AND is_verified = 0")
+    suspend fun listUnverified(): List<ContactMapEntity>
 
     @Query("SELECT MAX(last_synced_at) FROM contact_map WHERE deleted = 0")
     suspend fun maxLastSyncedAt(): Long?
