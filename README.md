@@ -6,7 +6,7 @@ A GPL-3.0 Android app that signs in to a Proton Mail account, decrypts the user'
 
 ## Status
 
-**v1.1.0 released.** All plan phases through phase 9 (bidirectional sync) are implemented and exercised by unit tests. **Validated against the live Proton production API** — full SRP handshake, token persistence, keyPassword derivation, multi-key contact decrypt (user + address keys), and logout all succeed. See [`docs/API_RESEARCH.md`](docs/API_RESEARCH.md) for protocol details.
+**v1.1.0 released.** **Validated against the live Proton production API** — full SRP handshake, token persistence, keyPassword derivation, multi-key contact decrypt (user + address keys), and logout all succeed. See [`docs/API_RESEARCH.md`](docs/API_RESEARCH.md) for protocol details.
 
 What works in code (verified by unit tests + live integration test):
 
@@ -25,6 +25,8 @@ What works in code (verified by unit tests + live integration test):
 1. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) will age out as Proton releases updates. Requires periodic maintenance bumps.
 
 2. **Synced list mirrors Proton's address book — including auto-saved senders.** pcontacts pulls from `contacts/v4/contacts*` only (the same surface as Proton Mail web's Contacts page). If your Proton Mail **Auto-save contacts** setting is on (`mail.proton.me → Settings → Messages and composing → Automatically save contacts`), Proton silently adds every email sender to your address book and pcontacts faithfully syncs them. The API exposes no flag distinguishing manual contacts from auto-saved ones, so client-side filtering can't be done without risking real-contact loss. To trim the list, disable Auto-save and delete unwanted entries on the web; the next pcontacts sync mirrors the cleanup.
+
+3. **Once contacts land in `ContactsContract`, the OS owns them.** Stock Android ships with pre-installed system applications (Google Play Services, Google Contacts, Gmail, the OEM dialer, the OEM messaging app, vendor "assistant" services, etc.) that are granted `READ_CONTACTS` by default or are very difficult to revoke. Decrypting Proton contacts onto a device with those apps still installed effectively shares them with Google and the OEM. **For a meaningful privacy posture, run pcontacts on a de-Googled ROM such as [GrapheneOS](https://grapheneos.org/) (preferred — sandboxed Google Play, per-app contacts scopes) or [LineageOS for microG](https://lineage.microg.org/)** (or vanilla LineageOS without GApps). pcontacts cannot fix this for you on stock Android; it is a property of the platform's permission model, not of this app.
 
 ## Why this exists
 
