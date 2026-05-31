@@ -86,6 +86,7 @@ class SettingsActivity : ComponentActivity() {
             cancelDelete = ::cancelPendingDelete,
             resolveConflict = ::resolveConflict,
             queryContactsAccessApps = ::queryContactsAccessApps,
+            querySystemContactsAccessApps = ::querySystemContactsAccessApps,
             onSyncIntervalChanged = ::handleSyncIntervalChanged,
             initialSyncIntervalHours = userPrefs.syncIntervalHours
         )
@@ -274,7 +275,8 @@ class SettingsActivity : ComponentActivity() {
                         android.Manifest.permission.READ_CONTACTS,
                         pkg.packageName
                     ) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
-                    pm.getLaunchIntentForPackage(pkg.packageName) != null
+                    pm.getLaunchIntentForPackage(pkg.packageName) != null &&
+                    !isSystemApp(pkg.applicationInfo)
             }
             .map { pkg ->
                 ContactsAccessApp(
@@ -283,6 +285,42 @@ class SettingsActivity : ComponentActivity() {
                 )
             }
             .sortedBy { it.appName }
+    }
+
+    /**
+     * OS-bundled packages that hold READ_CONTACTS. We don't gate on a
+     * launcher intent here — most preinstalled snoopers (Google Play
+     * Services, sync providers, OEM background services) have none and
+     * are exactly what the user can't remove on stock Android.
+     */
+    private fun querySystemContactsAccessApps(): List<ContactsAccessApp> {
+        val pm = packageManager
+        val installed = pm.getInstalledPackages(android.content.pm.PackageManager.GET_PERMISSIONS)
+        return installed
+            .filter { pkg ->
+                pkg.packageName != packageName &&
+                    pkg.packageName != "android" &&
+                    pkg.requestedPermissions?.contains(android.Manifest.permission.READ_CONTACTS) == true &&
+                    pm.checkPermission(
+                        android.Manifest.permission.READ_CONTACTS,
+                        pkg.packageName
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                    isSystemApp(pkg.applicationInfo)
+            }
+            .map { pkg ->
+                ContactsAccessApp(
+                    appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName,
+                    packageName = pkg.packageName
+                )
+            }
+            .sortedBy { it.appName }
+    }
+
+    private fun isSystemApp(info: android.content.pm.ApplicationInfo?): Boolean {
+        if (info == null) return false
+        val systemFlags = android.content.pm.ApplicationInfo.FLAG_SYSTEM or
+            android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP
+        return info.flags and systemFlags != 0
     }
 
     private suspend fun cancelPendingDelete(protonContactId: String) {
