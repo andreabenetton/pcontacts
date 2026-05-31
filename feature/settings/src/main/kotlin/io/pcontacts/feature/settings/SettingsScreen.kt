@@ -62,6 +62,8 @@ fun SettingsScreen(
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
     val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
     val contactsAccessDialogOpen by viewModel.contactsAccessDialogOpen.collectAsStateWithLifecycle()
+    val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
+    val systemContactsAccessDialogOpen by viewModel.systemContactsAccessDialogOpen.collectAsStateWithLifecycle()
     val busy = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
 
     Column(
@@ -183,6 +185,21 @@ fun SettingsScreen(
             ContactsAccessDialog(
                 apps = contactsAccessApps,
                 onDismiss = viewModel::dismissContactsAccessDialog
+            )
+        }
+
+        if (systemContactsAccessApps.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            SystemContactsAccessBanner(
+                apps = systemContactsAccessApps,
+                onClick = viewModel::showSystemContactsAccessDialog
+            )
+        }
+
+        if (systemContactsAccessDialogOpen) {
+            SystemContactsAccessDialog(
+                apps = systemContactsAccessApps,
+                onDismiss = viewModel::dismissSystemContactsAccessDialog
             )
         }
     }
@@ -494,6 +511,61 @@ private fun ContactsAccessDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     text = stringResource(R.string.contacts_access_detail),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+                apps.forEach { app ->
+                    Text(
+                        text = "${app.appName} (${app.packageName})",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.unverified_dialog_close))
+            }
+        }
+    )
+}
+
+@Composable
+private fun SystemContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .clickable(onClick = onClick)
+            .padding(12.dp)
+    ) {
+        Text(
+            text = pluralStringResource(R.plurals.system_contacts_access_count, apps.size, apps.size),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer
+        )
+        Text(
+            text = stringResource(R.string.contacts_access_tap_to_review),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer
+        )
+    }
+}
+
+@Composable
+private fun SystemContactsAccessDialog(
+    apps: List<ContactsAccessApp>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.system_contacts_access_dialog_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = stringResource(R.string.system_contacts_access_detail),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(Modifier.height(12.dp))

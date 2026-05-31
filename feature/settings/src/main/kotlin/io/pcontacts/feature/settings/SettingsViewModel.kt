@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
  * `signOut` runs the full LogoutOrchestrator chain; returns true on
  * success (every step finished without error), false otherwise.
  */
+@Suppress("LongParameterList") // many injectable seams by design; see class kdoc
 class SettingsViewModel(
     private val syncNow: suspend () -> SettingsActionResult,
     private val signOut: suspend () -> SettingsActionResult,
@@ -40,6 +41,7 @@ class SettingsViewModel(
     private val cancelDelete: suspend (String) -> Unit = {},
     private val resolveConflict: suspend (String, ConflictResolution) -> Unit = { _, _ -> },
     private val queryContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
+    private val querySystemContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val onSyncIntervalChanged: (Long) -> Unit = {},
     initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours,
     private val scope: CoroutineScope = MainScope(),
@@ -72,6 +74,12 @@ class SettingsViewModel(
     private val _contactsAccessApps = MutableStateFlow<List<ContactsAccessApp>>(emptyList())
     val contactsAccessApps: StateFlow<List<ContactsAccessApp>> = _contactsAccessApps.asStateFlow()
 
+    private val _systemContactsAccessApps = MutableStateFlow<List<ContactsAccessApp>>(emptyList())
+    val systemContactsAccessApps: StateFlow<List<ContactsAccessApp>> = _systemContactsAccessApps.asStateFlow()
+
+    private val _systemContactsAccessDialogOpen = MutableStateFlow(false)
+    val systemContactsAccessDialogOpen: StateFlow<Boolean> = _systemContactsAccessDialogOpen.asStateFlow()
+
     private val _syncInterval = MutableStateFlow(SyncInterval.fromHours(initialSyncIntervalHours))
     val syncInterval: StateFlow<SyncInterval> = _syncInterval.asStateFlow()
 
@@ -94,6 +102,8 @@ class SettingsViewModel(
             _pendingDeletes.value = try { queryPendingDeletes() } catch (_: Exception) { emptyList() }
             _conflicts.value = try { queryConflicts() } catch (_: Exception) { emptyList() }
             _contactsAccessApps.value = try { queryContactsAccessApps() } catch (_: Exception) { emptyList() }
+            _systemContactsAccessApps.value =
+                try { querySystemContactsAccessApps() } catch (_: Exception) { emptyList() }
         }
     }
 
@@ -115,6 +125,14 @@ class SettingsViewModel(
 
     fun dismissContactsAccessDialog() {
         _contactsAccessDialogOpen.value = false
+    }
+
+    fun showSystemContactsAccessDialog() {
+        _systemContactsAccessDialogOpen.value = true
+    }
+
+    fun dismissSystemContactsAccessDialog() {
+        _systemContactsAccessDialogOpen.value = false
     }
 
     fun triggerSyncNow() {

@@ -58,4 +58,11 @@
         <item quantity="other">%d app possono leggere i tuoi contatti</item>
     </plurals>
     <string name="contacts_access_detail">Queste app hanno il permesso READ_CONTACTS e possono vedere i contatti Proton sincronizzati.</string>
+
+    <plurals name="system_contacts_access_count">
+        <item quantity="one">%d app di sistema può leggere i tuoi contatti</item>
+        <item quantity="other">%d app di sistema possono leggere i tuoi contatti</item>
+    </plurals>
+    <string name="system_contacts_access_detail">Queste app sono preinstallate dal sistema operativo e hanno il permesso READ_CONTACTS per impostazione predefinita. Su Android stock sono in genere servizi Google o dell\'OEM non disinstallabili. Per una maggiore privacy esegui pcontacts su una ROM senza Google come GrapheneOS o LineageOS.</string>
+    <string name="system_contacts_access_dialog_title">App di sistema con accesso ai contatti</string>
 </resources>
