@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                     containerColor = MaterialTheme.colorScheme.background
                 ) { innerPadding ->
                     val state by viewModel.uiState.collectAsState()
-                    var tick by remember { mutableIntStateOf(resumeTick) }
+                    val tick by remember { mutableIntStateOf(resumeTick) }
                     var showFallbackDialog by remember { mutableStateOf(false) }
 
                     LaunchedEffect(tick) { viewModel.refresh() }

@@ -36,13 +36,12 @@ import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
-import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.contacts.SyncBootstrap
-import io.pcontacts.feature.settings.ContactsAccessApp
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
+import io.pcontacts.feature.settings.ContactsAccessApp
 import io.pcontacts.feature.settings.OutboxStats
 import io.pcontacts.feature.settings.PendingDelete
 import io.pcontacts.feature.settings.SettingsActionResult
