@@ -101,6 +101,24 @@ These are the load-bearing invariants. Every one corresponds to an ADR; read the
 - Run the relevant module's test suite before committing. If the task touches UI, test it in a browser or on a device. Type-checking and test suites verify code correctness, not feature correctness.
 - If you cannot verify (e.g., no emulator available), say so explicitly rather than claiming success.
 
+### Detekt-clean code
+Detekt + detekt-formatting (ktlint) runs in CI and **fails the build** on style violations. Write code that passes detekt the first time; do not rely on the baseline file as a permanent ignore list — a stale baseline silently lets new violations slip in and rots into a CI break the moment the matched code drifts. Before committing any module's change, run `./gradlew :<module>:detekt` and fix what fires.
+
+The rules that bite most often in this codebase, with the shape to write from the start:
+
+- **ImportOrdering** — single block, pure lexicographic ASCII order, no blank lines between imports. `androidx.compose.foundation.layout.*` then `androidx.compose.foundation.text.*` then `androidx.compose.material3.*` — `f` < `m`. A new import goes in its lex slot, not at the bottom.
+- **ArgumentListWrapping** — if a call/ctor doesn't fit on one line, put each argument on its own line and the closing `)` on its own line. Never `ContactCardDto(type = 2, data = plaintext,` on one line and the rest on the next.
+- **MaxLineLength + NoMultipleSpaces** — no `@Suppress("Rule")  // long comment explaining why` on one line. Hoist the comment above the annotation; keep the annotation line short.
+- **ComplexCondition** — max 3 boolean operands per `if`/`while`. If you'd write `if (a && b && c && d)`, extract one named `val` (e.g. `val serverUnchanged = a && b && c`) and use `if (serverUnchanged && d)`.
+- **ReturnCount** — max 5 returns per function. If the natural shape genuinely needs more (e.g. a multi-phase protocol with one return per phase), `@Suppress("ReturnCount")` with a brief reason comment explaining what the phases are. Don't refactor to hide the structure.
+- **MultiLineIfElse** — an `if ... else` that spans multiple lines needs `{ ... }` braces on both branches. `if (x.isEmpty()) emptyList() else listOf(...)` on one line is fine; on two lines it isn't.
+- **LongMethod** (80 lines) / **LongParameterList** — extract a logical sub-unit (a private helper Composable, a step function) rather than just suppressing. Suppress with `@Suppress` + a class/function comment only when the parameter count is structurally meaningful (e.g. a ViewModel with many injectable seams) — then keep the suppression line short.
+- **SpacingBetweenDeclarationsWithComments** — a declaration with a leading `//` comment needs a blank line before it, even inside a sealed interface / class body.
+- **PropertyWrapping** — a long `val x = SomeCall(many args...)` either fits on one line or each arg goes on its own line with the closing `)` on its own line. No half-wrapped middle ground.
+- **VarCouldBeVal / NoUnusedImports / NoSemicolons** — prefer `val` unless reassigned; delete imports your edit made unused; one statement per line, no `a; b; c`.
+
+If a violation legitimately needs to stay (a structural constraint, a generated-code quirk), prefer `@Suppress("RuleName")` with a one-line reason comment over re-baselining. The baseline file is for grandfathered debt only; every new commit should keep it shrinking or unchanged.
+
 ### Dependency injection
 - Manual DI via Bootstrap factory objects (`SyncBootstrap`, `ContactEncryptBootstrap`, `ContactDecryptBootstrap`). **No Hilt, Dagger, or Koin.**
 - New features follow the existing Bootstrap pattern: a factory object that wires dependencies, scoped to a sync run or activity lifecycle.
