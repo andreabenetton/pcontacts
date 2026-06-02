@@ -45,10 +45,14 @@ class BatchPlannerTest {
             )
         }
         val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 12)
-        assertTrue("each chunk must fit under the limit",
-            chunks.all { it.size <= 12 })
-        assertTrue("each chunk must hold a multiple of 4 ops (no intent split)",
-            chunks.all { it.size % 4 == 0 })
+        assertTrue(
+            "each chunk must fit under the limit",
+            chunks.all { it.size <= 12 }
+        )
+        assertTrue(
+            "each chunk must hold a multiple of 4 ops (no intent split)",
+            chunks.all { it.size % 4 == 0 }
+        )
         // Total ops preserved.
         assertEquals(400, chunks.sumOf { it.size })
     }
