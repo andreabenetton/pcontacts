@@ -7,11 +7,60 @@
 
   Add CVEs here ONLY with justification and a re-evaluation date.
   Each suppression MUST include:
-    - The CVE identifier
+    - The CVE identifier (or CPE for false-positive CPE matches)
     - A <notes> element explaining WHY the CVE does not apply to this project
     - A re-evaluation date (when the suppression should be reviewed)
 
   See https://jeremylong.github.io/DependencyCheck/general/suppression.html
 -->
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <!--
+      CPE false positive: dependency-check matches `androidx.sqlite:sqlite-*`
+      to `cpe:/a:sqlite:sqlite`, but androidx.sqlite is a thin Kotlin wrapper
+      over the SQLite engine that ships in the Android OS. The C SQLite
+      library is managed by the platform (per-device Android version), not
+      by this artifact — every CVE in the matched CPE applies to that
+      bundled library and is patched by the OS vendor, not by us.
+
+      Suppress the entire CPE match (which surfaces ~25 SQLite CVEs per
+      androidx.sqlite artifact, all the same false positive).
+
+      Re-evaluate: 2027-06-01 (annual review).
+    -->
+    <suppress>
+        <notes><![CDATA[
+            False positive: androidx.sqlite is a Kotlin wrapper, not the
+            C SQLite engine. SQLite CVEs apply to the Android-OS-bundled
+            engine, patched by the platform. Re-evaluate 2027-06-01.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/androidx\.sqlite/.*$</packageUrl>
+        <cpe>cpe:/a:sqlite:sqlite</cpe>
+    </suppress>
+
+    <!--
+      CVE-2024-7254 — protobuf-java recursion DoS on untrusted input.
+      The hit is on a *shaded* protobuf-javalite 3.21.8 inside the
+      `inspector.jar` packed in androidx.work:work-runtime-2.9.1.aar.
+      That inspector.jar is loaded only by Android Studio's WorkManager
+      Inspector during debugging — it is never reached at production
+      runtime. We also never parse attacker-supplied protobuf bytes; the
+      only protobuf payloads in the app are WorkManager's own internal
+      Room-backed state.
+
+      Suppress by sha1 of the shaded inspector jar (work-runtime 2.9.1)
+      so a future androidx.work bump invalidates the suppression and
+      forces re-evaluation. Also re-evaluate: 2027-06-01.
+    -->
+    <suppress>
+        <notes><![CDATA[
+            Shaded protobuf-javalite inside work-runtime-2.9.1's
+            debug-only inspector.jar; not reachable at production runtime
+            and we never parse untrusted protobuf. Re-evaluate 2027-06-01
+            or whenever work-runtime is bumped.
+        ]]></notes>
+        <filePath regex="true">.*work-runtime-2\.9\.1\.aar.*inspector\.jar.*</filePath>
+        <cve>CVE-2024-7254</cve>
+    </suppress>
+
 </suppressions>

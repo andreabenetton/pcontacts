@@ -337,7 +337,10 @@ dependencyCheck {
     failBuildOnCVSS = 7.0f
     suppressionFile = "$rootDir/config/dependency-check-suppressions.xml"
     formats = listOf("HTML", "JSON", "SARIF")
-    skipConfigurations = listOf("lintClassPath", "lintChecks")
+    // Scan only what actually ships in the release APK. Test/build/lint
+    // classpaths pull in transitives (gRPC, Netty, protobuf, kotlin-compiler)
+    // with their own CVE histories, none of which reach end users.
+    scanConfigurations = listOf("releaseRuntimeClasspath")
     nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
 }
 
