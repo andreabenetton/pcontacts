@@ -15,8 +15,10 @@ import io.pcontacts.core.storage.db.entity.ContactMapEntity
  * delete (`markDeleted`) keeps a tombstone row so a second sync run
  * doesn't reinstate a server-deleted contact.
  */
+// Each query is a separate Room-generated SQL hook; collapsing into fewer
+// methods loses type-safe parameters.
 @Dao
-@Suppress("TooManyFunctions")  // Each query is a separate Room-generated SQL hook; collapsing into fewer methods loses type-safe parameters.
+@Suppress("TooManyFunctions")
 interface ContactMapDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
