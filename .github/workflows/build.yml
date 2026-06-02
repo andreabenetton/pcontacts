@@ -218,11 +218,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build A
+        # No signing env is passed: AGP emits pcontacts-release-unsigned.apk
+        # rather than the signed pcontacts-release.apk. Unsigned bytes are
+        # what we want here — release signing inserts a wall-clock timestamp
+        # that would defeat byte-for-byte reproducibility on its own.
         run: |
           ./gradlew --no-daemon --no-build-cache --stacktrace \
             --project-cache-dir=/tmp/repro-a/cache \
             :app:assembleRelease
-          cp app/build/outputs/apk/release/pcontacts-release.apk \
+          cp app/build/outputs/apk/release/pcontacts-release-unsigned.apk \
             /tmp/repro-a.apk
 
       - name: Clean between builds
@@ -233,7 +237,7 @@ jobs:
           ./gradlew --no-daemon --no-build-cache --stacktrace \
             --project-cache-dir=/tmp/repro-b/cache \
             :app:assembleRelease
-          cp app/build/outputs/apk/release/pcontacts-release.apk \
+          cp app/build/outputs/apk/release/pcontacts-release-unsigned.apk \
             /tmp/repro-b.apk
 
       - name: Quick hash check
