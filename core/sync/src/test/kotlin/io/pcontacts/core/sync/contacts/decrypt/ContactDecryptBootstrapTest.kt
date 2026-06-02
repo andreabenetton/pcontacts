@@ -84,7 +84,12 @@ class ContactDecryptBootstrapTest {
         val contact = ContactDto(id = "c-1", cards = listOf(signedCard, encryptedSignedCard))
 
         // Act under test — bootstrap unlocks + builds the processor.
-        val processor = ContactDecryptBootstrap.createProcessor(secretStore, usersApi, FakeAddressesApi.empty(), openPgp)
+        val processor = ContactDecryptBootstrap.createProcessor(
+            secretStore,
+            usersApi,
+            FakeAddressesApi.empty(),
+            openPgp
+        )
         val out = processor.process(contact)
 
         assertEquals("c-1", out.protonContactId)
@@ -243,7 +248,8 @@ class ContactDecryptBootstrapTest {
             END:VCARD
         """.trimIndent()
         val signed = ContactCardDto(
-            type = 2, data = plaintext,
+            type = 2,
+            data = plaintext,
             signature = openPgp.signDetached(plaintext.toByteArray(Charsets.UTF_8), userUnlocked.private)
         )
         val encrypted = openPgp.encryptAndSignDetached(
@@ -251,7 +257,11 @@ class ContactDecryptBootstrapTest {
             encryptionKeys = listOf(userUnlocked.public),
             signingKey = userUnlocked.private
         )
-        val encryptedCard = ContactCardDto(type = 3, data = encrypted.armoredMessage, signature = encrypted.armoredDetachedSignature)
+        val encryptedCard = ContactCardDto(
+            type = 3,
+            data = encrypted.armoredMessage,
+            signature = encrypted.armoredDetachedSignature
+        )
         val contact = ContactDto(id = "c-1", cards = listOf(signed, encryptedCard))
 
         // Token armor that cannot be decrypted: encrypt the passphrase
@@ -285,7 +295,12 @@ class ContactDecryptBootstrapTest {
 
         // Skip-and-continue: the address key drops out silently, user
         // key decrypt still produces a full DecryptedContact.
-        val processor = ContactDecryptBootstrap.createProcessor(secretStore, usersApi, addressesApi, openPgp)
+        val processor = ContactDecryptBootstrap.createProcessor(
+            secretStore,
+            usersApi,
+            addressesApi,
+            openPgp
+        )
         val out = processor.process(contact)
         assertEquals("Carol User", out.fullName)
     }
@@ -309,7 +324,8 @@ class ContactDecryptBootstrapTest {
             END:VCARD
         """.trimIndent()
         val signed = ContactCardDto(
-            type = 2, data = plaintext,
+            type = 2,
+            data = plaintext,
             signature = openPgp.signDetached(plaintext.toByteArray(Charsets.UTF_8), userUnlocked.private)
         )
         val encrypted = openPgp.encryptAndSignDetached(
@@ -317,7 +333,11 @@ class ContactDecryptBootstrapTest {
             encryptionKeys = listOf(legacyAddressUnlocked.public),    // address-only
             signingKey = legacyAddressUnlocked.private
         )
-        val encryptedCard = ContactCardDto(type = 3, data = encrypted.armoredMessage, signature = encrypted.armoredDetachedSignature)
+        val encryptedCard = ContactCardDto(
+            type = 3,
+            data = encrypted.armoredMessage,
+            signature = encrypted.armoredDetachedSignature
+        )
         val contact = ContactDto(id = "c-legacy", cards = listOf(signed, encryptedCard))
 
         val secretStore = InMemorySecretStore().apply {
@@ -375,9 +395,11 @@ class ContactDecryptBootstrapTest {
     ) : ProtonAddressesApi {
         override suspend fun getAddresses(): GetAddressesResponse = GetAddressesResponse(
             code = 1000,
-            addresses = if (keys.isEmpty()) emptyList() else listOf(
-                AddressDto(id = "addr-1", email = "test@proton.me", keys = keys)
-            )
+            addresses = if (keys.isEmpty()) {
+                emptyList()
+            } else {
+                listOf(AddressDto(id = "addr-1", email = "test@proton.me", keys = keys))
+            }
         )
         companion object {
             fun empty(): FakeAddressesApi = FakeAddressesApi(keys = emptyList())

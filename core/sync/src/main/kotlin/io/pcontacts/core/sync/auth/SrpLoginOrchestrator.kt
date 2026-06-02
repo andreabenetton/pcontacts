@@ -14,14 +14,14 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.InMemorySession
-import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
-import io.pcontacts.core.proton.api.httpStatusCode
 import io.pcontacts.core.proton.api.auth.AuthRequest
 import io.pcontacts.core.proton.api.auth.AuthResponse
 import io.pcontacts.core.proton.api.auth.InfoRequest
 import io.pcontacts.core.proton.api.auth.InfoResponse
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.proton.api.auth.TwoFactorRequest
+import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.proton.api.httpStatusCode
 import io.pcontacts.core.proton.api.users.ProtonUsersApi
 import java.math.BigInteger
 import java.util.Base64
@@ -90,6 +90,7 @@ class SrpLoginOrchestrator(
 
     private sealed interface Step<out T> {
         data class Ok<T>(val value: T) : Step<T>
+
         // Carries any terminal LoginResult — Failed, HumanVerificationRequired,
         // or any future early-exit variant — so callers can bubble it up via
         // `orReturn { return it }` from `loginInternal`.
@@ -109,6 +110,9 @@ class SrpLoginOrchestrator(
         password.fill('\u0000')
     }
 
+    // Six returns mirror the six SRP phases (info, modulus, proof, auth,
+    // 2FA branch, key-derivation). Collapsing them buries the protocol shape.
+    @Suppress("ReturnCount")
     private suspend fun loginInternal(username: String, password: CharArray): LoginResult {
         logger.info { "login: getInfo user=<redacted>" }
         lastUsername = username
@@ -326,6 +330,11 @@ class SrpLoginOrchestrator(
      * HTTP 422 / 401 surface as Retrofit `HttpException` and map to
      * `two_factor_failed`.
      */
+    // Six returns mirror the six failure modes of /auth/2fa (no session,
+    // human-verification, network error, server reject, missing stash,
+    // and the final key-derivation hand-off). Collapsing them obscures
+    // which path the caller hit.
+    @Suppress("ReturnCount")
     suspend fun submitTwoFactorCode(code: String): LoginResult {
         val uid = session.uid()
         if (uid.isNullOrBlank()) {

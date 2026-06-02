@@ -111,9 +111,9 @@ class ContactDetailSyncEngine(
             val stored = storedMappings[sourceId]
             val storedFormatCurrent =
                 stored?.contentHash?.startsWith(EmailSyncHash.FORMAT_PREFIX) == true
-            if (stored != null && storedFormatCurrent &&
-                stored.modifyTime >= serverModifyTime && serverModifyTime > 0L
-            ) {
+            val serverUnchanged = serverModifyTime > 0L && stored != null &&
+                stored.modifyTime >= serverModifyTime
+            if (serverUnchanged && storedFormatCurrent) {
                 // Cheap-skip: server says unchanged AND the stored hash
                 // is in the current writer format. If the hash format
                 // has rolled (Phase 12 hash bump for the chip row), we
