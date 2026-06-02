@@ -62,7 +62,9 @@ class LoginViewModelTest {
     @Test fun human_verification_required_surfaces_url_in_state() = runTest {
         val vm = LoginViewModel(
             attemptLogin = { _, _ ->
-                LoginResult.HumanVerificationRequired(verificationUrl = "https://verify.proton.me/?token=t&methods=captcha")
+                LoginResult.HumanVerificationRequired(
+                    verificationUrl = "https://verify.proton.me/?token=t&methods=captcha"
+                )
             },
             submitTotp = unusedSubmitTotp,
             workDispatcher = testDispatcher
@@ -85,7 +87,9 @@ class LoginViewModelTest {
                 lastUsername = u
                 lastPasswordChars = p.copyOf()
                 if (calls == 1) {
-                    LoginResult.HumanVerificationRequired(verificationUrl = "https://verify.proton.me/?token=t&methods=captcha")
+                    LoginResult.HumanVerificationRequired(
+                        verificationUrl = "https://verify.proton.me/?token=t&methods=captcha"
+                    )
                 } else {
                     LoginResult.Success(uid = "uid-after-hv", username = u)
                 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -130,27 +130,42 @@ fun LoginScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        when (val s = state) {
-            LoginUiState.Idle -> Unit
-            LoginUiState.Submitting ->
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid, s.username) }
-            is LoginUiState.TwoFactorRequired -> LaunchedEffect(s.uid) { onTwoFactorRequired(s.uid) }
-            is LoginUiState.HumanVerificationRequired -> LaunchedEffect(s.verificationUrl) {
-                onHumanVerificationRequired(s.verificationUrl)
-            }
-            // The 2FA-side states belong to TwoFactorScreen; the host Activity
-            // is expected to have navigated there as soon as we crossed into
-            // TwoFactorRequired. If we still observe them here it's a stale
-            // recomposition — render nothing.
-            is LoginUiState.TwoFactorSubmitting,
-            is LoginUiState.TwoFactorFailed -> Unit
-            is LoginUiState.Failed -> Text(
-                text = friendlyError(s.reason),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
-            )
+        LoginStatusView(
+            state = state,
+            onSuccess = onSuccess,
+            onTwoFactorRequired = onTwoFactorRequired,
+            onHumanVerificationRequired = onHumanVerificationRequired
+        )
+    }
+}
+
+@Composable
+private fun LoginStatusView(
+    state: LoginUiState,
+    onSuccess: (uid: String, username: String) -> Unit,
+    onTwoFactorRequired: (uid: String) -> Unit,
+    onHumanVerificationRequired: (verificationUrl: String?) -> Unit
+) {
+    when (state) {
+        LoginUiState.Idle -> Unit
+        LoginUiState.Submitting ->
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        is LoginUiState.Success -> LaunchedEffect(state.uid) { onSuccess(state.uid, state.username) }
+        is LoginUiState.TwoFactorRequired -> LaunchedEffect(state.uid) { onTwoFactorRequired(state.uid) }
+        is LoginUiState.HumanVerificationRequired -> LaunchedEffect(state.verificationUrl) {
+            onHumanVerificationRequired(state.verificationUrl)
         }
+        // The 2FA-side states belong to TwoFactorScreen; the host Activity
+        // is expected to have navigated there as soon as we crossed into
+        // TwoFactorRequired. If we still observe them here it's a stale
+        // recomposition — render nothing.
+        is LoginUiState.TwoFactorSubmitting,
+        is LoginUiState.TwoFactorFailed -> Unit
+        is LoginUiState.Failed -> Text(
+            text = friendlyError(state.reason),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
