@@ -35,7 +35,9 @@ class HumanVerificationHeadersInterceptorTest {
         override fun token(): String? = t
         override fun tokenType(): String? = ty
         override fun clear() {
-            t = null; ty = null; cleared = true
+            t = null
+            ty = null
+            cleared = true
         }
     }
 

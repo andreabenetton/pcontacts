@@ -93,7 +93,9 @@ class TokenRefresherTest {
         val session = InMemorySession(uid = "uid-1", accessToken = "stale")
         val hvApi = object : NoOpAuthApi() {
             override suspend fun refresh(request: RefreshRequest): RefreshResponse =
-                throw HumanVerificationRequiredException(verificationUrl = "https://verify.proton.me/?token=t&methods=captcha")
+                throw HumanVerificationRequiredException(
+                    verificationUrl = "https://verify.proton.me/?token=t&methods=captcha"
+                )
         }
         val refresher = TokenRefresher(
             refreshOnlyAuthApi = hvApi,
