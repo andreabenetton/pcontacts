@@ -10,6 +10,7 @@ import android.content.Context
 import android.provider.ContactsContract
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.core.sync.auth.LogoutResult
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -23,9 +24,12 @@ import kotlinx.coroutines.withContext
  * Holds the ContentProviderClient open only for the duration of
  * the call so we don't leak the provider connection.
  */
-class LogoutHelper(private val context: Context) {
+class LogoutHelper(
+    private val context: Context,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+) {
 
-    suspend fun signOut(account: Account): LogoutResult = withContext(Dispatchers.IO) {
+    suspend fun signOut(account: Account): LogoutResult = withContext(ioDispatcher) {
         require(account.type == PROTON_ACCOUNT_TYPE) {
             "LogoutHelper only handles accounts of type $PROTON_ACCOUNT_TYPE"
         }
@@ -56,7 +60,7 @@ class LogoutHelper(private val context: Context) {
      * for thread-correctness.
      */
     private suspend fun removeAccountBlocking(account: Account): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             AccountManager.get(context).removeAccountExplicitly(account)
         }
 
