@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -98,7 +99,10 @@ class SettingsActivity : ComponentActivity() {
         )
         setContent {
             PcontactsTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier.fillMaxSize().systemBarsPadding(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     val account = currentAccount()
                     if (account == null) {
                         Text("No Proton account. Sign in from the launcher.")
