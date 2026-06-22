@@ -1,0 +1,7 @@
+Version 1.2.0.
+
+* New Settings transparency banner dedicated to preinstalled system apps with READ_CONTACTS access (Google Play Services, Google Contacts, Gmail, OEM dialer / messaging / assistant). The existing user-app banner intentionally hides this category; the new banner surfaces it explicitly. Tap to expand the full list of system packages. Detail copy recommends GrapheneOS / LineageOS — the platform permission model is outside pcontacts' reach.
+* Fixed the Settings screen drawing behind the transparent status bar on Android 15+. The "No Proton account. Sign in from the launcher." text and the signed-in Settings UI now respect the system-bar inset.
+* README adds a "Known gaps" entry covering the OS-level contacts exposure: once contacts land in the Android Contacts database, every preinstalled system app with READ_CONTACTS can read them; pcontacts cannot mediate that.
+
+Internal: detekt cleanup (variant-specific tasks now pass alongside the root task), LogoutHelper takes an injectable IO dispatcher, CI reproducible-build path fix, OWASP scan scoped to release classpath.

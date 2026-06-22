@@ -1,0 +1,7 @@
+Version 1.2.0.
+
+* Neues Transparenz-Banner in den Einstellungen für vorinstallierte System-Apps mit READ_CONTACTS-Zugriff (Google Play Services, Google Kontakte, Gmail, Hersteller-Telefon / -Nachrichten / -Assistent). Das bestehende Banner für Benutzer-Apps blendet diese Kategorie absichtlich aus; das neue Banner zeigt sie explizit. Antippen, um die vollständige Liste der System-Pakete zu erweitern. Der Detailtext empfiehlt GrapheneOS / LineageOS — das Berechtigungsmodell der Plattform liegt außerhalb der Reichweite von pcontacts.
+* Die Einstellungs-Anzeige zeichnete sich auf Android 15+ hinter der transparenten Statusleiste. Der Text "Kein Proton-Konto. Bitte vom Launcher anmelden." und die angemeldete Einstellungs-Oberfläche respektieren jetzt den System-Bar-Inset.
+* README erhält einen "Bekannte Lücken"-Eintrag zur OS-seitigen Kontaktexposition: sobald Kontakte in der Android-Kontaktdatenbank landen, kann jede vorinstallierte System-App mit READ_CONTACTS sie lesen; pcontacts kann das nicht vermitteln.
+
+Intern: detekt-Aufräumen (variantenspezifische Tasks laufen nun zusammen mit dem Root-Task durch), LogoutHelper nimmt einen injizierbaren IO-Dispatcher entgegen, Reproducible-Build-Pfad in CI korrigiert, OWASP-Scan auf die Release-Classpath beschränkt.

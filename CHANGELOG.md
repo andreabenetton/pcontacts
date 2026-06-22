@@ -10,6 +10,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-06-22
+
+### Added
+
+- Second Settings transparency banner dedicated to preinstalled
+  system apps that hold `READ_CONTACTS` (Google Play Services,
+  Google Contacts, Gmail, OEM dialer / messaging / assistant). The
+  existing user-app banner intentionally filters this category out;
+  the new banner surfaces it explicitly and tap-expands into a
+  dialog listing each package. Rendered in `errorContainer` color
+  to distinguish from the neutral user-app banner. Detail copy
+  recommends GrapheneOS / LineageOS as the remediation — the
+  platform permission model is outside pcontacts' reach. Strings
+  shipped in `en`, `it`, `de`.
+- README "Known gaps" entry #1 covering the OS-level exposure: once
+  contacts land in `ContactsContract`, every preinstalled system
+  app with `READ_CONTACTS` can read them; pcontacts cannot mediate
+  that.
+
+### Fixed
+
+- Settings screen drew behind the transparent status bar on
+  Android 15+ (`targetSdk = 35` enforces edge-to-edge). The bare
+  `Surface(modifier = Modifier.fillMaxSize())` had no inset
+  awareness; both the "No Proton account. Sign in from the
+  launcher." text and the signed-in `SettingsScreen` rendered
+  flush to the top of the window. `Modifier.systemBarsPadding()`
+  now applies. Reported by `@ianrosswilliams` during F-Droid
+  device testing on Pixel 8 Pro / Android 16.
+
+### Changed
+
+- `LogoutHelper` constructor now takes an optional
+  `ioDispatcher: CoroutineDispatcher = Dispatchers.IO`; both
+  `withContext` calls route through it. Matches the manual-DI
+  pattern used by ViewModels (no DI framework — see `CLAUDE.md`).
+  Source-compatible with the previous single-arg call site.
+
+### Internal
+
+- detekt: `:app:detektDebug` / `:app:detektMain` /
+  `:app:detektRelease` now pass alongside the existing `:detekt`
+  root task. The remaining `RedundantSuspendModifier` cases are
+  file-level `@Suppress`ed with a leading rationale comment — the
+  rule requires Type Resolution to be accurate, and we don't run
+  detekt with TR.
+- CI: reproducible-build job now copies the unsigned APK that AGP
+  actually emits (path drifted with the
+  `base.archivesName = "pcontacts"` rename); OWASP scan scoped to
+  the release runtime classpath with two false-positive CVEs
+  suppressed.
+- Live-API canary alignment: `LiveProtonWriteTest` skips on
+  non-`Success` login so the canary mirrors the orchestrator's
+  control flow exactly.
+
 ## [1.1.0] - 2026-05-29
 
 ### Added
