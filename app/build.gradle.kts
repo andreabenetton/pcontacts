@@ -342,6 +342,13 @@ dependencyCheck {
     // with their own CVE histories, none of which reach end users.
     scanConfigurations = listOf("releaseRuntimeClasspath")
     nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
+    // NVD's API returns intermittent 503/timeout responses. Bump retry count
+    // and inter-request delay so a brief outage doesn't fail the weekly scan.
+    nvd.maxRetryCount = 50
+    nvd.delay = 5000
+    // Trust cached NVD data for 7 days. We run weekly, so a single failed
+    // refresh still produces a useful report against the prior week's CVE set.
+    nvd.validForHours = 168
 }
 
 afterEvaluate {
