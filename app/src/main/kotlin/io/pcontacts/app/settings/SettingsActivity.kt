@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // SPDX-FileCopyrightText: 2026 pcontacts contributors
 
+// detekt RedundantSuspendModifier requires type resolution to be accurate. We
+// don't run detekt with TR, so the rule misfires on every private suspend fun
+// in this file — they all either call suspend Room DAO methods or are bound as
+// `suspend () -> T` seams to SettingsViewModel and so cannot drop `suspend`.
+@file:Suppress("RedundantSuspendModifier")
+
 package io.pcontacts.app.settings
 
 import android.accounts.Account

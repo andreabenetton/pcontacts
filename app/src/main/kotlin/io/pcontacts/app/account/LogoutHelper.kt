@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // SPDX-FileCopyrightText: 2026 pcontacts contributors
 
+// detekt RedundantSuspendModifier requires type resolution to be accurate. We
+// don't run detekt with TR, so `removeAccountBlocking` (which wraps a blocking
+// AccountManager call via `withContext(ioDispatcher)`) gets flagged even though
+// the suspend modifier is mandatory for the orchestrator's `suspend (Account)
+// -> Boolean` lambda type.
+@file:Suppress("RedundantSuspendModifier")
+
 package io.pcontacts.app.account
 
 import android.accounts.Account
