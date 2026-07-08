@@ -11,7 +11,7 @@
 # Build tooling
 agp                          = "8.11.2"
 kotlin                       = "2.3.21"
-ksp                          = "2.3.8"
+ksp                          = "2.3.9"
 java                         = "17"
 dependency-check             = "12.2.2"
 detekt                       = "1.23.8"
