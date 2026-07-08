@@ -19,7 +19,7 @@ kover                        = "0.9.8"
 android-lint                 = "31.11.2"
 
 # Android platform
-android-compile-sdk          = "35"
+android-compile-sdk          = "36"
 android-target-sdk           = "35"
 android-min-sdk              = "26"
 
