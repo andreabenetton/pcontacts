@@ -15,7 +15,7 @@ ksp                          = "2.3.8"
 java                         = "17"
 dependency-check             = "12.2.2"
 detekt                       = "1.23.8"
-kover                        = "0.9.1"
+kover                        = "0.9.8"
 android-lint                 = "31.11.2"
 
 # Android platform
