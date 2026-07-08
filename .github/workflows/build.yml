@@ -267,7 +267,7 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && contains(github.event.commits.*.modified, 'gradle/libs.versions.toml')) ||
+      (github.event_name == 'push' && (contains(github.event.commits.*.modified, 'gradle/libs.versions.toml') || contains(github.event.commits.*.modified, 'config/dependency-check-suppressions.xml'))) ||
       (github.event_name == 'pull_request')
     runs-on: ubuntu-latest
     timeout-minutes: 60
