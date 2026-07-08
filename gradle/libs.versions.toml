@@ -10,7 +10,7 @@
 [versions]
 # Build tooling
 agp                          = "8.11.2"
-kotlin                       = "2.3.21"
+kotlin                       = "2.4.0"
 ksp                          = "2.3.9"
 java                         = "17"
 dependency-check             = "12.2.2"
