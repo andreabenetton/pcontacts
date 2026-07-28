@@ -495,6 +495,55 @@ class ContactDetailSyncEngineTest {
         val report = engine.sync(account)
 
         assertEquals(1, report.inserted)
+        assertEquals("skipped contact reported as failed", 1, report.failed)
+        assertNotNull(dao.snapshot()["c1"])
+        assertNull(dao.snapshot()["c2"])
+    }
+
+    @Test fun decrypt_failure_for_one_contact_is_skipped_and_reported() = runTest {
+        val goodVCard = """
+            BEGIN:VCARD
+            VERSION:4.0
+            FN:Alice
+            EMAIL:alice@proton.me
+            END:VCARD
+        """.trimIndent()
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L))),
+            contacts = mapOf(
+                "c1" to ContactDto(
+                    id = "c1", modifyTime = 100L,
+                    cards = listOf(ContactCardDto(type = 2, data = goodVCard, signature = "sig"))
+                ),
+                "c2" to ContactDto(
+                    id = "c2", modifyTime = 100L,
+                    cards = listOf(ContactCardDto(type = 2, data = "BOOM", signature = "sig"))
+                )
+            )
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        // cryptoOp throws for the c2 card — the whole run must not abort.
+        val processor = ContactProcessor(ContactDecrypter(cryptoOp = { req ->
+            val data = (req as? io.pcontacts.core.protoncontacts.CardCryptoRequest.VerifyOnly)?.data ?: ""
+            if (data.contains("BOOM")) error("simulated decrypt failure")
+            CardCryptoOutcome(plaintext = data, verified = true)
+        }))
+        val engine = ContactDetailSyncEngine(
+            metadataPager = ContactsMetadataPager(api = api, pageSize = 1000),
+            contactsApi = api,
+            labelsApi = NoLabelsApi,
+            processor = processor,
+            contactMapDao = dao,
+            readExisting = { _ -> applier.knownRawIds() },
+            applyIntents = { acct, ints -> applier.apply(acct, ints) },
+            clock = { 1_700_000_000L }
+        )
+
+        val report = engine.sync(account)
+
+        assertEquals("good contact still synced", 1, report.inserted)
+        assertEquals("bad contact counted as failed", 1, report.failed)
         assertNotNull(dao.snapshot()["c1"])
         assertNull(dao.snapshot()["c2"])
     }

@@ -273,7 +273,11 @@ object SyncBootstrap {
             applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } },
             reconcileGroups = { account, labels ->
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
-            }
+            },
+            // Same production logger as the write engine — the pull path was
+            // previously wired to NoOpSink, so read-path failures (fetch /
+            // decrypt / parse) were invisible in production logs.
+            logger = logger
         )
 
         val writeEngine = buildWriteEngine(apis, db, provider, processor, serializer, logger)

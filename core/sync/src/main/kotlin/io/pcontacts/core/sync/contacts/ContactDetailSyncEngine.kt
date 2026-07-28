@@ -134,11 +134,20 @@ class ContactDetailSyncEngine(
                 throw e
             } catch (t: Throwable) {
                 fetchFailures += 1
-                logger.error(t) { "failed to fetch contact (id hash-redacted); skipping this run" }
+                logger.error(t) { "contact skipped (fetch failed) idTag=${sourceId.hashCode()}" }
                 continue
             }
-            val decrypted = processor.process(response.contact)
-            val baseRow = DecryptedContactToRow.convert(decrypted)
+            // Decrypt + project. A single malformed/undecryptable contact
+            // must not abort the whole sync — skip it (counted) and carry on,
+            // otherwise one bad card on a large account fails every contact.
+            val (decrypted, baseRow) = try {
+                val d = processor.process(response.contact)
+                d to DecryptedContactToRow.convert(d)
+            } catch (t: Throwable) {
+                fetchFailures += 1
+                logger.error(t) { "contact skipped (decrypt/parse failed) idTag=${sourceId.hashCode()}" }
+                continue
+            }
             if (baseRow == null) {
                 logger.warn { "contact yielded no row (no email); skipping" }
                 continue
@@ -198,7 +207,8 @@ class ContactDetailSyncEngine(
                 updated = 0,
                 deleted = 0,
                 unchanged = unchanged,
-                unverifiedCount = unverified
+                unverifiedCount = unverified,
+                failed = fetchFailures
             )
         }
 
@@ -248,7 +258,8 @@ class ContactDetailSyncEngine(
             updated = applyResult.updatedContacts,
             deleted = deletedCount,
             unchanged = unchanged,
-            unverifiedCount = unverified
+            unverifiedCount = unverified,
+            failed = fetchFailures
         )
     }
 

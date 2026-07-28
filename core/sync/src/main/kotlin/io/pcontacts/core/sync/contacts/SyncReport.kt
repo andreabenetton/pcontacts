@@ -14,7 +14,9 @@ data class SyncReport(
     val updated: Int,
     val deleted: Int,
     val unchanged: Int,
-    val unverifiedCount: Int = 0
+    val unverifiedCount: Int = 0,
+    /** Contacts skipped this run because they failed to fetch/decrypt/parse. */
+    val failed: Int = 0
 ) {
     fun isNoOp(): Boolean = inserted == 0 && updated == 0 && deleted == 0
 }
