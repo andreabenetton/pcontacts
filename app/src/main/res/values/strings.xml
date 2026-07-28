@@ -9,6 +9,7 @@
     <string name="launcher_sync_failed_verification">Last sync failed — verification needed on the Proton website.</string>
     <string name="launcher_sync_failed_app_version">Last sync failed — please update pcontacts.</string>
     <string name="launcher_sync_failed_network">Last sync failed — check your connection and try again.</string>
+    <string name="launcher_sync_failed_generic">Last sync failed — please try again. If it persists, report it.</string>
     <string name="launcher_unverified_warning">%d contacts failed signature verification</string>
     <string name="channel_status_name">Sync status</string>
     <string name="channel_status_description">Non-actionable sync status information</string>

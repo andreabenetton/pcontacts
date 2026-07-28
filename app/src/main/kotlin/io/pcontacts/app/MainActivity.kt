@@ -416,7 +416,8 @@ private fun syncFailureMessage(code: String?): String = stringResource(
         SyncErrorCodes.REAUTH -> R.string.launcher_sync_failed_reauth
         SyncErrorCodes.VERIFICATION -> R.string.launcher_sync_failed_verification
         SyncErrorCodes.APP_VERSION -> R.string.launcher_sync_failed_app_version
-        else -> R.string.launcher_sync_failed_network
+        SyncErrorCodes.NETWORK -> R.string.launcher_sync_failed_network
+        else -> R.string.launcher_sync_failed_generic
     }
 )
 

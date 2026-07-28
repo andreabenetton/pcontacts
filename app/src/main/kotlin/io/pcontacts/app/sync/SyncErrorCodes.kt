@@ -12,5 +12,10 @@ internal object SyncErrorCodes {
     const val REAUTH = "reauth"
     const val VERIFICATION = "verification"
     const val APP_VERSION = "app_version"
-    const val IO = "io"
+
+    /** A genuine network/IO error — the connection really is the problem. */
+    const val NETWORK = "network"
+
+    /** Any other failure (a bug, bad data). NOT a connectivity problem. */
+    const val GENERIC = "generic"
 }

@@ -84,14 +84,25 @@ class ProtonSyncAdapterErrorPropagationTest {
     }
 
     @Test
-    fun runtimeException_is_caught_and_recorded_as_io_failure() {
+    fun nonNetworkException_is_recorded_as_generic_not_a_connection_error() {
         val prefs = InMemoryUserPreferences()
         val adapter = adapter(prefs) { _, _, _ -> throw IllegalStateException("boom") }
         val syncResult = SyncResult()
         adapter.onPerformSync(account, extras, authority, provider, syncResult)
         assertEquals(1L, syncResult.stats.numIoExceptions)
-        assertEquals("io", prefs.lastSyncErrorCode)
+        // A bug/bad-data failure must NOT be labelled a connection problem.
+        assertEquals("generic", prefs.lastSyncErrorCode)
         assertEquals(0L, prefs.lastSyncSuccessAtMillis)
+    }
+
+    @Test
+    fun ioException_is_recorded_as_network() {
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> throw java.io.IOException("offline") }
+        val syncResult = SyncResult()
+        adapter.onPerformSync(account, extras, authority, provider, syncResult)
+        assertEquals(1L, syncResult.stats.numIoExceptions)
+        assertEquals("network", prefs.lastSyncErrorCode)
     }
 
     @Test

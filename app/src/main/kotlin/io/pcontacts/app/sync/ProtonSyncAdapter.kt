@@ -22,6 +22,7 @@ import io.pcontacts.core.sync.contacts.SyncReport
 import io.pcontacts.core.sync.contacts.WriteReport
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
 import kotlinx.coroutines.runBlocking
+import java.io.IOException
 
 /**
  * SyncAdapter — wires the system sync framework (ADR-0004) to the
@@ -82,7 +83,8 @@ class ProtonSyncAdapter(
             }
             logger.info {
                 "pull done — server=${readReport.totalServer} inserted=${readReport.inserted} " +
-                    "updated=${readReport.updated} deleted=${readReport.deleted} unchanged=${readReport.unchanged}"
+                    "updated=${readReport.updated} deleted=${readReport.deleted} " +
+                    "unchanged=${readReport.unchanged} failed=${readReport.failed}"
             }
             recordSuccess()
         } catch (e: DecryptUnavailableException) {
@@ -100,10 +102,22 @@ class ProtonSyncAdapter(
             logger.warn { "sync stopped — app version rejected (Code ${e.protonCode}), update required" }
             userPreferences.lastSyncErrorCode = SyncErrorCodes.APP_VERSION
             notifier.notifyHumanVerification(account, null)
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            // A genuine network/transport failure — the connection really is
+            // the problem (this includes cert-pinning rejections).
             syncResult.stats.numIoExceptions += 1
-            logger.error(e) { "sync failed" }
-            userPreferences.lastSyncErrorCode = SyncErrorCodes.IO
+            logger.error(e) { "sync failed (network)" }
+            userPreferences.lastSyncErrorCode = SyncErrorCodes.NETWORK
+            if (syncResult.tooManyRetries) {
+                notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
+            }
+        } catch (e: Exception) {
+            // Anything else (a bug, malformed data) — do NOT blame the
+            // connection. The redacted throwable fingerprint is logged so
+            // production failures like this are diagnosable.
+            syncResult.stats.numIoExceptions += 1
+            logger.error(e) { "sync failed (${e.javaClass.simpleName})" }
+            userPreferences.lastSyncErrorCode = SyncErrorCodes.GENERIC
             if (syncResult.tooManyRetries) {
                 notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
             }
