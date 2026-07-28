@@ -24,6 +24,7 @@ import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.storage.EncryptedSecretStore
+import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.PcontactsDatabase
 import io.pcontacts.core.sync.auth.SecretStoreHumanVerificationSource
@@ -93,12 +94,20 @@ object SyncBootstrap {
         val db = DatabaseFactory.create(context.applicationContext)
         val contactDao = db.contactMapDao()
         val outboxDao = db.outboxDao()
+        val prefs = SharedPreferencesUserPreferences(context.applicationContext)
+        // Prefer the recorded sync-success time; fall back to the derived
+        // MAX(last_synced_at) so installs upgraded before the sync adapter
+        // starts recording keep showing their existing timestamp.
+        val effectiveLastSync =
+            maxOf(prefs.lastSyncSuccessAtMillis, contactDao.maxLastSyncedAt() ?: 0L)
         return LauncherStatus(
             totalContacts = contactDao.countLive(),
             unverifiedContacts = contactDao.countUnverified(),
-            lastSyncedAtMillis = contactDao.maxLastSyncedAt(),
+            lastSyncedAtMillis = effectiveLastSync.takeIf { it > 0L },
             pendingChanges = outboxDao.countPending(),
-            quarantinedChanges = outboxDao.countQuarantined()
+            quarantinedChanges = outboxDao.countQuarantined(),
+            lastSyncFailed = prefs.lastSyncErrorCode != null,
+            lastSyncErrorCode = prefs.lastSyncErrorCode
         )
     }
 

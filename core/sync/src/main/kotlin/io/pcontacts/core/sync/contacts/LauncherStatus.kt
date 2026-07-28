@@ -8,5 +8,9 @@ data class LauncherStatus(
     val unverifiedContacts: Int,
     val lastSyncedAtMillis: Long?,
     val pendingChanges: Int = 0,
-    val quarantinedChanges: Int = 0
+    val quarantinedChanges: Int = 0,
+    /** True when the most recent sync attempt failed (see [lastSyncErrorCode]). */
+    val lastSyncFailed: Boolean = false,
+    /** Stable, non-sensitive code for the last sync failure, or null. */
+    val lastSyncErrorCode: String? = null
 )
