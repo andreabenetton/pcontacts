@@ -53,15 +53,17 @@ known set of client identifiers and a sliding version window `[V]`.
 
 - The prefix must be a known client identifier. Custom values
   (e.g. `android-contacts@1.0.0`) are rejected with HTTP 400.
-- `android-mail@<semver>` is accepted. As of 2026-05-24, the
-  acceptance window is versions **2.0.0 through 3.0.12**.
-- Versions outside the window (e.g. `1.0.0` or `99.0.0`) are
+- `android-mail@<semver>` is accepted. `[A]` The exact window
+  bounds are not validated against the live API; to stay inside
+  the window we track the latest official `ProtonMail/android-mail`
+  release (`7.10.4`, published 2026-07-17).
+- Versions far outside the window (e.g. `1.0.0` or `99.0.0`) are
   rejected.
 - The window slides as Proton releases new official app versions.
   If our hardcoded version falls behind the window, login will
   start failing with 400 — this is risk #1 in the risk register.
 
-Current value: `android-mail@3.0.12` (set in `ProtonApiConfig`).
+Current value: `android-mail@7.10.4` (set in `ProtonApiConfig`).
 
 ### Version-rejection detection
 
@@ -383,7 +385,7 @@ highlights:
 2. **ChallengePayload enforcement.** Currently accepted empty.
    Mitigation: if rejected, investigate `@protontech/challenge`
    source; last resort is WebView-based auth (out of scope for v1).
-3. **appVersion window drift.** Our `3.0.12` will age out.
+3. **appVersion window drift.** Our `7.10.4` will age out.
    Mitigation: `AppVersionRejectionInterceptor` detects Code
    5003/5004 `[V]`/`[A]` and throws a typed exception so the
    SyncAdapter stops retrying and the user sees "app update

@@ -9,10 +9,11 @@ package io.pcontacts.core.proton.api
  *
  * `[V]` The server validates `x-pm-appversion` against a sliding
  * window of accepted `android-mail@<semver>` values (custom client
- * IDs are rejected with HTTP 400). As of 2026-05-24, `2.0.0` through
- * `3.0.12` are accepted; below returns 422, above returns 401. The
- * window moves as Proton ships new official releases, so this default
- * will need periodic bumps.
+ * IDs are rejected with HTTP 400). `[A]` The exact window bounds are
+ * not validated against the live API; the default tracks the latest
+ * official `ProtonMail/android-mail` release (`7.10.4`, 2026-07-17)
+ * to stay inside the window. The window moves as Proton ships new
+ * official releases, so this default will need periodic bumps.
  *
  * When the pinned version ages out, Proton responds with `Code: 5003`
  * (force upgrade) `[V]` or `5004` (API version unsupported) `[A]`.
@@ -34,6 +35,6 @@ data class ProtonApiConfig(
     }
 
     companion object {
-        const val DEFAULT_APP_VERSION: String = "3.0.12"
+        const val DEFAULT_APP_VERSION: String = "7.10.4"
     }
 }
