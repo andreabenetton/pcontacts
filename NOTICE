@@ -103,6 +103,19 @@ Dev-time only (not packaged, not imported at runtime):
     License: GPL-3.0
 
 ----------------------------------------------------------------------
+Bundled assets
+----------------------------------------------------------------------
+
+The launcher-icon glyph (res/drawable/ic_launcher_foreground.xml) is
+derived from the Material Design Icons "person" symbol.
+    Source: https://github.com/google/material-design-icons
+    License: Apache 2.0
+The Proton-purple gradient background and the overall icon composition
+are original to this project. No Proton logo or wordmark is used (see
+Trademarks below); the resemblance is limited to the general visual
+style (gradient tile plus a single glyph).
+
+----------------------------------------------------------------------
 Trademarks
 ----------------------------------------------------------------------
 
