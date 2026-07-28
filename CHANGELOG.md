@@ -10,6 +10,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-07-28
+
+### Added
+
+- Proton-style adaptive launcher icon: a Proton-purple → violet
+  gradient tile with a single white contacts glyph, plus a monochrome
+  layer for Android 13 themed icons.
+
+### Changed
+
+- Login failures now show clear, localized messages for every failure
+  reason. Previously five reason codes (including the pinned-modulus
+  MITM check and app-version rejection) leaked a raw internal token to
+  the user; the modulus failures now surface a security warning and an
+  out-of-window app version prompts an update. All login/2FA error
+  strings are localized (en/it/de).
+
+### Fixed
+
+- The launcher home screen now updates its "Synced" count and "Last
+  sync" line live when a sync completes while it is foregrounded (e.g.
+  the initial sync right after sign-in), instead of only on the next
+  resume.
+
 ## [1.3.0] - 2026-07-28
 
 ### Changed
@@ -252,6 +276,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.3.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.1
 [1.3.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.0
 [1.2.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.2.0
 [1.1.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.1.0

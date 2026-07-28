@@ -1,0 +1,5 @@
+Version 1.3.1.
+
+* Neues App-Symbol im Proton-Stil: eine Kachel mit violettem Farbverlauf und einem klaren Kontakte-Symbol, inklusive einer monochromen Version für die Themen-Symbole von Android 13+.
+* Klarere Fehlermeldungen bei der Anmeldung für jeden Fehlerfall, jetzt auf Englisch, Italienisch und Deutsch übersetzt. Sicherheitsrelevante Fehler (Identitäts-/Verifizierungsprüfungen) zeigen eine richtige Warnung statt eines internen Codes.
+* Der Startbildschirm aktualisiert die Anzahl der synchronisierten Kontakte und den Zeitpunkt der letzten Synchronisierung sofort nach Abschluss einer Synchronisierung, einschließlich der ersten direkt nach der Anmeldung.

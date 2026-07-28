@@ -1,0 +1,5 @@
+Versione 1.3.1.
+
+* Nuova icona dell'app in stile Proton: un riquadro con gradiente viola e un'icona contatti pulita, con una versione monocromatica per le icone a tema di Android 13+.
+* Messaggi di errore di accesso più chiari per ogni caso di errore, ora tradotti in inglese, italiano e tedesco. Gli errori legati alla sicurezza (controlli di identità/verifica) mostrano un avviso adeguato invece di un codice interno.
+* La schermata principale aggiorna subito il numero di contatti sincronizzati e l'ora dell'ultima sincronizzazione quando una sincronizzazione termina, inclusa la prima subito dopo l'accesso.

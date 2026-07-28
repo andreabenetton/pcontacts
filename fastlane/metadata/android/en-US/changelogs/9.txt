@@ -1,0 +1,5 @@
+Version 1.3.1.
+
+* New Proton-style app icon: a purple gradient tile with a clean contacts glyph, including a themed-icon (monochrome) version for Android 13+.
+* Clearer sign-in error messages for every failure case, now translated in English, Italian and German. Security-relevant failures (identity/verification checks) show a proper warning instead of an internal code.
+* The home screen now updates its synced-contacts count and last-sync time immediately when a sync finishes, including the first sync right after signing in.
