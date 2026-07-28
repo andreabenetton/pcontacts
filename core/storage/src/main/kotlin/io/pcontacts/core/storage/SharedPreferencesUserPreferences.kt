@@ -30,10 +30,24 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getBoolean(KEY_CONTACTS_PERMISSION_REQUESTED, false)
         set(value) { prefs.edit().putBoolean(KEY_CONTACTS_PERMISSION_REQUESTED, value).apply() }
 
+    override var lastSyncSuccessAtMillis: Long
+        get() = prefs.getLong(KEY_LAST_SYNC_SUCCESS_AT, 0L)
+        set(value) { prefs.edit().putLong(KEY_LAST_SYNC_SUCCESS_AT, value).apply() }
+
+    override var lastSyncErrorCode: String?
+        get() = prefs.getString(KEY_LAST_SYNC_ERROR_CODE, null)
+        set(value) {
+            prefs.edit().apply {
+                if (value == null) remove(KEY_LAST_SYNC_ERROR_CODE) else putString(KEY_LAST_SYNC_ERROR_CODE, value)
+            }.apply()
+        }
+
     private companion object {
         const val PREFS_NAME = "pcontacts_user_prefs"
         const val KEY_SYNC_INTERVAL = "sync_interval_hours"
         const val KEY_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
         const val KEY_CONTACTS_PERMISSION_REQUESTED = "contacts_permission_requested"
+        const val KEY_LAST_SYNC_SUCCESS_AT = "last_sync_success_at"
+        const val KEY_LAST_SYNC_ERROR_CODE = "last_sync_error_code"
     }
 }

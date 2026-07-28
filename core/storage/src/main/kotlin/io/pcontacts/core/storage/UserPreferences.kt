@@ -23,6 +23,23 @@ interface UserPreferences {
     /** Whether READ_CONTACTS / WRITE_CONTACTS runtime permissions have been requested. */
     var contactsPermissionRequested: Boolean
 
+    /**
+     * Wall-clock millis of the last successful sync, or `0` if a sync
+     * has never completed successfully. Recorded by the sync adapter so
+     * "last sync" reflects the sync event itself — not whether any
+     * contact happened to be stored (an empty or all-failed account
+     * would otherwise read "never" forever).
+     */
+    var lastSyncSuccessAtMillis: Long
+
+    /**
+     * Stable, non-sensitive code for the most recent sync failure
+     * (e.g. `reauth`, `verification`, `app_version`, `io`), or `null`
+     * when the last sync attempt succeeded. Lets the UI distinguish
+     * "never synced" from "sync is failing".
+     */
+    var lastSyncErrorCode: String?
+
     companion object {
         const val DEFAULT_SYNC_INTERVAL_HOURS = 12L
         val ALLOWED_INTERVALS_HOURS = listOf(1L, 6L, 12L, 24L)
