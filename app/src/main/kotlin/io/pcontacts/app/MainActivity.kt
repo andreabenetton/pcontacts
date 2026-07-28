@@ -408,6 +408,17 @@ private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatu
             color = MaterialTheme.colorScheme.error
         )
     }
+    if (status.failedContacts > 0) {
+        Text(
+            text = pluralStringResource(
+                R.plurals.launcher_failed_contacts,
+                status.failedContacts,
+                status.failedContacts
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
 }
 
 @Composable

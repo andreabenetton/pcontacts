@@ -86,7 +86,7 @@ class ProtonSyncAdapter(
                     "updated=${readReport.updated} deleted=${readReport.deleted} " +
                     "unchanged=${readReport.unchanged} failed=${readReport.failed}"
             }
-            recordSuccess()
+            recordSuccess(readReport.failed)
         } catch (e: DecryptUnavailableException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
@@ -124,8 +124,9 @@ class ProtonSyncAdapter(
         }
     }
 
-    private fun recordSuccess() {
+    private fun recordSuccess(failedContacts: Int) {
         userPreferences.lastSyncSuccessAtMillis = System.currentTimeMillis()
         userPreferences.lastSyncErrorCode = null
+        userPreferences.lastSyncFailedContacts = failedContacts
     }
 }

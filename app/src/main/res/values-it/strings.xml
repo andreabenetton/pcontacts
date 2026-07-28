@@ -44,6 +44,10 @@
         <item quantity="one">%d modifica in attesa di sincronizzazione</item>
         <item quantity="other">%d modifiche in attesa di sincronizzazione</item>
     </plurals>
+    <plurals name="launcher_failed_contacts">
+        <item quantity="one">%d contatto non sincronizzato (vedi i log)</item>
+        <item quantity="other">%d contatti non sincronizzati (vedi i log)</item>
+    </plurals>
     <plurals name="launcher_quarantined_changes">
         <item quantity="one">%d modifica non riuscita</item>
         <item quantity="other">%d modifiche non riuscite</item>

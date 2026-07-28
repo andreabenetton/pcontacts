@@ -40,6 +40,10 @@
         <item quantity="one">%d change pending sync</item>
         <item quantity="other">%d changes pending sync</item>
     </plurals>
+    <plurals name="launcher_failed_contacts">
+        <item quantity="one">%d contact couldn\'t be synced (see logs)</item>
+        <item quantity="other">%d contacts couldn\'t be synced (see logs)</item>
+    </plurals>
     <plurals name="launcher_quarantined_changes">
         <item quantity="one">%d change failed</item>
         <item quantity="other">%d changes failed</item>
