@@ -88,10 +88,18 @@
 # ---------------------------------------------------------------
 # ez-vcard
 # ---------------------------------------------------------------
-# ez-vcard's serializer factory looks up classes by name.
--keep class ezvcard.io.scribe.** { *; }
--keep class ezvcard.property.** { *; }
+# ez-vcard parses/writes vCards via reflection: scribes reflectively
+# invoke property, parameter, and util constructors/methods. Keeping
+# only `io.scribe` + `property` left `parameter`/`util`/core classes
+# tree-shaken, so on release builds a reflectively-invoked method threw
+# NoSuchMethodException and every contact failed to parse (debug builds,
+# un-minified, were unaffected). Keep the whole package + its `vinnie`
+# parser dependency — cheaper and safer than chasing each stripped
+# member (same approach as BouncyCastle and the Proton API above).
+-keep class ezvcard.** { *; }
+-keep class com.github.mangstadt.vinnie.** { *; }
 -dontwarn ezvcard.**
+-dontwarn com.github.mangstadt.vinnie.**
 
 # ---------------------------------------------------------------
 # Room
