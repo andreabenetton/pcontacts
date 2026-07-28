@@ -93,13 +93,32 @@
 # only `io.scribe` + `property` left `parameter`/`util`/core classes
 # tree-shaken, so on release builds a reflectively-invoked method threw
 # NoSuchMethodException and every contact failed to parse (debug builds,
-# un-minified, were unaffected). Keep the whole package + its `vinnie`
-# parser dependency — cheaper and safer than chasing each stripped
-# member (same approach as BouncyCastle and the Proton API above).
--keep class ezvcard.** { *; }
--keep class com.github.mangstadt.vinnie.** { *; }
+# un-minified, were unaffected).
+#
+# Keep the reflective targets: scribes reflectively touch property,
+# parameter, and util members. `io.scribe` + `property` alone (the old
+# rules) left `parameter` + `util` tree-shaken — that was the stripped
+# member. Deliberately NOT `-keep ezvcard.**` / `ezvcard.*`: keeping the
+# root `Ezvcard` facade retains its hCard methods, dragging in jsoup +
+# freemarker (→ re2j / java.beans / java.rmi / javax.swing, none on
+# Android), which fails R8's missing-class check and bloats the APK. We
+# only use text vCards, so the html path stays strippable.
+-keep class ezvcard.io.scribe.** { *; }
+-keep class ezvcard.property.** { *; }
+-keep class ezvcard.parameter.** { *; }
+-keep class ezvcard.util.** { *; }
 -dontwarn ezvcard.**
--dontwarn com.github.mangstadt.vinnie.**
+# ez-vcard bundles jsoup + freemarker for its (unused) hCard support;
+# those reference desktop-JVM classes absent on Android. Silence the
+# dangling-reference errors — we never call the hCard path, so R8 still
+# strips it and nothing is added to the APK.
+-dontwarn org.jsoup.**
+-dontwarn com.google.re2j.**
+-dontwarn freemarker.**
+-dontwarn java.beans.**
+-dontwarn java.rmi.**
+-dontwarn javax.swing.**
+-dontwarn com.sun.org.apache.xml.internal.**
 
 # ---------------------------------------------------------------
 # Room
