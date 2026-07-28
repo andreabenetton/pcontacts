@@ -73,5 +73,15 @@ class RedactorTest {
         assertTrue("location should be in io.pcontacts.*, was: $out", out.contains("io.pcontacts."))
     }
 
+    @Test fun throwable_redaction_includes_cause_chain_without_messages() {
+        val root = IllegalArgumentException("ROOT_SECRET_MESSAGE")
+        val wrapper = IllegalStateException("WRAPPER_SECRET_MESSAGE", root)
+        val out = Redactor.redactThrowable(wrapper)
+        assertTrue("should name the cause class, was: $out", out.contains("caused by"))
+        assertTrue(out.contains("java.lang.IllegalArgumentException"))
+        assertFalse(out.contains("ROOT_SECRET_MESSAGE"))
+        assertFalse(out.contains("WRAPPER_SECRET_MESSAGE"))
+    }
+
     private fun triggerInProject(): Nothing = throw IllegalStateException("X")
 }

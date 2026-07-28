@@ -43,16 +43,39 @@ object Redactor {
         return out
     }
 
+    private const val MAX_CAUSE_DEPTH = 3
+    private const val MAX_FRAMES = 6
+
     /**
-     * Reduce a throwable to a non-sensitive fingerprint:
-     *   `class.name @ first-in-project-frame#method:line`
-     * The throwable's own message is intentionally dropped — it may contain
-     * payload bytes (e.g. an HTTP body, a vCard fragment).
+     * Reduce a throwable to a non-sensitive but *diagnosable* fingerprint:
+     *   `class@frame <- frame … caused by class@frame …`
+     *
+     * Includes up to [MAX_FRAMES] in-project frames per throwable — so the
+     * real throw site is visible, not just the outermost coroutine rethrow
+     * (a `runBlocking` boundary would otherwise collapse everything to the
+     * SyncAdapter frame) — and walks up to [MAX_CAUSE_DEPTH] causes. The
+     * throwable's own message is intentionally dropped: it may carry payload
+     * bytes (an HTTP body, a vCard fragment). Only class names and code
+     * frames — never messages — are emitted.
      */
-    fun redactThrowable(t: Throwable): String {
-        val frame = t.stackTrace.firstOrNull { it.className.startsWith("io.pcontacts.") }
-            ?: t.stackTrace.firstOrNull()
-        val location = frame?.let { "${it.className}#${it.methodName}:${it.lineNumber}" } ?: "<no-frame>"
-        return "${t.javaClass.name}@$location"
+    fun redactThrowable(t: Throwable): String = buildString {
+        var current: Throwable? = t
+        var depth = 0
+        while (current != null && depth <= MAX_CAUSE_DEPTH) {
+            if (depth > 0) append(" caused by ")
+            append(current.javaClass.name)
+            append('@')
+            append(projectFrames(current))
+            val next = current.cause
+            current = if (next === current) null else next
+            depth += 1
+        }
+    }
+
+    private fun projectFrames(t: Throwable): String {
+        val inProject = t.stackTrace.filter { it.className.startsWith("io.pcontacts.") }
+        val frames = inProject.ifEmpty { t.stackTrace.take(1) }.take(MAX_FRAMES)
+        if (frames.isEmpty()) return "<no-frame>"
+        return frames.joinToString(" <- ") { "${it.className}#${it.methodName}:${it.lineNumber}" }
     }
 }
