@@ -73,9 +73,23 @@ object Redactor {
     }
 
     private fun projectFrames(t: Throwable): String {
-        val inProject = t.stackTrace.filter { it.className.startsWith("io.pcontacts.") }
-        val frames = inProject.ifEmpty { t.stackTrace.take(1) }.take(MAX_FRAMES)
-        if (frames.isEmpty()) return "<no-frame>"
-        return frames.joinToString(" <- ") { "${it.className}#${it.methodName}:${it.lineNumber}" }
+        val stack = t.stackTrace
+        if (stack.isEmpty()) return "<no-frame>"
+        // The real throw site — the first frame that isn't pure JDK/stdlib
+        // plumbing (e.g. reflection). This is what pins a *library* bug
+        // (an ez-vcard/BouncyCastle frame); filtering to io.pcontacts alone
+        // would hide it. Frame class/method names are never sensitive.
+        val throwSite = stack.firstOrNull {
+            !it.className.startsWith("java.") &&
+                !it.className.startsWith("jdk.") &&
+                !it.className.startsWith("kotlin.")
+        } ?: stack.first()
+        val picked = LinkedHashSet<StackTraceElement>()
+        picked.add(throwSite)
+        for (frame in stack) {
+            if (picked.size >= MAX_FRAMES) break
+            if (frame.className.startsWith("io.pcontacts.")) picked.add(frame)
+        }
+        return picked.joinToString(" <- ") { "${it.className}#${it.methodName}:${it.lineNumber}" }
     }
 }
