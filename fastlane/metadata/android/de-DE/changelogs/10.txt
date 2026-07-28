@@ -1,0 +1,4 @@
+Version 1.3.2.
+
+* Behoben: "Letzte Synchronisierung" zeigte auch nach dem Synchronisieren "nie" an. Der Zeitpunkt der letzten Synchronisierung wird jetzt pro Synchronisierung gespeichert und aktualisiert sich auch bei einem Konto ohne Kontakte.
+* Wenn eine Synchronisierung fehlschlägt, erklärt der Startbildschirm jetzt den Grund (Aktualisierung erforderlich, erneut anmelden, Verifizierung erforderlich oder Verbindungsfehler), anstatt still auf "nie" zu bleiben.

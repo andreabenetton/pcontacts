@@ -1,0 +1,4 @@
+Versione 1.3.2.
+
+* Corretto "Ultima sincronizzazione" che mostrava "mai" anche dopo la sincronizzazione. L'ora dell'ultima sincronizzazione viene ora registrata a ogni sincronizzazione, quindi si aggiorna anche per un account senza contatti.
+* Quando una sincronizzazione non riesce, la schermata principale ne spiega ora il motivo (aggiornamento necessario, accedi di nuovo, verifica necessaria o errore di connessione) invece di restare silenziosamente su "mai".

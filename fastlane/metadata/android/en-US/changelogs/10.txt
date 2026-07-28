@@ -1,0 +1,4 @@
+Version 1.3.2.
+
+* Fixed "Last sync" showing "never" even after syncing. The last-sync time is now recorded per sync, so it updates even for an account with no contacts.
+* When a sync fails, the home screen now explains why (update required, sign in again, verification needed, or connection error) instead of silently staying on "never".

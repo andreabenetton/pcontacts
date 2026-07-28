@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-07-28
+
+### Fixed
+
+- "Last sync" is now recorded per sync run instead of being derived
+  from stored contacts. Previously a sync that stored no rows — an
+  empty account, contacts filtered out locally, or (most commonly) a
+  sync that failed before writing — left "Last sync: never" with no
+  indication a sync had run or failed. The launcher now shows a real
+  last-sync time (even for a zero-contact account) and a localized
+  "Last sync failed …" line explaining the failure (update required,
+  sign in again, verification needed, or connection error).
+
 ## [1.3.1] - 2026-07-28
 
 ### Added
@@ -276,6 +289,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.3.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.2
 [1.3.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.1
 [1.3.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.0
 [1.2.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.2.0
