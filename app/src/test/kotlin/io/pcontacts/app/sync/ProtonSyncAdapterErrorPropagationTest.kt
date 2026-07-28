@@ -15,10 +15,14 @@ import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.storage.InMemoryUserPreferences
+import io.pcontacts.core.storage.UserPreferences
 import io.pcontacts.core.sync.contacts.SyncReport
 import io.pcontacts.core.sync.contacts.WriteReport
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
@@ -44,9 +48,14 @@ class ProtonSyncAdapterErrorPropagationTest {
     }
 
     private fun adapter(
+        prefs: UserPreferences = InMemoryUserPreferences(),
         runner: suspend (android.content.Context, ContentProviderClient, Account) -> Pair<WriteReport, SyncReport>
     ): ProtonSyncAdapter =
-        ProtonSyncAdapter(ApplicationProvider.getApplicationContext(), syncRunner = runner)
+        ProtonSyncAdapter(
+            ApplicationProvider.getApplicationContext(),
+            syncRunner = runner,
+            userPreferences = prefs
+        )
 
     @Test
     fun outOfMemoryError_propagates_out_of_onPerformSync() {
@@ -76,10 +85,13 @@ class ProtonSyncAdapterErrorPropagationTest {
 
     @Test
     fun runtimeException_is_caught_and_recorded_as_io_failure() {
-        val adapter = adapter { _, _, _ -> throw IllegalStateException("boom") }
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> throw IllegalStateException("boom") }
         val syncResult = SyncResult()
         adapter.onPerformSync(account, extras, authority, provider, syncResult)
         assertEquals(1L, syncResult.stats.numIoExceptions)
+        assertEquals("io", prefs.lastSyncErrorCode)
+        assertEquals(0L, prefs.lastSyncSuccessAtMillis)
     }
 
     @Test
@@ -102,11 +114,13 @@ class ProtonSyncAdapterErrorPropagationTest {
 
     @Test
     fun appVersionRejected_is_caught_as_auth_exception() {
-        val adapter = adapter { _, _, _ -> throw AppVersionRejectedException(5003) }
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> throw AppVersionRejectedException(5003) }
         val syncResult = SyncResult()
         adapter.onPerformSync(account, extras, authority, provider, syncResult)
         assertEquals(1L, syncResult.stats.numAuthExceptions)
         assertEquals(0L, syncResult.stats.numIoExceptions)
+        assertEquals("app_version", prefs.lastSyncErrorCode)
     }
 
     @Test
@@ -128,7 +142,8 @@ class ProtonSyncAdapterErrorPropagationTest {
             deleted = 1,
             unchanged = 1
         )
-        val adapter = adapter { _, _, _ -> wr to rr }
+        val prefs = InMemoryUserPreferences().apply { lastSyncErrorCode = "io" }
+        val adapter = adapter(prefs) { _, _, _ -> wr to rr }
         val syncResult = SyncResult()
         adapter.onPerformSync(account, extras, authority, provider, syncResult)
         assertEquals(2L, syncResult.stats.numInserts)
@@ -136,6 +151,9 @@ class ProtonSyncAdapterErrorPropagationTest {
         assertEquals(1L, syncResult.stats.numDeletes)
         assertEquals(0L, syncResult.stats.numIoExceptions)
         assertEquals(0L, syncResult.stats.numAuthExceptions)
+        // A successful sync stamps the success time and clears any prior error.
+        assertTrue(prefs.lastSyncSuccessAtMillis > 0L)
+        assertNull(prefs.lastSyncErrorCode)
     }
 }
 

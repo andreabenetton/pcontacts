@@ -15,6 +15,8 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.storage.SharedPreferencesUserPreferences
+import io.pcontacts.core.storage.UserPreferences
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.core.sync.contacts.SyncReport
 import io.pcontacts.core.sync.contacts.WriteReport
@@ -50,7 +52,8 @@ class ProtonSyncAdapter(
             val rr = readEngine.sync(acct)
             wr to rr
         },
-    internal val notifier: SyncNotifier = SyncNotifier(context)
+    internal val notifier: SyncNotifier = SyncNotifier(context),
+    internal val userPreferences: UserPreferences = SharedPreferencesUserPreferences(context)
 ) : AbstractThreadedSyncAdapter(context, autoInitialize) {
 
     private val logger: Logger = RedactingLogger(tag = "ProtonSync", sink = AndroidLogcatSink())
@@ -81,24 +84,34 @@ class ProtonSyncAdapter(
                 "pull done — server=${readReport.totalServer} inserted=${readReport.inserted} " +
                     "updated=${readReport.updated} deleted=${readReport.deleted} unchanged=${readReport.unchanged}"
             }
+            recordSuccess()
         } catch (e: DecryptUnavailableException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
+            userPreferences.lastSyncErrorCode = SyncErrorCodes.REAUTH
             notifier.notifyReauthRequired(account)
         } catch (e: HumanVerificationRequiredException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync paused — human verification required (Code 9001)" }
+            userPreferences.lastSyncErrorCode = SyncErrorCodes.VERIFICATION
             notifier.notifyHumanVerification(account, e.verificationUrl)
         } catch (e: AppVersionRejectedException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync stopped — app version rejected (Code ${e.protonCode}), update required" }
+            userPreferences.lastSyncErrorCode = SyncErrorCodes.APP_VERSION
             notifier.notifyHumanVerification(account, null)
         } catch (e: Exception) {
             syncResult.stats.numIoExceptions += 1
             logger.error(e) { "sync failed" }
+            userPreferences.lastSyncErrorCode = SyncErrorCodes.IO
             if (syncResult.tooManyRetries) {
                 notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
             }
         }
+    }
+
+    private fun recordSuccess() {
+        userPreferences.lastSyncSuccessAtMillis = System.currentTimeMillis()
+        userPreferences.lastSyncErrorCode = null
     }
 }

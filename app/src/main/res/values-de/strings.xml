@@ -9,6 +9,10 @@
     <string name="launcher_synced_contacts">Synchronisiert: %d Kontakte</string>
     <string name="launcher_last_sync">Letzte Synchronisierung: %s</string>
     <string name="launcher_last_sync_never">Letzte Synchronisierung: nie</string>
+    <string name="launcher_sync_failed_reauth">Synchronisierung fehlgeschlagen — bitte erneut anmelden.</string>
+    <string name="launcher_sync_failed_verification">Synchronisierung fehlgeschlagen — Verifizierung auf der Proton-Website erforderlich.</string>
+    <string name="launcher_sync_failed_app_version">Synchronisierung fehlgeschlagen — bitte pcontacts aktualisieren.</string>
+    <string name="launcher_sync_failed_network">Synchronisierung fehlgeschlagen — Verbindung prüfen und erneut versuchen.</string>
     <string name="launcher_unverified_warning">%d Kontakte konnten nicht verifiziert werden</string>
     <string name="channel_status_name">Synchronisierungsstatus</string>
     <string name="channel_status_description">Informationen zum Synchronisierungsstatus</string>

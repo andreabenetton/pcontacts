@@ -58,6 +58,7 @@ import io.pcontacts.app.permissions.ContactsPermissionBanner
 import io.pcontacts.app.permissions.ContactsPermissionState
 import io.pcontacts.app.permissions.ContactsPermissionStatus
 import io.pcontacts.app.settings.SettingsActivity
+import io.pcontacts.app.sync.SyncErrorCodes
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
@@ -371,6 +372,13 @@ private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatu
         text = lastSyncText,
         style = MaterialTheme.typography.bodyMedium
     )
+    if (status.lastSyncFailed) {
+        Text(
+            text = syncFailureMessage(status.lastSyncErrorCode),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
     if (status.pendingChanges > 0) {
         Text(
             text = pluralStringResource(
@@ -401,6 +409,16 @@ private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatu
         )
     }
 }
+
+@Composable
+private fun syncFailureMessage(code: String?): String = stringResource(
+    when (code) {
+        SyncErrorCodes.REAUTH -> R.string.launcher_sync_failed_reauth
+        SyncErrorCodes.VERIFICATION -> R.string.launcher_sync_failed_verification
+        SyncErrorCodes.APP_VERSION -> R.string.launcher_sync_failed_app_version
+        else -> R.string.launcher_sync_failed_network
+    }
+)
 
 @Composable
 private fun VerificationFallbackDialog(onDismiss: () -> Unit) {
