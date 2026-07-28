@@ -10,6 +10,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2026-07-28
+
+### Fixed
+
+- **Contacts failed to sync on release (F-Droid/signed) builds.**
+  R8/minification tree-shook ez-vcard's reflectively-invoked
+  `parameter`/`util` members (only `io.scribe` + `property` were kept),
+  so every contact threw `NoSuchMethodException` during vCard parsing
+  and was skipped — the account synced 0 contacts. Debug builds, being
+  un-minified, were unaffected, which is why it only surfaced in the
+  field. Added keep rules for the reflective packages (without dragging
+  in ez-vcard's unused hCard/jsoup/freemarker path). Diagnosed live on
+  a release build via 1.3.3's new production logging.
+
+### Changed
+
+- Sync failure logs now include the third-party throw-site frame
+  (redacted, no contact content), so library-level bugs like the above
+  are pinned directly instead of collapsing to the app boundary.
+
 ## [1.3.3] - 2026-07-28
 
 ### Fixed
@@ -311,6 +331,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.3.4]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.4
 [1.3.3]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.3
 [1.3.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.2
 [1.3.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.1

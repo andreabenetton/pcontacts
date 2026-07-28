@@ -1,0 +1,3 @@
+Version 1.3.4.
+
+* Fixed contacts not syncing on release (F-Droid) builds. Minification was stripping part of the vCard library, so every contact failed to parse and nothing synced. Debug builds were unaffected, which is why it only showed up after install.

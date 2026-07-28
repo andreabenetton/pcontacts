@@ -1,0 +1,3 @@
+Version 1.3.4.
+
+* Behoben: Kontakte wurden in Release-Builds (F-Droid) nicht synchronisiert. Die Minifizierung entfernte einen Teil der vCard-Bibliothek, sodass jeder Kontakt nicht verarbeitet werden konnte und nichts synchronisiert wurde. Debug-Builds waren nicht betroffen, weshalb das Problem erst nach der Installation auftrat.

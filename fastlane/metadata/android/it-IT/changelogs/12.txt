@@ -1,0 +1,3 @@
+Versione 1.3.4.
+
+* Corretto il mancato sincronizzarsi dei contatti nelle build di rilascio (F-Droid). La minificazione rimuoveva parte della libreria vCard, quindi ogni contatto non veniva analizzato e nulla si sincronizzava. Le build di debug non erano interessate, per questo il problema emergeva solo dopo l'installazione.
