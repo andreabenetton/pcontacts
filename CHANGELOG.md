@@ -14,15 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `x-pm-appversion` bumped to `android-mail@7.10.4` to track Proton's
-  current official Android client and stay inside the server's
-  accepted version window (the previous `3.0.12` had aged far behind
-  the 7.x line, risking force-upgrade rejection at login). The exact
-  window bounds are unverified against the live API `[A]`; see
-  `docs/API_RESEARCH.md` §2.
 - Build now compiles against Android 16 (compileSdk 36).
 - Dependency updates: OkHttp 5.4.0, Kotest 6.2.2, Kover 0.9.8,
   KSP 2.3.9.
+
+### Documentation
+
+- Verified the `x-pm-appversion` acceptance window against the live
+  Proton API (2026-07-28): `android-mail@2.0.0`–`3.0.12` are accepted
+  for the direct `auth/info` SRP flow; `3.0.13` and newer (including
+  the current 7.x line) return `401`. The pinned value stays at
+  `android-mail@3.0.12`; it is a client identifier, not the latest
+  app version. See `docs/API_RESEARCH.md` §2.
 
 ## [1.2.0] - 2026-06-22
 

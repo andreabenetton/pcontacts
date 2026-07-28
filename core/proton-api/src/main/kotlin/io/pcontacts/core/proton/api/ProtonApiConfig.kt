@@ -7,13 +7,17 @@ package io.pcontacts.core.proton.api
  * Static configuration the HTTP layer needs: base URL, the
  * `x-pm-appversion` value, optional locale.
  *
- * `[V]` The server validates `x-pm-appversion` against a sliding
- * window of accepted `android-mail@<semver>` values (custom client
- * IDs are rejected with HTTP 400). `[A]` The exact window bounds are
- * not validated against the live API; the default tracks the latest
- * official `ProtonMail/android-mail` release (`7.10.4`, 2026-07-17)
- * to stay inside the window. The window moves as Proton ships new
- * official releases, so this default will need periodic bumps.
+ * The `x-pm-appversion` value is a client identifier that selects a
+ * server-side API *contract* — it is NOT "the latest app version".
+ * `[V]` The server accepts `android-mail@<semver>` for the window that
+ * matches the direct `auth/info` SRP flow this app implements:
+ * **2.0.0 through 3.0.12**. Verified live against `POST core/v4/auth/info`
+ * on 2026-07-28 — `1.0.0` → 422 (Code 5003, force upgrade),
+ * `2.0.0`/`3.0.12` → 200 + `Modulus`, `3.0.13` and up (including the
+ * current 7.x line) → 401 "Invalid access token".
+ * `[U]` 3.0.13+ appear to require an unauthenticated-session token
+ * obtained before `auth/info`, which this app does not implement — so
+ * do NOT bump this to the latest official android-mail release.
  *
  * When the pinned version ages out, Proton responds with `Code: 5003`
  * (force upgrade) `[V]` or `5004` (API version unsupported) `[A]`.
@@ -35,6 +39,6 @@ data class ProtonApiConfig(
     }
 
     companion object {
-        const val DEFAULT_APP_VERSION: String = "7.10.4"
+        const val DEFAULT_APP_VERSION: String = "3.0.12"
     }
 }

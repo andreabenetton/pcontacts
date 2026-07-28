@@ -51,19 +51,25 @@ Every request to the Proton API must carry these headers `[V]`:
 The Proton server validates the `x-pm-appversion` header against a
 known set of client identifiers and a sliding version window `[V]`.
 
-- The prefix must be a known client identifier. Custom values
-  (e.g. `android-contacts@1.0.0`) are rejected with HTTP 400.
-- `android-mail@<semver>` is accepted. `[A]` The exact window
-  bounds are not validated against the live API; to stay inside
-  the window we track the latest official `ProtonMail/android-mail`
-  release (`7.10.4`, published 2026-07-17).
-- Versions far outside the window (e.g. `1.0.0` or `99.0.0`) are
-  rejected.
-- The window slides as Proton releases new official app versions.
-  If our hardcoded version falls behind the window, login will
-  start failing with 400 — this is risk #1 in the risk register.
+The appversion is a client identifier that selects a server-side API
+**contract** — it is not "the latest official app version". The value
+we send must match the direct `auth/info` SRP flow this app implements.
 
-Current value: `android-mail@7.10.4` (set in `ProtonApiConfig`).
+`[V]` Verified live against `POST core/v4/auth/info` on 2026-07-28:
+
+| `android-mail@<semver>` | Result |
+|---|---|
+| `1.0.0` | 422 `Code 5003` (force upgrade — too old) |
+| `2.0.0` … `3.0.12` | 200 `Code 1000` + `Modulus` ✅ |
+| `3.0.13` and up (incl. the 7.x line, `99.0.0`) | 401 "Invalid access token" |
+
+`[U]` 3.0.13+ appear to require an **unauthenticated-session** token
+obtained before `auth/info` (Proton's newer apps establish a session
+first); this app implements only the older direct flow, so it must
+stay in `2.0.0`–`3.0.12`. Bumping to the latest android-mail release
+breaks login (see the v1.3.0 regression).
+
+Current value: `android-mail@3.0.12` (set in `ProtonApiConfig`).
 
 ### Version-rejection detection
 
@@ -385,7 +391,8 @@ highlights:
 2. **ChallengePayload enforcement.** Currently accepted empty.
    Mitigation: if rejected, investigate `@protontech/challenge`
    source; last resort is WebView-based auth (out of scope for v1).
-3. **appVersion window drift.** Our `7.10.4` will age out.
+3. **appVersion window drift.** Our `3.0.12` sits at the top of the
+   `2.0.0`–`3.0.12` window and may eventually age out.
    Mitigation: `AppVersionRejectionInterceptor` detects Code
    5003/5004 `[V]`/`[A]` and throws a typed exception so the
    SyncAdapter stops retrying and the user sees "app update
