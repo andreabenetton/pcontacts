@@ -107,7 +107,8 @@ object SyncBootstrap {
             pendingChanges = outboxDao.countPending(),
             quarantinedChanges = outboxDao.countQuarantined(),
             lastSyncFailed = prefs.lastSyncErrorCode != null,
-            lastSyncErrorCode = prefs.lastSyncErrorCode
+            lastSyncErrorCode = prefs.lastSyncErrorCode,
+            failedContacts = prefs.lastSyncFailedContacts
         )
     }
 

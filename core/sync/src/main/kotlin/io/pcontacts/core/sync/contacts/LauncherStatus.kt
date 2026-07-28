@@ -12,5 +12,7 @@ data class LauncherStatus(
     /** True when the most recent sync attempt failed (see [lastSyncErrorCode]). */
     val lastSyncFailed: Boolean = false,
     /** Stable, non-sensitive code for the last sync failure, or null. */
-    val lastSyncErrorCode: String? = null
+    val lastSyncErrorCode: String? = null,
+    /** Contacts the last sync skipped (fetch/decrypt/parse failures). */
+    val failedContacts: Int = 0
 )
