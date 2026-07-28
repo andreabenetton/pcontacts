@@ -42,6 +42,10 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
             }.apply()
         }
 
+    override var lastSyncFailedContacts: Int
+        get() = prefs.getInt(KEY_LAST_SYNC_FAILED_CONTACTS, 0)
+        set(value) { prefs.edit().putInt(KEY_LAST_SYNC_FAILED_CONTACTS, value).apply() }
+
     private companion object {
         const val PREFS_NAME = "pcontacts_user_prefs"
         const val KEY_SYNC_INTERVAL = "sync_interval_hours"
@@ -49,5 +53,6 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_CONTACTS_PERMISSION_REQUESTED = "contacts_permission_requested"
         const val KEY_LAST_SYNC_SUCCESS_AT = "last_sync_success_at"
         const val KEY_LAST_SYNC_ERROR_CODE = "last_sync_error_code"
+        const val KEY_LAST_SYNC_FAILED_CONTACTS = "last_sync_failed_contacts"
     }
 }

@@ -34,4 +34,11 @@ class SharedPreferencesUserPreferencesTest {
         prefs().lastSyncErrorCode = null
         assertNull(prefs().lastSyncErrorCode)
     }
+
+    @Test
+    fun lastSyncFailedContacts_defaults_zero_and_round_trips() {
+        assertEquals(0, prefs().lastSyncFailedContacts)
+        prefs().lastSyncFailedContacts = 3
+        assertEquals(3, prefs().lastSyncFailedContacts)
+    }
 }

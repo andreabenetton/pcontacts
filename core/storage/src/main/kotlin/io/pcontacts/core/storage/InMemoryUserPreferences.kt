@@ -13,4 +13,5 @@ class InMemoryUserPreferences : UserPreferences {
     override var contactsPermissionRequested: Boolean = false
     override var lastSyncSuccessAtMillis: Long = 0L
     override var lastSyncErrorCode: String? = null
+    override var lastSyncFailedContacts: Int = 0
 }

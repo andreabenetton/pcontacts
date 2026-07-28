@@ -40,6 +40,14 @@ interface UserPreferences {
      */
     var lastSyncErrorCode: String?
 
+    /**
+     * Number of contacts skipped by the most recent sync because they
+     * failed to fetch/decrypt/parse. `0` when the last sync had no such
+     * failures. Lets the launcher report partial-success ("N contacts
+     * couldn't be synced") without persisting any contact content.
+     */
+    var lastSyncFailedContacts: Int
+
     companion object {
         const val DEFAULT_SYNC_INTERVAL_HOURS = 12L
         val ALLOWED_INTERVALS_HOURS = listOf(1L, 6L, 12L, 24L)
