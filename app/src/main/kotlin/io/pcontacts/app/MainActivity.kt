@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
     private var resumeTick = 0
     private var pendingVerificationReturn = false
     private var notificationDenied = false
+    private var syncStatusObserverHandle: Any? = null
     private var contactsPermissionStatus by mutableStateOf(ContactsPermissionStatus.GRANTED)
 
     private val permissionLauncher = registerForActivityResult(
@@ -166,10 +167,29 @@ class MainActivity : ComponentActivity() {
         contactsPermissionStatus = ContactsPermissionState.check(
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
+        observeSyncStatus()
 
         if (pendingVerificationReturn) {
             pendingVerificationReturn = false
             requestExpeditedSync()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        syncStatusObserverHandle?.let { ContentResolver.removeStatusChangeListener(it) }
+        syncStatusObserverHandle = null
+    }
+
+    // Refresh the launcher status when a sync starts/finishes so the counts and
+    // "last sync" line update live while the screen is foregrounded, rather than
+    // only on the next onResume (e.g. the initial sync that follows login).
+    private fun observeSyncStatus() {
+        if (syncStatusObserverHandle != null) return
+        val mask = ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE or
+            ContentResolver.SYNC_OBSERVER_TYPE_PENDING
+        syncStatusObserverHandle = ContentResolver.addStatusChangeListener(mask) { _ ->
+            viewModel.refresh()
         }
     }
 
