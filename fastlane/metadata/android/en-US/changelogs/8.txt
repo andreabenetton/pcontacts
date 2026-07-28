@@ -1,0 +1,5 @@
+Version 1.3.0.
+
+* Updated the Proton app-version identifier (x-pm-appversion) to android-mail@7.10.4 so sign-in stays within Proton's accepted client-version window. The previous value had aged behind Proton's current app releases and risked being rejected at login.
+
+Internal: build now compiles against Android 16 (SDK 36); dependency updates (OkHttp 5.4.0, Kotest 6.2.2, Kover 0.9.8, KSP 2.3.9).

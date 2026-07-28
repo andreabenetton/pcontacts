@@ -1,0 +1,5 @@
+Versione 1.3.0.
+
+* Aggiornato l'identificativo di versione dell'app Proton (x-pm-appversion) a android-mail@7.10.4 affinché l'accesso rimanga entro la finestra di versioni client accettata da Proton. Il valore precedente era ormai troppo datato rispetto alle versioni attuali dell'app Proton e rischiava di essere rifiutato all'accesso.
+
+Interno: la build ora compila con Android 16 (SDK 36); aggiornamenti delle dipendenze (OkHttp 5.4.0, Kotest 6.2.2, Kover 0.9.8, KSP 2.3.9).

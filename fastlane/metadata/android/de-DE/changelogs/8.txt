@@ -1,0 +1,5 @@
+Version 1.3.0.
+
+* Die Proton-App-Versionskennung (x-pm-appversion) wurde auf android-mail@7.10.4 aktualisiert, damit die Anmeldung innerhalb des von Proton akzeptierten Client-Versionsfensters bleibt. Der vorherige Wert war gegenüber den aktuellen Proton-App-Versionen veraltet und drohte, bei der Anmeldung abgelehnt zu werden.
+
+Intern: Der Build kompiliert jetzt gegen Android 16 (SDK 36); Abhängigkeitsaktualisierungen (OkHttp 5.4.0, Kotest 6.2.2, Kover 0.9.8, KSP 2.3.9).

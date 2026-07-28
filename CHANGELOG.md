@@ -10,6 +10,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-28
+
+### Changed
+
+- `x-pm-appversion` bumped to `android-mail@7.10.4` to track Proton's
+  current official Android client and stay inside the server's
+  accepted version window (the previous `3.0.12` had aged far behind
+  the 7.x line, risking force-upgrade rejection at login). The exact
+  window bounds are unverified against the live API `[A]`; see
+  `docs/API_RESEARCH.md` §2.
+- Build now compiles against Android 16 (compileSdk 36).
+- Dependency updates: OkHttp 5.4.0, Kotest 6.2.2, Kover 0.9.8,
+  KSP 2.3.9.
+
 ## [1.2.0] - 2026-06-22
 
 ### Added
@@ -235,6 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.3.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.0
+[1.2.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.2.0
 [1.1.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.1.0
 [1.0.3]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.0.3
 [1.0.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.0.2
