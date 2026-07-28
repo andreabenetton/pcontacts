@@ -16,4 +16,21 @@
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Bestätigen</string>
     <string name="two_factor_cancel">Anmeldung abbrechen</string>
+
+    <!-- Fehlermeldungen bei der Anmeldung -->
+    <string name="login_error_unreachable">Proton konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>
+    <string name="login_error_srp">Interner SRP-Fehler. Versuchen Sie es erneut oder melden Sie dies.</string>
+    <string name="login_error_credentials">Anmeldung fehlgeschlagen. Benutzername oder Passwort falsch?</string>
+    <string name="login_error_proof_mismatch">Server-Proof stimmt nicht überein. Ihre Verbindung wird möglicherweise abgehört.</string>
+    <string name="login_error_app_version">Diese App-Version wird von Proton nicht mehr akzeptiert. Bitte aktualisieren Sie pcontacts.</string>
+    <string name="login_error_modulus">Die Identität von Proton konnte nicht überprüft werden. Ihre Verbindung wird möglicherweise abgehört; die Anmeldung wurde abgebrochen.</string>
+    <string name="login_error_key_derivation">Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.</string>
+    <string name="login_error_generic">Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.</string>
+
+    <!-- Fehlermeldungen bei der Zwei-Faktor-Authentifizierung -->
+    <string name="two_factor_error_unreachable">Proton konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>
+    <string name="two_factor_error_rejected">Falscher Code. Versuchen Sie es erneut.</string>
+    <string name="two_factor_error_session_expired">Anmeldesitzung abgelaufen. Bitte beginnen Sie von vorne.</string>
+    <string name="two_factor_error_unexpected">Unerwartete Antwort vom Server. Versuchen Sie es erneut oder starten Sie die Anmeldung neu.</string>
+    <string name="two_factor_error_generic">Zwei-Faktor-Verifizierung fehlgeschlagen. Versuchen Sie es erneut oder starten Sie die Anmeldung neu.</string>
 </resources>

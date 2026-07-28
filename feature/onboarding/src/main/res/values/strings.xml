@@ -16,4 +16,21 @@
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Verify</string>
     <string name="two_factor_cancel">Cancel sign-in</string>
+
+    <!-- Login failure messages (keyed off LoginResult.Failed reason codes) -->
+    <string name="login_error_unreachable">Could not reach Proton. Check your connection and try again.</string>
+    <string name="login_error_srp">Internal SRP error. Try again or report this.</string>
+    <string name="login_error_credentials">Sign-in failed. Wrong username or password?</string>
+    <string name="login_error_proof_mismatch">Server proof mismatch. Your connection may be intercepted.</string>
+    <string name="login_error_app_version">This app version is no longer accepted by Proton. Please update pcontacts.</string>
+    <string name="login_error_modulus">Couldn\'t verify Proton\'s identity. Your connection may be intercepted; sign-in was stopped.</string>
+    <string name="login_error_key_derivation">Sign-in failed. Please try again.</string>
+    <string name="login_error_generic">Sign-in failed. Please try again.</string>
+
+    <!-- Two-factor failure messages -->
+    <string name="two_factor_error_unreachable">Could not reach Proton. Check your connection and try again.</string>
+    <string name="two_factor_error_rejected">Wrong code. Try again.</string>
+    <string name="two_factor_error_session_expired">Sign-in session expired. Please start over.</string>
+    <string name="two_factor_error_unexpected">Unexpected response from server. Try again or restart sign-in.</string>
+    <string name="two_factor_error_generic">Two-factor verification failed. Try again or restart sign-in.</string>
 </resources>

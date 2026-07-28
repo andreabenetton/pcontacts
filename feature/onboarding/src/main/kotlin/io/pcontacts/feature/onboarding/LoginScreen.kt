@@ -169,19 +169,26 @@ private fun LoginStatusView(
     }
 }
 
+@Composable
 private fun friendlyError(reason: String): String = when (reason) {
-    "info_failed" -> "Could not reach Proton. Check your connection and try again."
-    "srp_failed" -> "Internal SRP error. Try again or report this."
-    "auth_failed" -> "Sign-in failed. Wrong username or password?"
+    "info_failed" -> stringResource(R.string.login_error_unreachable)
+    "srp_failed" -> stringResource(R.string.login_error_srp)
+    "auth_failed" -> stringResource(R.string.login_error_credentials)
     "server_proof_decode_failed",
-    "server_proof_mismatch" -> "Server proof mismatch. Your connection may be intercepted."
-    else -> "Sign-in failed: $reason"
+    "server_proof_mismatch" -> stringResource(R.string.login_error_proof_mismatch)
+    "appversion_rejected" -> stringResource(R.string.login_error_app_version)
+    "modulus_unsigned",
+    "modulus_signature_invalid",
+    "modulus_pin_missing" -> stringResource(R.string.login_error_modulus)
+    "key_derivation_failed" -> stringResource(R.string.login_error_key_derivation)
+    else -> stringResource(R.string.login_error_generic)
 }
 
+@Composable
 internal fun friendlyTotpError(reason: String): String = when (reason) {
-    "two_factor_failed" -> "Could not reach Proton. Check your connection and try again."
-    "two_factor_rejected" -> "Wrong code. Try again."
-    "no_session" -> "Sign-in session expired. Please start over."
-    "unexpected_state" -> "Unexpected response from server. Try again or restart sign-in."
-    else -> "Two-factor verification failed: $reason"
+    "two_factor_failed" -> stringResource(R.string.two_factor_error_unreachable)
+    "two_factor_rejected" -> stringResource(R.string.two_factor_error_rejected)
+    "no_session" -> stringResource(R.string.two_factor_error_session_expired)
+    "unexpected_state" -> stringResource(R.string.two_factor_error_unexpected)
+    else -> stringResource(R.string.two_factor_error_generic)
 }

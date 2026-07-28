@@ -16,4 +16,21 @@
     <string name="two_factor_code_label">Codice</string>
     <string name="two_factor_verify">Verifica</string>
     <string name="two_factor_cancel">Annulla accesso</string>
+
+    <!-- Messaggi di errore di accesso -->
+    <string name="login_error_unreachable">Impossibile raggiungere Proton. Controlla la tua connessione e riprova.</string>
+    <string name="login_error_srp">Errore SRP interno. Riprova o segnala il problema.</string>
+    <string name="login_error_credentials">Accesso non riuscito. Nome utente o password errati?</string>
+    <string name="login_error_proof_mismatch">La prova del server non corrisponde. La tua connessione potrebbe essere intercettata.</string>
+    <string name="login_error_app_version">Questa versione dell\'app non è più accettata da Proton. Aggiorna pcontacts.</string>
+    <string name="login_error_modulus">Impossibile verificare l\'identità di Proton. La tua connessione potrebbe essere intercettata; accesso interrotto.</string>
+    <string name="login_error_key_derivation">Accesso non riuscito. Riprova.</string>
+    <string name="login_error_generic">Accesso non riuscito. Riprova.</string>
+
+    <!-- Messaggi di errore a due fattori -->
+    <string name="two_factor_error_unreachable">Impossibile raggiungere Proton. Controlla la tua connessione e riprova.</string>
+    <string name="two_factor_error_rejected">Codice errato. Riprova.</string>
+    <string name="two_factor_error_session_expired">Sessione di accesso scaduta. Ricomincia.</string>
+    <string name="two_factor_error_unexpected">Risposta imprevista dal server. Riprova o riavvia l\'accesso.</string>
+    <string name="two_factor_error_generic">Verifica a due fattori non riuscita. Riprova o riavvia l\'accesso.</string>
 </resources>

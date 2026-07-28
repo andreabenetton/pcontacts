@@ -130,4 +130,41 @@ class LoginScreenTest {
         composeRule.onNode(hasText("Wrong username or password?", substring = true))
             .assertIsDisplayed()
     }
+
+    @Test
+    fun failed_state_maps_appversion_rejected_to_friendly_update_message() {
+        val vm = viewModel(
+            attemptLogin = { _, _ -> LoginResult.Failed("appversion_rejected") }
+        )
+
+        composeRule.setContent {
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
+        }
+        composeRule.onNodeWithText("Email or username").performTextInput("alice")
+        composeRule.onNodeWithText("Password").performTextInput("pw")
+        composeRule.onNodeWithText("Sign in").performClick()
+
+        composeRule.waitForIdle()
+        composeRule.onNode(hasText("update pcontacts", substring = true)).assertIsDisplayed()
+        // The raw reason code must never reach the user.
+        composeRule.onNode(hasText("appversion_rejected", substring = true)).assertDoesNotExist()
+    }
+
+    @Test
+    fun failed_state_maps_modulus_failure_to_security_warning() {
+        val vm = viewModel(
+            attemptLogin = { _, _ -> LoginResult.Failed("modulus_signature_invalid") }
+        )
+
+        composeRule.setContent {
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
+        }
+        composeRule.onNodeWithText("Email or username").performTextInput("alice")
+        composeRule.onNodeWithText("Password").performTextInput("pw")
+        composeRule.onNodeWithText("Sign in").performClick()
+
+        composeRule.waitForIdle()
+        composeRule.onNode(hasText("may be intercepted", substring = true)).assertIsDisplayed()
+        composeRule.onNode(hasText("modulus_signature_invalid", substring = true)).assertDoesNotExist()
+    }
 }
