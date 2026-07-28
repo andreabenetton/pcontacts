@@ -1,0 +1,6 @@
+Versione 1.3.3.
+
+* La sincronizzazione non si interrompe più del tutto per un singolo contatto problematico: un contatto che non può essere recuperato, decifrato o analizzato viene saltato e segnalato, e gli altri si sincronizzano normalmente.
+* Errori di sincronizzazione più onesti: solo i veri problemi di connessione mostrano "controlla la connessione"; gli altri errori non incolpano più la rete.
+* La schermata principale mostra quanti contatti la sincronizzazione ha dovuto saltare.
+* Diagnostica migliore: gli errori di sincronizzazione ora vengono registrati (senza alcun contenuto dei contatti) per poter essere tracciati.

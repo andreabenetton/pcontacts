@@ -1,0 +1,6 @@
+Version 1.3.3.
+
+* Die Synchronisierung schlägt nicht mehr komplett wegen eines einzelnen fehlerhaften Kontakts fehl: Ein Kontakt, der nicht abgerufen, entschlüsselt oder verarbeitet werden kann, wird übersprungen und gemeldet, und die übrigen werden normal synchronisiert.
+* Ehrliche Synchronisierungsfehler: Nur echte Verbindungsprobleme zeigen "Verbindung prüfen"; andere Fehler geben nicht mehr dem Netzwerk die Schuld.
+* Der Startbildschirm zeigt, wie viele Kontakte bei der Synchronisierung übersprungen wurden.
+* Bessere Diagnose: Synchronisierungsfehler werden jetzt protokolliert (ohne jeglichen Kontaktinhalt), damit Probleme nachverfolgt werden können.

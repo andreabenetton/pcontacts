@@ -10,6 +10,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-07-28
+
+### Fixed
+
+- Sync is now resilient to individual bad contacts: a contact that
+  fails to fetch, decrypt, or parse is skipped and counted instead of
+  aborting the entire sync (one malformed contact on a large account
+  previously failed every contact).
+- Sync errors are classified honestly. Only genuine network/transport
+  failures show "check your connection"; other failures (a bug or bad
+  data) no longer blame the connection.
+
+### Added
+
+- The launcher reports how many contacts the last sync skipped
+  ("N contacts couldn't be synced").
+- Production sync logging now captures the real failure location — a
+  redacted throwable fingerprint (class + in-project call path + cause
+  chain, never any contact content) — and the pull path, which was
+  previously wired to a no-op logger, now logs. Field sync failures are
+  diagnosable from logcat.
+
 ## [1.3.2] - 2026-07-28
 
 ### Fixed
@@ -289,6 +311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.3.3]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.3
 [1.3.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.2
 [1.3.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.1
 [1.3.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.0

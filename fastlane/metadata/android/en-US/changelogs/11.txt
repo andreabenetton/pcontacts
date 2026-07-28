@@ -1,0 +1,6 @@
+Version 1.3.3.
+
+* Sync no longer fails entirely because of one bad contact — a contact that can't be fetched, decrypted, or parsed is skipped and reported, and the rest sync normally.
+* Sync errors are honest: only real connection problems say "check your connection"; other failures no longer blame your network.
+* The home screen shows how many contacts a sync had to skip.
+* Better diagnostics: sync failures are now logged (without any contact content) so problems can actually be traced.
