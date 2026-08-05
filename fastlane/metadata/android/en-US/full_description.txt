@@ -1,28 +1,25 @@
-pcontacts signs in to your Proton Mail account, decrypts your contacts
-client-side using OpenPGP, and exposes them to the system Contacts app
-so they appear alongside your local contacts — the same way WhatsApp or
-Telegram surface their own contact directories.
+pcontacts signs in to your Proton Mail account, decrypts your contacts client-side using OpenPGP, and exposes them to the system Contacts app so they appear alongside your local contacts — the same way WhatsApp or Telegram surface their own contact directories.
+
+This app is not affiliated with or endorsed by Proton AG.
+It uses the same HTTP API as the Proton Mail web client, which is not officially documented or supported for third-party use.
+The API may change at any time without notice.
+
+Once contacts land in ContactsContract, the OS owns them.
+Stock Android ships with pre-installed applications — Google Play Services, Google Contacts, Gmail, the OEM dialer, the OEM messaging app, vendor "assistant" services — that are granted READ_CONTACTS by default or are very difficult to revoke.
+Decrypting Proton contacts onto a device with those apps still installed effectively shares them with Google and the OEM.
+For a meaningful privacy posture, run pcontacts on a de-Googled ROM: GrapheneOS is preferred (sandboxed Google Play, per-app contacts scopes), or LineageOS for microG, or vanilla LineageOS without GApps.
+pcontacts cannot fix this for you on stock Android; it is a property of the platform's permission model, not of this app.
 
 Features:
 
 * SRP login with TOTP two-factor authentication.
-* Client-side-only decryption — your contacts are never sent anywhere
-  except the system address book on your device.
-* Full vCard field support: name, email, phone, address, organization,
-  notes, instant messaging, photos, and group membership.
-* Bidirectional sync: edits made in the system Contacts app are pushed
-  back to Proton with end-to-end encryption.
-* Soft-delete with a 1-hour grace period so accidental deletions can
-  be cancelled before they reach the server.
-* Per-field conflict detection when both the phone and Proton have
-  changes to the same contact.
+* Client-side-only decryption — your contacts are never sent anywhere except the system address book on your device.
+* Full vCard field support: name, email, phone, address, organization, notes, instant messaging, photos, and group membership.
+* Bidirectional sync: edits made in the system Contacts app are pushed back to Proton with end-to-end encryption.
+* Soft-delete with a 1-hour grace period so accidental deletions can be cancelled before they reach the server.
+* Per-field conflict detection when both the phone and Proton have changes to the same contact.
 * Periodic background sync via SyncAdapter and WorkManager.
 * No Google Play Services, no telemetry, no analytics, no tracking.
-
-This app is not affiliated with or endorsed by Proton AG. It uses the
-same HTTP API as the Proton Mail web client, which is not officially
-documented or supported for third-party use. The API may change at any
-time without notice.
 
 Source code: https://github.com/andreabenetton/pcontacts
 License: GPL-3.0-only
