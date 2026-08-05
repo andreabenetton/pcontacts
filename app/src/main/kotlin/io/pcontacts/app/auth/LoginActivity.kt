@@ -3,15 +3,12 @@
 
 package io.pcontacts.app.auth
 
-import android.accounts.Account
 import android.accounts.AccountAuthenticatorResponse
 import android.accounts.AccountManager
 import android.app.Activity
-import android.content.ContentResolver
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.provider.ContactsContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +23,7 @@ import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationActivity
+import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.feature.onboarding.LoginScreen
 import io.pcontacts.feature.onboarding.LoginUiState
@@ -122,14 +120,12 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun finishWithAccount(uid: String, username: String) {
-        val accountManager = AccountManager.get(this)
-        val account = Account(username, PROTON_ACCOUNT_TYPE)
-        accountManager.addAccountExplicitly(account, /* password = */ null, /* userdata = */ null)
-        accountManager.setUserData(account, "proton_uid", uid)
-
-        ContentResolver.setIsSyncable(account, ContactsContract.AUTHORITY, 1)
-        ContentResolver.setSyncAutomatically(account, ContactsContract.AUTHORITY, true)
-
+        ProtonAccountRegistrar.register(
+            context = this,
+            uid = uid,
+            username = username,
+            logger = RedactingLogger(tag = "Login", sink = AndroidLogcatSink())
+        )
         response?.onResult(
             Bundle().apply {
                 putString(AccountManager.KEY_ACCOUNT_NAME, username)

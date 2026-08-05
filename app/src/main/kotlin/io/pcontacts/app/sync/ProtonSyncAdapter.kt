@@ -6,9 +6,11 @@ package io.pcontacts.app.sync
 import android.accounts.Account
 import android.content.AbstractThreadedSyncAdapter
 import android.content.ContentProviderClient
+import android.content.ContentResolver
 import android.content.Context
 import android.content.SyncResult
 import android.os.Bundle
+import io.pcontacts.app.contacts.ContactsAccountSettings
 import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.app.notifications.SyncNotifier
 import io.pcontacts.core.logging.Logger
@@ -54,7 +56,9 @@ class ProtonSyncAdapter(
             wr to rr
         },
     internal val notifier: SyncNotifier = SyncNotifier(context),
-    internal val userPreferences: UserPreferences = SharedPreferencesUserPreferences(context)
+    internal val userPreferences: UserPreferences = SharedPreferencesUserPreferences(context),
+    internal val settingsInitializer: (ContentResolver, Account, Logger?) -> Boolean =
+        ContactsAccountSettings::ensureVisibleAndSyncable
 ) : AbstractThreadedSyncAdapter(context, autoInitialize) {
 
     private val logger: Logger = RedactingLogger(tag = "ProtonSync", sink = AndroidLogcatSink())
@@ -67,6 +71,11 @@ class ProtonSyncAdapter(
         syncResult: SyncResult
     ) {
         logger.info { "sync start account=${account.name} authority=$authority" }
+        if (!settingsInitializer(context.contentResolver, account, logger)) {
+            // Non-fatal: self-heals on the next sync (provider resets, OEM
+            // providers that create their settings row late, etc.).
+            logger.warn { "contacts Settings init failed — continuing sync" }
+        }
         try {
             val (writeReport, readReport) = runBlocking {
                 syncRunner(this@ProtonSyncAdapter.context, provider, account)
