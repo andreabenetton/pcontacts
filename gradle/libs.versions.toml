@@ -44,7 +44,7 @@ okhttp                       = "5.4.0"
 retrofit                     = "3.0.0"
 
 # Crypto + vCard
-bouncycastle                 = "1.84"
+bouncycastle                 = "1.85"
 ezvcard                      = "0.12.2"
 
 # Test
