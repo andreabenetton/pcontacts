@@ -62,6 +62,28 @@ a deferred follow-up — it needs result plumbing in LoginActivity's
 Compose tree and an ActivityResultLauncher conversion of
 `HumanVerificationLauncher` for the MainActivity path.
 
+## Hardware validation performed (non-Kompakt)
+
+2026-08-05, Samsung Galaxy A40 (SM-A405FN), Android 11 / One UI — the
+regression side of the device matrix, and an OEM provider on the ≤11
+separate-settings-table code path. Validated via `adb shell content`
+with a probe raw contact under `io.pcontacts.account` (cleaned up
+afterwards):
+
+- no settings row existed for the account; the ungrouped probe contact
+  aggregated with `in_visible_group=0` — the invisibility root cause
+  reproduces on real OEM hardware, not just in AOSP source;
+- the exact write `ContactsAccountSettings` performs created the row
+  (`ungrouped_visible=1`, `should_sync=1`) and the contact flipped to
+  `in_visible_group=1`;
+- a second identical insert upserted (still one row, no error) —
+  idempotency holds on this OEM provider;
+- debug APK installs and launches cleanly; `HumanVerificationActivity`
+  is confirmed non-exported (not launchable from outside the app).
+
+Not covered: app-driven login flow (needs Proton credentials on-device)
+and the no-WebView path (device has a provider).
+
 ## On-device validation checklist (needs Kompakt hardware)
 
 Automated coverage (Robolectric) proves URI shape, values, ordering, and
