@@ -12,8 +12,15 @@ java {
 }
 
 kotlin {
+    // Lint 31.11.x embeds a Kotlin 2.1 analysis; a newer kotlin-stdlib on the
+    // test classpath breaks symbol resolution inside LintDetectorTest (calls
+    // like kotlin.io.println stop resolving). Pin this module's core libraries
+    // to the stdlib lint itself was built against, and cap apiVersion so the
+    // 2.x compiler can't emit references to newer stdlib API.
+    coreLibrariesVersion = "2.1.20"
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1)
     }
 }
 
