@@ -81,8 +81,15 @@ afterwards):
 - debug APK installs and launches cleanly; `HumanVerificationActivity`
   is confirmed non-exported (not launchable from outside the app).
 
-Not covered: app-driven login flow (needs Proton credentials on-device)
-and the no-WebView path (device has a provider).
+Same device, app-driven end-to-end (test account login with 2FA):
+immediately after login the app itself created the settings row
+(`ungrouped_visible=1`, `should_sync=1`), the login-requested first sync
+fired within seconds and pulled both server contacts, the follow-up
+framework auto-sync re-ensured the row idempotently (`unchanged=2`, no
+errors), and both contacts aggregated with `in_visible_group=1`.
+
+Not covered: the no-WebView path (device has a provider) — Kompakt
+hardware still needed for that and for Mudita's own Contacts app.
 
 ## On-device validation checklist (needs Kompakt hardware)
 
