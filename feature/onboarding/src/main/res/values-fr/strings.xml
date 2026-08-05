@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="login_title">Compte Proton</string>
+    <string name="login_username_label">E-mail ou nom d\'utilisateur</string>
+    <string name="login_password_label">Mot de passe</string>
+    <string name="login_password_show">Afficher</string>
+    <string name="login_password_hide">Masquer</string>
+    <string name="login_sign_in">Se connecter</string>
+
+    <string name="two_factor_title">Authentification à deux facteurs</string>
+    <string name="two_factor_subtitle">Saisissez le code à 6 chiffres de votre app d\'authentification.</string>
+    <string name="two_factor_code_label">Code</string>
+    <string name="two_factor_verify">Vérifier</string>
+    <string name="two_factor_cancel">Annuler la connexion</string>
+
+    <!-- Messages d'erreur de connexion -->
+    <string name="login_error_unreachable">Impossible de joindre Proton. Vérifiez votre connexion et réessayez.</string>
+    <string name="login_error_srp">Erreur SRP interne. Réessayez ou signalez le problème.</string>
+    <string name="login_error_credentials">Échec de la connexion. Nom d\'utilisateur ou mot de passe incorrect ?</string>
+    <string name="login_error_proof_mismatch">La preuve du serveur ne correspond pas. Votre connexion est peut-être interceptée.</string>
+    <string name="login_error_app_version">Cette version de l\'app n\'est plus acceptée par Proton. Veuillez mettre à jour pcontacts.</string>
+    <string name="login_error_modulus">Impossible de vérifier l\'identité de Proton. Votre connexion est peut-être interceptée ; la connexion a été interrompue.</string>
+    <string name="login_error_key_derivation">Échec de la connexion. Veuillez réessayer.</string>
+    <string name="login_error_generic">Échec de la connexion. Veuillez réessayer.</string>
+
+    <!-- Messages d'erreur de l'authentification à deux facteurs -->
+    <string name="two_factor_error_unreachable">Impossible de joindre Proton. Vérifiez votre connexion et réessayez.</string>
+    <string name="two_factor_error_rejected">Code incorrect. Réessayez.</string>
+    <string name="two_factor_error_session_expired">La session de connexion a expiré. Veuillez recommencer.</string>
+    <string name="two_factor_error_unexpected">Réponse inattendue du serveur. Réessayez ou recommencez la connexion.</string>
+    <string name="two_factor_error_generic">Échec de la vérification à deux facteurs. Réessayez ou recommencez la connexion.</string>
+</resources>

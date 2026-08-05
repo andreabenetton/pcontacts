@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="login_title">Cuenta de Proton</string>
+    <string name="login_username_label">Correo o nombre de usuario</string>
+    <string name="login_password_label">Contraseña</string>
+    <string name="login_password_show">Mostrar</string>
+    <string name="login_password_hide">Ocultar</string>
+    <string name="login_sign_in">Iniciar sesión</string>
+
+    <string name="two_factor_title">Autenticación de dos factores</string>
+    <string name="two_factor_subtitle">Introduce el código de 6 dígitos de tu app de autenticación.</string>
+    <string name="two_factor_code_label">Código</string>
+    <string name="two_factor_verify">Verificar</string>
+    <string name="two_factor_cancel">Cancelar inicio de sesión</string>
+
+    <!-- Mensajes de error de inicio de sesión -->
+    <string name="login_error_unreachable">No se pudo conectar con Proton. Comprueba tu conexión y vuelve a intentarlo.</string>
+    <string name="login_error_srp">Error interno de SRP. Vuelve a intentarlo o repórtalo.</string>
+    <string name="login_error_credentials">Error al iniciar sesión. ¿Nombre de usuario o contraseña incorrectos?</string>
+    <string name="login_error_proof_mismatch">La prueba del servidor no coincide. Tu conexión podría estar interceptada.</string>
+    <string name="login_error_app_version">Proton ya no acepta esta versión de la app. Actualiza pcontacts.</string>
+    <string name="login_error_modulus">No se pudo verificar la identidad de Proton. Tu conexión podría estar interceptada; se detuvo el inicio de sesión.</string>
+    <string name="login_error_key_derivation">Error al iniciar sesión. Vuelve a intentarlo.</string>
+    <string name="login_error_generic">Error al iniciar sesión. Vuelve a intentarlo.</string>
+
+    <!-- Mensajes de error de la autenticación de dos factores -->
+    <string name="two_factor_error_unreachable">No se pudo conectar con Proton. Comprueba tu conexión y vuelve a intentarlo.</string>
+    <string name="two_factor_error_rejected">Código incorrecto. Vuelve a intentarlo.</string>
+    <string name="two_factor_error_session_expired">La sesión de inicio ha caducado. Empieza de nuevo.</string>
+    <string name="two_factor_error_unexpected">Respuesta inesperada del servidor. Vuelve a intentarlo o reinicia el inicio de sesión.</string>
+    <string name="two_factor_error_generic">La verificación de dos factores falló. Vuelve a intentarlo o reinicia el inicio de sesión.</string>
+</resources>

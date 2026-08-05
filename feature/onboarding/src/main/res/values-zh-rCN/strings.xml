@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="login_title">Proton 账户</string>
+    <string name="login_username_label">电子邮件或用户名</string>
+    <string name="login_password_label">密码</string>
+    <string name="login_password_show">显示</string>
+    <string name="login_password_hide">隐藏</string>
+    <string name="login_sign_in">登录</string>
+
+    <string name="two_factor_title">双重验证</string>
+    <string name="two_factor_subtitle">请输入验证器应用中的 6 位数字代码。</string>
+    <string name="two_factor_code_label">验证码</string>
+    <string name="two_factor_verify">验证</string>
+    <string name="two_factor_cancel">取消登录</string>
+
+    <!-- 登录错误信息 -->
+    <string name="login_error_unreachable">无法连接到 Proton。请检查网络连接后重试。</string>
+    <string name="login_error_srp">SRP 内部错误。请重试或反馈此问题。</string>
+    <string name="login_error_credentials">登录失败。用户名或密码有误？</string>
+    <string name="login_error_proof_mismatch">服务器证明不匹配。您的连接可能被拦截。</string>
+    <string name="login_error_app_version">Proton 已不再接受此应用版本。请更新 pcontacts。</string>
+    <string name="login_error_modulus">无法验证 Proton 的身份。您的连接可能被拦截；登录已中止。</string>
+    <string name="login_error_key_derivation">登录失败。请重试。</string>
+    <string name="login_error_generic">登录失败。请重试。</string>
+
+    <!-- 双重验证错误信息 -->
+    <string name="two_factor_error_unreachable">无法连接到 Proton。请检查网络连接后重试。</string>
+    <string name="two_factor_error_rejected">验证码错误。请重试。</string>
+    <string name="two_factor_error_session_expired">登录会话已过期。请重新开始。</string>
+    <string name="two_factor_error_unexpected">服务器返回异常响应。请重试或重新登录。</string>
+    <string name="two_factor_error_generic">双重验证失败。请重试或重新登录。</string>
+</resources>

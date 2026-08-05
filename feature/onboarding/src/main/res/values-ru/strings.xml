@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="login_title">Аккаунт Proton</string>
+    <string name="login_username_label">Эл. почта или имя пользователя</string>
+    <string name="login_password_label">Пароль</string>
+    <string name="login_password_show">Показать</string>
+    <string name="login_password_hide">Скрыть</string>
+    <string name="login_sign_in">Войти</string>
+
+    <string name="two_factor_title">Двухфакторная аутентификация</string>
+    <string name="two_factor_subtitle">Введите 6-значный код из приложения-аутентификатора.</string>
+    <string name="two_factor_code_label">Код</string>
+    <string name="two_factor_verify">Подтвердить</string>
+    <string name="two_factor_cancel">Отменить вход</string>
+
+    <!-- Сообщения об ошибках входа -->
+    <string name="login_error_unreachable">Не удалось связаться с Proton. Проверьте подключение и повторите попытку.</string>
+    <string name="login_error_srp">Внутренняя ошибка SRP. Повторите попытку или сообщите об этом.</string>
+    <string name="login_error_credentials">Не удалось войти. Неверное имя пользователя или пароль?</string>
+    <string name="login_error_proof_mismatch">Доказательство сервера не совпадает. Возможно, ваше подключение перехватывается.</string>
+    <string name="login_error_app_version">Эта версия приложения больше не принимается Proton. Обновите pcontacts.</string>
+    <string name="login_error_modulus">Не удалось проверить подлинность Proton. Возможно, ваше подключение перехватывается; вход остановлен.</string>
+    <string name="login_error_key_derivation">Не удалось войти. Повторите попытку.</string>
+    <string name="login_error_generic">Не удалось войти. Повторите попытку.</string>
+
+    <!-- Сообщения об ошибках двухфакторной аутентификации -->
+    <string name="two_factor_error_unreachable">Не удалось связаться с Proton. Проверьте подключение и повторите попытку.</string>
+    <string name="two_factor_error_rejected">Неверный код. Повторите попытку.</string>
+    <string name="two_factor_error_session_expired">Сессия входа истекла. Начните заново.</string>
+    <string name="two_factor_error_unexpected">Неожиданный ответ сервера. Повторите попытку или начните вход заново.</string>
+    <string name="two_factor_error_generic">Двухфакторная проверка не удалась. Повторите попытку или начните вход заново.</string>
+</resources>
