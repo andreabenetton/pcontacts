@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="settings_title">Contacts Proton</string>
+    <string name="settings_sync_now">Synchroniser maintenant</string>
+    <string name="settings_sign_out">Se déconnecter</string>
+    <string name="settings_signed_out">Déconnecté.</string>
+    <string name="settings_sync_requested">Synchronisation demandée</string>
+    <string name="settings_sync_failed">Échec de la synchronisation : %s</string>
+    <string name="settings_sign_out_failed">La déconnexion a signalé des erreurs : %s</string>
+    <string name="settings_sync_interval">Intervalle de synchronisation</string>
+
+    <string name="verification_icon">!</string>
+    <string name="verification_warning">%1$d contacts sur %2$d n\'ont pas pu être vérifiés</string>
+    <string name="verification_detail">La vérification de signature a échoué. Ces contacts ont peut-être été altérés.</string>
+    <string name="verification_tap_to_review">Appuyez pour examiner</string>
+    <string name="unverified_dialog_title">Contacts non vérifiés</string>
+    <string name="unverified_dialog_empty">Aucun contact non vérifié.</string>
+    <string name="unverified_dialog_close">Fermer</string>
+    <string name="unverified_no_name">(sans nom)</string>
+
+    <string name="contacts_access_tap_to_review">Appuyez pour voir la liste</string>
+    <string name="contacts_access_dialog_title">Apps ayant accès aux contacts</string>
+
+    <plurals name="outbox_pending">
+        <item quantity="one">%d modification en attente de synchronisation</item>
+        <item quantity="other">%d modifications en attente de synchronisation</item>
+    </plurals>
+    <plurals name="outbox_quarantined">
+        <item quantity="one">%d modification en échec définitif</item>
+        <item quantity="other">%d modifications en échec définitif</item>
+    </plurals>
+
+    <plurals name="pending_delete_count">
+        <item quantity="one">%d contact programmé pour suppression</item>
+        <item quantity="other">%d contacts programmés pour suppression</item>
+    </plurals>
+    <string name="pending_delete_grace">Les suppressions sont envoyées à Proton après un délai de grâce d\'une heure.</string>
+    <string name="pending_delete_cancel">Annuler</string>
+
+    <plurals name="conflict_count">
+        <item quantity="one">%d contact avec des conflits de synchronisation</item>
+        <item quantity="other">%d contacts avec des conflits de synchronisation</item>
+    </plurals>
+    <string name="conflict_detail">Le téléphone et Proton ont tous deux des modifications sur les mêmes champs.</string>
+    <string name="conflict_resolve">Résoudre</string>
+    <string name="conflict_dialog_title">Résoudre le conflit</string>
+    <string name="conflict_dialog_fields">Champs en conflit : %s</string>
+    <string name="conflict_dialog_prompt">Choisissez la version à conserver :</string>
+    <string name="conflict_use_local">Utiliser la version du téléphone</string>
+    <string name="conflict_use_server">Utiliser la version Proton</string>
+
+    <plurals name="contacts_access_count">
+        <item quantity="one">%d app peut lire vos contacts</item>
+        <item quantity="other">%d apps peuvent lire vos contacts</item>
+    </plurals>
+    <string name="contacts_access_detail">Ces apps disposent de l\'autorisation READ_CONTACTS et peuvent voir vos contacts Proton synchronisés.</string>
+
+    <plurals name="system_contacts_access_count">
+        <item quantity="one">%d app préinstallée peut lire vos contacts</item>
+        <item quantity="other">%d apps préinstallées peuvent lire vos contacts</item>
+    </plurals>
+    <string name="system_contacts_access_detail">Ces apps sont livrées avec votre système d\'exploitation et disposent de READ_CONTACTS par défaut. Sur Android stock, il s\'agit généralement de services Google ou du fabricant qui ne peuvent pas être désinstallés. Pour une meilleure confidentialité, utilisez pcontacts sur une ROM sans Google comme GrapheneOS ou LineageOS.</string>
+    <string name="system_contacts_access_dialog_title">Apps système ayant accès aux contacts</string>
+</resources>

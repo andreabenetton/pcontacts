@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="settings_title">Контакты Proton</string>
+    <string name="settings_sync_now">Синхронизировать сейчас</string>
+    <string name="settings_sign_out">Выйти</string>
+    <string name="settings_signed_out">Выход выполнен.</string>
+    <string name="settings_sync_requested">Синхронизация запрошена</string>
+    <string name="settings_sync_failed">Синхронизация не удалась: %s</string>
+    <string name="settings_sign_out_failed">Выход завершился с ошибками: %s</string>
+    <string name="settings_sync_interval">Интервал синхронизации</string>
+
+    <string name="verification_icon">!</string>
+    <string name="verification_warning">Не удалось проверить %1$d из %2$d контактов</string>
+    <string name="verification_detail">Проверка подписи не удалась. Эти контакты могли быть подделаны.</string>
+    <string name="verification_tap_to_review">Нажмите, чтобы просмотреть</string>
+    <string name="unverified_dialog_title">Непроверенные контакты</string>
+    <string name="unverified_dialog_empty">Непроверенных контактов нет.</string>
+    <string name="unverified_dialog_close">Закрыть</string>
+    <string name="unverified_no_name">(без имени)</string>
+
+    <string name="contacts_access_tap_to_review">Нажмите, чтобы открыть список</string>
+    <string name="contacts_access_dialog_title">Приложения с доступом к контактам</string>
+
+    <plurals name="outbox_pending">
+        <item quantity="one">%d изменение ожидает синхронизации</item>
+        <item quantity="few">%d изменения ожидают синхронизации</item>
+        <item quantity="many">%d изменений ожидают синхронизации</item>
+        <item quantity="other">%d изменений ожидают синхронизации</item>
+    </plurals>
+    <plurals name="outbox_quarantined">
+        <item quantity="one">%d изменение окончательно завершилось ошибкой</item>
+        <item quantity="few">%d изменения окончательно завершились ошибкой</item>
+        <item quantity="many">%d изменений окончательно завершились ошибкой</item>
+        <item quantity="other">%d изменений окончательно завершились ошибкой</item>
+    </plurals>
+
+    <plurals name="pending_delete_count">
+        <item quantity="one">%d контакт ожидает удаления</item>
+        <item quantity="few">%d контакта ожидают удаления</item>
+        <item quantity="many">%d контактов ожидают удаления</item>
+        <item quantity="other">%d контактов ожидают удаления</item>
+    </plurals>
+    <string name="pending_delete_grace">Удаления отправляются в Proton после часового льготного периода.</string>
+    <string name="pending_delete_cancel">Отмена</string>
+
+    <plurals name="conflict_count">
+        <item quantity="one">%d контакт с конфликтами синхронизации</item>
+        <item quantity="few">%d контакта с конфликтами синхронизации</item>
+        <item quantity="many">%d контактов с конфликтами синхронизации</item>
+        <item quantity="other">%d контактов с конфликтами синхронизации</item>
+    </plurals>
+    <string name="conflict_detail">И телефон, и Proton содержат изменения одних и тех же полей.</string>
+    <string name="conflict_resolve">Разрешить</string>
+    <string name="conflict_dialog_title">Разрешить конфликт</string>
+    <string name="conflict_dialog_fields">Конфликтующие поля: %s</string>
+    <string name="conflict_dialog_prompt">Выберите, какую версию сохранить:</string>
+    <string name="conflict_use_local">Использовать версию с телефона</string>
+    <string name="conflict_use_server">Использовать версию Proton</string>
+
+    <plurals name="contacts_access_count">
+        <item quantity="one">%d приложение может читать ваши контакты</item>
+        <item quantity="few">%d приложения могут читать ваши контакты</item>
+        <item quantity="many">%d приложений могут читать ваши контакты</item>
+        <item quantity="other">%d приложений могут читать ваши контакты</item>
+    </plurals>
+    <string name="contacts_access_detail">У этих приложений есть разрешение READ_CONTACTS, и они могут видеть ваши синхронизированные контакты Proton.</string>
+
+    <plurals name="system_contacts_access_count">
+        <item quantity="one">%d предустановленное приложение может читать ваши контакты</item>
+        <item quantity="few">%d предустановленных приложения могут читать ваши контакты</item>
+        <item quantity="many">%d предустановленных приложений могут читать ваши контакты</item>
+        <item quantity="other">%d предустановленных приложений могут читать ваши контакты</item>
+    </plurals>
+    <string name="system_contacts_access_detail">Эти приложения предустановлены вместе с операционной системой и по умолчанию имеют разрешение READ_CONTACTS. На стандартном Android это обычно сервисы Google или производителя, которые нельзя удалить. Для большей приватности используйте pcontacts на ROM без сервисов Google, например GrapheneOS или LineageOS.</string>
+    <string name="system_contacts_access_dialog_title">Системные приложения с доступом к контактам</string>
+</resources>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="settings_title">Contactos de Proton</string>
+    <string name="settings_sync_now">Sincronizar ahora</string>
+    <string name="settings_sign_out">Cerrar sesión</string>
+    <string name="settings_signed_out">Sesión cerrada.</string>
+    <string name="settings_sync_requested">Sincronización solicitada</string>
+    <string name="settings_sync_failed">Sincronización fallida: %s</string>
+    <string name="settings_sign_out_failed">El cierre de sesión notificó errores: %s</string>
+    <string name="settings_sync_interval">Intervalo de sincronización</string>
+
+    <string name="verification_icon">!</string>
+    <string name="verification_warning">%1$d de %2$d contactos no se pudieron verificar</string>
+    <string name="verification_detail">La verificación de firma falló. Estos contactos podrían haber sido manipulados.</string>
+    <string name="verification_tap_to_review">Toca para revisar</string>
+    <string name="unverified_dialog_title">Contactos sin verificar</string>
+    <string name="unverified_dialog_empty">No hay contactos sin verificar.</string>
+    <string name="unverified_dialog_close">Cerrar</string>
+    <string name="unverified_no_name">(sin nombre)</string>
+
+    <string name="contacts_access_tap_to_review">Toca para ver la lista</string>
+    <string name="contacts_access_dialog_title">Apps con acceso a los contactos</string>
+
+    <plurals name="outbox_pending">
+        <item quantity="one">%d cambio pendiente de sincronización</item>
+        <item quantity="other">%d cambios pendientes de sincronización</item>
+    </plurals>
+    <plurals name="outbox_quarantined">
+        <item quantity="one">%d cambio falló definitivamente</item>
+        <item quantity="other">%d cambios fallaron definitivamente</item>
+    </plurals>
+
+    <plurals name="pending_delete_count">
+        <item quantity="one">%d contacto programado para eliminación</item>
+        <item quantity="other">%d contactos programados para eliminación</item>
+    </plurals>
+    <string name="pending_delete_grace">Las eliminaciones se envían a Proton tras un período de gracia de 1 hora.</string>
+    <string name="pending_delete_cancel">Cancelar</string>
+
+    <plurals name="conflict_count">
+        <item quantity="one">%d contacto con conflictos de sincronización</item>
+        <item quantity="other">%d contactos con conflictos de sincronización</item>
+    </plurals>
+    <string name="conflict_detail">Tanto el teléfono como Proton tienen cambios en los mismos campos.</string>
+    <string name="conflict_resolve">Resolver</string>
+    <string name="conflict_dialog_title">Resolver conflicto</string>
+    <string name="conflict_dialog_fields">Campos en conflicto: %s</string>
+    <string name="conflict_dialog_prompt">Elige qué versión conservar:</string>
+    <string name="conflict_use_local">Usar la versión del teléfono</string>
+    <string name="conflict_use_server">Usar la versión de Proton</string>
+
+    <plurals name="contacts_access_count">
+        <item quantity="one">%d app puede leer tus contactos</item>
+        <item quantity="other">%d apps pueden leer tus contactos</item>
+    </plurals>
+    <string name="contacts_access_detail">Estas apps tienen el permiso READ_CONTACTS y pueden ver tus contactos de Proton sincronizados.</string>
+
+    <plurals name="system_contacts_access_count">
+        <item quantity="one">%d app preinstalada puede leer tus contactos</item>
+        <item quantity="other">%d apps preinstaladas pueden leer tus contactos</item>
+    </plurals>
+    <string name="system_contacts_access_detail">Estas apps vienen preinstaladas con el sistema operativo y tienen READ_CONTACTS concedido por defecto. En Android de fábrica suelen ser servicios de Google o del fabricante que no se pueden desinstalar. Para una mayor privacidad, usa pcontacts en una ROM sin Google como GrapheneOS o LineageOS.</string>
+    <string name="system_contacts_access_dialog_title">Apps del sistema con acceso a los contactos</string>
+</resources>
