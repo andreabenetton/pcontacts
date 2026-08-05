@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="app_name">pcontacts</string>
+    <string name="account_label">Proton 联系人</string>
+    <string name="launcher_synced_contacts">已同步：%d 个联系人</string>
+    <string name="launcher_last_sync">上次同步：%s</string>
+    <string name="launcher_last_sync_never">上次同步：从未</string>
+    <string name="launcher_sync_failed_reauth">上次同步失败，请重新登录。</string>
+    <string name="launcher_sync_failed_verification">上次同步失败，需要在 Proton 网站上完成验证。</string>
+    <string name="launcher_sync_failed_app_version">上次同步失败，请更新 pcontacts。</string>
+    <string name="launcher_sync_failed_network">上次同步失败，请检查网络连接后重试。</string>
+    <string name="launcher_sync_failed_generic">上次同步失败，请重试。如果问题持续存在，请反馈。</string>
+    <string name="launcher_unverified_warning">%d 个联系人签名验证失败</string>
+    <string name="channel_status_name">同步状态</string>
+    <string name="channel_status_description">同步状态信息</string>
+    <string name="channel_action_required_name">需要操作</string>
+    <string name="channel_action_required_description">需要登录或验证才能同步时的通知</string>
+    <string name="notification_verification_title">需要 Proton 验证</string>
+    <string name="notification_verification_text">点按以完成验证，恢复联系人同步。</string>
+    <string name="notification_reauth_title">需要登录</string>
+    <string name="notification_reauth_text">会话已过期。请重新登录以恢复联系人同步。</string>
+    <string name="notification_sync_failure_title">联系人同步失败</string>
+    <string name="notification_sync_failure_text">同步多次失败。请打开应用检查网络连接并重试。</string>
+    <string name="notification_permission_denied">通知已停用。同步仍会正常进行，但在需要操作时您不会收到提醒。</string>
+    <string name="notification_permission_settings">设置</string>
+    <string name="contacts_permission_banner">pcontacts 需要通讯录权限来管理已同步的联系人。</string>
+    <string name="contacts_permission_grant">授予</string>
+    <string name="contacts_permission_open_settings">打开设置</string>
+    <string name="verification_fallback_title">需要验证</string>
+    <string name="verification_fallback_message">Proton 要求完成人机验证后才能继续同步。请在浏览器中登录 mail.proton.me 并完成验证，然后返回此处，同步将自动重试。</string>
+    <string name="verification_fallback_dismiss">确定</string>
+
+    <string name="launcher_loading">正在加载…</string>
+    <string name="launcher_no_account">使用您的 Proton 账户登录，开始同步联系人。</string>
+    <string name="launcher_sign_in">登录</string>
+    <string name="launcher_settings">设置</string>
+    <string name="launcher_settings_detail">设置（立即同步 / 退出登录）</string>
+    <string name="launcher_signed_in">已登录。您的 Proton 联系人会同步到系统联系人应用。</string>
+    <plurals name="launcher_pending_changes">
+        <item quantity="other">%d 项更改等待同步</item>
+    </plurals>
+    <plurals name="launcher_failed_contacts">
+        <item quantity="other">%d 个联系人无法同步（见日志）</item>
+    </plurals>
+    <plurals name="launcher_quarantined_changes">
+        <item quantity="other">%d 项更改失败</item>
+    </plurals>
+
+    <string name="chip_send_via_proton_mail">通过 Proton Mail 发送</string>
+</resources>

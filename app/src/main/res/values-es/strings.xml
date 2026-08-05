@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<resources>
+    <string name="app_name">pcontacts</string>
+    <string name="account_label">Contactos de Proton</string>
+    <string name="launcher_synced_contacts">Sincronizados: %d contactos</string>
+    <string name="launcher_last_sync">Última sincronización: %s</string>
+    <string name="launcher_last_sync_never">Última sincronización: nunca</string>
+    <string name="launcher_sync_failed_reauth">La sincronización falló — inicia sesión de nuevo.</string>
+    <string name="launcher_sync_failed_verification">La sincronización falló — se requiere verificación en el sitio web de Proton.</string>
+    <string name="launcher_sync_failed_app_version">La sincronización falló — actualiza pcontacts.</string>
+    <string name="launcher_sync_failed_network">La sincronización falló — comprueba tu conexión y vuelve a intentarlo.</string>
+    <string name="launcher_sync_failed_generic">La sincronización falló — vuelve a intentarlo. Si persiste, repórtalo.</string>
+    <string name="launcher_unverified_warning">La verificación de firma falló para %d contactos</string>
+    <string name="channel_status_name">Estado de sincronización</string>
+    <string name="channel_status_description">Información sobre el estado de la sincronización</string>
+    <string name="channel_action_required_name">Acción necesaria</string>
+    <string name="channel_action_required_description">Notificaciones cuando se necesita iniciar sesión o completar una verificación para sincronizar</string>
+    <string name="notification_verification_title">Se requiere verificación de Proton</string>
+    <string name="notification_verification_text">Toca para completar la verificación y reanudar la sincronización de contactos.</string>
+    <string name="notification_reauth_title">Se requiere iniciar sesión</string>
+    <string name="notification_reauth_text">Tu sesión ha caducado. Inicia sesión de nuevo para reanudar la sincronización de contactos.</string>
+    <string name="notification_sync_failure_title">Falló la sincronización de contactos</string>
+    <string name="notification_sync_failure_text">La sincronización ha fallado repetidamente. Abre la app para comprobar tu conexión y volver a intentarlo.</string>
+    <string name="notification_permission_denied">Las notificaciones están desactivadas. La sincronización sigue funcionando, pero no verás avisos cuando se necesite una acción.</string>
+    <string name="notification_permission_settings">Ajustes</string>
+    <string name="contacts_permission_banner">pcontacts necesita el permiso de Contactos para gestionar tus contactos sincronizados.</string>
+    <string name="contacts_permission_grant">Conceder</string>
+    <string name="contacts_permission_open_settings">Abrir ajustes</string>
+    <string name="verification_fallback_title">Verificación necesaria</string>
+    <string name="verification_fallback_message">Proton requiere una verificación humana antes de continuar la sincronización. Inicia sesión en mail.proton.me desde un navegador, completa la verificación y vuelve aquí: la sincronización se reintentará automáticamente.</string>
+    <string name="verification_fallback_dismiss">OK</string>
+
+    <string name="launcher_loading">Cargando…</string>
+    <string name="launcher_no_account">Inicia sesión con tu cuenta de Proton para empezar a sincronizar contactos.</string>
+    <string name="launcher_sign_in">Iniciar sesión</string>
+    <string name="launcher_settings">Ajustes</string>
+    <string name="launcher_settings_detail">Ajustes (Sincronizar ahora / Cerrar sesión)</string>
+    <string name="launcher_signed_in">Sesión iniciada. Tus contactos de Proton se sincronizan con la app Contactos del sistema.</string>
+    <plurals name="launcher_pending_changes">
+        <item quantity="one">%d cambio pendiente de sincronización</item>
+        <item quantity="other">%d cambios pendientes de sincronización</item>
+    </plurals>
+    <plurals name="launcher_failed_contacts">
+        <item quantity="one">%d contacto no se pudo sincronizar (ver registros)</item>
+        <item quantity="other">%d contactos no se pudieron sincronizar (ver registros)</item>
+    </plurals>
+    <plurals name="launcher_quarantined_changes">
+        <item quantity="one">%d cambio falló</item>
+        <item quantity="other">%d cambios fallaron</item>
+    </plurals>
+
+    <string name="chip_send_via_proton_mail">Enviar con Proton Mail</string>
+</resources>
