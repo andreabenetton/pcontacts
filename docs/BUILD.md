@@ -212,10 +212,10 @@ Follow this sequence exactly. Do not tag until the build is verified.
       project's maturity level (e.g. pre-release → stable).
 - [ ] Update `docs/ROADMAP.md` — check off completed items, update the
       "Done" heading version if needed.
-- [ ] Update `fdroid/io.pcontacts.app.yml`: add a new entry to the
-      `Builds:` list with the new `versionName`, `versionCode`, and
-      `commit` tag, AND update `CurrentVersion` and
-      `CurrentVersionCode` at the bottom.
+- [ ] Nothing to do for F-Droid metadata. It is **not** stored in this
+      repo — see [§F-Droid](#f-droid). Once the app is published,
+      F-Droid's `checkupdates` bot picks up the new signed tag on its
+      own (`UpdateCheckMode: Tags` + `AutoUpdateMode: Version`).
 - [ ] Create fastlane changelogs for the new `versionCode` in all
       locales: `fastlane/metadata/android/{en-US,it-IT,de-DE}/changelogs/<versionCode>.txt`.
 - [ ] If new user-facing strings were added, verify Italian and German
@@ -295,3 +295,39 @@ in the expected range.
 
 F-Droid builds from source using its own signing key. The `fastlane/`
 metadata directory structure is expected by the F-Droid build process.
+
+### Where the metadata lives
+
+The build recipe (`io.pcontacts.app.yml`) is **not** in this repo. It
+lives in F-Droid's own metadata repository:
+
+- Canonical: `metadata/io.pcontacts.app.yml` in
+  [fdroiddata](https://gitlab.com/fdroid/fdroiddata)
+- Inclusion request:
+  [fdroiddata MR !39186](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/39186),
+  open since 2026-05-27
+
+Edit it on the fork (`gitlab.com/andreabenetton/fdroiddata`, branch
+`master`) — pushing there updates the MR. A copy previously lived at
+`fdroid/io.pcontacts.app.yml`; it was read by nothing, drifted from the
+reviewed version, and was removed. Do not reintroduce one.
+
+Reviewer-imposed constraints already settled on that MR — re-breaking
+any of these fails CI:
+
+- `commit:` is a full hash, never a tag.
+- `Builds:` holds only the latest version.
+- `Binaries:` + `AllowedAPKSigningKeys:` enable reproducible-build
+  verification against the GitHub release APK. `Binaries:` keeps a
+  trailing space; `fdroid rewritemeta` insists on it.
+- `Categories: [Contact]` and a `NonFreeNet` AntiFeature for the
+  Proton dependency.
+
+The `fdroid rewritemeta` CI job enforces byte-level formatting (~80
+column wrapping, field order). It has been the single cause of most
+stalls on this MR — a red `rewritemeta` reads to the maintainer as
+"waiting on submitter" and the MR can sit for weeks.
+
+Never point a build entry at a version before 1.3.4: earlier releases
+strip `ezvcard.parameter` / `ezvcard.util` under R8, so contact parsing
+fails silently and sync yields zero contacts.

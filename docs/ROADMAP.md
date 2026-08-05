@@ -24,5 +24,7 @@
 - [ ] FIDO2/WebAuthn 2FA
 - [ ] Encrypted offline cache (SQLCipher)
 - [ ] Compose UI polish
-- [ ] F-Droid submission
+- [ ] F-Droid submission — submitted 2026-05-27 as
+      [fdroiddata MR !39186](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/39186);
+      builds reproducibly and CI is green, awaiting maintainer review
 - [x] 1.0 release
