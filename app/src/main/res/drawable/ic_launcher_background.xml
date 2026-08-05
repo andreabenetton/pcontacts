@@ -8,29 +8,26 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!--
+      Violet-to-teal ramp. The source artwork interpolates in OKLCH, which
+      Android's sRGB gradient cannot express, so the intermediate stops sample
+      that curve; two stops alone drift by ~30/255 in the red channel.
+    -->
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="8"
-                android:startY="6"
-                android:endX="100"
-                android:endY="104"
+                android:startX="23.7"
+                android:startY="-11"
+                android:endX="84.3"
+                android:endY="119"
                 android:type="linear">
-                <item android:offset="0" android:color="#FF8A6EFF" />
-                <item android:offset="0.55" android:color="#FF6D4AFF" />
-                <item android:offset="1" android:color="#FF3D22B8" />
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path android:pathData="M0,0h108v108h-108z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:centerX="34"
-                android:centerY="30"
-                android:gradientRadius="70"
-                android:type="radial">
-                <item android:offset="0" android:color="#8CB9A7FF" />
-                <item android:offset="1" android:color="#00B9A7FF" />
+                <item android:offset="0.15" android:color="#FF885BF5" />
+                <item android:offset="0.3" android:color="#FF7F71F0" />
+                <item android:offset="0.45" android:color="#FF7485EA" />
+                <item android:offset="0.6" android:color="#FF6697E4" />
+                <item android:offset="0.75" android:color="#FF51A7DE" />
+                <item android:offset="0.9" android:color="#FF2FB7D7" />
+                <item android:offset="1" android:color="#FF00C1D1" />
             </gradient>
         </aapt:attr>
     </path>

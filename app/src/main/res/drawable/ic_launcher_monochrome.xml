@@ -3,10 +3,8 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 <!--
-  Three overlapping contact nodes. Each node is a 14.5 unit circle; the gaps
-  are where a 17.5 unit disc around the node drawn on top of it was subtracted,
-  which is what produces the 3 unit channel between neighbours. Paint order is
-  top node, bottom-left node, bottom-right node.
+  Themed-icon layer. Same geometry as ic_launcher_foreground; the launcher
+  re-tints it from the wallpaper palette, so only the alpha channel matters.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -14,12 +12,12 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FFFFFFFF"
+        android:fillColor="#FF000000"
         android:pathData="M39.809,46.978A14.5,14.5 0 1 1 68.191,46.978A17.5,17.5 0 0 0 54,51.286A17.5,17.5 0 0 0 39.809,46.978Z" />
     <path
-        android:fillColor="#FFFFFFFF"
+        android:fillColor="#FF000000"
         android:pathData="M42.3,49.8A14.5,14.5 0 1 1 42.3,78.8A14.5,14.5 0 1 1 42.3,49.8Z" />
     <path
-        android:fillColor="#FFFFFFFF"
+        android:fillColor="#FF000000"
         android:pathData="M56.051,53.476A14.5,14.5 0 0 1 67.253,49.883A14.5,14.5 0 1 1 56.051,75.124A17.5,17.5 0 0 0 58.537,57.772A17.5,17.5 0 0 0 56.051,53.476Z" />
 </vector>
