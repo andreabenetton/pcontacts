@@ -70,7 +70,7 @@ class SyncNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(context, NotificationChannels.ACTION_REQUIRED)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(title))
             .setContentText(context.getString(text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

@@ -1,0 +1,30 @@
+<!--
+  SPDX-License-Identifier: GPL-3.0-only
+  SPDX-FileCopyrightText: 2026 pcontacts contributors
+-->
+<!--
+  Status-bar icon. Android draws small notification icons from the alpha
+  channel alone and tints the result, so this is the launcher mark with no
+  background, scaled out of its 108 unit adaptive canvas to fill the 24dp box.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:scaleX="0.419847"
+        android:scaleY="0.419847"
+        android:translateX="-10.6718"
+        android:translateY="-10.7767">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M39.809,46.978A14.5,14.5 0 1 1 68.191,46.978A17.5,17.5 0 0 0 54,51.286A17.5,17.5 0 0 0 39.809,46.978Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M42.3,49.8A14.5,14.5 0 1 1 42.3,78.8A14.5,14.5 0 1 1 42.3,49.8Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M56.051,53.476A14.5,14.5 0 0 1 67.253,49.883A14.5,14.5 0 1 1 56.051,75.124A17.5,17.5 0 0 0 58.537,57.772A17.5,17.5 0 0 0 56.051,53.476Z" />
+    </group>
+</vector>
