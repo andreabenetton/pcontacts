@@ -19,7 +19,7 @@ Report via either channel:
 - **GitHub Security Advisory** — click "Report a vulnerability" under
   the repo's **Security** tab. This creates a private draft visible
   only to the maintainer.
-- **Email** — **andrea.benetton@blueteam.ee** (also listed in the
+- **Email** — **&#97;&#110;&#100;&#114;&#101;&#97;&#46;&#98;&#101;&#110;&#101;&#116;&#116;&#111;&#110;&#64;&#98;&#108;&#117;&#101;&#116;&#101;&#97;&#109;&#46;&#101;&#101;** (also listed in the
   top-level `NOTICE` file).
 
 In either case, include:
