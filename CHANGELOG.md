@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ungrouped_visible=1`) is now written after login and re-ensured
   (idempotent upsert) at the start of every sync. Login also requests an
   immediate first sync instead of waiting for the scheduler.
+- **The human-verification screen crashed on devices without a WebView
+  provider** (possible on de-Googled distributions such as MuditaOS).
+  It now detects the missing provider, logs, and cancels cleanly back to
+  the login flow instead of crashing; all existing WebView security
+  constraints are unchanged.
 
 ## [1.3.4] - 2026-07-28
 

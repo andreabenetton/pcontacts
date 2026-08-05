@@ -4,6 +4,7 @@
 package io.pcontacts.app.verification
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
@@ -44,7 +45,22 @@ class HumanVerificationActivity : ComponentActivity() {
 
     private val logger = RedactingLogger(tag = "HumanVerify", sink = AndroidLogcatSink())
 
-    @SuppressLint("SetJavaScriptEnabled")
+    // Test seam: the only way to exercise the constructor-failure branch
+    // (a real WebView never throws under Robolectric).
+    internal var webViewFactory: (Context) -> WebView = ::WebView
+
+    // Test seam: EncryptedSecretStore needs the AndroidKeyStore provider,
+    // which unit tests don't have. Production timing is unchanged — the
+    // store is still created eagerly while onCreate configures the view.
+    internal var secretStoreSetter: () -> ((token: String, type: String) -> Unit) = {
+        val store = EncryptedSecretStore.create(this)
+        val setter: (token: String, type: String) -> Unit = { token, type ->
+            store.setHumanVerificationToken(token)
+            store.setHumanVerificationTokenType(type)
+        }
+        setter
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val url = intent.getStringExtra(EXTRA_URL)
@@ -54,25 +70,45 @@ class HumanVerificationActivity : ComponentActivity() {
             return
         }
 
-        val webView = WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = false
-            settings.allowFileAccess = false
-            settings.allowContentAccess = false
-            // mixedContentMode default (NEVER_ALLOW) is what we want.
-            addJavascriptInterface(Bridge(secretStoreSetter()), JS_INTERFACE_NAME)
-            webViewClient = HostGuardWebViewClient()
+        val webView = createGuardedWebView()
+        if (webView == null) {
+            setResult(RESULT_CANCELED)
+            finish()
+            return
         }
 
         setContentView(webView)
         webView.loadUrl(url)
     }
 
-    private fun secretStoreSetter(): (token: String, type: String) -> Unit {
-        val store = EncryptedSecretStore.create(this)
-        return { token, type ->
-            store.setHumanVerificationToken(token)
-            store.setHumanVerificationTokenType(type)
+    /**
+     * Builds the configured WebView, or returns null when the device has
+     * no usable WebView provider (common on de-Googled distributions such
+     * as MuditaOS). `[V]` `getCurrentWebViewPackage` exists since API 26
+     * (== minSdk) and returns null when no provider is enabled. The catch
+     * covers a provider that is disabled or breaks between the check and
+     * construction — the framework throws `AndroidRuntimeException` (a
+     * `RuntimeException`) from the WebView constructor in that case.
+     */
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun createGuardedWebView(): WebView? {
+        if (WebView.getCurrentWebViewPackage() == null) {
+            logger.warn { "no enabled WebView provider — cannot show verification" }
+            return null
+        }
+        return try {
+            webViewFactory(this).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = false
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                // mixedContentMode default (NEVER_ALLOW) is what we want.
+                addJavascriptInterface(Bridge(secretStoreSetter()), JS_INTERFACE_NAME)
+                webViewClient = HostGuardWebViewClient()
+            }
+        } catch (e: RuntimeException) {
+            logger.error(e) { "WebView construction failed — cannot show verification" }
+            null
         }
     }
 
