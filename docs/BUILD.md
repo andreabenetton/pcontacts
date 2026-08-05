@@ -331,3 +331,22 @@ stalls on this MR — a red `rewritemeta` reads to the maintainer as
 Never point a build entry at a version before 1.3.4: earlier releases
 strip `ezvcard.parameter` / `ezvcard.util` under R8, so contact parsing
 fails silently and sync yields zero contacts.
+
+### Listing content (icon, description, screenshots)
+
+Only the *build recipe* lives in fdroiddata. Everything shown on the
+listing page comes from `fastlane/metadata/android/<locale>/` in this
+repo — `full_description.txt`, `short_description.txt`, `title.txt`,
+`images/icon.png`, `images/phoneScreenshots/`. F-Droid reads these from
+the source checkout it builds.
+
+So changing the icon or the description needs no fdroiddata edit. Do
+**not** copy them into `<fdroiddata>/metadata/io.pcontacts.app/`;
+[F-Droid's own docs][fd-desc] say that path is for self-hosted
+repositories only, and screenshots there are rejected outright.
+
+The catch is timing: F-Droid renders the metadata from the commit the
+build entry pins, so listing changes appear only once a release
+containing them is built — not when they land on `master`.
+
+[fd-desc]: https://f-droid.org/docs/All_About_Descriptions_Graphics_and_Screenshots/
