@@ -1,0 +1,4 @@
+Versione 1.5.0.
+
+* L'app è ora disponibile in russo, francese, spagnolo e cinese semplificato.
+* Sicurezza: aggiornata la libreria OpenPGP (BouncyCastle 1.85) con diverse correzioni di irrobustimento per l'analisi di chiavi e contatti cifrati.

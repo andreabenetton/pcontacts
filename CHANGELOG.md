@@ -10,6 +10,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-05
+
+### Added
+
+- Russian, French, Spanish, and Simplified Chinese translations — both
+  in-app and on the F-Droid listing (descriptions and release notes).
+
+### Security
+
+- BouncyCastle updated 1.84 → 1.85, picking up six OpenPGP (bcpg)
+  hardening fixes on code paths pcontacts exercises when parsing
+  server-supplied key material and contact cards — including
+  CVE-2026-59649 (unbounded user-attribute allocation, DoS),
+  CVE-2026-12817 (AEAD tag-validation bypass), and CVE-2026-59643
+  (silently ignored inline-signature policy failures).
+
+### Changed
+
+- Toolchain: Kotlin 2.4.10, KSP 2.3.10, kotest 6.2.3, kover 0.9.9.
+
 ## [1.4.0] - 2026-08-05
 
 ### Changed
@@ -358,6 +378,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.5.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.5.0
 [1.4.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.4.0
 [1.3.4]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.4
 [1.3.3]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.3

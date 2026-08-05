@@ -6,7 +6,7 @@ A GPL-3.0 Android app that signs in to a Proton Mail account, decrypts the user'
 
 ## Status
 
-**v1.4.0 released.** **Validated against the live Proton production API** — full SRP handshake, token persistence, keyPassword derivation, multi-key contact decrypt (user + address keys), and logout all succeed. See [`docs/API_RESEARCH.md`](docs/API_RESEARCH.md) for protocol details.
+**v1.5.0 released.** **Validated against the live Proton production API** — full SRP handshake, token persistence, keyPassword derivation, multi-key contact decrypt (user + address keys), and logout all succeed. See [`docs/API_RESEARCH.md`](docs/API_RESEARCH.md) for protocol details.
 
 What works in code (verified by unit tests + live integration test):
 
