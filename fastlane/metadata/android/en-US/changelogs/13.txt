@@ -1,0 +1,6 @@
+Version 1.4.0.
+
+* New app icon: the three-node cluster mark.
+* Fixed synced contacts staying invisible on devices whose Contacts app hides ungrouped contacts by default (e.g. Mudita Kompakt). The first sync now also starts right after signing in.
+* Fixed a crash during Proton human verification on devices without a WebView provider.
+* Notifications now use a proper status-bar icon.

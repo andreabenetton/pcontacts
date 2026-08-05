@@ -1,0 +1,6 @@
+Versione 1.4.0.
+
+* Nuova icona dell'app: il simbolo a tre nodi collegati.
+* Corretti i contatti sincronizzati che restavano invisibili sui dispositivi la cui app Contatti nasconde per impostazione predefinita i contatti senza gruppo (es. Mudita Kompakt). La prima sincronizzazione ora parte subito dopo l'accesso.
+* Corretto un crash durante la verifica umana di Proton sui dispositivi senza un provider WebView.
+* Le notifiche ora usano un'icona corretta nella barra di stato.

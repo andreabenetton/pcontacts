@@ -10,7 +10,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2026-08-05
+
+### Changed
+
+- **New launcher icon** — the three-node cluster mark with a
+  violet-to-teal gradient replaces the old person-silhouette icon,
+  across adaptive, monochrome, and legacy mipmap assets.
+- Notifications now use a proper monochrome status-bar icon instead of
+  misusing the launcher icon.
 
 ### Fixed
 
@@ -350,6 +358,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.4.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.4.0
 [1.3.4]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.4
 [1.3.3]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.3
 [1.3.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.3.2
