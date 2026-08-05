@@ -24,7 +24,8 @@
 - [ ] FIDO2/WebAuthn 2FA
 - [ ] Encrypted offline cache (SQLCipher)
 - [ ] Compose UI polish
-- [ ] F-Droid submission — submitted 2026-05-27 as
-      [fdroiddata MR !39186](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/39186);
-      builds reproducibly and CI is green, awaiting maintainer review
+- [x] F-Droid submission — [fdroiddata MR !39186](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/39186)
+      merged 2026-08-01; [live on f-droid.org](https://f-droid.org/packages/io.pcontacts.app/)
+      since v1.3.4. New releases flow automatically from signed tags
+      (`AutoUpdateMode: Version`, `UpdateCheckMode: Tags`)
 - [x] 1.0 release
