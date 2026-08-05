@@ -64,7 +64,7 @@ The build will pull the following libraries. Their licenses are
 recorded in docs/adr/0015-no-telemetry-no-google-services.md and
 checked at release time by a Gradle license-compatibility task.
 
-  Bouncy Castle (org.bouncycastle:bcpg-jdk18on, bcprov-jdk18on)
+  Bouncy Castle (org.bouncycastle:bcpg-jdk18on, bcprov-jdk18on, bcutil-jdk18on)
     License: MIT
   ez-vcard (com.googlecode.ez-vcard:ez-vcard)
     License: New BSD
