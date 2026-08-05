@@ -1,0 +1,6 @@
+Version 1.4.0.
+
+* Nouvelle icône de l'app : le symbole à trois nœuds reliés.
+* Correction : les contacts synchronisés restaient invisibles quand l'app Contacts masque par défaut les contacts sans groupe (p. ex. Mudita Kompakt). La première synchronisation démarre maintenant juste après la connexion.
+* Correction d'un plantage lors de la vérification humaine Proton sur les appareils sans fournisseur WebView.
+* Les notifications utilisent maintenant une vraie icône de barre d'état.

@@ -1,0 +1,25 @@
+pcontacts 登录您的 Proton Mail 账户，使用 OpenPGP 在设备端解密您的联系人，并将其提供给系统联系人应用，使它们与本地联系人一同显示——就像 WhatsApp 或 Telegram 展示自己的联系人目录一样。
+
+本应用与 Proton AG 无关联，也未获其认可。
+它使用与 Proton Mail 网页客户端相同的 HTTP API，该 API 没有官方文档，也不支持第三方使用。
+该 API 可能随时更改，恕不另行通知。
+
+联系人一旦进入 ContactsContract，就归操作系统所有。
+原生 Android 自带预装应用——Google Play Services、Google 通讯录、Gmail、厂商拨号应用、厂商短信应用、厂商“助手”服务——它们默认获得 READ_CONTACTS 权限，或者该权限很难撤销。
+在仍装有这些应用的设备上解密 Proton 联系人，实际上等于将它们分享给 Google 和设备厂商。
+要获得真正有意义的隐私保护，请在去 Google 化的 ROM 上运行 pcontacts：首选 GrapheneOS（沙盒化的 Google Play、按应用划分的联系人权限范围），或 LineageOS for microG，或不带 GApps 的原版 LineageOS。
+在原生 Android 上，pcontacts 无法为您解决这一问题；这是平台权限模型的特性，而非本应用的问题。
+
+功能：
+
+* SRP 登录，支持 TOTP 双重验证。
+* 仅在客户端解密——您的联系人绝不会被发送到任何地方，只会进入您设备上的系统通讯录。
+* 完整的 vCard 字段支持：姓名、电子邮件、电话、地址、组织、备注、即时通讯、照片和群组归属。
+* 双向同步：在系统联系人应用中所做的修改会以端到端加密回传给 Proton。
+* 软删除并提供 1 小时宽限期，误删可在到达服务器前取消。
+* 当手机和 Proton 对同一联系人都有修改时，按字段检测冲突。
+* 通过 SyncAdapter 和 WorkManager 进行周期性后台同步。
+* 无 Google Play Services、无遥测、无分析、无跟踪。
+
+源代码：https://github.com/andreabenetton/pcontacts
+许可证：GPL-3.0-only

@@ -1,0 +1,1 @@
+Synchronise les contacts Proton Mail dans le carnet d'adresses Android.

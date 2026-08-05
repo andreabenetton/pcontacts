@@ -1,0 +1,25 @@
+pcontacts inicia sesión en tu cuenta de Proton Mail, descifra tus contactos localmente con OpenPGP y los expone a la app Contactos del sistema para que aparezcan junto a tus contactos locales — igual que WhatsApp o Telegram muestran sus propios directorios de contactos.
+
+Esta app no está afiliada a Proton AG ni cuenta con su respaldo.
+Utiliza la misma API HTTP que el cliente web de Proton Mail, que no está documentada oficialmente ni tiene soporte para uso por terceros.
+La API puede cambiar en cualquier momento sin previo aviso.
+
+Una vez que los contactos llegan a ContactsContract, pertenecen al sistema operativo.
+Android de fábrica incluye aplicaciones preinstaladas — Google Play Services, Contactos de Google, Gmail, el marcador del fabricante, la app de mensajes del fabricante, los servicios de "asistente" del fabricante — que reciben READ_CONTACTS por defecto o cuyo permiso es muy difícil de revocar.
+Descifrar los contactos de Proton en un dispositivo con esas apps todavía instaladas equivale en la práctica a compartirlos con Google y el fabricante.
+Para una privacidad real, usa pcontacts en una ROM sin Google: GrapheneOS es la opción preferida (Google Play en sandbox, ámbitos de contactos por app), o LineageOS for microG, o LineageOS sin GApps.
+pcontacts no puede arreglar esto por ti en Android de fábrica; es una propiedad del modelo de permisos de la plataforma, no de esta app.
+
+Características:
+
+* Inicio de sesión SRP con autenticación de dos factores TOTP.
+* Descifrado solo en el cliente — tus contactos nunca se envían a ningún sitio salvo a la agenda del sistema en tu dispositivo.
+* Soporte completo de campos vCard: nombre, correo, teléfono, dirección, organización, notas, mensajería instantánea, fotos y pertenencia a grupos.
+* Sincronización bidireccional: los cambios hechos en la app Contactos del sistema se devuelven a Proton con cifrado de extremo a extremo.
+* Eliminación suave con un período de gracia de 1 hora para poder cancelar las eliminaciones accidentales antes de que lleguen al servidor.
+* Detección de conflictos por campo cuando tanto el teléfono como Proton tienen cambios en el mismo contacto.
+* Sincronización periódica en segundo plano mediante SyncAdapter y WorkManager.
+* Sin Google Play Services, sin telemetría, sin analíticas, sin rastreo.
+
+Código fuente: https://github.com/andreabenetton/pcontacts
+Licencia: GPL-3.0-only

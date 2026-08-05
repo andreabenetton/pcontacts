@@ -1,0 +1,6 @@
+Versión 1.4.0.
+
+* Nuevo icono de la app: el símbolo de tres nodos conectados.
+* Corregidos los contactos sincronizados que quedaban invisibles en dispositivos cuya app Contactos oculta por defecto los contactos sin grupo (p. ej. Mudita Kompakt). La primera sincronización ahora empieza justo después de iniciar sesión.
+* Corregido un fallo durante la verificación humana de Proton en dispositivos sin proveedor de WebView.
+* Las notificaciones ahora usan un icono adecuado en la barra de estado.
