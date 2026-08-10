@@ -53,17 +53,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val verificationStats by viewModel.verificationStats.collectAsStateWithLifecycle()
-    val unverifiedContacts by viewModel.unverifiedContacts.collectAsStateWithLifecycle()
-    val unverifiedDialogOpen by viewModel.unverifiedDialogOpen.collectAsStateWithLifecycle()
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
-    val outboxStats by viewModel.outboxStats.collectAsStateWithLifecycle()
-    val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
-    val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
-    val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
-    val contactsAccessDialogOpen by viewModel.contactsAccessDialogOpen.collectAsStateWithLifecycle()
-    val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
-    val systemContactsAccessDialogOpen by viewModel.systemContactsAccessDialogOpen.collectAsStateWithLifecycle()
     val busy = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
 
     Column(
@@ -134,74 +124,116 @@ fun SettingsScreen(
             )
         }
 
-        verificationStats?.let { stats ->
-            if (stats.unverifiedContacts > 0) {
-                Spacer(Modifier.height(16.dp))
-                VerificationWarningBanner(
-                    stats = stats,
-                    onClick = viewModel::showUnverifiedContactsDialog
-                )
-            }
-        }
+        SettingsStatusSection(viewModel)
+    }
+}
 
-        if (unverifiedDialogOpen) {
-            UnverifiedContactsDialog(
-                contacts = unverifiedContacts,
-                onOpenContact = viewModel::openUnverifiedContactInSystem,
-                onDismiss = viewModel::dismissUnverifiedContactsDialog
-            )
-        }
+/**
+ * The stack of status banners and the dialogs they open. Split out of
+ * [SettingsScreen] so neither function carries the branching of all of
+ * them at once.
+ */
+@Composable
+private fun SettingsStatusSection(viewModel: SettingsViewModel) {
+    val verificationStats by viewModel.verificationStats.collectAsStateWithLifecycle()
+    val unverifiedContacts by viewModel.unverifiedContacts.collectAsStateWithLifecycle()
+    val unverifiedDialogOpen by viewModel.unverifiedDialogOpen.collectAsStateWithLifecycle()
+    val outboxStats by viewModel.outboxStats.collectAsStateWithLifecycle()
+    val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
+    val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
+    val quarantinedChanges by viewModel.quarantinedChanges.collectAsStateWithLifecycle()
+    val quarantinedDialogOpen by viewModel.quarantinedDialogOpen.collectAsStateWithLifecycle()
 
-        if (outboxStats.pending > 0 || outboxStats.quarantined > 0) {
+    verificationStats?.let { stats ->
+        if (stats.unverifiedContacts > 0) {
             Spacer(Modifier.height(16.dp))
-            OutboxStatusBanner(outboxStats)
-        }
-
-        if (pendingDeletes.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            PendingDeleteBanner(
-                deletes = pendingDeletes,
-                onCancel = viewModel::cancelPendingDelete
+            VerificationWarningBanner(
+                stats = stats,
+                onClick = viewModel::showUnverifiedContactsDialog
             )
         }
+    }
 
-        if (conflicts.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            ConflictBanner(
-                conflicts = conflicts,
-                onResolve = viewModel::resolveContactConflict
-            )
-        }
+    if (unverifiedDialogOpen) {
+        UnverifiedContactsDialog(
+            contacts = unverifiedContacts,
+            onOpenContact = viewModel::openUnverifiedContactInSystem,
+            onDismiss = viewModel::dismissUnverifiedContactsDialog
+        )
+    }
 
-        if (contactsAccessApps.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            ContactsAccessBanner(
-                apps = contactsAccessApps,
-                onClick = viewModel::showContactsAccessDialog
-            )
-        }
+    if (outboxStats.pending > 0 || outboxStats.quarantined > 0) {
+        Spacer(Modifier.height(16.dp))
+        OutboxStatusBanner(
+            stats = outboxStats,
+            onQuarantinedClick = viewModel::showQuarantinedChangesDialog
+        )
+    }
 
-        if (contactsAccessDialogOpen) {
-            ContactsAccessDialog(
-                apps = contactsAccessApps,
-                onDismiss = viewModel::dismissContactsAccessDialog
-            )
-        }
+    if (quarantinedDialogOpen) {
+        QuarantinedChangesDialog(
+            changes = quarantinedChanges,
+            onRetry = viewModel::retryQuarantined,
+            onDiscard = viewModel::discardQuarantined,
+            onDismiss = viewModel::dismissQuarantinedChangesDialog
+        )
+    }
 
-        if (systemContactsAccessApps.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            SystemContactsAccessBanner(
-                apps = systemContactsAccessApps,
-                onClick = viewModel::showSystemContactsAccessDialog
-            )
-        }
+    if (pendingDeletes.isNotEmpty()) {
+        Spacer(Modifier.height(16.dp))
+        PendingDeleteBanner(
+            deletes = pendingDeletes,
+            onCancel = viewModel::cancelPendingDelete
+        )
+    }
 
-        if (systemContactsAccessDialogOpen) {
-            SystemContactsAccessDialog(
-                apps = systemContactsAccessApps,
-                onDismiss = viewModel::dismissSystemContactsAccessDialog
-            )
-        }
+    if (conflicts.isNotEmpty()) {
+        Spacer(Modifier.height(16.dp))
+        ConflictBanner(
+            conflicts = conflicts,
+            onResolve = viewModel::resolveContactConflict
+        )
+    }
+
+    ContactsAccessSection(viewModel)
+}
+
+/** The two READ_CONTACTS transparency banners and their dialogs. */
+@Composable
+private fun ContactsAccessSection(viewModel: SettingsViewModel) {
+    val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
+    val contactsAccessDialogOpen by viewModel.contactsAccessDialogOpen.collectAsStateWithLifecycle()
+    val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
+    val systemContactsAccessDialogOpen by viewModel.systemContactsAccessDialogOpen.collectAsStateWithLifecycle()
+
+    if (contactsAccessApps.isNotEmpty()) {
+        Spacer(Modifier.height(16.dp))
+        ContactsAccessBanner(
+            apps = contactsAccessApps,
+            onClick = viewModel::showContactsAccessDialog
+        )
+    }
+
+    if (contactsAccessDialogOpen) {
+        ContactsAccessDialog(
+            apps = contactsAccessApps,
+            onDismiss = viewModel::dismissContactsAccessDialog
+        )
+    }
+
+    if (systemContactsAccessApps.isNotEmpty()) {
+        Spacer(Modifier.height(16.dp))
+        SystemContactsAccessBanner(
+            apps = systemContactsAccessApps,
+            onClick = viewModel::showSystemContactsAccessDialog
+        )
+    }
+
+    if (systemContactsAccessDialogOpen) {
+        SystemContactsAccessDialog(
+            apps = systemContactsAccessApps,
+            onDismiss = viewModel::dismissSystemContactsAccessDialog
+        )
     }
 }
 
@@ -347,7 +379,7 @@ private fun UnverifiedContactsDialog(
 }
 
 @Composable
-private fun OutboxStatusBanner(stats: OutboxStats) {
+private fun OutboxStatusBanner(stats: OutboxStats, onQuarantinedClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -363,13 +395,108 @@ private fun OutboxStatusBanner(stats: OutboxStats) {
             )
         }
         if (stats.quarantined > 0) {
+            Column(modifier = Modifier.clickable(onClick = onQuarantinedClick)) {
+                Text(
+                    text = pluralStringResource(R.plurals.outbox_quarantined, stats.quarantined, stats.quarantined),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = stringResource(R.string.quarantined_tap_to_review),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Lists the changes that failed permanently, so "1 change failed" can
+ * be traced to a specific contact and reason. Each row offers Retry
+ * (back into the queue) and Discard (abandon the push); without them a
+ * quarantined entry would sit in the outbox forever.
+ */
+@Composable
+private fun QuarantinedChangesDialog(
+    changes: List<QuarantinedChange>,
+    onRetry: (Long) -> Unit,
+    onDiscard: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.quarantined_dialog_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = stringResource(R.string.quarantined_detail),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+                if (changes.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.quarantined_dialog_empty),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    changes.forEach { change ->
+                        QuarantinedChangeRow(
+                            change = change,
+                            onRetry = onRetry,
+                            onDiscard = onDiscard
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.quarantined_dialog_close))
+            }
+        }
+    )
+}
+
+@Composable
+private fun QuarantinedChangeRow(
+    change: QuarantinedChange,
+    onRetry: (Long) -> Unit,
+    onDiscard: (Long) -> Unit
+) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = change.displayName ?: stringResource(R.string.quarantined_no_name),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = stringResource(operationLabel(change.operation)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        change.reason?.takeIf { it.isNotBlank() }?.let { reason ->
             Text(
-                text = pluralStringResource(R.plurals.outbox_quarantined, stats.quarantined, stats.quarantined),
-                style = MaterialTheme.typography.bodyMedium,
+                text = reason,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )
         }
+        Row {
+            TextButton(onClick = { onRetry(change.outboxId) }) {
+                Text(stringResource(R.string.quarantined_retry))
+            }
+            TextButton(onClick = { onDiscard(change.outboxId) }) {
+                Text(stringResource(R.string.quarantined_discard))
+            }
+        }
     }
+}
+
+private fun operationLabel(operation: QuarantinedOperation): Int = when (operation) {
+    QuarantinedOperation.CREATE -> R.string.quarantined_op_create
+    QuarantinedOperation.UPDATE -> R.string.quarantined_op_update
+    QuarantinedOperation.DELETE -> R.string.quarantined_op_delete
+    QuarantinedOperation.UNKNOWN -> R.string.quarantined_op_unknown
 }
 
 @Composable

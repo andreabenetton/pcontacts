@@ -34,6 +34,19 @@
         <item quantity="other">%d Änderungen dauerhaft fehlgeschlagen</item>
     </plurals>
 
+    <string name="quarantined_tap_to_review">Zum Überprüfen tippen</string>
+    <string name="quarantined_dialog_title">Fehlgeschlagene Änderungen</string>
+    <string name="quarantined_detail">Diese Änderungen konnten nicht an Proton gesendet werden und werden nicht automatisch wiederholt.</string>
+    <string name="quarantined_dialog_empty">Keine fehlgeschlagenen Änderungen.</string>
+    <string name="quarantined_dialog_close">Schließen</string>
+    <string name="quarantined_no_name">(Name nicht verfügbar)</string>
+    <string name="quarantined_op_create">Neuer Kontakt</string>
+    <string name="quarantined_op_update">Bearbeitung</string>
+    <string name="quarantined_op_delete">Löschung</string>
+    <string name="quarantined_op_unknown">Unbekannte Änderung</string>
+    <string name="quarantined_retry">Wiederholen</string>
+    <string name="quarantined_discard">Verwerfen</string>
+
     <plurals name="pending_delete_count">
         <item quantity="one">%d Kontakt zum Löschen vorgemerkt</item>
         <item quantity="other">%d Kontakte zum Löschen vorgemerkt</item>

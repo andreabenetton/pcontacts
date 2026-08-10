@@ -38,6 +38,19 @@
         <item quantity="other">%d изменений окончательно завершились ошибкой</item>
     </plurals>
 
+    <string name="quarantined_tap_to_review">Нажмите, чтобы просмотреть</string>
+    <string name="quarantined_dialog_title">Неудавшиеся изменения</string>
+    <string name="quarantined_detail">Эти изменения не удалось отправить в Proton, и они не будут повторены автоматически.</string>
+    <string name="quarantined_dialog_empty">Неудавшихся изменений нет.</string>
+    <string name="quarantined_dialog_close">Закрыть</string>
+    <string name="quarantined_no_name">(имя недоступно)</string>
+    <string name="quarantined_op_create">Новый контакт</string>
+    <string name="quarantined_op_update">Изменение</string>
+    <string name="quarantined_op_delete">Удаление</string>
+    <string name="quarantined_op_unknown">Нераспознанное изменение</string>
+    <string name="quarantined_retry">Повторить</string>
+    <string name="quarantined_discard">Отклонить</string>
+
     <plurals name="pending_delete_count">
         <item quantity="one">%d контакт ожидает удаления</item>
         <item quantity="few">%d контакта ожидают удаления</item>

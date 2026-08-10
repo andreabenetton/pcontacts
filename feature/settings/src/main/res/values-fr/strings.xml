@@ -34,6 +34,19 @@
         <item quantity="other">%d modifications en échec définitif</item>
     </plurals>
 
+    <string name="quarantined_tap_to_review">Appuyez pour examiner</string>
+    <string name="quarantined_dialog_title">Modifications en échec</string>
+    <string name="quarantined_detail">Ces modifications n\'ont pas pu être envoyées à Proton et ne seront pas réessayées automatiquement.</string>
+    <string name="quarantined_dialog_empty">Aucune modification en échec.</string>
+    <string name="quarantined_dialog_close">Fermer</string>
+    <string name="quarantined_no_name">(nom indisponible)</string>
+    <string name="quarantined_op_create">Nouveau contact</string>
+    <string name="quarantined_op_update">Modification</string>
+    <string name="quarantined_op_delete">Suppression</string>
+    <string name="quarantined_op_unknown">Modification non reconnue</string>
+    <string name="quarantined_retry">Réessayer</string>
+    <string name="quarantined_discard">Abandonner</string>
+
     <plurals name="pending_delete_count">
         <item quantity="one">%d contact programmé pour suppression</item>
         <item quantity="other">%d contacts programmés pour suppression</item>

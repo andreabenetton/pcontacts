@@ -34,6 +34,19 @@
         <item quantity="other">%d changes failed permanently</item>
     </plurals>
 
+    <string name="quarantined_tap_to_review">Tap to review</string>
+    <string name="quarantined_dialog_title">Changes that failed</string>
+    <string name="quarantined_detail">These edits could not be sent to Proton and will not be retried automatically.</string>
+    <string name="quarantined_dialog_empty">No failed changes.</string>
+    <string name="quarantined_dialog_close">Close</string>
+    <string name="quarantined_no_name">(name unavailable)</string>
+    <string name="quarantined_op_create">New contact</string>
+    <string name="quarantined_op_update">Edit</string>
+    <string name="quarantined_op_delete">Deletion</string>
+    <string name="quarantined_op_unknown">Unrecognised change</string>
+    <string name="quarantined_retry">Retry</string>
+    <string name="quarantined_discard">Discard</string>
+
     <plurals name="pending_delete_count">
         <item quantity="one">%d contact scheduled for deletion</item>
         <item quantity="other">%d contacts scheduled for deletion</item>

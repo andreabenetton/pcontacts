@@ -34,6 +34,19 @@
         <item quantity="other">%d modifiche fallite definitivamente</item>
     </plurals>
 
+    <string name="quarantined_tap_to_review">Tocca per esaminare</string>
+    <string name="quarantined_dialog_title">Modifiche non riuscite</string>
+    <string name="quarantined_detail">Queste modifiche non sono state inviate a Proton e non verranno ritentate automaticamente.</string>
+    <string name="quarantined_dialog_empty">Nessuna modifica non riuscita.</string>
+    <string name="quarantined_dialog_close">Chiudi</string>
+    <string name="quarantined_no_name">(nome non disponibile)</string>
+    <string name="quarantined_op_create">Nuovo contatto</string>
+    <string name="quarantined_op_update">Modifica</string>
+    <string name="quarantined_op_delete">Eliminazione</string>
+    <string name="quarantined_op_unknown">Modifica non riconosciuta</string>
+    <string name="quarantined_retry">Riprova</string>
+    <string name="quarantined_discard">Scarta</string>
+
     <plurals name="pending_delete_count">
         <item quantity="one">%d contatto in attesa di eliminazione</item>
         <item quantity="other">%d contatti in attesa di eliminazione</item>

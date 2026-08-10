@@ -38,6 +38,9 @@ class SettingsViewModel(
     private val queryOutboxStats: suspend () -> OutboxStats = { OutboxStats(0, 0) },
     private val queryPendingDeletes: suspend () -> List<PendingDelete> = { emptyList() },
     private val queryConflicts: suspend () -> List<ConflictInfo> = { emptyList() },
+    private val queryQuarantinedChanges: suspend () -> List<QuarantinedChange> = { emptyList() },
+    private val retryQuarantinedChange: suspend (Long) -> Unit = {},
+    private val discardQuarantinedChange: suspend (Long) -> Unit = {},
     private val cancelDelete: suspend (String) -> Unit = {},
     private val resolveConflict: suspend (String, ConflictResolution) -> Unit = { _, _ -> },
     private val queryContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
@@ -71,6 +74,12 @@ class SettingsViewModel(
     private val _conflicts = MutableStateFlow<List<ConflictInfo>>(emptyList())
     val conflicts: StateFlow<List<ConflictInfo>> = _conflicts.asStateFlow()
 
+    private val _quarantinedChanges = MutableStateFlow<List<QuarantinedChange>>(emptyList())
+    val quarantinedChanges: StateFlow<List<QuarantinedChange>> = _quarantinedChanges.asStateFlow()
+
+    private val _quarantinedDialogOpen = MutableStateFlow(false)
+    val quarantinedDialogOpen: StateFlow<Boolean> = _quarantinedDialogOpen.asStateFlow()
+
     private val _contactsAccessApps = MutableStateFlow<List<ContactsAccessApp>>(emptyList())
     val contactsAccessApps: StateFlow<List<ContactsAccessApp>> = _contactsAccessApps.asStateFlow()
 
@@ -101,6 +110,8 @@ class SettingsViewModel(
             _outboxStats.value = try { queryOutboxStats() } catch (_: Exception) { OutboxStats(0, 0) }
             _pendingDeletes.value = try { queryPendingDeletes() } catch (_: Exception) { emptyList() }
             _conflicts.value = try { queryConflicts() } catch (_: Exception) { emptyList() }
+            _quarantinedChanges.value =
+                try { queryQuarantinedChanges() } catch (_: Exception) { emptyList() }
             _contactsAccessApps.value = try { queryContactsAccessApps() } catch (_: Exception) { emptyList() }
             _systemContactsAccessApps.value =
                 try { querySystemContactsAccessApps() } catch (_: Exception) { emptyList() }
@@ -117,6 +128,41 @@ class SettingsViewModel(
 
     fun openUnverifiedContactInSystem(rawContactId: Long) {
         openContactInSystem(rawContactId)
+    }
+
+    fun showQuarantinedChangesDialog() {
+        _quarantinedDialogOpen.value = true
+    }
+
+    fun dismissQuarantinedChangesDialog() {
+        _quarantinedDialogOpen.value = false
+    }
+
+    /**
+     * Puts one failed change back in the queue and refreshes the
+     * counts. The dialog closes itself once the last row is gone —
+     * an empty failure list has nothing left to show.
+     */
+    fun retryQuarantined(outboxId: Long) {
+        scope.launch {
+            withContext(workDispatcher) { retryQuarantinedChange(outboxId) }
+            refreshSyncStatus()
+            closeQuarantinedDialogIfEmpty()
+        }
+    }
+
+    fun discardQuarantined(outboxId: Long) {
+        scope.launch {
+            withContext(workDispatcher) { discardQuarantinedChange(outboxId) }
+            refreshSyncStatus()
+            closeQuarantinedDialogIfEmpty()
+        }
+    }
+
+    private fun closeQuarantinedDialogIfEmpty() {
+        if (_quarantinedChanges.value.isEmpty()) {
+            _quarantinedDialogOpen.value = false
+        }
     }
 
     fun showContactsAccessDialog() {

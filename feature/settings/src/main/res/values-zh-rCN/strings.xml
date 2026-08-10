@@ -32,6 +32,19 @@
         <item quantity="other">%d 项更改永久失败</item>
     </plurals>
 
+    <string name="quarantined_tap_to_review">点按查看详情</string>
+    <string name="quarantined_dialog_title">失败的更改</string>
+    <string name="quarantined_detail">这些更改无法发送到 Proton，也不会自动重试。</string>
+    <string name="quarantined_dialog_empty">没有失败的更改。</string>
+    <string name="quarantined_dialog_close">关闭</string>
+    <string name="quarantined_no_name">（姓名不可用）</string>
+    <string name="quarantined_op_create">新建联系人</string>
+    <string name="quarantined_op_update">编辑</string>
+    <string name="quarantined_op_delete">删除</string>
+    <string name="quarantined_op_unknown">无法识别的更改</string>
+    <string name="quarantined_retry">重试</string>
+    <string name="quarantined_discard">放弃</string>
+
     <plurals name="pending_delete_count">
         <item quantity="other">%d 个联系人已计划删除</item>
     </plurals>

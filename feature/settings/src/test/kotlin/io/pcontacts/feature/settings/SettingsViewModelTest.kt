@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -338,6 +339,99 @@ class SettingsViewModelTest {
         advanceUntilIdle()
         assertEquals(emptyList<ContactsAccessApp>(), vm.contactsAccessApps.value)
     }
+
+    @Test fun quarantined_changes_load_on_refresh() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryQuarantinedChanges = { listOf(sampleQuarantined(1L, "Alice")) },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, vm.quarantinedChanges.value.size)
+        assertEquals("Alice", vm.quarantinedChanges.value.single().displayName)
+        assertEquals(QuarantinedOperation.UPDATE, vm.quarantinedChanges.value.single().operation)
+    }
+
+    @Test fun quarantined_changes_default_on_query_failure() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryQuarantinedChanges = { error("db error") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(emptyList<QuarantinedChange>(), vm.quarantinedChanges.value)
+    }
+
+    @Test fun retry_quarantined_calls_seam_and_refreshes() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val retried = mutableListOf<Long>()
+        var queryCount = 0
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryQuarantinedChanges = {
+                queryCount++
+                if (queryCount == 1) {
+                    listOf(sampleQuarantined(7L, "Alice"), sampleQuarantined(8L, "Bob"))
+                } else {
+                    listOf(sampleQuarantined(8L, "Bob"))
+                }
+            },
+            retryQuarantinedChange = { retried += it },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        vm.showQuarantinedChangesDialog()
+
+        vm.retryQuarantined(7L)
+        advanceUntilIdle()
+
+        assertEquals(listOf(7L), retried)
+        assertEquals(listOf(8L), vm.quarantinedChanges.value.map { it.outboxId })
+        assertTrue(vm.quarantinedDialogOpen.value)
+    }
+
+    @Test fun discard_quarantined_closes_dialog_once_the_list_empties() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val discarded = mutableListOf<Long>()
+        var queryCount = 0
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryQuarantinedChanges = {
+                queryCount++
+                if (queryCount == 1) listOf(sampleQuarantined(7L, "Alice")) else emptyList()
+            },
+            discardQuarantinedChange = { discarded += it },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        vm.showQuarantinedChangesDialog()
+        assertTrue(vm.quarantinedDialogOpen.value)
+
+        vm.discardQuarantined(7L)
+        advanceUntilIdle()
+
+        assertEquals(listOf(7L), discarded)
+        assertTrue(vm.quarantinedChanges.value.isEmpty())
+        assertFalse(vm.quarantinedDialogOpen.value)
+    }
+
+    private fun sampleQuarantined(outboxId: Long, name: String?) = QuarantinedChange(
+        outboxId = outboxId,
+        displayName = name,
+        operation = QuarantinedOperation.UPDATE,
+        reason = "HttpException: 422"
+    )
 
     @Test fun outbox_stats_default_on_query_failure() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)

@@ -29,6 +29,26 @@ data class PendingDelete(
     val createdAt: Long
 )
 
+/** Which outbound operation a quarantined change was carrying. */
+enum class QuarantinedOperation { CREATE, UPDATE, DELETE, UNKNOWN }
+
+/**
+ * One row for the failed-changes dialog. Like
+ * [UnverifiedContactSummary], `displayName` is resolved upstream (in
+ * `:app`) via ContentResolver; it is null when the local contact can no
+ * longer be located — typically a deletion whose row is already gone.
+ *
+ * `reason` is the persisted quarantine reason (an exception class name
+ * plus HTTP code, or a short internal reason); it never carries
+ * decrypted contact content.
+ */
+data class QuarantinedChange(
+    val outboxId: Long,
+    val displayName: String?,
+    val operation: QuarantinedOperation,
+    val reason: String?
+)
+
 data class ConflictInfo(
     val protonContactId: String,
     val displayName: String?,
