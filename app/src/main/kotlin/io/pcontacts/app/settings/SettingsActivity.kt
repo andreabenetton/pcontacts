@@ -45,12 +45,15 @@ import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
+import io.pcontacts.core.sync.contacts.ChangeOp
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.ContactsAccessApp
 import io.pcontacts.feature.settings.OutboxStats
 import io.pcontacts.feature.settings.PendingDelete
+import io.pcontacts.feature.settings.QuarantinedChange
+import io.pcontacts.feature.settings.QuarantinedOperation
 import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SettingsViewModel
@@ -89,6 +92,9 @@ class SettingsActivity : ComponentActivity() {
             queryOutboxStats = ::queryOutboxStats,
             queryPendingDeletes = ::queryPendingDeletes,
             queryConflicts = ::queryConflicts,
+            queryQuarantinedChanges = ::queryQuarantinedChanges,
+            retryQuarantinedChange = { SyncBootstrap.retryQuarantinedChange(applicationContext, it) },
+            discardQuarantinedChange = { SyncBootstrap.discardQuarantinedChange(applicationContext, it) },
             cancelDelete = ::cancelPendingDelete,
             resolveConflict = ::resolveConflict,
             queryContactsAccessApps = ::queryContactsAccessApps,
@@ -264,6 +270,26 @@ class SettingsActivity : ComponentActivity() {
             )
         }
 
+    /**
+     * Names come from ContactsContract, not from our Room mapping
+     * (ADR-0007), so the resolution happens here rather than in
+     * `:core:sync`. A null name means the local row is gone — expected
+     * for a failed deletion.
+     */
+    private suspend fun queryQuarantinedChanges(): List<QuarantinedChange> {
+        val refs = SyncBootstrap.listQuarantinedChanges(applicationContext)
+        if (refs.isEmpty()) return emptyList()
+        val names = resolveDisplayNames(refs.mapNotNull { it.androidRawContactId })
+        return refs.map { ref ->
+            QuarantinedChange(
+                outboxId = ref.outboxId,
+                displayName = ref.androidRawContactId?.let { names[it] },
+                operation = ref.op.toUiOperation(),
+                reason = ref.lastError
+            )
+        }
+    }
+
     private suspend fun queryConflicts(): List<ConflictInfo> =
         db.contactMapDao().listConflicts().map { entity ->
             ConflictInfo(
@@ -382,4 +408,15 @@ class SettingsActivity : ComponentActivity() {
         startActivity(intent)
         finish()
     }
+}
+
+/**
+ * A null [ChangeOp] means the stored op_type is not one this build
+ * understands; the UI still lists the row so it can be discarded.
+ */
+private fun ChangeOp?.toUiOperation(): QuarantinedOperation = when (this) {
+    ChangeOp.CREATE -> QuarantinedOperation.CREATE
+    ChangeOp.UPDATE -> QuarantinedOperation.UPDATE
+    ChangeOp.DELETE -> QuarantinedOperation.DELETE
+    null -> QuarantinedOperation.UNKNOWN
 }
