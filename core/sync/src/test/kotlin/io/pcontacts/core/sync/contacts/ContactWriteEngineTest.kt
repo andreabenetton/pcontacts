@@ -755,7 +755,7 @@ private class WriteFakeApi : ProtonContactsApi {
     }
 }
 
-private class WriteFakeOutboxDao : OutboxDao {
+internal class WriteFakeOutboxDao : OutboxDao {
     val entries = LinkedHashMap<Long, OutboxEntity>()
     private var nextId = 1L
 
@@ -784,6 +784,20 @@ private class WriteFakeOutboxDao : OutboxDao {
         }
     }
 
+    override suspend fun listQuarantined(): List<OutboxEntity> =
+        entries.values.filter { it.quarantined }.sortedBy { it.createdAt }
+
+    override suspend fun requeue(id: Long) {
+        entries[id]?.takeIf { it.quarantined }?.let {
+            entries[id] = it.copy(
+                quarantined = false,
+                attempts = 0,
+                lastError = null,
+                nextAttemptAt = 0L
+            )
+        }
+    }
+
     override suspend fun deleteById(id: Long) { entries.remove(id) }
     override suspend fun deleteByContact(contactId: String) {
         entries.entries.removeIf { it.value.protonContactId == contactId }
@@ -795,7 +809,7 @@ private class WriteFakeOutboxDao : OutboxDao {
         entries.values.filter { it.opType == OutboxEntity.OpType.DELETE && !it.quarantined }
 }
 
-private class WriteFakeContactMapDao : ContactMapDao {
+internal class WriteFakeContactMapDao : ContactMapDao {
     private val rows = HashMap<String, ContactMapEntity>()
 
     override suspend fun upsert(entry: ContactMapEntity) { rows[entry.protonContactId] = entry }

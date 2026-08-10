@@ -90,6 +90,33 @@ object SyncBootstrap {
         }
     }
 
+    /**
+     * Returns the local edits that failed permanently and are parked in
+     * the outbox quarantine. Display name lookup is left to the caller
+     * for the same reason as [listUnverifiedContacts].
+     */
+    suspend fun listQuarantinedChanges(context: Context): List<QuarantinedChangeRef> {
+        val db = DatabaseFactory.create(context.applicationContext)
+        return buildQuarantinedChangeRefs(db.outboxDao(), db.contactMapDao())
+    }
+
+    /**
+     * Returns one quarantined entry to the live queue. The next sync run
+     * picks it up; if it fails permanently again it is re-quarantined
+     * with a fresh reason.
+     */
+    suspend fun retryQuarantinedChange(context: Context, outboxId: Long) {
+        DatabaseFactory.create(context.applicationContext).outboxDao().requeue(outboxId)
+    }
+
+    /**
+     * Drops one quarantined entry for good. The local contact keeps
+     * whatever state it has; only the pending push is abandoned.
+     */
+    suspend fun discardQuarantinedChange(context: Context, outboxId: Long) {
+        DatabaseFactory.create(context.applicationContext).outboxDao().deleteById(outboxId)
+    }
+
     suspend fun loadLauncherStatus(context: Context): LauncherStatus {
         val db = DatabaseFactory.create(context.applicationContext)
         val contactDao = db.contactMapDao()
