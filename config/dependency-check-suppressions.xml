@@ -73,13 +73,16 @@
       shipped Android app is not a vector.
 
       Why we cannot fix by upgrading yet:
-      - Fixed in 2.4.20. As of this suppression, Maven Central publishes
-        only 2.4.20-Beta1 — no GA. Adopting a Beta Kotlin in a release
-        build weakens reproducibility guarantees (Beta artifacts can be
-        republished under the same coordinate) and is not vetted by
-        JetBrains for stable use.
+      - Fixed in 2.4.20. As of 2026-08-10, Maven Central publishes only
+        2.4.20-Beta2 (2026-07-22) — no GA; JetBrains has scheduled the
+        2.4.20 release for September 2026. Adopting a Beta Kotlin in a
+        release build weakens reproducibility guarantees (Beta artifacts
+        can be republished under the same coordinate) and is not vetted
+        by JetBrains for stable use.
 
       Why residual risk is acceptable:
+      - The vulnerable deserialization path is in KAPT. This project
+        uses KSP exclusively; no module applies the kapt plugin.
       - CI runs on fresh ubuntu-latest runners per job; no build cache
         shared across runs. Poisoning would require a prior foothold on
         the runner itself, a strictly larger compromise than the CVE.
@@ -87,8 +90,10 @@
         metadata.
       - No runtime code path invokes the Kotlin compiler on user input.
 
-      Scope: pinned to kotlin-stdlib@2.3.21 so any Kotlin bump auto-
-      invalidates this entry and forces re-evaluation.
+      Scope: pinned to kotlin-stdlib@2.4.10 so any Kotlin bump auto-
+      invalidates this entry and forces re-evaluation. (The 2.3.21 pin
+      this replaces did exactly that when Kotlin was bumped to 2.4.10 in
+      #35 — the scan then failed closed, as designed.)
 
       Re-evaluate: 2026-10-01 (expected 2.4.20 GA window) or whenever
       Kotlin is bumped, whichever comes first.
@@ -96,12 +101,13 @@
     <suppress>
         <notes><![CDATA[
             Build-cache metadata deserialization RCE in Kotlin < 2.4.20.
-            Build-time surface only; no runtime impact on the shipped
-            APK. Fix version 2.4.20 not yet GA (only 2.4.20-Beta1 on
-            Maven Central). CI uses fresh runners with no shared cache.
+            Build-time surface only (KAPT; this project uses KSP), no
+            runtime impact on the shipped APK. Fix version 2.4.20 not
+            yet GA (only 2.4.20-Beta2 on Maven Central; GA scheduled
+            September 2026). CI uses fresh runners with no shared cache.
             Re-evaluate 2026-10-01 or on the next Kotlin bump.
         ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib@2\.3\.21$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib@2\.4\.10$</packageUrl>
         <cve>CVE-2026-53914</cve>
     </suppress>
 
