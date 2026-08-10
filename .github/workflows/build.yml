@@ -37,10 +37,10 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v6.2.0
+        uses: gradle/actions/setup-gradle@v6.3.0
 
       - name: Validate wrapper
-        uses: gradle/actions/wrapper-validation@v6.2.0
+        uses: gradle/actions/wrapper-validation@v6.3.0
 
       - name: Run unit tests
         run: |
@@ -92,7 +92,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v6.2.0
+        uses: gradle/actions/setup-gradle@v6.3.0
 
       - name: Assemble debug
         run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
@@ -138,7 +138,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v6.2.0
+        uses: gradle/actions/setup-gradle@v6.3.0
 
       - name: Enable KVM
         run: |
@@ -180,7 +180,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v6.2.0
+        uses: gradle/actions/setup-gradle@v6.3.0
 
       - name: Assemble release
         # Exercises proguard-rules.pro — catches missing keep rules for
@@ -215,7 +215,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v6.2.0
+        uses: gradle/actions/setup-gradle@v6.3.0
 
       - name: Build A
         # No signing env is passed: AGP emits pcontacts-release-unsigned.apk
@@ -282,7 +282,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v6.2.0
+        uses: gradle/actions/setup-gradle@v6.3.0
 
       # Split into restore + save with `if: always()` so partial NVD download
       # progress is preserved when the analyze step times out or fails. The
