@@ -298,6 +298,53 @@ class PcontactsDatabaseTest {
         assertEquals(1_700_030_000L, updated.nextAttemptAt)
     }
 
+    @Test fun outbox_list_quarantined_returns_only_quarantined_entries_oldest_first() = runTest {
+        outboxDao.insert(sampleOutbox(contactId = "ct-1", opType = OutboxEntity.OpType.UPDATE))
+        outboxDao.insert(sampleOutbox(contactId = "ct-2", opType = OutboxEntity.OpType.CREATE))
+        outboxDao.insert(sampleOutbox(contactId = "ct-3", opType = OutboxEntity.OpType.DELETE))
+        val all = outboxDao.listReady(now = 2_000_000_000L)
+
+        outboxDao.quarantine(all[2].id, "contact not found locally")
+        outboxDao.quarantine(all[0].id, "HttpException: 422")
+
+        val quarantined = outboxDao.listQuarantined()
+        assertEquals(2, quarantined.size)
+        assertEquals("ct-1", quarantined[0].protonContactId)
+        assertEquals("HttpException: 422", quarantined[0].lastError)
+        assertEquals("ct-3", quarantined[1].protonContactId)
+        assertEquals("contact not found locally", quarantined[1].lastError)
+    }
+
+    @Test fun outbox_requeue_clears_quarantine_and_resets_backoff() = runTest {
+        outboxDao.insert(sampleOutbox(contactId = "ct-1", opType = OutboxEntity.OpType.UPDATE))
+        val entry = outboxDao.listReady(now = 2_000_000_000L).single()
+        outboxDao.recordFailure(entry.id, attempts = 4, error = "503", nextAt = 9_000_000_000L)
+        outboxDao.quarantine(entry.id, "HttpException: 422")
+        assertEquals(1, outboxDao.countQuarantined())
+
+        outboxDao.requeue(entry.id)
+
+        assertEquals(0, outboxDao.countQuarantined())
+        assertEquals(1, outboxDao.countPending())
+        val requeued = outboxDao.listReady(now = 2_000_000_000L).single()
+        assertEquals(0, requeued.attempts)
+        assertNull(requeued.lastError)
+        assertEquals(0L, requeued.nextAttemptAt)
+    }
+
+    @Test fun outbox_requeue_ignores_entries_that_are_not_quarantined() = runTest {
+        outboxDao.insert(sampleOutbox(contactId = "ct-1", opType = OutboxEntity.OpType.UPDATE))
+        val entry = outboxDao.listReady(now = 2_000_000_000L).single()
+        outboxDao.recordFailure(entry.id, attempts = 2, error = "503", nextAt = 9_000_000_000L)
+
+        outboxDao.requeue(entry.id)
+
+        val untouched = outboxDao.findByContact("ct-1").single()
+        assertEquals(2, untouched.attempts)
+        assertEquals("503", untouched.lastError)
+        assertEquals(9_000_000_000L, untouched.nextAttemptAt)
+    }
+
     @Test fun outbox_delete_by_contact_removes_all_entries_for_that_contact() = runTest {
         outboxDao.insert(sampleOutbox(contactId = "ct-1", opType = OutboxEntity.OpType.UPDATE))
         outboxDao.insert(sampleOutbox(contactId = "ct-1", opType = OutboxEntity.OpType.DELETE))

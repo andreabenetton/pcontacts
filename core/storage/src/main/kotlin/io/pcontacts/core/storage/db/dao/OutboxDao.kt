@@ -34,6 +34,20 @@ interface OutboxDao {
     @Query("UPDATE outbox SET quarantined = 1, last_error = :error WHERE id = :id")
     suspend fun quarantine(id: Long, error: String?)
 
+    @Query("SELECT * FROM outbox WHERE quarantined = 1 ORDER BY created_at")
+    suspend fun listQuarantined(): List<OutboxEntity>
+
+    /**
+     * Returns a quarantined entry to the live queue: clears the
+     * quarantine flag, resets the backoff state so the next [listReady]
+     * picks it up immediately, and drops the stale failure reason.
+     */
+    @Query(
+        "UPDATE outbox SET quarantined = 0, attempts = 0, last_error = NULL, next_attempt_at = 0 " +
+            "WHERE id = :id AND quarantined = 1"
+    )
+    suspend fun requeue(id: Long)
+
     @Query("DELETE FROM outbox WHERE id = :id")
     suspend fun deleteById(id: Long)
 
