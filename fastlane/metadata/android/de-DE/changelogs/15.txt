@@ -1,0 +1,5 @@
+Version 1.6.0.
+
+* Kontakte, die eine andere App vom Telefon entfernt hat, werden bei der nächsten Synchronisierung wieder aus Proton hergestellt – auch wenn sich der Proton-Kontakt selbst nicht geändert hat.
+* Doppelte Kopien desselben Proton-Kontakts werden erkannt und entfernt. Kontakte anderer Konten werden nie angerührt.
+* Selbst gelöschte Kontakte bleiben gelöscht – die Wiederherstellung holt sie nicht zurück.

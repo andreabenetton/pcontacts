@@ -1,0 +1,5 @@
+Versión 1.6.0.
+
+* Los contactos que otra aplicación haya eliminado del teléfono se restauran ahora desde Proton en la siguiente sincronización, aunque el contacto de Proton no haya cambiado.
+* Se detectan y eliminan las copias duplicadas del mismo contacto de Proton. Los contactos de otras cuentas nunca se tocan.
+* Los contactos que elimines tú siguen eliminados: la recuperación no los devuelve.

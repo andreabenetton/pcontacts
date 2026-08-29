@@ -1,0 +1,5 @@
+Version 1.6.0.
+
+* Contacts that another app removed from your phone are now restored from Proton on the next sync, even when the Proton contact itself hasn't changed.
+* Duplicate copies of the same Proton contact are detected and cleaned up. Contacts belonging to other accounts are never touched.
+* Contacts you delete yourself are still deleted — the recovery never brings them back.

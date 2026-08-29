@@ -1,0 +1,5 @@
+Versione 1.6.0.
+
+* I contatti rimossi dal telefono da un'altra app vengono ora ripristinati da Proton alla sincronizzazione successiva, anche se il contatto Proton non è cambiato.
+* Le copie duplicate dello stesso contatto Proton vengono rilevate ed eliminate. I contatti di altri account non vengono mai toccati.
+* I contatti che elimini tu restano eliminati: il ripristino non li fa riapparire.

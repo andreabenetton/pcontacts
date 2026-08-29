@@ -1,0 +1,5 @@
+Version 1.6.0.
+
+* Les contacts supprimés du téléphone par une autre application sont désormais restaurés depuis Proton à la synchronisation suivante, même si le contact Proton n'a pas changé.
+* Les copies en double d'un même contact Proton sont détectées et supprimées. Les contacts des autres comptes ne sont jamais touchés.
+* Les contacts que vous supprimez vous-même restent supprimés : la restauration ne les fait pas revenir.
