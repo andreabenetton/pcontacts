@@ -700,6 +700,7 @@ private class DetailFakeApplier(base: Long) {
             is RawContactOpIntent.CreateContact -> sourceIdToRawId[intent.row.sourceId] = nextId++
             is RawContactOpIntent.DeleteContact -> sourceIdToRawId.remove(intent.sourceId)
             is RawContactOpIntent.UpdateContact -> { /* id unchanged */ }
+            is RawContactOpIntent.DeleteRawContact -> sourceIdToRawId.values.remove(intent.rawContactId)
         }
         return ApplyResult(
             insertedContacts = intents.count { it is RawContactOpIntent.CreateContact },

@@ -126,6 +126,19 @@ class ContactsContractOpsTest {
         assertEquals("true", ops[0].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
     }
 
+    @Test fun delete_raw_contact_emits_single_delete_scoped_by_id_via_syncadapter_uri() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.DeleteRawContact(rawContactId = 42L)
+        )
+        assertEquals(1, ops.size)
+        assertTrue("op 0 must be delete", ops[0].isDelete)
+        // Sync-adapter URI: the duplicate row is purged outright — no
+        // DIRTY/DELETED state for ContactWriteEngine to misread as a
+        // user deletion.
+        assertEquals("true", ops[0].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
+    }
+
     @Test fun create_with_three_emails_emits_one_RawContacts_plus_StructuredName_plus_three_Email_rows() {
         val ops = ContactsContractOps.build(
             account = account,

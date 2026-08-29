@@ -265,6 +265,9 @@ private class FakeApplier(base: Long) {
                 sourceIdToRawId.remove(intent.sourceId)
             }
             is RawContactOpIntent.UpdateContact -> { /* rawId unchanged */ }
+            is RawContactOpIntent.DeleteRawContact -> {
+                sourceIdToRawId.values.remove(intent.rawContactId)
+            }
         }
         return ApplyResult(
             insertedContacts = intents.count { it is RawContactOpIntent.CreateContact },

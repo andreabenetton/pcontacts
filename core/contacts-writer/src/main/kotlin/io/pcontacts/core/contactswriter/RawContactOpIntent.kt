@@ -24,4 +24,14 @@ sealed interface RawContactOpIntent {
 
     /** Server no longer has a contact we previously wrote. Delete the whole RawContact. */
     data class DeleteContact(val sourceId: String) : RawContactOpIntent
+
+    /**
+     * Internal maintenance: remove one specific RawContact row from the
+     * invalid duplicate state (several rows under our account sharing a
+     * SOURCE_ID). Scoped to a RawContacts._ID so the canonical survivor
+     * is untouched; the sync-adapter URI purges the row without leaving
+     * DIRTY/DELETED state, so the cleanup is never mistaken for a user
+     * deletion to propagate to Proton.
+     */
+    data class DeleteRawContact(val rawContactId: Long) : RawContactOpIntent
 }

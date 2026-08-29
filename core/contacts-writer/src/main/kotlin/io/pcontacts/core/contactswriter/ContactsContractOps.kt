@@ -65,6 +65,8 @@ object ContactsContractOps {
                 updateContactOps(account, intent.rawContactId, intent.row)
             is RawContactOpIntent.DeleteContact ->
                 listOf(deleteContactOp(account, intent.sourceId))
+            is RawContactOpIntent.DeleteRawContact ->
+                listOf(deleteRawContactOp(account, intent.rawContactId))
         }
 
     private fun createContactOps(
@@ -560,6 +562,16 @@ object ContactsContractOps {
             .withSelection(
                 "${RawContacts.SOURCE_ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
                 arrayOf(sourceId, account.type, account.name)
+            )
+            .build()
+
+    private fun deleteRawContactOp(account: Account, rawContactId: Long): ContentProviderOperation =
+        ContentProviderOperation.newDelete(
+            SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
+        )
+            .withSelection(
+                "${RawContacts._ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+                arrayOf(rawContactId.toString(), account.type, account.name)
             )
             .build()
 }

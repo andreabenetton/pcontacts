@@ -571,6 +571,75 @@ class ContactsContractInstrumentedTest {
         assertEquals(20, countRawContactsForAccount())
     }
 
+    // ---- Duplicate SOURCE_ID reconciliation ----
+
+    @Test
+    fun syncadapter_delete_of_duplicate_raw_contact_purges_without_dirty_or_deleted_state() {
+        // Reproduce the invalid state: two rows, same account, same
+        // SOURCE_ID (each Create inserts a fresh RawContact).
+        val row = ContactRow("proton-dup", "Dup", emails = listOf("dup@proton.me"))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
+
+        val reader = RawContactReader(testProvider)
+        val ids = reader.readExistingState(testAccount).rowsBySourceId["proton-dup"]!!
+            .map { it.rawContactId }
+        assertEquals("provider must hold both duplicate rows", 2, ids.size)
+
+        val survivor = ids.min()
+        val extra = ids.max()
+        applier.apply(testAccount, listOf(RawContactOpIntent.DeleteRawContact(extra)))
+
+        // The extra row is purged outright — no tombstone even when the
+        // query would show DELETED=1 rows.
+        assertEquals(1, countRawContactsForAccount())
+        val after = reader.readExistingState(testAccount).rowsBySourceId["proton-dup"]!!
+        assertEquals(listOf(survivor), after.map { it.rawContactId })
+        assertTrue("survivor must not be tombstoned", after.none { it.deleted })
+
+        // The internal cleanup must not create DIRTY/DELETED state that
+        // ContactWriteEngine.detectChanges would enqueue as a user
+        // deletion to push to Proton.
+        val dirty = DirtyContactReader(testProvider).readDirty(testAccount)
+        assertTrue("cleanup must leave no dirty/deleted rows: $dirty", dirty.isEmpty())
+    }
+
+    @Test
+    fun delete_raw_contact_is_scoped_to_the_owning_account() {
+        val otherAccount = Account("other-${UUID.randomUUID()}@example.org", accountType)
+        val row = ContactRow("proton-shared", "Shared", emails = listOf("s@x"))
+        val applier = BatchApplier(testProvider)
+        applier.apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
+        applier.apply(otherAccount, listOf(RawContactOpIntent.CreateContact(row)))
+        try {
+            val otherId = RawContactReader(testProvider)
+                .readExistingState(otherAccount).canonicalId("proton-shared")!!
+
+            // Deleting the other account's row id under OUR account must
+            // be a no-op — the op's selection is account-scoped.
+            applier.apply(testAccount, listOf(RawContactOpIntent.DeleteRawContact(otherId)))
+
+            assertNotNull(
+                "other account's row must survive",
+                RawContactReader(testProvider).readExistingState(otherAccount)
+                    .canonicalId("proton-shared")
+            )
+            assertNotNull(
+                "our own row must survive too",
+                RawContactReader(testProvider).readExistingState(testAccount)
+                    .canonicalId("proton-shared")
+            )
+        } finally {
+            val uri = SyncAdapterUri.decorate(RawContacts.CONTENT_URI, otherAccount.name, otherAccount.type)
+            testProvider.delete(
+                uri,
+                "${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+                arrayOf(otherAccount.type, otherAccount.name)
+            )
+        }
+    }
+
     // ---- Helpers ----
 
     private fun findRawContactBySourceId(sourceId: String, includeTombstones: Boolean = false): Long? {
