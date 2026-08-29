@@ -17,6 +17,16 @@ updates:
       - dependencies
     commit-message:
       prefix: "deps"
+    ignore:
+      # okhttp 5.5.0+ requires compileSdk 37; the app compiles against 36.
+      # Remove this entry after the compileSdk 37 bump.
+      - dependency-name: "com.squareup.okhttp3:*"
+        versions: [">=5.5.0"]
+      # Gradle 9.6 removed an internal API that AGP 8.x still uses, so the
+      # build fails on Gradle >= 9.6 until we move to an AGP that supports it.
+      # Remove this entry after the AGP upgrade.
+      - dependency-name: "gradle-wrapper"
+        versions: [">=9.6"]
 
   - package-ecosystem: github-actions
     directory: /
