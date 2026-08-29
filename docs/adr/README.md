@@ -31,6 +31,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0019](0019-human-verification-webview-flow.md) | Human-verification (9001) handled via in-app WebView | Accepted |
 | [0020](0020-multi-key-decrypt-user-and-address-keys.md) | Decrypt path tries all unlocked user + address keys | Accepted |
 | [0021](0021-send-via-proton-mail-chip.md) | "Send via Proton Mail" custom data row + intent contract | Accepted |
+| [0022](0022-contactsprovider-authoritative-self-healing.md) | ContactsProvider is authoritative — sync metadata self-heals | Accepted |
 
 ## Template
 

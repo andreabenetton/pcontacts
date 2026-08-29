@@ -27,6 +27,8 @@ import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.PcontactsDatabase
+import io.pcontacts.core.storage.db.dao.OutboxDao
+import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.auth.SecretStoreHumanVerificationSource
 import io.pcontacts.core.sync.contacts.decrypt.ContactDecryptBootstrap
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
@@ -221,7 +223,8 @@ object SyncBootstrap {
             labelsApi = apis.labels,
             processor = processor,
             contactMapDao = db.contactMapDao(),
-            readExisting = { account -> withContext(Dispatchers.IO) { reader.readExisting(account) } },
+            readExisting = { account -> withContext(Dispatchers.IO) { reader.readExistingState(account) } },
+            hasPendingDelete = hasPendingOutboxDelete(db.outboxDao()),
             applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } },
             reconcileGroups = { account, labels ->
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
@@ -297,7 +300,8 @@ object SyncBootstrap {
             labelsApi = apis.labels,
             processor = processor,
             contactMapDao = db.contactMapDao(),
-            readExisting = { account -> withContext(Dispatchers.IO) { reader.readExisting(account) } },
+            readExisting = { account -> withContext(Dispatchers.IO) { reader.readExistingState(account) } },
+            hasPendingDelete = hasPendingOutboxDelete(db.outboxDao()),
             applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } },
             reconcileGroups = { account, labels ->
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
@@ -358,3 +362,15 @@ object SyncBootstrap {
         )
     }
 }
+
+/**
+ * A non-quarantined outbox DELETE means the user's local deletion is
+ * still propagating to Proton — the pull engine must not resurrect
+ * the contact meanwhile (ADR-0022).
+ */
+private fun hasPendingOutboxDelete(outboxDao: OutboxDao): suspend (String) -> Boolean =
+    { protonContactId ->
+        outboxDao.findByContact(protonContactId).any {
+            !it.quarantined && it.opType == OutboxEntity.OpType.DELETE
+        }
+    }

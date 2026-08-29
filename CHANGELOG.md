@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Contacts removed from the phone by another app (e.g. a
+  duplicate-cleanup tool) are now restored from Proton on the next
+  sync, even when the Proton contact itself hasn't changed. Sync also
+  detects and removes duplicate copies of the same Proton contact
+  inside the pcontacts account — contacts of other accounts are never
+  touched — and repairs its bookkeeping when it points at the wrong
+  local contact. Pending local deletions are still honoured and are
+  never resurrected. (ADR-0022)
+
 ## [1.5.0] - 2026-08-05
 
 ### Added

@@ -6,6 +6,7 @@ package io.pcontacts.core.sync.contacts
 import android.accounts.Account
 import io.pcontacts.core.contactswriter.ApplyResult
 import io.pcontacts.core.contactswriter.ContactRow
+import io.pcontacts.core.contactswriter.ExistingRawContacts
 import io.pcontacts.core.contactswriter.ProtonLabel
 import io.pcontacts.core.contactswriter.RawContactDiffer
 import io.pcontacts.core.contactswriter.RawContactOpIntent
@@ -46,15 +47,35 @@ import kotlinx.coroutines.flow.toList
  * The two-tier skip (modifyTime first, content_hash second) means
  * second-run cost on an unchanged account is one /contacts listing
  * call — no per-contact fetches, no decrypt cycles.
+ *
+ * Self-healing invariant (ADR-0022): ContactsProvider is authoritative
+ * for which local RawContacts exist; the Room mapping is only sync
+ * metadata. Neither skip tier may fire when the provider no longer
+ * holds a live row for the contact — the contact is refetched and the
+ * RawContact recreated. A stale `androidRawContactId` is repaired to
+ * the provider's live row, and duplicate rows sharing one SOURCE_ID
+ * under our account are reconciled to a deterministic survivor.
  */
+// The constructor parameter list is the DI seam surface (Bootstrap-wired
+// function seams per CLAUDE.md); splitting it would hide the wiring.
+@Suppress("LongParameterList")
 class ContactDetailSyncEngine(
     private val metadataPager: ContactsMetadataPager,
     private val contactsApi: ProtonContactsApi,
     private val labelsApi: ProtonLabelsApi,
     private val processor: ContactProcessor,
     private val contactMapDao: ContactMapDao,
-    private val readExisting: suspend (Account) -> Map<String, Long>,
+    private val readExisting: suspend (Account) -> ExistingRawContacts,
     private val applyIntents: suspend (Account, List<RawContactOpIntent>) -> ApplyResult,
+    /**
+     * True when a non-quarantined DELETE for this Proton contact is
+     * queued in the outbox — the user deleted it locally and the
+     * deletion hasn't been pushed yet. Guards self-healing recovery
+     * against resurrecting an intentional deletion whose tombstone was
+     * purged externally. Default false keeps fixtures that don't
+     * exercise deletion simple.
+     */
+    private val hasPendingDelete: suspend (protonContactId: String) -> Boolean = { false },
     /**
      * Reconciles ContactsContract.Groups rows for `account` against the
      * server-side label set; returns `Map<proton label id, local Groups._ID>`.
@@ -94,10 +115,35 @@ class ContactDetailSyncEngine(
             metadata.associate { it.id to it.labelIds }
         val serverSourceIds = serverModifyTimes.keys
 
-        // 2. Local state.
-        val existing = readExisting(account)
+        // 2. Local state. ContactsProvider is authoritative for which
+        //    RawContacts exist; the Room mapping is only sync metadata
+        //    and converges to provider reality (repairMapping below).
+        val existingState = readExisting(account)
         val storedMappings: Map<String, ContactMapEntity> = contactMapDao.listLive()
             .associateBy { it.protonContactId }
+
+        // 2b. Canonical SOURCE_ID → _ID view + duplicate reconciliation.
+        //     Several rows sharing one SOURCE_ID under our account is an
+        //     invalid state (seen in the field after an external
+        //     duplicate-cleanup pass); delete the extras, keep a
+        //     deterministic survivor. DeleteRawContact uses the
+        //     sync-adapter URI, so the cleanup leaves no DIRTY/DELETED
+        //     state and never queues a Proton DELETE.
+        val existing = HashMap<String, Long>(existingState.rowsBySourceId.size)
+        val dedupeIntents = ArrayList<RawContactOpIntent>()
+        for (sourceId in existingState.rowsBySourceId.keys) {
+            val preferred = storedMappings[sourceId]?.androidRawContactId
+            val canonical = existingState.canonicalId(sourceId, preferred) ?: continue
+            existing[sourceId] = canonical
+            val extras = existingState.duplicateIds(sourceId, canonical)
+            if (extras.isNotEmpty()) {
+                logger.warn {
+                    "duplicate RawContacts (${extras.size} extras) reconciled to " +
+                        "rawContactId=$canonical idTag=${sourceId.hashCode()}"
+                }
+                extras.mapTo(dedupeIntents) { RawContactOpIntent.DeleteRawContact(it) }
+            }
+        }
 
         // 3. Per-ID: cheap-skip (modifyTime) → fetch → decrypt → project →
         //    hash-skip (content_hash) → target list.
@@ -109,20 +155,37 @@ class ContactDetailSyncEngine(
 
         for ((sourceId, serverModifyTime) in serverModifyTimes) {
             val stored = storedMappings[sourceId]
+            val liveRawId = existing[sourceId]
+            val deletePending = stored != null && liveRawId == null &&
+                hasPendingDelete(sourceId)
+            if (deletePending) {
+                // The user deleted this contact locally and the DELETE is
+                // still queued (grace period) while the tombstone row is
+                // already gone. Leave both sides alone — recreating it
+                // here would resurrect an intentional deletion before it
+                // propagates to Proton.
+                logger.info { "skip: local delete pending push idTag=${sourceId.hashCode()}" }
+                continue
+            }
             val storedFormatCurrent =
                 stored?.contentHash?.startsWith(EmailSyncHash.FORMAT_PREFIX) == true
             val serverUnchanged = serverModifyTime > 0L && stored != null &&
                 stored.modifyTime >= serverModifyTime
-            if (serverUnchanged && storedFormatCurrent) {
+            if (serverUnchanged && storedFormatCurrent && liveRawId != null) {
                 // Cheap-skip: server says unchanged AND the stored hash
-                // is in the current writer format. If the hash format
-                // has rolled (Phase 12 hash bump for the chip row), we
-                // fall through to fetch+rewrite even when the server
-                // ModifyTime hasn't advanced — otherwise the one-shot
-                // migration never lands.
+                // is in the current writer format AND the provider still
+                // holds the row. If the hash format has rolled (Phase 12
+                // hash bump for the chip row), we fall through to
+                // fetch+rewrite even when the server ModifyTime hasn't
+                // advanced — otherwise the one-shot migration never
+                // lands. If the row vanished (external app deleted it),
+                // we fall through so the contact is recreated.
                 modifyTimeSkips += 1
-                contactMapDao.upsert(stored.copy(lastSyncedAt = now))
+                contactMapDao.upsert(repairMapping(stored, liveRawId).copy(lastSyncedAt = now))
                 continue
+            }
+            if (stored != null && liveRawId == null) {
+                logger.warn { "RawContact missing for mapped contact; recreating idTag=${sourceId.hashCode()}" }
             }
 
             val response = try {
@@ -167,11 +230,14 @@ class ContactDetailSyncEngine(
             )
             perContactMeta[sourceId] = meta
 
-            if (stored?.contentHash == newHash) {
-                // ModifyTime bumped but visible content unchanged. Refresh
-                // bookkeeping; no ContactsContract write needed.
+            if (stored?.contentHash == newHash && liveRawId != null) {
+                // ModifyTime bumped but visible content unchanged, and the
+                // provider still holds the row. Refresh bookkeeping; no
+                // ContactsContract write needed. A matching hash means
+                // "the data hasn't changed", not "the row still exists" —
+                // with the row missing we fall through and recreate it.
                 contactMapDao.upsert(
-                    stored.copy(
+                    repairMapping(stored, liveRawId).copy(
                         modifyTime = meta.modifyTime,
                         isVerified = meta.verified,
                         protonUid = meta.protonUid,
@@ -186,8 +252,8 @@ class ContactDetailSyncEngine(
             target += row
         }
 
-        // 4. Decide intents.
-        val intents = RawContactDiffer.diff(
+        // 4. Decide intents — duplicate cleanup first, then the diff.
+        val intents = dedupeIntents + RawContactDiffer.diff(
             target = target,
             existing = existing,
             serverSourceIds = serverSourceIds
@@ -216,7 +282,7 @@ class ContactDetailSyncEngine(
         val applyResult = applyIntents(account, intents)
 
         // 6. Reconcile mapping rows.
-        val freshExisting = readExisting(account)
+        val freshExisting = readExisting(account).canonicalIds()
         for (row in target) {
             val rawId = freshExisting[row.sourceId]
             if (rawId == null) {
@@ -261,6 +327,21 @@ class ContactDetailSyncEngine(
             unverifiedCount = unverified,
             failed = fetchFailures
         )
+    }
+
+    /**
+     * Points the Room mapping at the RawContact the provider actually
+     * holds. A stale androidRawContactId (e.g. an external app removed
+     * and recreated the row) converges here without rewriting contact
+     * data.
+     */
+    private fun repairMapping(stored: ContactMapEntity, liveRawId: Long): ContactMapEntity {
+        if (stored.androidRawContactId == liveRawId) return stored
+        logger.info {
+            "mapping repaired: rawContactId ${stored.androidRawContactId} -> $liveRawId " +
+                "idTag=${stored.protonContactId.hashCode()}"
+        }
+        return stored.copy(androidRawContactId = liveRawId)
     }
 
     private data class PerContactMeta(
