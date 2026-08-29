@@ -340,6 +340,10 @@ dependencyCheck {
     failBuildOnCVSS = 7.0f
     suppressionFile = "$rootDir/config/dependency-check-suppressions.xml"
     formats = listOf("HTML", "JSON", "SARIF")
+    // Pin the report location. The plugin's default moved to a
+    // dependency-check/ subdirectory in 13.0.0; CI reads these paths, so
+    // state them here rather than tracking the plugin's default.
+    outputDirectory.set(layout.buildDirectory.dir("reports/dependency-check"))
     // Scan only what actually ships in the release APK. Test/build/lint
     // classpaths pull in transitives (gRPC, Netty, protobuf, kotlin-compiler)
     // with their own CVE histories, none of which reach end users.
