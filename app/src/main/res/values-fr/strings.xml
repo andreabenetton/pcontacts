@@ -9,6 +9,7 @@
     <string name="launcher_synced_contacts">Synchronisés : %d contacts</string>
     <string name="launcher_last_sync">Dernière synchronisation : %s</string>
     <string name="launcher_last_sync_never">Dernière synchronisation : jamais</string>
+    <string name="launcher_sync_running">Synchronisation en cours…</string>
     <string name="launcher_sync_failed_reauth">Échec de la synchronisation — veuillez vous reconnecter.</string>
     <string name="launcher_sync_failed_verification">Échec de la synchronisation — vérification requise sur le site web de Proton.</string>
     <string name="launcher_sync_failed_app_version">Échec de la synchronisation — veuillez mettre à jour pcontacts.</string>

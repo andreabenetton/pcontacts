@@ -81,6 +81,19 @@ class LauncherViewModelTest {
         assertEquals(LauncherUiState.SignedIn(status), vm.uiState.value)
     }
 
+    @Test fun sync_running_defaults_false_and_follows_updates() {
+        val vm = LauncherViewModel(
+            hasAccount = { true },
+            loadStatus = { LauncherStatus(0, 0, null) },
+            workDispatcher = testDispatcher
+        )
+        assertEquals(false, vm.syncRunning.value)
+        vm.updateSyncRunning(true)
+        assertEquals(true, vm.syncRunning.value)
+        vm.updateSyncRunning(false)
+        assertEquals(false, vm.syncRunning.value)
+    }
+
     @Test fun refresh_updates_state_on_subsequent_calls() = runTest {
         var callCount = 0
         val vm = LauncherViewModel(

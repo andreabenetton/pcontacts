@@ -39,6 +39,8 @@ import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.permissions.ContactsPermissionBanner
 import io.pcontacts.app.permissions.ContactsPermissionState
 import io.pcontacts.app.permissions.ContactsPermissionStatus
+import io.pcontacts.app.sync.SyncErrorCodes
+import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
@@ -50,6 +52,7 @@ import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.ContactsAccessApp
+import io.pcontacts.feature.settings.LastSyncSummary
 import io.pcontacts.feature.settings.OutboxStats
 import io.pcontacts.feature.settings.PendingDelete
 import io.pcontacts.feature.settings.QuarantinedChange
@@ -69,12 +72,19 @@ import io.pcontacts.feature.settings.VerificationStats
  * 'no_account' failure rather than crashing — the user lands here
  * before logging in via deep link / shortcut.
  */
+// Manual-DI wiring hub: most functions are tiny seam implementations
+// bound to SettingsViewModel, so the count is structural.
+@Suppress("TooManyFunctions")
 class SettingsActivity : ComponentActivity() {
 
     private val logoutHelper by lazy { LogoutHelper(applicationContext) }
     private val userPrefs by lazy { SharedPreferencesUserPreferences(applicationContext) }
     private val db by lazy { DatabaseFactory.create(applicationContext) }
     private var contactsPermissionStatus by mutableStateOf(ContactsPermissionStatus.GRANTED)
+    private val syncRunningMonitor = SyncRunningMonitor(
+        account = ::currentAccount,
+        onChange = { viewModel.updateSyncRunning(it) }
+    )
 
     private val contactsPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -88,6 +98,7 @@ class SettingsActivity : ComponentActivity() {
             signOut = ::performSignOut,
             queryVerificationStats = ::queryVerificationStats,
             queryUnverifiedContacts = ::queryUnverifiedContacts,
+            queryLastSync = ::queryLastSync,
             openContactInSystem = ::openContactInSystem,
             queryOutboxStats = ::queryOutboxStats,
             queryPendingDeletes = ::queryPendingDeletes,
@@ -144,6 +155,12 @@ class SettingsActivity : ComponentActivity() {
         contactsPermissionStatus = ContactsPermissionState.check(
             this, userPrefs.contactsPermissionRequested
         )
+        syncRunningMonitor.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        syncRunningMonitor.stop()
     }
 
     override fun onDestroy() {
@@ -159,7 +176,21 @@ class SettingsActivity : ComponentActivity() {
             putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
         }
         ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
-        return SettingsActionResult.Success(message = "Sync requested. Check the system Contacts app shortly.")
+        return SettingsActionResult.Success()
+    }
+
+    private suspend fun queryLastSync(): LastSyncSummary {
+        val status = SyncBootstrap.loadLauncherStatus(applicationContext)
+        val failureMessage = if (status.lastSyncFailed) {
+            getString(SyncErrorCodes.messageRes(status.lastSyncErrorCode))
+        } else {
+            null
+        }
+        return LastSyncSummary(
+            syncedAtMillis = status.lastSyncedAtMillis,
+            failureMessage = failureMessage,
+            failedContacts = status.failedContacts
+        )
     }
 
     private suspend fun performSignOut(): SettingsActionResult {

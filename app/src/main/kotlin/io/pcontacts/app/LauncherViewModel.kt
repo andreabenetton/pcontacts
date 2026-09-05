@@ -24,6 +24,14 @@ class LauncherViewModel(
     private val _uiState = MutableStateFlow<LauncherUiState>(LauncherUiState.Loading)
     val uiState: StateFlow<LauncherUiState> = _uiState.asStateFlow()
 
+    private val _syncRunning = MutableStateFlow(false)
+    val syncRunning: StateFlow<Boolean> = _syncRunning.asStateFlow()
+
+    /** Fed by MainActivity's ContentResolver sync-status observer. */
+    fun updateSyncRunning(running: Boolean) {
+        _syncRunning.value = running
+    }
+
     fun refresh() {
         viewModelScope.launch {
             if (!hasAccount()) {

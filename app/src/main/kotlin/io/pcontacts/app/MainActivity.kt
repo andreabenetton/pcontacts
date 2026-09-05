@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -59,6 +60,7 @@ import io.pcontacts.app.permissions.ContactsPermissionState
 import io.pcontacts.app.permissions.ContactsPermissionStatus
 import io.pcontacts.app.settings.SettingsActivity
 import io.pcontacts.app.sync.SyncErrorCodes
+import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
@@ -70,8 +72,20 @@ class MainActivity : ComponentActivity() {
     private var resumeTick = 0
     private var pendingVerificationReturn = false
     private var notificationDenied = false
-    private var syncStatusObserverHandle: Any? = null
     private var contactsPermissionStatus by mutableStateOf(ContactsPermissionStatus.GRANTED)
+
+    // Refreshes the launcher status when a sync starts/finishes so the counts,
+    // the "last sync" line, and the running indicator update live while the
+    // screen is foregrounded, rather than only on the next onResume.
+    private val syncRunningMonitor = SyncRunningMonitor(
+        account = {
+            AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull()
+        },
+        onChange = { running ->
+            viewModel.updateSyncRunning(running)
+            viewModel.refresh()
+        }
+    )
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -112,6 +126,7 @@ class MainActivity : ComponentActivity() {
                     containerColor = MaterialTheme.colorScheme.background
                 ) { innerPadding ->
                     val state by viewModel.uiState.collectAsState()
+                    val syncRunning by viewModel.syncRunning.collectAsState()
                     val tick by remember { mutableIntStateOf(resumeTick) }
                     var showFallbackDialog by remember { mutableStateOf(false) }
 
@@ -123,6 +138,7 @@ class MainActivity : ComponentActivity() {
                         onOpenSettings = ::launchSettings,
                         contactsPermissionStatus = contactsPermissionStatus,
                         onGrantContactsPermission = ::handleContactsPermissionAction,
+                        syncRunning = syncRunning,
                         modifier = Modifier.padding(innerPadding)
                     )
 
@@ -168,7 +184,7 @@ class MainActivity : ComponentActivity() {
         contactsPermissionStatus = ContactsPermissionState.check(
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
-        observeSyncStatus()
+        syncRunningMonitor.start()
 
         if (pendingVerificationReturn) {
             pendingVerificationReturn = false
@@ -178,20 +194,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        syncStatusObserverHandle?.let { ContentResolver.removeStatusChangeListener(it) }
-        syncStatusObserverHandle = null
-    }
-
-    // Refresh the launcher status when a sync starts/finishes so the counts and
-    // "last sync" line update live while the screen is foregrounded, rather than
-    // only on the next onResume (e.g. the initial sync that follows login).
-    private fun observeSyncStatus() {
-        if (syncStatusObserverHandle != null) return
-        val mask = ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE or
-            ContentResolver.SYNC_OBSERVER_TYPE_PENDING
-        syncStatusObserverHandle = ContentResolver.addStatusChangeListener(mask) { _ ->
-            viewModel.refresh()
-        }
+        syncRunningMonitor.stop()
     }
 
     private fun handleVerificationIntent(intent: Intent?): Boolean {
@@ -288,6 +291,7 @@ internal fun LauncherScreen(
     onOpenSettings: () -> Unit,
     contactsPermissionStatus: ContactsPermissionStatus = ContactsPermissionStatus.GRANTED,
     onGrantContactsPermission: () -> Unit = {},
+    syncRunning: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -328,6 +332,15 @@ internal fun LauncherScreen(
 
             is LauncherUiState.SignedIn -> {
                 SignedInStatus(state.status)
+                if (syncRunning) {
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.launcher_sync_running),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
                 if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
                     Spacer(Modifier.height(16.dp))
                     ContactsPermissionBanner(
@@ -422,15 +435,8 @@ private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatu
 }
 
 @Composable
-private fun syncFailureMessage(code: String?): String = stringResource(
-    when (code) {
-        SyncErrorCodes.REAUTH -> R.string.launcher_sync_failed_reauth
-        SyncErrorCodes.VERIFICATION -> R.string.launcher_sync_failed_verification
-        SyncErrorCodes.APP_VERSION -> R.string.launcher_sync_failed_app_version
-        SyncErrorCodes.NETWORK -> R.string.launcher_sync_failed_network
-        else -> R.string.launcher_sync_failed_generic
-    }
-)
+private fun syncFailureMessage(code: String?): String =
+    stringResource(SyncErrorCodes.messageRes(code))
 
 @Composable
 private fun VerificationFallbackDialog(onDismiss: () -> Unit) {

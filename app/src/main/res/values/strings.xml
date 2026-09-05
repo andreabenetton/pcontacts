@@ -5,6 +5,7 @@
     <string name="launcher_synced_contacts">Synced: %d contacts</string>
     <string name="launcher_last_sync">Last sync: %s</string>
     <string name="launcher_last_sync_never">Last sync: never</string>
+    <string name="launcher_sync_running">Sync in progress…</string>
     <string name="launcher_sync_failed_reauth">Last sync failed — please sign in again.</string>
     <string name="launcher_sync_failed_verification">Last sync failed — verification needed on the Proton website.</string>
     <string name="launcher_sync_failed_app_version">Last sync failed — please update pcontacts.</string>

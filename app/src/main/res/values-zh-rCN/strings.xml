@@ -9,6 +9,7 @@
     <string name="launcher_synced_contacts">已同步：%d 个联系人</string>
     <string name="launcher_last_sync">上次同步：%s</string>
     <string name="launcher_last_sync_never">上次同步：从未</string>
+    <string name="launcher_sync_running">正在同步…</string>
     <string name="launcher_sync_failed_reauth">上次同步失败，请重新登录。</string>
     <string name="launcher_sync_failed_verification">上次同步失败，需要在 Proton 网站上完成验证。</string>
     <string name="launcher_sync_failed_app_version">上次同步失败，请更新 pcontacts。</string>
