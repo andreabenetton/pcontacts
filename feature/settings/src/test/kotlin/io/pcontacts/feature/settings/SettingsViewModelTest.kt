@@ -17,21 +17,82 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
 
-    @Test fun triggerSyncNow_transitions_idle_syncing_done() = runTest {
+    @Test fun triggerSyncNow_success_returns_to_idle_and_marks_running() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = SettingsViewModel(
-            syncNow = { SettingsActionResult.Success(message = "Sync requested") },
+            syncNow = { SettingsActionResult.Success() },
             signOut = { error("not used") },
             scope = TestScope(dispatcher),
             workDispatcher = dispatcher
         )
         assertEquals(SettingsUiState.Idle, vm.uiState.value)
+        assertFalse(vm.syncRunning.value)
 
         vm.triggerSyncNow()
         assertEquals(SettingsUiState.Syncing, vm.uiState.value)
 
         advanceUntilIdle()
-        assertEquals(SettingsUiState.SyncDone(message = "Sync requested"), vm.uiState.value)
+        assertEquals(SettingsUiState.Idle, vm.uiState.value)
+        assertTrue(vm.syncRunning.value)
+    }
+
+    @Test fun triggerSyncNow_is_noop_while_sync_running() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var callCount = 0
+        val vm = SettingsViewModel(
+            syncNow = {
+                callCount += 1
+                SettingsActionResult.Success()
+            },
+            signOut = { error("not used") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.updateSyncRunning(true)
+        vm.triggerSyncNow()
+        advanceUntilIdle()
+        assertEquals(0, callCount)
+        assertEquals(SettingsUiState.Idle, vm.uiState.value)
+    }
+
+    @Test fun last_sync_refreshed_when_running_sync_completes() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var queryCount = 0
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryLastSync = {
+                queryCount++
+                LastSyncSummary(syncedAtMillis = queryCount * 1000L)
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(1000L, vm.lastSync.value?.syncedAtMillis)
+
+        vm.updateSyncRunning(true)
+        advanceUntilIdle()
+        // Still the previous run's result while the new run is active.
+        assertEquals(1000L, vm.lastSync.value?.syncedAtMillis)
+
+        vm.updateSyncRunning(false)
+        advanceUntilIdle()
+        assertFalse(vm.syncRunning.value)
+        assertEquals(2000L, vm.lastSync.value?.syncedAtMillis)
+    }
+
+    @Test fun last_sync_null_when_query_fails() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            queryLastSync = { error("db error") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(null, vm.lastSync.value)
     }
 
     @Test fun triggerSyncNow_failure_surfaces_reason() = runTest {
@@ -84,7 +145,8 @@ class SettingsViewModelTest {
 
         gate.complete(SettingsActionResult.Success())
         advanceUntilIdle()
-        assertTrue(vm.uiState.value is SettingsUiState.SyncDone)
+        assertEquals(SettingsUiState.Idle, vm.uiState.value)
+        assertTrue(vm.syncRunning.value)
     }
 
     @Test fun reset_returns_to_idle() = runTest {

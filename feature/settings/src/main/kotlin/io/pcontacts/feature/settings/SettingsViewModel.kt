@@ -22,8 +22,10 @@ import kotlinx.coroutines.withContext
  * injectable, workDispatcher is injectable.
  *
  * `syncNow` triggers ContentResolver.requestSync; expected to return
- * immediately and let the SyncAdapter run async — the result message
- * comes from a stats query the activity does on completion.
+ * immediately and let the SyncAdapter run async. Whether that run is
+ * actually in progress is fed in by the activity's ContentResolver
+ * sync-status observer via [updateSyncRunning]; its persisted outcome
+ * is read through `queryLastSync` and exposed as [lastSync].
  *
  * `signOut` runs the full LogoutOrchestrator chain; returns true on
  * success (every step finished without error), false otherwise.
@@ -34,6 +36,7 @@ class SettingsViewModel(
     private val signOut: suspend () -> SettingsActionResult,
     private val queryVerificationStats: suspend () -> VerificationStats? = { null },
     private val queryUnverifiedContacts: suspend () -> List<UnverifiedContactSummary> = { emptyList() },
+    private val queryLastSync: suspend () -> LastSyncSummary? = { null },
     private val openContactInSystem: (Long) -> Unit = {},
     private val queryOutboxStats: suspend () -> OutboxStats = { OutboxStats(0, 0) },
     private val queryPendingDeletes: suspend () -> List<PendingDelete> = { emptyList() },
@@ -52,6 +55,12 @@ class SettingsViewModel(
 ) {
     private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Idle)
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private val _lastSync = MutableStateFlow<LastSyncSummary?>(null)
+    val lastSync: StateFlow<LastSyncSummary?> = _lastSync.asStateFlow()
+
+    private val _syncRunning = MutableStateFlow(false)
+    val syncRunning: StateFlow<Boolean> = _syncRunning.asStateFlow()
 
     private val _verificationStats = MutableStateFlow<VerificationStats?>(null)
     val verificationStats: StateFlow<VerificationStats?> = _verificationStats.asStateFlow()
@@ -105,6 +114,7 @@ class SettingsViewModel(
 
     private suspend fun refreshSyncStatus() {
         withContext(workDispatcher) {
+            _lastSync.value = try { queryLastSync() } catch (_: Exception) { null }
             _verificationStats.value = try { queryVerificationStats() } catch (_: Exception) { null }
             _unverifiedContacts.value = try { queryUnverifiedContacts() } catch (_: Exception) { emptyList() }
             _outboxStats.value = try { queryOutboxStats() } catch (_: Exception) { OutboxStats(0, 0) }
@@ -181,14 +191,33 @@ class SettingsViewModel(
         _systemContactsAccessDialogOpen.value = false
     }
 
+    /**
+     * Fed by the activity's ContentResolver sync-status observer. On
+     * the running→idle transition the just-finished run's persisted
+     * result replaces the previous one; until then [lastSync] keeps
+     * showing the previous run's outcome.
+     */
+    fun updateSyncRunning(running: Boolean) {
+        val wasRunning = _syncRunning.value
+        _syncRunning.value = running
+        if (wasRunning && !running) {
+            scope.launch { refreshSyncStatus() }
+        }
+    }
+
     fun triggerSyncNow() {
-        if (_uiState.value is SettingsUiState.Syncing) return
+        if (_uiState.value is SettingsUiState.Syncing || _syncRunning.value) return
         _uiState.value = SettingsUiState.Syncing
         pendingJob = scope.launch {
             val result = withContext(workDispatcher) { syncNow() }
             _uiState.value = when (result) {
-                is SettingsActionResult.Success ->
-                    SettingsUiState.SyncDone(result.message ?: "Sync requested")
+                is SettingsActionResult.Success -> {
+                    // Optimistic: bridges the gap until the framework
+                    // reports the sync pending/active; the observer
+                    // confirms and later clears it.
+                    _syncRunning.value = true
+                    SettingsUiState.Idle
+                }
                 is SettingsActionResult.Failure ->
                     SettingsUiState.SyncFailed(result.reason)
             }

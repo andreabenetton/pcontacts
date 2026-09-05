@@ -6,18 +6,33 @@ package io.pcontacts.feature.settings
 /**
  * Settings screen state. The screen has two actions (Sync Now /
  * Sign Out); the state machine reflects whichever is currently
- * in-flight (or the result of the most recent one).
+ * in-flight (or the failure of the most recent one). [Syncing] covers
+ * only the requestSync round-trip — the actual SyncAdapter run is
+ * tracked by [SettingsViewModel.syncRunning], and its outcome by
+ * [SettingsViewModel.lastSync].
  */
 sealed interface SettingsUiState {
     data object Idle : SettingsUiState
     data object Syncing : SettingsUiState
-    data class SyncDone(val message: String) : SettingsUiState
     data class SyncFailed(val reason: String) : SettingsUiState
 
     data object SigningOut : SettingsUiState
     data object SignedOut : SettingsUiState
     data class SignOutFailed(val reason: String) : SettingsUiState
 }
+
+/**
+ * Result of the most recent completed sync run, as persisted by the
+ * sync adapter. It is overwritten only when a run finishes, so the UI
+ * keeps showing the previous run's outcome for the whole duration of
+ * the next one. `failureMessage` is pre-localized upstream (in `:app`,
+ * which owns the error-code mapping); null means the run succeeded.
+ */
+data class LastSyncSummary(
+    val syncedAtMillis: Long?,
+    val failureMessage: String? = null,
+    val failedContacts: Int = 0
+)
 
 data class OutboxStats(
     val pending: Int,

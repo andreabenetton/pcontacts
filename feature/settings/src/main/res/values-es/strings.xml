@@ -8,7 +8,13 @@
     <string name="settings_sync_now">Sincronizar ahora</string>
     <string name="settings_sign_out">Cerrar sesión</string>
     <string name="settings_signed_out">Sesión cerrada.</string>
-    <string name="settings_sync_requested">Sincronización solicitada</string>
+    <string name="settings_sync_running">Sincronización en curso…</string>
+    <string name="settings_last_sync">Última sincronización: %s</string>
+    <string name="settings_last_sync_never">Última sincronización: nunca</string>
+    <plurals name="settings_sync_failed_contacts">
+        <item quantity="one">%d contacto no se pudo sincronizar</item>
+        <item quantity="other">%d contactos no se pudieron sincronizar</item>
+    </plurals>
     <string name="settings_sync_failed">Sincronización fallida: %s</string>
     <string name="settings_sign_out_failed">El cierre de sesión notificó errores: %s</string>
     <string name="settings_sync_interval">Intervalo de sincronización</string>

@@ -8,7 +8,15 @@
     <string name="settings_sync_now">Синхронизировать сейчас</string>
     <string name="settings_sign_out">Выйти</string>
     <string name="settings_signed_out">Выход выполнен.</string>
-    <string name="settings_sync_requested">Синхронизация запрошена</string>
+    <string name="settings_sync_running">Выполняется синхронизация…</string>
+    <string name="settings_last_sync">Последняя синхронизация: %s</string>
+    <string name="settings_last_sync_never">Последняя синхронизация: никогда</string>
+    <plurals name="settings_sync_failed_contacts">
+        <item quantity="one">%d контакт не синхронизирован</item>
+        <item quantity="few">%d контакта не синхронизированы</item>
+        <item quantity="many">%d контактов не синхронизированы</item>
+        <item quantity="other">%d контактов не синхронизированы</item>
+    </plurals>
     <string name="settings_sync_failed">Синхронизация не удалась: %s</string>
     <string name="settings_sign_out_failed">Выход завершился с ошибками: %s</string>
     <string name="settings_sync_interval">Интервал синхронизации</string>

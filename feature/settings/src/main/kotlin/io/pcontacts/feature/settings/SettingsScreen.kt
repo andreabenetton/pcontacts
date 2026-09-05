@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.settings
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,7 +55,10 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
-    val busy = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
+    val syncRunning by viewModel.syncRunning.collectAsStateWithLifecycle()
+    val lastSync by viewModel.lastSync.collectAsStateWithLifecycle()
+    val actionInFlight = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
+    val busy = actionInFlight || syncRunning
 
     Column(
         modifier = modifier
@@ -104,10 +108,6 @@ fun SettingsScreen(
                 Spacer(Modifier.height(8.dp))
                 CircularProgressIndicator()
             }
-            is SettingsUiState.SyncDone -> Text(
-                text = s.message,
-                style = MaterialTheme.typography.bodyMedium
-            )
             is SettingsUiState.SyncFailed -> Text(
                 text = stringResource(R.string.settings_sync_failed, s.reason),
                 color = MaterialTheme.colorScheme.error,
@@ -124,7 +124,68 @@ fun SettingsScreen(
             )
         }
 
+        if (syncRunning) {
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_sync_running),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        lastSync?.let { info ->
+            Spacer(Modifier.height(16.dp))
+            LastSyncStatus(info)
+        }
+
         SettingsStatusSection(viewModel)
+    }
+}
+
+/**
+ * The persisted outcome of the most recent completed sync run. Stays
+ * on screen while a new run is in progress — it is replaced only once
+ * that run finishes and its result is persisted.
+ */
+@Composable
+private fun LastSyncStatus(info: LastSyncSummary) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val syncedAt = info.syncedAtMillis
+        val lastSyncText = if (syncedAt != null) {
+            stringResource(
+                R.string.settings_last_sync,
+                DateUtils.getRelativeTimeSpanString(
+                    syncedAt,
+                    System.currentTimeMillis(),
+                    DateUtils.MINUTE_IN_MILLIS
+                )
+            )
+        } else {
+            stringResource(R.string.settings_last_sync_never)
+        }
+        Text(
+            text = lastSyncText,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        info.failureMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+        if (info.failedContacts > 0) {
+            Text(
+                text = pluralStringResource(
+                    R.plurals.settings_sync_failed_contacts,
+                    info.failedContacts,
+                    info.failedContacts
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
     }
 }
 
