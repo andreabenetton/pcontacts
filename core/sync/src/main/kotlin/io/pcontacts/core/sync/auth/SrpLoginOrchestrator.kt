@@ -189,7 +189,8 @@ class SrpLoginOrchestrator(
      * e.g. the attempt limit) so retrying this session cannot succeed:
      * fail closed to a fresh sign-in and drop the stashed password.
      * Other 4xx keep the stash so the user can retry on the same
-     * screen (`[A]` 422 Code 8002 observed for a wrong/expired code).
+     * screen (`[V]` wrong TOTP → HTTP 422, validated against live
+     * Proton account 2026-09-05; retry-then-success also validated).
      */
     private fun classifyTwoFactorFailure(
         t: Throwable,
@@ -366,9 +367,9 @@ class SrpLoginOrchestrator(
      * `[V]` 1000 is Proton's app-level success Code on 2xx responses.
      * HTTP rejections surface as Retrofit `HttpException` and are
      * classified: 401 → `no_session` (auth session invalidated), other
-     * 4xx → `two_factor_rejected` (`[A]` 422 Code 8002 is the observed
-     * wrong/expired-TOTP response; the warn log carries the live status
-     * for validation), 5xx → `two_factor_server_error`. Only transport
+     * 4xx → `two_factor_rejected` (`[V]` wrong TOTP → HTTP 422 —
+     * validated against live Proton account, 2026-09-05; the warn log
+     * carries the status), 5xx → `two_factor_server_error`. Only transport
      * failures (no HTTP response at all) map to `two_factor_failed` —
      * the UI renders that one as a connectivity problem.
      */
