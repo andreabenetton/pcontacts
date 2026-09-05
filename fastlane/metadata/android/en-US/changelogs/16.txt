@@ -1,0 +1,5 @@
+Version 1.7.0.
+
+* A progress indicator now shows when a sync is actually running, on both the main screen and Settings.
+* Settings keeps the previous sync's result (time and outcome) on screen until the new sync completes.
+* A wrong or expired two-factor code at sign-in now says "Wrong code. Try again." instead of a misleading connection error.

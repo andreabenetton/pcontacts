@@ -1,0 +1,5 @@
+Version 1.7.0.
+
+* Eine Fortschrittsanzeige zeigt jetzt auf Start- und Einstellungsbildschirm, wenn eine Synchronisierung tatsächlich läuft.
+* Die Einstellungen zeigen das Ergebnis der letzten Synchronisierung, bis die neue abgeschlossen ist.
+* Ein falscher oder abgelaufener Zwei-Faktor-Code meldet jetzt „Falscher Code. Erneut versuchen." statt eines irreführenden Verbindungsfehlers.

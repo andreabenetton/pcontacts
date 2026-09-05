@@ -1,0 +1,5 @@
+Versión 1.7.0.
+
+* Un indicador de progreso muestra ahora cuándo hay una sincronización en curso, en la pantalla principal y en Ajustes.
+* Ajustes mantiene el resultado de la sincronización anterior en pantalla hasta que la nueva termina.
+* Un código de dos factores incorrecto o caducado ahora muestra «Código incorrecto. Inténtalo de nuevo.» en vez de un error de conexión engañoso.

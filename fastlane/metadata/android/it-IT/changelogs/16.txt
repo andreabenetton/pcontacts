@@ -1,0 +1,5 @@
+Versione 1.7.0.
+
+* Un indicatore di avanzamento mostra ora quando una sincronizzazione è davvero in corso, nella schermata principale e nelle impostazioni.
+* Le impostazioni mantengono il risultato della sincronizzazione precedente finché la nuova non è completata.
+* Un codice a due fattori errato o scaduto ora mostra "Codice errato. Riprova." invece di un fuorviante errore di connessione.

@@ -1,0 +1,5 @@
+Version 1.7.0.
+
+* Un indicateur de progression s'affiche désormais quand une synchronisation est réellement en cours, sur l'écran principal et dans les réglages.
+* Les réglages conservent le résultat de la synchronisation précédente jusqu'à la fin de la nouvelle.
+* Un code à deux facteurs erroné ou expiré affiche désormais « Code erroné. Réessayez. » au lieu d'une fausse erreur de connexion.
