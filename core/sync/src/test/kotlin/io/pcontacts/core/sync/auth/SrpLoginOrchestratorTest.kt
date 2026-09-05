@@ -10,13 +10,11 @@ import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
 import io.pcontacts.core.storage.InMemorySecretStore
-import java.math.BigInteger
-import java.security.SecureRandom
-import java.util.Base64
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.QueueDispatcher
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -24,6 +22,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.math.BigInteger
+import java.security.SecureRandom
+import java.util.Base64
 
 class SrpLoginOrchestratorTest {
 
@@ -126,8 +127,10 @@ class SrpLoginOrchestratorTest {
 
         val result = orchestrator.login("u", "p".toCharArray())
 
-        assertTrue("expected Failed(server_proof_mismatch), was $result",
-            result is LoginResult.Failed && result.reason == "server_proof_mismatch")
+        assertTrue(
+            "expected Failed(server_proof_mismatch), was $result",
+            result is LoginResult.Failed && result.reason == "server_proof_mismatch"
+        )
         // Persistence runs only AFTER the verifier accepts.
         assertNull(secretStore.uid())
         assertNull(secretStore.accessToken())
@@ -292,23 +295,108 @@ class SrpLoginOrchestratorTest {
     @Test fun submitTwoFactorCode_without_session_returns_no_session() = runTest {
         // No login() preceded; session is empty.
         val result = newOrchestrator().submitTwoFactorCode("000000")
-        assertTrue("expected Failed(no_session), was $result",
-            result is LoginResult.Failed && result.reason == "no_session")
+        assertTrue(
+            "expected Failed(no_session), was $result",
+            result is LoginResult.Failed && result.reason == "no_session"
+        )
     }
 
-    @Test fun submitTwoFactorCode_http_failure_returns_two_factor_failed() = runTest {
+    @Test fun submitTwoFactorCode_http422_returns_two_factor_rejected() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-2fa-fail", twoFactor = 1)
         val orchestrator = newOrchestrator()
         orchestrator.login("u", "p".toCharArray())
         repeat(2) { server.takeRequest() }   // /info, /auth (no /users — scope=self)
 
+        // Wrong/expired TOTP: Proton answered, so this must never be
+        // labeled a connectivity failure.
         server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":8002,"Error":"Invalid code"}"""))
         val result = orchestrator.submitTwoFactorCode("999999")
 
-        assertTrue("expected Failed(two_factor_failed), was $result",
-            result is LoginResult.Failed && result.reason == "two_factor_failed")
+        assertTrue(
+            "expected Failed(two_factor_rejected), was $result",
+            result is LoginResult.Failed && result.reason == "two_factor_rejected"
+        )
         assertEquals("uid-2fa-fail", result.uid)
+    }
+
+    @Test fun submitTwoFactorCode_retry_after_rejection_succeeds() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-retry", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        repeat(2) { server.takeRequest() }   // /info, /auth
+
+        // First attempt rejected (422) — the stashed password must survive
+        // so the user can retry on the same screen.
+        server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":8002,"Error":"Invalid code"}"""))
+        val first = orchestrator.submitTwoFactorCode("000001")
+        assertTrue(first is LoginResult.Failed && first.reason == "two_factor_rejected")
+
+        server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
+        enqueueUserResponse(primaryKeyId = "kp-2fa-r")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-2fa-r", saltB64 = SAMPLE_SALT_B64)
+        val second = orchestrator.submitTwoFactorCode("654321")
+
+        assertEquals(LoginResult.Success(uid = "uid-2fa-retry", username = "u"), second)
+    }
+
+    @Test fun submitTwoFactorCode_http401_returns_no_session_and_drops_stash() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-401", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        repeat(2) { server.takeRequest() }   // /info, /auth
+
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"Code":401,"Error":"Invalid access token"}"""))
+        val first = orchestrator.submitTwoFactorCode("000002")
+        assertTrue(
+            "expected Failed(no_session), was $first",
+            first is LoginResult.Failed && first.reason == "no_session"
+        )
+
+        // The stash is gone: even a subsequently accepted code cannot
+        // finish key derivation for this dead session.
+        server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
+        val second = orchestrator.submitTwoFactorCode("654321")
+        assertTrue(
+            "expected Failed(unexpected_state), was $second",
+            second is LoginResult.Failed && second.reason == "unexpected_state"
+        )
+    }
+
+    @Test fun submitTwoFactorCode_http500_returns_two_factor_server_error() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-500", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        repeat(2) { server.takeRequest() }   // /info, /auth
+
+        server.enqueue(MockResponse().setResponseCode(500).setBody("boom"))
+        val result = orchestrator.submitTwoFactorCode("000003")
+
+        assertTrue(
+            "expected Failed(two_factor_server_error), was $result",
+            result is LoginResult.Failed && result.reason == "two_factor_server_error"
+        )
+    }
+
+    @Test fun submitTwoFactorCode_transport_failure_returns_two_factor_failed() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-io", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        repeat(2) { server.takeRequest() }   // /info, /auth
+
+        // No HTTP response at all — the only case that may surface as
+        // "could not reach Proton".
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        val result = orchestrator.submitTwoFactorCode("000004")
+
+        assertTrue(
+            "expected Failed(two_factor_failed), was $result",
+            result is LoginResult.Failed && result.reason == "two_factor_failed"
+        )
     }
 
     @Test fun submitTwoFactorCode_non_success_code_returns_two_factor_rejected() = runTest {
@@ -322,8 +410,10 @@ class SrpLoginOrchestratorTest {
         server.enqueue(MockResponse().setBody("""{"Code":9001,"Scopes":[]}"""))
         val result = orchestrator.submitTwoFactorCode("111111")
 
-        assertTrue("expected Failed(two_factor_rejected), was $result",
-            result is LoginResult.Failed && result.reason == "two_factor_rejected")
+        assertTrue(
+            "expected Failed(two_factor_rejected), was $result",
+            result is LoginResult.Failed && result.reason == "two_factor_rejected"
+        )
     }
 
     @Test fun login_success_derives_and_persists_keyPassword_from_primary_key_salt() = runTest {
@@ -377,8 +467,10 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("u", "p".toCharArray())
 
-        assertTrue("expected Failed(modulus_unsigned), was $result",
-            result is LoginResult.Failed && result.reason == "modulus_unsigned")
+        assertTrue(
+            "expected Failed(modulus_unsigned), was $result",
+            result is LoginResult.Failed && result.reason == "modulus_unsigned"
+        )
         assertNull(secretStore.uid())
     }
 
@@ -387,8 +479,10 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("u", "p".toCharArray())
 
-        assertTrue("expected Failed(appversion_rejected), was $result",
-            result is LoginResult.Failed && result.reason == "appversion_rejected")
+        assertTrue(
+            "expected Failed(appversion_rejected), was $result",
+            result is LoginResult.Failed && result.reason == "appversion_rejected"
+        )
         assertNull(secretStore.uid())
     }
 
@@ -397,8 +491,10 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("u", "p".toCharArray())
 
-        assertTrue("expected Failed(appversion_rejected), was $result",
-            result is LoginResult.Failed && result.reason == "appversion_rejected")
+        assertTrue(
+            "expected Failed(appversion_rejected), was $result",
+            result is LoginResult.Failed && result.reason == "appversion_rejected"
+        )
     }
 
     @Test fun login_fails_when_users_endpoint_fails_and_clears_half_persisted_tokens() = runTest {

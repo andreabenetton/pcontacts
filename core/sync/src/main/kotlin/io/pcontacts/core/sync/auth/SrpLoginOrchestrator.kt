@@ -182,6 +182,43 @@ class SrpLoginOrchestrator(
         pendingTwoFactorPassword = null
     }
 
+    /**
+     * An HTTP status means Proton answered — a rejection, never a
+     * connectivity problem; only a transport failure (no status) may
+     * surface as one. On 401 the auth session itself is gone (`[A]`
+     * e.g. the attempt limit) so retrying this session cannot succeed:
+     * fail closed to a fresh sign-in and drop the stashed password.
+     * Other 4xx keep the stash so the user can retry on the same
+     * screen (`[A]` 422 Code 8002 observed for a wrong/expired code).
+     */
+    private fun classifyTwoFactorFailure(
+        t: Throwable,
+        uid: String,
+        username: String
+    ): LoginResult.Failed {
+        val httpCode = t.httpStatusCode()
+        val reason = when {
+            httpCode == null -> {
+                logger.error(t) { "auth2FA call failed (transport)" }
+                "two_factor_failed"
+            }
+            httpCode == 401 -> {
+                logger.warn { "auth2FA returned HTTP 401 — session invalidated" }
+                clearPendingTwoFactorPassword()
+                "no_session"
+            }
+            httpCode < 500 -> {
+                logger.warn { "auth2FA rejected — HTTP $httpCode" }
+                "two_factor_rejected"
+            }
+            else -> {
+                logger.warn { "auth2FA server error — HTTP $httpCode" }
+                "two_factor_server_error"
+            }
+        }
+        return LoginResult.Failed(reason = reason, uid = uid, username = username)
+    }
+
     private suspend fun fetchInfo(username: String): Step<InfoResponse> = try {
         Step.Ok(api.getInfo(InfoRequest(username = username)))
     } catch (e: HumanVerificationRequiredException) {
@@ -327,13 +364,18 @@ class SrpLoginOrchestrator(
      * `TwoFactorRequired` and the user has entered their TOTP code.
      *
      * `[V]` 1000 is Proton's app-level success Code on 2xx responses.
-     * HTTP 422 / 401 surface as Retrofit `HttpException` and map to
-     * `two_factor_failed`.
+     * HTTP rejections surface as Retrofit `HttpException` and are
+     * classified: 401 → `no_session` (auth session invalidated), other
+     * 4xx → `two_factor_rejected` (`[A]` 422 Code 8002 is the observed
+     * wrong/expired-TOTP response; the warn log carries the live status
+     * for validation), 5xx → `two_factor_server_error`. Only transport
+     * failures (no HTTP response at all) map to `two_factor_failed` —
+     * the UI renders that one as a connectivity problem.
      */
     // Six returns mirror the six failure modes of /auth/2fa (no session,
-    // human-verification, network error, server reject, missing stash,
-    // and the final key-derivation hand-off). Collapsing them obscures
-    // which path the caller hit.
+    // human-verification, transport/HTTP classification, server reject,
+    // missing stash, and the final key-derivation hand-off). Collapsing
+    // them obscures which path the caller hit.
     @Suppress("ReturnCount")
     suspend fun submitTwoFactorCode(code: String): LoginResult {
         val uid = session.uid()
@@ -358,8 +400,7 @@ class SrpLoginOrchestrator(
                 username = username
             )
         } catch (t: Throwable) {
-            logger.error(t) { "auth2FA call failed" }
-            return LoginResult.Failed(reason = "two_factor_failed", uid = uid, username = username)
+            return classifyTwoFactorFailure(t, uid, username)
         }
 
         if (response.code != PROTON_SUCCESS_CODE) {
