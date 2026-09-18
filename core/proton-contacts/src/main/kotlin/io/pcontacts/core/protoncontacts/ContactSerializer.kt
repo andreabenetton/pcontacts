@@ -25,6 +25,7 @@ import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import java.net.URI
+import java.util.UUID
 
 /**
  * Inverse of [ContactDecrypter] + [VCardMerger]. Takes a
@@ -76,9 +77,14 @@ class ContactSerializer(
             ?: "Unknown"
         vcard.setFormattedName(FormattedName(fn))
 
-        if (contact.protonUid != null) {
-            vcard.uid = Uid(contact.protonUid)
-        }
+        // Proton rejects an update whose signed card has no UID (400 Code
+        // 2002, "UID Field is missing"). Contacts imported without a vCard
+        // UID reach us with a null protonUid, so fall back to a stable UID
+        // derived from the contact id — deterministic, so repeated syncs of
+        // the same contact don't churn its UID.
+        val uidValue = contact.protonUid?.takeIf { it.isNotBlank() }
+            ?: "urn:uuid:${UUID.nameUUIDFromBytes(contact.protonContactId.toByteArray())}"
+        vcard.uid = Uid(uidValue)
 
         return vcard
     }

@@ -81,6 +81,31 @@ class ContactSerializerTest {
         assertNull(encrypted.uid)
     }
 
+    @Test fun serialize_with_null_protonUid_still_emits_a_uid() {
+        // Proton rejects an update whose signed card has no UID (400 Code
+        // 2002). A contact imported without a UID must still get one.
+        val contact = contact(fullName = "Dave", protonUid = null)
+        val signed = Ezvcard.parse(serializer.serialize(contact)[0].data).first()
+        assertNotNull("signed card must always carry a UID", signed.uid)
+        assertTrue("fallback UID must be non-blank", signed.uid.value.isNotBlank())
+    }
+
+    @Test fun serialize_with_blank_protonUid_still_emits_a_uid() {
+        val contact = contact(fullName = "Erin", protonUid = "  ")
+        val signed = Ezvcard.parse(serializer.serialize(contact)[0].data).first()
+        assertNotNull(signed.uid)
+        assertTrue(signed.uid.value.isNotBlank())
+    }
+
+    @Test fun fallback_uid_is_stable_across_serializations() {
+        // Same contact id → same fallback UID, so repeated syncs of a
+        // UID-less contact don't churn its UID on the server.
+        val contact = contact(fullName = "Frank", protonUid = null)
+        val first = Ezvcard.parse(serializer.serialize(contact)[0].data).first().uid.value
+        val second = Ezvcard.parse(serializer.serialize(contact)[0].data).first().uid.value
+        assertEquals(first, second)
+    }
+
     @Test fun serialize_with_empty_fullName_uses_email_fallback() {
         val contact = contact(
             fullName = "",
