@@ -50,7 +50,7 @@ data class QuarantinedChangeRef(
  * exist until the server assigns one, so the raw contact id is encoded
  * into the placeholder.
  */
-private const val LOCAL_ID_PREFIX = "local-"
+internal const val LOCAL_ID_PREFIX = "local-"
 
 /**
  * Builds the quarantine view for the settings UI. Split out of
@@ -71,7 +71,7 @@ internal suspend fun buildQuarantinedChangeRefs(
     )
 }
 
-private suspend fun resolveRawContactId(
+internal suspend fun resolveRawContactId(
     protonContactId: String,
     contactMapDao: ContactMapDao
 ): Long? = if (protonContactId.startsWith(LOCAL_ID_PREFIX)) {

@@ -117,7 +117,7 @@ class ContactWriteEngine(
 
         val isCreate = dc.sourceId == null
         if (isCreate) {
-            val localId = "local-${dc.rawContactId}"
+            val localId = "$LOCAL_ID_PREFIX${dc.rawContactId}"
             val row = readContactRow(dc.rawContactId, localId) ?: return EnqueueResult.FAILED
             val hash = EmailSyncHash.compute(row)
             outboxDao.insert(

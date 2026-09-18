@@ -334,12 +334,18 @@ object SyncBootstrap {
             contactMapDao = db.contactMapDao(),
             logger = logger,
             readLocalContact = { protonContactId ->
-                val mapping = db.contactMapDao().findByProtonId(protonContactId)
-                if (mapping != null) {
+                // A CREATE carries the synthetic "local-<rawId>" id and has no
+                // contact-map row yet, so its Android raw contact resolves from
+                // the encoded id (shared with the quarantine view's decode); a
+                // real Proton id resolves through the map, which also supplies
+                // the UID. A CREATE has no stored UID — the serializer mints one.
+                val rawContactId = resolveRawContactId(protonContactId, db.contactMapDao())
+                if (rawContactId != null) {
+                    val protonUid = db.contactMapDao().findByProtonId(protonContactId)?.protonUid
                     val row = withContext(Dispatchers.IO) {
-                        dataReader.read(mapping.androidRawContactId, protonContactId)
+                        dataReader.read(rawContactId, protonContactId)
                     }
-                    row?.let { RowToDecryptedContact.convert(it, protonContactId, mapping.protonUid) }
+                    row?.let { RowToDecryptedContact.convert(it, protonContactId, protonUid) }
                 } else null
             },
             readDirtyContacts = { account ->
