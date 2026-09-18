@@ -318,6 +318,14 @@ class ContactWriteEngine(
     private suspend fun handleFailure(entry: OutboxEntity, e: Exception): WriteReport {
         val httpCode = (e as? HttpException)?.code()
         val isTransient = e is IOException || httpCode == 429 || (httpCode != null && httpCode >= 500)
+        // A stable, non-sensitive reason. NOT e.javaClass.simpleName: R8
+        // minifies it to a meaningless letter on release builds (the "p:
+        // 400" users saw), and e.message can carry contact content.
+        val reason = when {
+            httpCode != null -> "HTTP $httpCode"
+            e is IOException -> "network error"
+            else -> "internal error"
+        }
 
         if (isTransient) {
             val nextAttempts = entry.attempts + 1
@@ -325,13 +333,13 @@ class ContactWriteEngine(
             outboxDao.recordFailure(
                 id = entry.id,
                 attempts = nextAttempts,
-                error = e.javaClass.simpleName,
+                error = reason,
                 nextAt = clock() + backoffMs
             )
             return WriteReport(failed = 1)
         }
 
-        outboxDao.quarantine(entry.id, "${e.javaClass.simpleName}: ${httpCode ?: "no code"}")
+        outboxDao.quarantine(entry.id, reason)
         return WriteReport(quarantined = 1)
     }
 

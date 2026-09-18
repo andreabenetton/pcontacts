@@ -244,6 +244,8 @@ class ContactWriteEngineTest {
         assertEquals(1, report.quarantined)
         val entry = outbox.entries.values.single()
         assertTrue(entry.quarantined)
+        // Stable, R8-safe reason (not the minified exception class name).
+        assertEquals("HTTP 400", entry.lastError)
     }
 
     @Test fun push_quarantines_when_local_contact_not_found() = runTest {
