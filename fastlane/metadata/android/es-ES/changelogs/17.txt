@@ -1,0 +1,5 @@
+Versión 1.7.1.
+
+* Los contactos nuevos que creas en el teléfono en la cuenta de Proton ahora se suben a Proton en lugar de fallar en silencio.
+* Editar un contacto sin UID de vCard ahora se sincroniza correctamente en lugar de ser rechazado por el servidor.
+* Los mensajes de cambios fallidos en Ajustes ahora son legibles (p. ej. «HTTP 400»).

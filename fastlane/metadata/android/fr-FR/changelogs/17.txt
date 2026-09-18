@@ -1,0 +1,5 @@
+Version 1.7.1.
+
+* Les nouveaux contacts créés sur le téléphone dans le compte Proton sont désormais envoyés à Proton au lieu d'échouer silencieusement.
+* Modifier un contact sans UID vCard se synchronise désormais correctement au lieu d'être rejeté par le serveur.
+* Les messages d'échec dans les réglages sont maintenant lisibles (par ex. « HTTP 400 »).

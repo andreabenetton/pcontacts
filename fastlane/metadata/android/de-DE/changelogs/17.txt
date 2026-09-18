@@ -1,0 +1,5 @@
+Version 1.7.1.
+
+* Neue Kontakte, die du auf dem Telefon im Proton-Konto anlegst, werden jetzt zu Proton hochgeladen, statt still fehlzuschlagen.
+* Das Bearbeiten eines Kontakts ohne vCard-UID wird jetzt korrekt zu Proton synchronisiert, statt vom Server abgelehnt zu werden.
+* Fehlermeldungen in den Einstellungen sind jetzt lesbar (z. B. „HTTP 400").

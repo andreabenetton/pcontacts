@@ -1,0 +1,5 @@
+Version 1.7.1.
+
+* New contacts you create on the phone in the Proton account now sync up to Proton instead of silently failing.
+* Editing a contact that had no vCard UID now syncs back correctly instead of being rejected by the server.
+* Failed-change messages in Settings are now readable (e.g. "HTTP 400").

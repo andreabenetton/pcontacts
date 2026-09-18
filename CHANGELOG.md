@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-09-18
+
+### Fixed
+
+- New contacts created on the phone in the Proton account now sync up
+  to Proton instead of silently failing with "contact not found
+  locally."
+- Editing a contact that was imported without a vCard UID now syncs
+  back to Proton instead of failing. Such edits were rejected by the
+  server (HTTP 400) because the update omitted the required UID.
+- Failed-change reasons shown in Settings are now legible (e.g.
+  "HTTP 400") instead of an obfuscated release-build class name.
+
 ## [1.7.0] - 2026-09-05
 
 ### Added
@@ -411,6 +424,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.7.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.1
 [1.7.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.0
 [1.6.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.6.0
 [1.5.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.5.0
