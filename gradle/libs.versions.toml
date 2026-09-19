@@ -46,6 +46,8 @@ retrofit                     = "3.0.0"
 # Crypto + vCard
 bouncycastle                 = "1.86"
 ezvcard                      = "0.12.2"
+# Security pin: forced via a constraint in :core:proton-contacts (ez-vcard
+# pulls it transitively). 2.3.35 fixes CVE-2026-84939. Do not downgrade.
 freemarker                   = "2.3.35"
 
 # Test
