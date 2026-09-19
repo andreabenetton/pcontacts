@@ -140,5 +140,3 @@ ksp                          = { id = "com.google.devtools.ksp",            vers
 dependency-check             = { id = "org.owasp.dependencycheck",          version.ref = "dependency-check" }
 detekt                       = { id = "io.gitlab.arturbosch.detekt",        version.ref = "detekt" }
 kover                        = { id = "org.jetbrains.kotlinx.kover",        version.ref = "kover" }
-
-# temp-debug-marker (remove)

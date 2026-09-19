@@ -264,11 +264,11 @@ jobs:
 
   vulnerability-scan:
     name: OWASP Dependency-Check
-    if: >-
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && (contains(toJSON(github.event.commits.*.modified), 'gradle/libs.versions.toml') || contains(toJSON(github.event.commits.*.modified), 'config/dependency-check-suppressions.xml'))) ||
-      (github.event_name == 'pull_request')
+    # Runs on every trigger (push, pull_request, schedule, workflow_dispatch).
+    # A path filter on push was attempted but this repo's push payloads carry
+    # an empty github.event.commits / null head_commit, so no changed-file
+    # detection is possible in the job `if`; running always is the reliable
+    # way to keep the CVE gate honest on master pushes.
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -322,17 +322,3 @@ jobs:
         with:
           sarif_file: app/build/reports/dependency-check/dependency-check-report.sarif
           category: dependency-check
-
-  # TEMP debug — remove after diagnosing the OWASP push trigger.
-  debug-push-event:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dump push-event file data
-        run: |
-          echo "event_name=${{ github.event_name }}"
-          echo "contains_commits_libs=${{ contains(toJSON(github.event.commits.*.modified), 'gradle/libs.versions.toml') }}"
-          echo "contains_head_libs=${{ contains(github.event.head_commit.modified, 'gradle/libs.versions.toml') }}"
-          cat <<'EOF'
-          commits_modified=${{ toJSON(github.event.commits.*.modified) }}
-          head_commit_modified=${{ toJSON(github.event.head_commit.modified) }}
-          EOF
