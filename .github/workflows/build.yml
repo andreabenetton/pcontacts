@@ -322,3 +322,17 @@ jobs:
         with:
           sarif_file: app/build/reports/dependency-check/dependency-check-report.sarif
           category: dependency-check
+
+  # TEMP debug — remove after diagnosing the OWASP push trigger.
+  debug-push-event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump push-event file data
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "contains_commits_libs=${{ contains(toJSON(github.event.commits.*.modified), 'gradle/libs.versions.toml') }}"
+          echo "contains_head_libs=${{ contains(github.event.head_commit.modified, 'gradle/libs.versions.toml') }}"
+          cat <<'EOF'
+          commits_modified=${{ toJSON(github.event.commits.*.modified) }}
+          head_commit_modified=${{ toJSON(github.event.head_commit.modified) }}
+          EOF
