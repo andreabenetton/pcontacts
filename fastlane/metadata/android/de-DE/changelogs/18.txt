@@ -1,0 +1,3 @@
+Version 1.7.2.
+
+* Wartungs- und Sicherheitsupdate: aktualisierte Krypto- und Build-Abhängigkeiten, inklusive Behebung einer Schwachstelle in einer mitgelieferten Bibliothek (in der App nicht erreichbar). Keine Funktionsänderungen.

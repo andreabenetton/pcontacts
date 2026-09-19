@@ -10,6 +10,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-09-19
+
+### Security
+
+- Updated Apache FreeMarker to 2.3.35, fixing a path-traversal advisory
+  (CVE-2026-84939) in the version pulled in transitively by the vCard
+  library. The affected template feature is not used by pcontacts, so
+  the flaw was not reachable; this is a hygiene update.
+
+### Changed
+
+- Dependency and toolchain maintenance: BouncyCastle 1.86, Kotlin
+  2.4.20, KSP 2.3.12, Android Gradle Plugin 8.12.3, and test-library
+  updates. No user-facing behavior change.
+
 ## [1.7.1] - 2026-09-18
 
 ### Fixed
@@ -424,6 +439,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[1.7.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.2
 [1.7.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.1
 [1.7.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.0
 [1.6.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.6.0

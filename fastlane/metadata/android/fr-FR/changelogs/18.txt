@@ -1,0 +1,3 @@
+Version 1.7.2.
+
+* Mise à jour de maintenance et de sécurité : dépendances de cryptographie et de compilation actualisées, dont la correction d'une vulnérabilité dans une bibliothèque incluse (non exploitable dans l'application). Aucune modification des fonctionnalités.

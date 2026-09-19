@@ -1,0 +1,3 @@
+Versión 1.7.2.
+
+* Actualización de mantenimiento y seguridad: se actualizaron las dependencias de criptografía y compilación, incluida la corrección de una vulnerabilidad en una biblioteca incluida (no explotable en la app). Sin cambios de funciones.

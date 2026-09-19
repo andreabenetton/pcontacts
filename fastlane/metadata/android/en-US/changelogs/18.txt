@@ -1,0 +1,3 @@
+Version 1.7.2.
+
+* Maintenance and security update: refreshed cryptography and build dependencies, including a fix for a vulnerability in a bundled library (not reachable in the app). No changes to features.

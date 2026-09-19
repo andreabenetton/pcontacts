@@ -1,0 +1,3 @@
+Versione 1.7.2.
+
+* Aggiornamento di manutenzione e sicurezza: aggiornate le dipendenze di crittografia e build, inclusa la correzione di una vulnerabilità in una libreria inclusa (non raggiungibile nell'app). Nessuna modifica alle funzionalità.
