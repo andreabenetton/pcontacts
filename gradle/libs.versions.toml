@@ -46,6 +46,7 @@ retrofit                     = "3.0.0"
 # Crypto + vCard
 bouncycastle                 = "1.86"
 ezvcard                      = "0.12.2"
+freemarker                   = "2.3.35"
 
 # Test
 junit                        = "4.13.2"
@@ -100,6 +101,7 @@ bouncycastle-bcprov          = { group = "org.bouncycastle",      name = "bcprov
 
 # vCard
 ezvcard                      = { group = "com.googlecode.ez-vcard", name = "ez-vcard",                    version.ref = "ezvcard" }
+freemarker                   = { group = "org.freemarker",          name = "freemarker",                    version.ref = "freemarker" }
 
 # Android Lint (for custom check module in :tools:lint)
 android-lint-api             = { group = "com.android.tools.lint", name = "lint-api",                     version.ref = "android-lint" }
