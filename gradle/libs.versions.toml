@@ -9,14 +9,14 @@
 
 [versions]
 # Build tooling
-agp                          = "8.11.2"
+agp                          = "8.12.3"
 kotlin                       = "2.4.20"
 ksp                          = "2.3.11"
 java                         = "17"
 dependency-check             = "13.0.0"
 detekt                       = "1.23.8"
 kover                        = "0.9.9"
-android-lint                 = "31.11.2"
+android-lint                 = "31.12.3"
 
 # Android platform
 android-compile-sdk          = "36"
