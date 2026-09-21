@@ -54,6 +54,9 @@ import kotlin.math.min
  * returns null (quarantining the entry) which is safe because the
  * outbox is empty until Stage 3 populates it.
  */
+// Many injectable seams by design (readers, writers, API, clock, logger)
+// so the whole engine stays pure-JVM testable; the count is structural.
+@Suppress("LongParameterList")
 class ContactWriteEngine(
     private val contactsApi: ProtonContactsApi,
     private val serializer: ContactSerializer,
@@ -63,6 +66,7 @@ class ContactWriteEngine(
     private val readDirtyContacts: suspend (Account) -> List<DirtyContact> = { emptyList() },
     private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
+    private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
     private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
@@ -171,7 +175,13 @@ class ContactWriteEngine(
         return EnqueueResult.ENQUEUED
     }
 
-    suspend fun push(): WriteReport {
+    /**
+     * [account] is needed only to write a created contact's server id
+     * back onto its RawContact (ADR-0010 sync-adapter URI). Production
+     * always supplies it — it is nullable so pure-outbox tests, which
+     * exercise the API seams and not the provider, can call `push()`.
+     */
+    suspend fun push(account: Account? = null): WriteReport {
         val ready = outboxDao.listReady(clock())
         logger.info { "push: ${ready.size} entries ready" }
         if (ready.isEmpty()) return WriteReport.EMPTY
@@ -179,17 +189,17 @@ class ContactWriteEngine(
         val semaphore = Semaphore(MAX_CONCURRENT_PUSHES)
         val results = coroutineScope {
             ready.map { entry ->
-                async { semaphore.withPermit { pushEntry(entry) } }
+                async { semaphore.withPermit { pushEntry(entry, account) } }
             }.awaitAll()
         }
 
         return results.fold(WriteReport.EMPTY) { acc, r -> acc + r }
     }
 
-    private suspend fun pushEntry(entry: OutboxEntity): WriteReport = when (entry.opType) {
+    private suspend fun pushEntry(entry: OutboxEntity, account: Account?): WriteReport = when (entry.opType) {
         OutboxEntity.OpType.DELETE -> pushDelete(entry)
         OutboxEntity.OpType.UPDATE -> pushUpdate(entry)
-        OutboxEntity.OpType.CREATE -> pushCreate(entry)
+        OutboxEntity.OpType.CREATE -> pushCreate(entry, account)
         else -> {
             logger.warn { "unknown outbox op_type=${entry.opType}, quarantining" }
             outboxDao.quarantine(entry.id, "unknown op_type=${entry.opType}")
@@ -281,7 +291,7 @@ class ContactWriteEngine(
         }
     }
 
-    private suspend fun pushCreate(entry: OutboxEntity): WriteReport {
+    private suspend fun pushCreate(entry: OutboxEntity, account: Account?): WriteReport {
         val contact = readLocalContact(entry.protonContactId)
         if (contact == null) {
             outboxDao.quarantine(entry.id, "contact not found locally")
@@ -306,6 +316,9 @@ class ContactWriteEngine(
                     )
                 )
             }
+            if (serverContact != null && account != null) {
+                writeCreatedSourceId(account, entry.protonContactId, serverContact.id)
+            }
             outboxDao.deleteByContact(entry.protonContactId)
             WriteReport(pushed = 1, created = 1)
         } catch (e: HumanVerificationRequiredException) {
@@ -313,6 +326,19 @@ class ContactWriteEngine(
         } catch (e: Exception) {
             handleFailure(entry, e)
         }
+    }
+
+    /**
+     * Stamp the server-assigned id onto the just-created local RawContact
+     * so the following pull matches it by SOURCE_ID instead of inserting a
+     * second, orphaned copy. Only a `local-<rawId>` placeholder carries the
+     * raw contact id; a malformed one is skipped (the pull's duplicate
+     * reconciliation is the backstop).
+     */
+    private suspend fun writeCreatedSourceId(account: Account, protonContactId: String, sourceId: String) {
+        if (!protonContactId.startsWith(LOCAL_ID_PREFIX)) return
+        val rawContactId = protonContactId.removePrefix(LOCAL_ID_PREFIX).toLongOrNull() ?: return
+        writeSourceId(account, rawContactId, sourceId)
     }
 
     private suspend fun handleFailure(entry: OutboxEntity, e: Exception): WriteReport {

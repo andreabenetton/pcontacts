@@ -11,6 +11,7 @@ import io.pcontacts.core.contactswriter.DirtyFlagClearer
 import io.pcontacts.core.contactswriter.LocalGroupsWriter
 import io.pcontacts.core.contactswriter.RawContactDataReader
 import io.pcontacts.core.contactswriter.RawContactReader
+import io.pcontacts.core.contactswriter.SourceIdWriter
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
@@ -327,6 +328,7 @@ object SyncBootstrap {
         val dirtyReader = DirtyContactReader(provider)
         val dataReader = RawContactDataReader(provider)
         val dirtyClearer = DirtyFlagClearer(provider)
+        val sourceIdWriter = SourceIdWriter(provider)
         return ContactWriteEngine(
             contactsApi = apis.contacts,
             serializer = serializer,
@@ -356,6 +358,9 @@ object SyncBootstrap {
             },
             clearDirtyFlag = { account, rawContactId ->
                 withContext(Dispatchers.IO) { dirtyClearer.clearDirty(account, rawContactId) }
+            },
+            writeSourceId = { account, rawContactId, sourceId ->
+                withContext(Dispatchers.IO) { sourceIdWriter.writeSourceId(account, rawContactId, sourceId) }
             },
             fetchServerContact = { protonContactId ->
                 try {

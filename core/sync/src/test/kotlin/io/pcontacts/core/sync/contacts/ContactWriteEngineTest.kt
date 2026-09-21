@@ -45,6 +45,9 @@ import retrofit2.HttpException
 import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 
+// Covers the write engine's many outbox paths (create/update/delete,
+// merge, quarantine, backoff) in one place; large by subject, not by drift.
+@Suppress("LargeClass")
 class ContactWriteEngineTest {
 
     private val passThrough: CardEncryptOp = { request ->
@@ -265,6 +268,84 @@ class ContactWriteEngineTest {
 
         assertEquals(1, report.quarantined)
         assertTrue(outbox.entries.values.single().quarantined)
+    }
+
+    @Test fun push_create_writes_server_source_id_back_to_local_row() = runTest {
+        // Prevents the create-orphan duplicate: the server id must be stamped
+        // onto the local-<rawId> RawContact so the next pull matches it.
+        val api = WriteFakeApi().apply {
+            createResponse = CreateContactsResponse(
+                code = 1000,
+                responses = listOf(
+                    CreateContactResponseItem(
+                        index = 0,
+                        response = CreateContactResponseBody(
+                            code = 1000,
+                            contact = ContactDto(id = "srv-99", uid = "uid-99")
+                        )
+                    )
+                )
+            )
+        }
+        val outbox = WriteFakeOutboxDao()
+        val written = mutableListOf<Pair<Long, String>>()
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "local-42",
+                opType = OutboxEntity.OpType.CREATE,
+                payloadHash = "h",
+                createdAt = 1_000_000L
+            )
+        )
+        val engine = newEngine(
+            api = api,
+            outbox = outbox,
+            contacts = mapOf("local-42" to sampleContact("local-42")),
+            writtenSourceIds = written
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.created)
+        assertEquals(listOf(42L to "srv-99"), written)
+    }
+
+    @Test fun push_create_without_account_skips_source_id_write() = runTest {
+        val api = WriteFakeApi().apply {
+            createResponse = CreateContactsResponse(
+                code = 1000,
+                responses = listOf(
+                    CreateContactResponseItem(
+                        index = 0,
+                        response = CreateContactResponseBody(
+                            code = 1000,
+                            contact = ContactDto(id = "srv-1", uid = "uid-1")
+                        )
+                    )
+                )
+            )
+        }
+        val outbox = WriteFakeOutboxDao()
+        val written = mutableListOf<Pair<Long, String>>()
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "local-7",
+                opType = OutboxEntity.OpType.CREATE,
+                payloadHash = "h",
+                createdAt = 1_000_000L
+            )
+        )
+        val engine = newEngine(
+            api = api,
+            outbox = outbox,
+            contacts = mapOf("local-7" to sampleContact("local-7")),
+            writtenSourceIds = written
+        )
+
+        val report = engine.push()
+
+        assertEquals(1, report.created)
+        assertTrue(written.isEmpty())
     }
 
     @Test fun push_treats_429_as_transient() = runTest {
@@ -677,6 +758,8 @@ class ContactWriteEngineTest {
 
     // --- helpers ---
 
+    // Test factory: all seams optional, so the parameter count is by design.
+    @Suppress("LongParameterList")
     private fun newEngine(
         api: WriteFakeApi = WriteFakeApi(),
         outbox: WriteFakeOutboxDao = WriteFakeOutboxDao(),
@@ -686,6 +769,7 @@ class ContactWriteEngineTest {
         contactRows: Map<Long, ContactRow> = emptyMap(),
         clearedFlags: MutableList<Long>? = null,
         serverContacts: Map<String, DecryptedContact> = emptyMap(),
+        writtenSourceIds: MutableList<Pair<Long, String>>? = null,
         clock: () -> Long = { 2_000_000_000L }
     ) = ContactWriteEngine(
         contactsApi = api,
@@ -696,6 +780,7 @@ class ContactWriteEngineTest {
         readDirtyContacts = { dirtyContacts },
         readContactRow = { rawId, sourceId -> contactRows[rawId] },
         clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
+        writeSourceId = { _, rawId, sourceId -> writtenSourceIds?.add(rawId to sourceId) },
         fetchServerContact = { id -> serverContacts[id] },
         clock = clock
     )
