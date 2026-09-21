@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import androidx.core.graphics.drawable.toBitmap
 import io.pcontacts.feature.settings.ContactsAccessApp
 import io.pcontacts.feature.settings.ContactsAccessKind
 
@@ -45,11 +46,15 @@ object ContactsAccessApps {
             .map { pkg ->
                 ContactsAccessApp(
                     appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName,
-                    packageName = pkg.packageName
+                    packageName = pkg.packageName,
+                    icon = pkg.applicationInfo?.loadIcon(pm)?.toBitmap(ICON_PX, ICON_PX)
                 )
             }
             .sortedBy { it.appName }
     }
+
+    /** Rasterised at 2× the 36dp slot on a 3× screen; tiny either way. */
+    private const val ICON_PX = 216
 
     private fun isSystemApp(info: ApplicationInfo?): Boolean {
         if (info == null) return false
