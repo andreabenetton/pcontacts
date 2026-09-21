@@ -59,21 +59,21 @@ class LinkedImportBridge(
     suspend fun importMany(contactIds: List<Long>, onProgress: (Int) -> Unit): BulkResult {
         val account = account() ?: return BulkResult(0, 0, contactIds.size)
         var created = 0
-        var updated = 0
+        var enriched = 0
         var failed = 0
         contactIds.forEachIndexed { index, contactId ->
             when (importWhole(account, contactId)) {
                 WholeImport.CREATED -> created++
-                WholeImport.UPDATED -> updated++
+                WholeImport.ENRICHED -> enriched++
                 WholeImport.FAILED -> failed++
             }
             onProgress(index + 1)
         }
         requestSync(account)
-        return BulkResult(created, updated, failed)
+        return BulkResult(created, enriched, failed)
     }
 
-    private enum class WholeImport { CREATED, UPDATED, FAILED }
+    private enum class WholeImport { CREATED, ENRICHED, FAILED }
 
     private suspend fun importWhole(account: Account, contactId: Long): WholeImport {
         val candidates = LinkedContactsBootstrap.loadCandidates(context, account, contactId) ?: return WholeImport.FAILED
@@ -86,7 +86,7 @@ class LinkedImportBridge(
                 WholeImport.CREATED
             } else {
                 LinkedContactsBootstrap.importFields(context, account, protonRawContactId, fields)
-                WholeImport.UPDATED
+                WholeImport.ENRICHED
             }
         } catch (_: IllegalArgumentException) {
             // ContactRow's guard: nothing reachable to create a contact from.
