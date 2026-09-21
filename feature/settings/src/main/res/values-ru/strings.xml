@@ -151,4 +151,5 @@
     </plurals>
     <string name="linked_import_list_empty">Нечего импортировать: все связанные контакты уже есть в Proton со всеми данными.</string>
     <string name="linked_import_scan_failed">Не удалось прочитать контакты: %s</string>
+    <string name="contacts_access_back">Назад</string>
 </resources>

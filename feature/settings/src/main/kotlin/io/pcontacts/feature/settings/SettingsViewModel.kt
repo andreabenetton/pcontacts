@@ -71,9 +71,6 @@ class SettingsViewModel(
     private val _unverifiedDialogOpen = MutableStateFlow(false)
     val unverifiedDialogOpen: StateFlow<Boolean> = _unverifiedDialogOpen.asStateFlow()
 
-    private val _contactsAccessDialogOpen = MutableStateFlow(false)
-    val contactsAccessDialogOpen: StateFlow<Boolean> = _contactsAccessDialogOpen.asStateFlow()
-
     private val _outboxStats = MutableStateFlow(OutboxStats(0, 0))
     val outboxStats: StateFlow<OutboxStats> = _outboxStats.asStateFlow()
 
@@ -94,9 +91,6 @@ class SettingsViewModel(
 
     private val _systemContactsAccessApps = MutableStateFlow<List<ContactsAccessApp>>(emptyList())
     val systemContactsAccessApps: StateFlow<List<ContactsAccessApp>> = _systemContactsAccessApps.asStateFlow()
-
-    private val _systemContactsAccessDialogOpen = MutableStateFlow(false)
-    val systemContactsAccessDialogOpen: StateFlow<Boolean> = _systemContactsAccessDialogOpen.asStateFlow()
 
     private val _syncInterval = MutableStateFlow(SyncInterval.fromHours(initialSyncIntervalHours))
     val syncInterval: StateFlow<SyncInterval> = _syncInterval.asStateFlow()
@@ -173,22 +167,6 @@ class SettingsViewModel(
         if (_quarantinedChanges.value.isEmpty()) {
             _quarantinedDialogOpen.value = false
         }
-    }
-
-    fun showContactsAccessDialog() {
-        _contactsAccessDialogOpen.value = true
-    }
-
-    fun dismissContactsAccessDialog() {
-        _contactsAccessDialogOpen.value = false
-    }
-
-    fun showSystemContactsAccessDialog() {
-        _systemContactsAccessDialogOpen.value = true
-    }
-
-    fun dismissSystemContactsAccessDialog() {
-        _systemContactsAccessDialogOpen.value = false
     }
 
     /**

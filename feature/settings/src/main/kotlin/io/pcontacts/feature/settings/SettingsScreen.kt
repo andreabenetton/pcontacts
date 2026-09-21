@@ -8,7 +8,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -32,7 +30,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -281,35 +278,17 @@ private fun SettingsStatusSection(viewModel: SettingsViewModel, actions: Setting
     ContactsAccessSection(viewModel, actions)
 }
 
-/** The two READ_CONTACTS transparency banners and their dialogs. */
+/** The two READ_CONTACTS transparency banners; each opens [ContactsAccessScreen] via the host. */
 @Composable
 private fun ContactsAccessSection(viewModel: SettingsViewModel, actions: SettingsActions) {
-    val permissionHint = when (actions.contactsPermissionRoute) {
-        ContactsPermissionRoute.DIRECT -> null
-        ContactsPermissionRoute.PERMISSION_MANAGER -> stringResource(R.string.contacts_access_hint_permission_manager)
-        ContactsPermissionRoute.PRIVACY_SETTINGS -> stringResource(R.string.contacts_access_hint_privacy_settings)
-    }
     val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
-    val contactsAccessDialogOpen by viewModel.contactsAccessDialogOpen.collectAsStateWithLifecycle()
     val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
-    val systemContactsAccessDialogOpen by viewModel.systemContactsAccessDialogOpen.collectAsStateWithLifecycle()
 
     if (contactsAccessApps.isNotEmpty()) {
         Spacer(Modifier.height(16.dp))
         ContactsAccessBanner(
             apps = contactsAccessApps,
-            onClick = viewModel::showContactsAccessDialog
-        )
-    }
-
-    if (contactsAccessDialogOpen) {
-        AppListDialog(
-            title = stringResource(R.string.contacts_access_dialog_title),
-            detail = stringResource(R.string.contacts_access_detail),
-            apps = contactsAccessApps,
-            permissionHint = permissionHint,
-            onOpenPermission = actions.onOpenContactsPermission,
-            onDismiss = viewModel::dismissContactsAccessDialog
+            onClick = { actions.onOpenContactsAccess(ContactsAccessKind.USER) }
         )
     }
 
@@ -317,18 +296,7 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel, actions: Setting
         Spacer(Modifier.height(16.dp))
         SystemContactsAccessBanner(
             apps = systemContactsAccessApps,
-            onClick = viewModel::showSystemContactsAccessDialog
-        )
-    }
-
-    if (systemContactsAccessDialogOpen) {
-        AppListDialog(
-            title = stringResource(R.string.system_contacts_access_dialog_title),
-            detail = stringResource(R.string.system_contacts_access_detail),
-            apps = systemContactsAccessApps,
-            permissionHint = permissionHint,
-            onOpenPermission = actions.onOpenContactsPermission,
-            onDismiss = viewModel::dismissSystemContactsAccessDialog
+            onClick = { actions.onOpenContactsAccess(ContactsAccessKind.SYSTEM) }
         )
     }
 }
@@ -719,93 +687,6 @@ private fun ContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: () -> U
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-/**
- * Lists the apps holding READ_CONTACTS and links to the system
- * permission page where the user can actually revoke it. Both
- * buttons are full-width so the dialog reads as an action sheet.
- */
-@Composable
-private fun AppListDialog(
-    title: String,
-    detail: String,
-    apps: List<ContactsAccessApp>,
-    permissionHint: String?,
-    onOpenPermission: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(text = detail, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(16.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                ) {
-                    apps.forEachIndexed { index, app ->
-                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        AppRow(app)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                permissionHint?.let { hint ->
-                    Text(
-                        text = hint,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-                Button(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.contacts_access_open_permission))
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.unverified_dialog_close))
-                }
-            }
-        }
-    )
-}
-
-@Composable
-private fun AppRow(app: ContactsAccessApp) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-        ) {
-            Text(
-                text = app.appName.take(1).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Column {
-            Text(text = app.appName, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                text = app.packageName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
 

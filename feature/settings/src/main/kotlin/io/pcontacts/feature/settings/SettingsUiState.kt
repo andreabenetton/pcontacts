@@ -77,6 +77,9 @@ data class ContactsAccessApp(
     val packageName: String
 )
 
+/** Which READ_CONTACTS list a banner opens. */
+enum class ContactsAccessKind { USER, SYSTEM }
+
 /**
  * Navigation the host (`:app`) performs for the screen. Intents that
  * may not resolve on every device are nullable: a null action hides
@@ -85,15 +88,14 @@ data class ContactsAccessApp(
 data class SettingsActions(
     val onSignedOut: () -> Unit,
     val onOpenLinkedImport: () -> Unit = {},
-    val onOpenContactsPermission: () -> Unit = {},
-    val contactsPermissionRoute: ContactsPermissionRoute = ContactsPermissionRoute.DIRECT,
+    val onOpenContactsAccess: (ContactsAccessKind) -> Unit = {},
     val onOpenContactsStorage: (() -> Unit)? = null
 )
 
 /**
- * How far [SettingsActions.onOpenContactsPermission] can get: the
- * Contacts permission page itself, the system Permission manager one
- * tap away, or only the privacy hub. Anything short of DIRECT shows
- * the user the remaining taps next to the button.
+ * How far the "manage permission" action of [ContactsAccessScreen] can
+ * get: the Contacts permission page itself, the system Permission
+ * manager one tap away, or only the privacy hub. Anything short of
+ * DIRECT shows the user the remaining taps next to the button.
  */
 enum class ContactsPermissionRoute { DIRECT, PERMISSION_MANAGER, PRIVACY_SETTINGS }

@@ -131,4 +131,5 @@
     </plurals>
     <string name="linked_import_list_empty">Rien à importer : chaque contact lié est déjà dans Proton avec tous ses détails.</string>
     <string name="linked_import_scan_failed">Impossible de lire les contacts : %s</string>
+    <string name="contacts_access_back">Retour</string>
 </resources>

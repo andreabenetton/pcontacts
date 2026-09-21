@@ -121,4 +121,5 @@
     </plurals>
     <string name="linked_import_list_empty">没有可导入的内容：所有关联联系人都已完整地在 Proton 中。</string>
     <string name="linked_import_scan_failed">无法读取联系人：%s</string>
+    <string name="contacts_access_back">返回</string>
 </resources>
