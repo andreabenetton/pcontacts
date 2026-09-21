@@ -111,18 +111,18 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        LinkedImportSection(enabled = !busy, onOpen = actions.onOpenLinkedImport)
-
-        SettingsStatusSection(viewModel, actions)
-
-        Spacer(Modifier.height(24.dp))
-
         actions.onOpenContactsStorage?.let { open ->
             OutlinedButton(onClick = open, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.settings_contacts_storage))
             }
             Spacer(Modifier.height(12.dp))
         }
+
+        LinkedImportSection(enabled = !busy, onOpen = actions.onOpenLinkedImport)
+
+        SettingsStatusSection(viewModel, actions)
+
+        Spacer(Modifier.height(24.dp))
 
         OutlinedButton(
             enabled = !busy,
