@@ -47,6 +47,19 @@ class LinkedContactDiffTest {
         assertTrue(LinkedContactDiff.candidates(proton, listOf(null to local)).isEmpty())
     }
 
+    @Test fun offered_phones_and_addresses_drop_the_sibling_primary_flag() {
+        val local = sibling(phones = listOf(PhoneEntry("+39 02 9876543", isPrimary = true)))
+            .copy(addresses = listOf(PostalAddress(city = "Milano", isPrimary = true)))
+        val out = LinkedContactDiff.candidates(proton, listOf(null to local)).map { it.field }
+        assertEquals(
+            listOf(
+                LinkedField.PhoneNumber(PhoneEntry("+39 02 9876543")),
+                LinkedField.Address(PostalAddress(city = "Milano"))
+            ),
+            out
+        )
+    }
+
     @Test fun short_numbers_are_not_suffix_matched() {
         val local = sibling(phones = listOf(PhoneEntry("34567")))
         assertEquals(1, LinkedContactDiff.candidates(proton, listOf(null to local)).size)

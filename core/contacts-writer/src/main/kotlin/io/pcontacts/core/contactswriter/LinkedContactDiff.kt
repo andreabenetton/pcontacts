@@ -46,10 +46,15 @@ object LinkedContactDiff {
         private val ims = proton?.imAccounts.orEmpty().map(::imKey).toMutableSet()
         private var hasOrganization = proton?.organization?.let(::hasContent) ?: false
 
+        // Imported fields are appended, never promoted: drop the sibling's primary flag.
         fun newFields(row: ContactRow): List<LinkedField> = buildList {
-            row.phones.forEach { if (addPhone(it.number)) add(LinkedField.PhoneNumber(it)) }
+            row.phones.forEach {
+                if (addPhone(it.number)) add(LinkedField.PhoneNumber(it.copy(isPrimary = false)))
+            }
             row.emails.forEach { if (emails.add(emailKey(it))) add(LinkedField.EmailAddress(it)) }
-            row.addresses.forEach { if (addresses.add(addressKey(it))) add(LinkedField.Address(it)) }
+            row.addresses.forEach {
+                if (addresses.add(addressKey(it))) add(LinkedField.Address(it.copy(isPrimary = false)))
+            }
             row.organization?.let { if (addOrganization(it)) add(LinkedField.Org(it)) }
             row.notes.forEach { if (it.isNotBlank() && notes.add(it.trim())) add(LinkedField.NoteText(it)) }
             row.imAccounts.forEach { if (ims.add(imKey(it))) add(LinkedField.Im(it)) }
