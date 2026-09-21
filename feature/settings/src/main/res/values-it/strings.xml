@@ -108,7 +108,7 @@
     </plurals>
     <string name="linked_import_failed">Importazione non riuscita: %s</string>
     <string name="contacts_access_open_permission">Gestisci il permesso Contatti</string>
-    <string name="settings_contacts_storage">Dove salvare i nuovi contatti</string>
+    <string name="settings_contacts_storage">Account predefinito per i nuovi contatti</string>
     <string name="contacts_access_hint_permission_manager">Poi tocca Gestione autorizzazioni → Contatti.</string>
     <string name="contacts_access_hint_privacy_settings">Poi cerca Gestione autorizzazioni e apri Contatti.</string>
     <string name="linked_import_not_found">Il contatto non è più disponibile.</string>

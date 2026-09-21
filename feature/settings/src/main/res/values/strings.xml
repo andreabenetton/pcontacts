@@ -108,7 +108,7 @@
     </plurals>
     <string name="linked_import_failed">Import failed: %s</string>
     <string name="contacts_access_open_permission">Manage Contacts permission</string>
-    <string name="settings_contacts_storage">Where new contacts are saved</string>
+    <string name="settings_contacts_storage">Default account for new contacts</string>
     <string name="contacts_access_hint_permission_manager">Then tap Permission manager → Contacts.</string>
     <string name="contacts_access_hint_privacy_settings">Then find Permission manager and open Contacts.</string>
     <string name="linked_import_not_found">The contact could not be found any more.</string>
