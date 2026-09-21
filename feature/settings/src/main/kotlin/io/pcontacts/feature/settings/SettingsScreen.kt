@@ -4,6 +4,7 @@
 package io.pcontacts.feature.settings
 
 import android.text.format.DateUtils
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -127,6 +129,8 @@ fun SettingsScreen(
         OutlinedButton(
             enabled = !busy,
             onClick = viewModel::triggerSignOut,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.settings_sign_out))
