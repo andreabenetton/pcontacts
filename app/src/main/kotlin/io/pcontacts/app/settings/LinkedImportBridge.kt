@@ -33,6 +33,7 @@ class LinkedImportBridge(
     private val account: () -> Account?
 ) {
     private var loaded: LinkedContactCandidates? = null
+    private var loadedContactId: Long = 0L
 
     /** Maps the picker's Contact URI to its `Contacts._ID`. */
     fun contactIdOf(pickedUri: Uri): Long? =
@@ -43,8 +44,10 @@ class LinkedImportBridge(
         val account = account() ?: return null
         val candidates = LinkedContactsBootstrap.loadCandidates(context, account, contactId) ?: return null
         loaded = candidates
+        loadedContactId = contactId
         return LinkedImportPreview(
             contactName = contactName(contactId),
+            createsNewContact = candidates.protonRawContactId == null,
             candidates = candidates.candidates.mapIndexed { idx, candidate ->
                 LinkedImportCandidate(
                     id = idx,
@@ -56,12 +59,21 @@ class LinkedImportBridge(
         )
     }
 
-    /** Writes the chosen fields and asks for a sync so they reach Proton promptly. */
+    /**
+     * Writes the chosen fields onto the Proton copy — or creates the
+     * copy when there is none — and asks for a sync so they reach
+     * Proton promptly.
+     */
     suspend fun import(ids: List<Int>) {
         val account = account() ?: return
         val candidates = loaded ?: return
         val fields = ids.map { candidates.candidates[it].field }
-        LinkedContactsBootstrap.importFields(context, account, candidates.protonRawContactId, fields)
+        val protonRawContactId = candidates.protonRawContactId
+        if (protonRawContactId == null) {
+            LinkedContactsBootstrap.createContact(context, account, loadedContactId, candidates.name, fields)
+        } else {
+            LinkedContactsBootstrap.importFields(context, account, protonRawContactId, fields)
+        }
         loaded = null
         val extras = Bundle().apply {
             putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)

@@ -62,6 +62,20 @@ Concretely, per enrichment action:
    and `ThreeWayMerger` set-merge). Additive only — never overwrite an
    existing Proton field.
 
+### Amendment (2026-09-21): creating the Proton copy
+
+When the aggregate holds **no** Proton RawContact, the same action may
+create one instead of stopping: a new RawContact under the pcontacts
+account carrying the name and the user-selected fields from the linked
+rows, pinned into the same aggregate (`AggregationExceptions`
+KEEP_TOGETHER) so Android does not split it off. It is written with no
+`SOURCE_ID` and `DIRTY=1`, so the outbox treats it as a CREATE and
+stamps the server id afterwards — the ordinary create path, no special
+sync handling. The selection must include at least one phone, email,
+address or IM account (`ContactRow`'s guard). Everything else above
+holds unchanged: one-way, consent per action, the linked rows are never
+modified.
+
 ## Alternatives considered
 
 - **Manual edit in the system Contacts app** — the only option today; works, but is per-field, error-prone (easy to save to the wrong account), and has no dedup or bulk. Kept as the fallback, not sufficient as the answer.
