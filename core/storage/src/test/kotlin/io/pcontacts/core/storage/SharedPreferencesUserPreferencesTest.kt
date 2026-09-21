@@ -41,4 +41,21 @@ class SharedPreferencesUserPreferencesTest {
         prefs().lastSyncFailedContacts = 3
         assertEquals(3, prefs().lastSyncFailedContacts)
     }
+
+    @Test
+    fun syncProgress_defaults_idle_and_round_trips() {
+        assertEquals(0, prefs().syncProgressDone)
+        assertEquals(0, prefs().syncProgressTotal)
+        prefs().syncProgressDone = 120
+        prefs().syncProgressTotal = 898
+        assertEquals(120, prefs().syncProgressDone)
+        assertEquals(898, prefs().syncProgressTotal)
+    }
+
+    @Test
+    fun systemContactsNoticeDismissed_defaults_false_and_round_trips() {
+        assertEquals(false, prefs().systemContactsNoticeDismissed)
+        prefs().systemContactsNoticeDismissed = true
+        assertEquals(true, prefs().systemContactsNoticeDismissed)
+    }
 }

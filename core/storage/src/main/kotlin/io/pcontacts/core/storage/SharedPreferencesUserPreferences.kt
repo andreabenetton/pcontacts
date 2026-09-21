@@ -46,6 +46,18 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getInt(KEY_LAST_SYNC_FAILED_CONTACTS, 0)
         set(value) { prefs.edit().putInt(KEY_LAST_SYNC_FAILED_CONTACTS, value).apply() }
 
+    override var syncProgressDone: Int
+        get() = prefs.getInt(KEY_SYNC_PROGRESS_DONE, 0)
+        set(value) { prefs.edit().putInt(KEY_SYNC_PROGRESS_DONE, value).apply() }
+
+    override var syncProgressTotal: Int
+        get() = prefs.getInt(KEY_SYNC_PROGRESS_TOTAL, 0)
+        set(value) { prefs.edit().putInt(KEY_SYNC_PROGRESS_TOTAL, value).apply() }
+
+    override var systemContactsNoticeDismissed: Boolean
+        get() = prefs.getBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, false)
+        set(value) { prefs.edit().putBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, value).apply() }
+
     private companion object {
         const val PREFS_NAME = "pcontacts_user_prefs"
         const val KEY_SYNC_INTERVAL = "sync_interval_hours"
@@ -54,5 +66,8 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_LAST_SYNC_SUCCESS_AT = "last_sync_success_at"
         const val KEY_LAST_SYNC_ERROR_CODE = "last_sync_error_code"
         const val KEY_LAST_SYNC_FAILED_CONTACTS = "last_sync_failed_contacts"
+        const val KEY_SYNC_PROGRESS_DONE = "sync_progress_done"
+        const val KEY_SYNC_PROGRESS_TOTAL = "sync_progress_total"
+        const val KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED = "system_contacts_notice_dismissed"
     }
 }

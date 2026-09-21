@@ -14,4 +14,7 @@ class InMemoryUserPreferences : UserPreferences {
     override var lastSyncSuccessAtMillis: Long = 0L
     override var lastSyncErrorCode: String? = null
     override var lastSyncFailedContacts: Int = 0
+    override var syncProgressDone: Int = 0
+    override var syncProgressTotal: Int = 0
+    override var systemContactsNoticeDismissed: Boolean = false
 }

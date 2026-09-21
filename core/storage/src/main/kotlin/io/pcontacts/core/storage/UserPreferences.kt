@@ -48,6 +48,18 @@ interface UserPreferences {
      */
     var lastSyncFailedContacts: Int
 
+    /**
+     * Progress of the sync run in flight: contacts processed so far and
+     * the server total, both `0` when no run is active. Written by the
+     * engine every few contacts, cleared by the sync adapter when the
+     * run ends; the Settings card polls it while a sync is running.
+     */
+    var syncProgressDone: Int
+    var syncProgressTotal: Int
+
+    /** Whether the user acknowledged the OS-apps contact-access notice ("Got it"). */
+    var systemContactsNoticeDismissed: Boolean
+
     companion object {
         const val DEFAULT_SYNC_INTERVAL_HOURS = 12L
         val ALLOWED_INTERVALS_HOURS = listOf(1L, 6L, 12L, 24L)
