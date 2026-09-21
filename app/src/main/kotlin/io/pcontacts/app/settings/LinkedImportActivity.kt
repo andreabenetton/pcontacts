@@ -47,7 +47,11 @@ class LinkedImportActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize().systemBarsPadding(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LinkedImportScreen(listViewModel = listViewModel, importViewModel = importViewModel)
+                    LinkedImportScreen(
+                        listViewModel = listViewModel,
+                        importViewModel = importViewModel,
+                        onBack = ::finish
+                    )
                 }
             }
         }
