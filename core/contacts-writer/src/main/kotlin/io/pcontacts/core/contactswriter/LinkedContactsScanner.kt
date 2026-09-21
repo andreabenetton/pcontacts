@@ -19,6 +19,8 @@ import android.provider.ContactsContract.RawContacts
  * One aggregate Contact with something to bring into Proton (ADR-0023
  * in-app discovery): either it has no Proton copy at all or its Proton
  * copy lacks [newFieldCount] fields that linked rows carry.
+ * [sourceAccountTypes] names every linked provider in the aggregate,
+ * including ones (Telegram) whose rows hold no importable field.
  */
 data class LinkedContactSummary(
     val contactId: Long,
@@ -138,10 +140,13 @@ class LinkedContactsScanner(private val provider: ContentProviderClient) {
             // A contact that is not in Proton needs at least one reachable field to be created.
             val usable = proton != null || candidates.any { it.field.reachesContact }
             if (candidates.isEmpty() || !usable) return null
+            // Every linked provider, not only those that carried a field: a Telegram row has
+            // no importable data of its own, but "also on Telegram" is worth showing.
+            val providers = members.filter { it.accountType != account.type }.map { it.accountType }.distinct()
             return LinkedContactSummary(
                 contactId = contactId,
                 displayName = members.firstNotNullOfOrNull { it.displayName },
-                sourceAccountTypes = siblings.map { it.first }.distinct(),
+                sourceAccountTypes = providers,
                 hasProtonCopy = proton != null,
                 newFieldCount = candidates.size
             )

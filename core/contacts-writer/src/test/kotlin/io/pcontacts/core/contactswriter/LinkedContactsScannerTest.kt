@@ -43,8 +43,12 @@ class LinkedContactsScannerTest {
 
     @Test fun lists_contacts_missing_from_proton_and_proton_copies_lacking_fields_sorted_by_name() {
         val aggregates = mapOf(
-            // WhatsApp + Signal only, with a phone: creatable.
-            1L to listOf(member(10, 1, "com.whatsapp", "Zoe"), member(11, 1, "org.signal", "Zoe")),
+            // WhatsApp + Signal (+ a data-less Telegram row) only, with a phone: creatable.
+            1L to listOf(
+                member(10, 1, "com.whatsapp", "Zoe"),
+                member(11, 1, "org.signal", "Zoe"),
+                member(12, 1, "org.telegram", "Zoe")
+            ),
             // Proton copy already has everything: skipped.
             2L to listOf(member(20, 2, account.type, "Bob", synced = true), member(21, 2, "com.whatsapp", "Bob")),
             // Proton copy lacks the local phone.
@@ -72,7 +76,7 @@ class LinkedContactsScannerTest {
                 LinkedContactSummary(
                     contactId = 1L,
                     displayName = "Zoe",
-                    sourceAccountTypes = listOf("com.whatsapp", "org.signal"),
+                    sourceAccountTypes = listOf("com.whatsapp", "org.signal", "org.telegram"),
                     hasProtonCopy = false,
                     newFieldCount = 1
                 )
