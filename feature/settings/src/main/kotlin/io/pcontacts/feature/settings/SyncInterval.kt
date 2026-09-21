@@ -3,11 +3,12 @@
 
 package io.pcontacts.feature.settings
 
-enum class SyncInterval(val hours: Long, val label: String) {
-    ONE_HOUR(1, "1 hour"),
-    SIX_HOURS(6, "6 hours"),
-    TWELVE_HOURS(12, "12 hours"),
-    TWENTY_FOUR_HOURS(24, "24 hours");
+/** The periodic sync cadences the user can pick; the screen renders the hours as localised text. */
+enum class SyncInterval(val hours: Long) {
+    ONE_HOUR(1),
+    SIX_HOURS(6),
+    TWELVE_HOURS(12),
+    TWENTY_FOUR_HOURS(24);
 
     companion object {
         fun fromHours(hours: Long): SyncInterval =

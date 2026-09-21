@@ -138,4 +138,9 @@
     </plurals>
     <string name="linked_import_bulk_progress">正在导入第 %1$d 个，共 %2$d 个…</string>
     <string name="linked_import_bulk_done">已在 Proton 中创建 %1$d 个，已为 %2$d 个添加详情，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
+    <string name="sync_state_overdue">同步已逾期</string>
+    <plurals name="sync_interval_every">
+        <item quantity="other">每 %d 小时</item>
+    </plurals>
+    <string name="sync_interval_hours_short">%d 小时</string>
 </resources>

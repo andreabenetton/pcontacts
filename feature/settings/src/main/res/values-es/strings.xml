@@ -149,4 +149,10 @@
     </plurals>
     <string name="linked_import_bulk_progress">Importando %1$d de %2$d…</string>
     <string name="linked_import_bulk_done">%1$d creados en Proton, %2$d con detalles añadidos, %3$d con error. Se enviarán a Proton en la próxima sincronización.</string>
+    <string name="sync_state_overdue">Sincronización atrasada</string>
+    <plurals name="sync_interval_every">
+        <item quantity="one">Cada %d hora</item>
+        <item quantity="other">Cada %d horas</item>
+    </plurals>
+    <string name="sync_interval_hours_short">%d h</string>
 </resources>

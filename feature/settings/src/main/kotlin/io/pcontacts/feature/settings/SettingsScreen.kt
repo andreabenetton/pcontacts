@@ -29,18 +29,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,6 +53,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.math.roundToInt
 
 /**
  * Settings, in four sections: Sync (status card, Sync now, interval),
@@ -65,7 +61,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * Account (Sign out). [banner] is the host's slot above the sections,
  * used for the missing-permission notice.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -150,28 +145,59 @@ private class Tone(val icon: ImageVector, val tint: Color, val inProgress: Boole
 
 private class Headline(val text: String, val tone: Tone)
 
-/** One line that says what the sync is doing right now, in priority order. */
+/**
+ * One line that says what the sync is doing right now. Sign-out states
+ * come first; everything else is [syncHealth] rendered.
+ */
 @Composable
-private fun headline(state: SettingsUiState, syncRunning: Boolean, lastSync: LastSyncSummary?): Headline {
+private fun headline(
+    state: SettingsUiState,
+    syncRunning: Boolean,
+    lastSync: LastSyncSummary?,
+    outbox: OutboxStats,
+    intervalHours: Long
+): Headline {
     val scheme = MaterialTheme.colorScheme
     val ok = Tone(Icons.Default.Check, scheme.primary, inProgress = false)
     val warn = Tone(Icons.Default.Warning, scheme.error, inProgress = false)
     val running = Tone(Icons.Default.Refresh, scheme.primary, inProgress = true)
     val info = Tone(Icons.Default.Info, scheme.onSurfaceVariant, inProgress = false)
-    return when {
-        state is SettingsUiState.SigningOut -> Headline(stringResource(R.string.settings_signing_out), running)
-        state is SettingsUiState.SignedOut -> Headline(stringResource(R.string.settings_signed_out), ok)
-        state is SettingsUiState.SignOutFailed ->
-            Headline(stringResource(R.string.settings_sign_out_failed, state.reason), warn)
-        state is SettingsUiState.Syncing || syncRunning ->
-            Headline(stringResource(R.string.settings_sync_running), running)
-        state is SettingsUiState.SyncFailed ->
-            Headline(stringResource(R.string.settings_sync_failed, state.reason), warn)
-        lastSync?.failureMessage != null -> Headline(lastSync.failureMessage, warn)
-        lastSync?.syncedAtMillis == null -> Headline(stringResource(R.string.sync_state_never), info)
-        else -> Headline(stringResource(R.string.sync_state_ok), ok)
+    when (state) {
+        SettingsUiState.SigningOut -> return Headline(stringResource(R.string.settings_signing_out), running)
+        SettingsUiState.SignedOut -> return Headline(stringResource(R.string.settings_signed_out), ok)
+        is SettingsUiState.SignOutFailed ->
+            return Headline(stringResource(R.string.settings_sign_out_failed, state.reason), warn)
+        else -> Unit
+    }
+    val health = syncHealth(
+        running = state is SettingsUiState.Syncing || syncRunning,
+        failed = state is SettingsUiState.SyncFailed,
+        lastSync = lastSync,
+        outbox = outbox,
+        intervalHours = intervalHours,
+        nowMillis = System.currentTimeMillis()
+    )
+    return when (health) {
+        SyncHealth.RUNNING -> Headline(stringResource(R.string.settings_sync_running), running)
+        SyncHealth.FAILED -> Headline(failureText(state, lastSync), warn)
+        SyncHealth.ATTENTION -> Headline(plural(R.plurals.outbox_quarantined, outbox.quarantined), warn)
+        SyncHealth.PENDING -> Headline(plural(R.plurals.outbox_pending, outbox.pending), info)
+        SyncHealth.NEVER -> Headline(stringResource(R.string.sync_state_never), info)
+        SyncHealth.OVERDUE -> Headline(stringResource(R.string.sync_state_overdue), warn)
+        SyncHealth.UP_TO_DATE -> Headline(stringResource(R.string.sync_state_ok), ok)
     }
 }
+
+@Composable
+private fun plural(id: Int, count: Int): String = pluralStringResource(id, count, count)
+
+@Composable
+private fun failureText(state: SettingsUiState, lastSync: LastSyncSummary?): String =
+    if (state is SettingsUiState.SyncFailed) {
+        stringResource(R.string.settings_sync_failed, state.reason)
+    } else {
+        lastSync?.failureMessage ?: stringResource(R.string.settings_sync_failed, "")
+    }
 
 /**
  * Everything about the sync in one place: the current state with the
@@ -188,7 +214,9 @@ private fun SyncStatusCard(
     onSignedOut: () -> Unit
 ) {
     val lastSync by viewModel.lastSync.collectAsStateWithLifecycle()
-    val headline = headline(state, syncRunning, lastSync)
+    val outbox by viewModel.outboxStats.collectAsStateWithLifecycle()
+    val interval by viewModel.syncInterval.collectAsStateWithLifecycle()
+    val headline = headline(state, syncRunning, lastSync, outbox, interval.hours)
     if (state is SettingsUiState.SignedOut) LaunchedEffect(Unit) { onSignedOut() }
 
     Card(
@@ -481,48 +509,42 @@ private fun SystemContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: (
 
 // ---- Sync interval ----
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** A stepped slider over the fixed cadences: the platform control for picking one of a few integer values. */
 @Composable
 private fun SyncIntervalSelector(
     selected: SyncInterval,
     onSelected: (SyncInterval) -> Unit,
     enabled: Boolean
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val options = SyncInterval.entries
+    val hours = selected.hours.toInt()
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(R.string.settings_sync_interval),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(4.dp))
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { if (enabled) expanded = it }
-        ) {
-            OutlinedTextField(
-                value = selected.label,
-                onValueChange = {},
-                readOnly = true,
-                enabled = enabled,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth()
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                text = stringResource(R.string.settings_sync_interval),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                SyncInterval.entries.forEach { interval ->
-                    DropdownMenuItem(
-                        text = { Text(interval.label) },
-                        onClick = {
-                            onSelected(interval)
-                            expanded = false
-                        }
-                    )
-                }
+            Text(
+                text = pluralStringResource(R.plurals.sync_interval_every, hours, hours),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        Slider(
+            value = options.indexOf(selected).toFloat(),
+            onValueChange = { onSelected(options[it.roundToInt()]) },
+            valueRange = 0f..(options.size - 1).toFloat(),
+            steps = options.size - 2,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            options.forEach { option ->
+                Text(
+                    text = stringResource(R.string.sync_interval_hours_short, option.hours),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
