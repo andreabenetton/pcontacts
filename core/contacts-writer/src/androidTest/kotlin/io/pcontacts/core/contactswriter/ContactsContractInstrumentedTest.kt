@@ -673,7 +673,103 @@ class ContactsContractInstrumentedTest {
         }
     }
 
+    // ---- Linked-contact import (ADR-0023) ----
+
+    @Test
+    fun linked_import_offers_sibling_fields_and_appends_them_without_touching_the_sibling() {
+        val siblingAccount = Account("sibling-${UUID.randomUUID()}", "io.pcontacts.test.sibling")
+        val applier = BatchApplier(testProvider)
+        applier.apply(
+            testAccount,
+            listOf(RawContactOpIntent.CreateContact(ContactRow("proton-linked", "Evelino Belloli", emails = listOf("e@x"))))
+        )
+        val protonId = findRawContactBySourceId("proton-linked")!!
+        try {
+            applier.apply(
+                siblingAccount,
+                listOf(
+                    RawContactOpIntent.CreateContact(
+                        ContactRow(
+                            sourceId = "sibling-1",
+                            displayName = "Evelino Belloli",
+                            emails = listOf("E@x"),
+                            phones = listOf(PhoneEntry("+39 333 1234567"))
+                        )
+                    )
+                )
+            )
+            val siblingId = RawContactReader(testProvider).readExistingState(siblingAccount).canonicalId("sibling-1")!!
+            // An app-specific action row, like WhatsApp's "message" chip.
+            testProvider.insert(
+                SyncAdapterUri.decorate(Data.CONTENT_URI, siblingAccount.name, siblingAccount.type),
+                ContentValues().apply {
+                    put(Data.RAW_CONTACT_ID, siblingId)
+                    put(Data.MIMETYPE, "vnd.android.cursor.item/vnd.com.whatsapp.profile")
+                    put(Data.DATA1, "393331234567@s.whatsapp.net")
+                }
+            )
+            testProvider.update(
+                ContactsContract.AggregationExceptions.CONTENT_URI,
+                ContentValues().apply {
+                    put(ContactsContract.AggregationExceptions.TYPE, ContactsContract.AggregationExceptions.TYPE_KEEP_TOGETHER)
+                    put(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, protonId)
+                    put(ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, siblingId)
+                },
+                null,
+                null
+            )
+            val siblingRowsBefore = queryAllDataRows(siblingId, Phone.CONTENT_ITEM_TYPE).size +
+                queryAllDataRows(siblingId, Email.CONTENT_ITEM_TYPE).size
+
+            val candidates = LinkedContactsReader(testProvider).read(testAccount, contactIdOf(protonId))
+            assertNotNull("proton row must be found in the aggregate", candidates)
+            assertEquals(protonId, candidates!!.protonRawContactId)
+            assertEquals(
+                listOf(LinkedFieldCandidate(LinkedField.PhoneNumber(PhoneEntry("+39 333 1234567")), siblingAccount.type)),
+                candidates.candidates
+            )
+
+            LinkedFieldsWriter(testProvider).append(testAccount, protonId, candidates.candidates.map { it.field })
+
+            val phones = queryAllDataRows(protonId, Phone.CONTENT_ITEM_TYPE)
+            assertEquals(1, phones.size)
+            assertEquals("+39 333 1234567", phones[0][Phone.NUMBER])
+            assertEquals(1, dirtyOf(protonId))
+            assertEquals(0, dirtyOf(siblingId))
+            assertEquals(
+                siblingRowsBefore,
+                queryAllDataRows(siblingId, Phone.CONTENT_ITEM_TYPE).size +
+                    queryAllDataRows(siblingId, Email.CONTENT_ITEM_TYPE).size
+            )
+        } finally {
+            val uri = SyncAdapterUri.decorate(RawContacts.CONTENT_URI, siblingAccount.name, siblingAccount.type)
+            testProvider.delete(
+                uri,
+                "${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+                arrayOf(siblingAccount.type, siblingAccount.name)
+            )
+        }
+    }
+
     // ---- Helpers ----
+
+    private fun contactIdOf(rawContactId: Long): Long =
+        testProvider.query(
+            ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawContactId),
+            arrayOf(RawContacts.CONTACT_ID),
+            null,
+            null,
+            null
+        )!!.use { it.moveToFirst(); it.getLong(0) }
+
+    private fun dirtyOf(rawContactId: Long): Int =
+        testProvider.query(
+            ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawContactId),
+            arrayOf(RawContacts.DIRTY),
+            null,
+            null,
+            null
+        )!!.use { it.moveToFirst(); it.getInt(0) }
 
     private fun findRawContactBySourceId(sourceId: String, includeTombstones: Boolean = false): Long? {
         val uri = if (includeTombstones) {

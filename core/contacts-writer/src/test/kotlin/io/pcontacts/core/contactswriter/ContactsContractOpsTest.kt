@@ -78,6 +78,24 @@ class ContactsContractOpsTest {
         assertTrue("op 1 must be Phone insert", ops[1].isInsert)
     }
 
+    @Test fun append_emits_only_inserts_plus_chip_and_ends_with_a_dirty_update() {
+        val ops = ContactsContractOps.buildAppend(
+            account = account,
+            rawContactId = 42L,
+            fields = listOf(
+                LinkedField.PhoneNumber(PhoneEntry("+39 333 0000000")),
+                LinkedField.EmailAddress("alice@example.org")
+            )
+        )
+        // 1 Phone + 1 Email + 1 chip + 1 RawContacts DIRTY update = 4; no delete.
+        assertEquals(4, ops.size)
+        assertTrue("field ops must be inserts", ops.dropLast(1).all { it.isInsert })
+        assertTrue("last op must be the RawContacts update", ops.last().isUpdate)
+        ops.forEach { op ->
+            assertEquals("true", op.uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
+        }
+    }
+
     @Test fun update_with_no_name_omits_StructuredName_row() {
         val ops = ContactsContractOps.build(
             account = account,

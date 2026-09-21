@@ -69,6 +69,44 @@ object ContactsContractOps {
                 listOf(deleteRawContactOp(account, intent.rawContactId))
         }
 
+    /**
+     * Additive inserts for fields imported from linked RawContacts
+     * (ADR-0023). Unlike the Update path there is no delete step, no
+     * row is marked primary, and the batch ends by setting DIRTY on the
+     * RawContact: the `caller_is_syncadapter` URIs would otherwise leave
+     * the flag untouched and the import would never reach the outbox.
+     */
+    fun buildAppend(
+        account: Account,
+        rawContactId: Long,
+        fields: List<LinkedField>
+    ): List<ContentProviderOperation> {
+        val ops = ArrayList<ContentProviderOperation>(fields.size * 2 + 1)
+        val dataUri = SyncAdapterUri.decorate(Data.CONTENT_URI, account.name, account.type)
+        for (field in fields) {
+            when (field) {
+                is LinkedField.EmailAddress -> {
+                    ops += newEmailInsertForExisting(dataUri, rawContactId, field.address, isPrimary = false)
+                    ops += newSendViaProtonMailInsertForExisting(dataUri, rawContactId, field.address)
+                }
+                is LinkedField.PhoneNumber ->
+                    ops += newPhoneInsertForExisting(dataUri, rawContactId, field.phone, isPrimary = false)
+                is LinkedField.Address ->
+                    ops += newPostalInsertForExisting(dataUri, rawContactId, field.address, isPrimary = false)
+                is LinkedField.Org -> ops += newOrganizationInsertForExisting(dataUri, rawContactId, field.organization)
+                is LinkedField.NoteText -> ops += newNoteInsertForExisting(dataUri, rawContactId, field.note)
+                is LinkedField.Im -> ops += newImInsertForExisting(dataUri, rawContactId, field.account)
+            }
+        }
+        ops += ContentProviderOperation.newUpdate(
+            SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
+        )
+            .withSelection("${RawContacts._ID} = ?", arrayOf(rawContactId.toString()))
+            .withValue(RawContacts.DIRTY, 1)
+            .build()
+        return ops
+    }
+
     private fun createContactOps(
         account: Account,
         row: ContactRow,
