@@ -52,7 +52,7 @@ import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.ContactsAccessApp
-import io.pcontacts.feature.settings.ContactsPermissionRoute
+import io.pcontacts.feature.settings.ContactsAccessKind
 import io.pcontacts.feature.settings.LastSyncSummary
 import io.pcontacts.feature.settings.OutboxStats
 import io.pcontacts.feature.settings.PendingDelete
@@ -145,8 +145,7 @@ class SettingsActivity : ComponentActivity() {
                                 actions = SettingsActions(
                                     onSignedOut = ::finishToLauncher,
                                     onOpenLinkedImport = ::openLinkedImport,
-                                    onOpenContactsPermission = ::openContactsPermissionSettings,
-                                    contactsPermissionRoute = contactsPermissionRoute(),
+                                    onOpenContactsAccess = ::openContactsAccess,
                                     onOpenContactsStorage = contactsStorageAction()
                                 ),
                                 modifier = Modifier.weight(1f)
@@ -338,64 +337,11 @@ class SettingsActivity : ComponentActivity() {
             )
         }
 
-    private fun queryContactsAccessApps(): List<ContactsAccessApp> {
-        val pm = packageManager
-        val installed = pm.getInstalledPackages(android.content.pm.PackageManager.GET_PERMISSIONS)
-        return installed
-            .filter { pkg ->
-                pkg.packageName != packageName &&
-                    pkg.requestedPermissions?.contains(android.Manifest.permission.READ_CONTACTS) == true &&
-                    pm.checkPermission(
-                        android.Manifest.permission.READ_CONTACTS,
-                        pkg.packageName
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
-                    pm.getLaunchIntentForPackage(pkg.packageName) != null &&
-                    !isSystemApp(pkg.applicationInfo)
-            }
-            .map { pkg ->
-                ContactsAccessApp(
-                    appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName,
-                    packageName = pkg.packageName
-                )
-            }
-            .sortedBy { it.appName }
-    }
+    private fun queryContactsAccessApps(): List<ContactsAccessApp> =
+        ContactsAccessApps.list(this, ContactsAccessKind.USER)
 
-    /**
-     * OS-bundled packages that hold READ_CONTACTS. We don't gate on a
-     * launcher intent here — most preinstalled snoopers (Google Play
-     * Services, sync providers, OEM background services) have none and
-     * are exactly what the user can't remove on stock Android.
-     */
-    private fun querySystemContactsAccessApps(): List<ContactsAccessApp> {
-        val pm = packageManager
-        val installed = pm.getInstalledPackages(android.content.pm.PackageManager.GET_PERMISSIONS)
-        return installed
-            .filter { pkg ->
-                pkg.packageName != packageName &&
-                    pkg.packageName != "android" &&
-                    pkg.requestedPermissions?.contains(android.Manifest.permission.READ_CONTACTS) == true &&
-                    pm.checkPermission(
-                        android.Manifest.permission.READ_CONTACTS,
-                        pkg.packageName
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
-                    isSystemApp(pkg.applicationInfo)
-            }
-            .map { pkg ->
-                ContactsAccessApp(
-                    appName = pkg.applicationInfo?.loadLabel(pm)?.toString() ?: pkg.packageName,
-                    packageName = pkg.packageName
-                )
-            }
-            .sortedBy { it.appName }
-    }
-
-    private fun isSystemApp(info: android.content.pm.ApplicationInfo?): Boolean {
-        if (info == null) return false
-        val systemFlags = android.content.pm.ApplicationInfo.FLAG_SYSTEM or
-            android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP
-        return info.flags and systemFlags != 0
-    }
+    private fun querySystemContactsAccessApps(): List<ContactsAccessApp> =
+        ContactsAccessApps.list(this, ContactsAccessKind.SYSTEM)
 
     private suspend fun cancelPendingDelete(protonContactId: String) {
         db.outboxDao().deleteByContact(protonContactId)
@@ -430,6 +376,10 @@ class SettingsActivity : ComponentActivity() {
         }
     }
 
+    private fun openContactsAccess(kind: ContactsAccessKind) {
+        startActivity(ContactsAccessActivity.intent(this, kind))
+    }
+
     private fun openLinkedImport() {
         startActivity(Intent(this, LinkedImportActivity::class.java))
     }
@@ -442,39 +392,6 @@ class SettingsActivity : ComponentActivity() {
     }
 
     /**
-     * Deepest reachable page for revoking READ_CONTACTS, in order: the
-     * permission controller's per-permission list ("Contacts and
-     * accounts"; the `Intent.ACTION_MANAGE_PERMISSION_APPS` contract,
-     * guarded by a signature permission on recent Pixels), then
-     * Settings' "Privacy controls" (one tap from Permission manager),
-     * then the privacy hub.
-     */
-    private fun contactsPermissionPages(): List<Pair<Intent, ContactsPermissionRoute>> = listOf(
-        Intent(ACTION_MANAGE_PERMISSION_APPS)
-            .putExtra(EXTRA_PERMISSION_NAME, android.Manifest.permission.READ_CONTACTS) to
-            ContactsPermissionRoute.DIRECT,
-        Intent(ACTION_PRIVACY_CONTROLS) to ContactsPermissionRoute.PERMISSION_MANAGER,
-        Intent(Settings.ACTION_PRIVACY_SETTINGS) to ContactsPermissionRoute.PRIVACY_SETTINGS
-    )
-
-    /** Which of the pages the button will actually reach, so the dialog can explain the remaining taps. */
-    private fun contactsPermissionRoute(): ContactsPermissionRoute =
-        contactsPermissionPages().firstOrNull { (intent, _) -> canLaunch(intent) }?.second
-            ?: ContactsPermissionRoute.PRIVACY_SETTINGS
-
-    private fun openContactsPermissionSettings() {
-        contactsPermissionPages().firstOrNull { (intent, _) -> canLaunch(intent) }
-            ?.let { (intent, _) -> startActivityIfAvailable(intent) }
-    }
-
-    /** Resolvable and not behind a permission this app lacks — the guard that keeps the exact page from third parties. */
-    private fun canLaunch(intent: Intent): Boolean {
-        val info = packageManager.resolveActivity(intent, 0)?.activityInfo ?: return false
-        val guard = info.permission ?: return true
-        return checkSelfPermission(guard) == android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
-
-    /**
      * Android 15+ "Contacts storage" (default account for new
      * contacts). Null when the screen is missing so the button hides.
      */
@@ -484,31 +401,8 @@ class SettingsActivity : ComponentActivity() {
         return { startActivityIfAvailable(intent) }
     }
 
-    private fun startActivityIfAvailable(intent: Intent): Boolean =
-        try {
-            startActivity(intent)
-            true
-        } catch (_: android.content.ActivityNotFoundException) {
-            false
-        } catch (_: SecurityException) {
-            false
-        }
-
     private fun currentAccount(): Account? =
         AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull()
-
-    private companion object {
-        // Intent.ACTION_MANAGE_PERMISSION_APPS / EXTRA_PERMISSION_NAME are @SystemApi
-        // constants; the activity behind them is exported by the permission controller.
-        const val ACTION_MANAGE_PERMISSION_APPS = "android.intent.action.MANAGE_PERMISSION_APPS"
-        const val EXTRA_PERMISSION_NAME = "android.intent.extra.PERMISSION_NAME"
-
-        // Settings' "Privacy controls" page; exported but not a public Settings.ACTION_* constant.
-        const val ACTION_PRIVACY_CONTROLS = "android.settings.PRIVACY_CONTROLS"
-
-        // ContactsContract.Settings.ACTION_SET_DEFAULT_ACCOUNT (API 35); spelled out for minSdk 26.
-        const val ACTION_SET_DEFAULT_ACCOUNT = "android.provider.action.SET_DEFAULT_ACCOUNT"
-    }
 
     private fun finishToLauncher() {
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -516,6 +410,11 @@ class SettingsActivity : ComponentActivity() {
         }
         startActivity(intent)
         finish()
+    }
+
+    private companion object {
+        // ContactsContract.Settings.ACTION_SET_DEFAULT_ACCOUNT (API 35); spelled out for minSdk 26.
+        const val ACTION_SET_DEFAULT_ACCOUNT = "android.provider.action.SET_DEFAULT_ACCOUNT"
     }
 }
 

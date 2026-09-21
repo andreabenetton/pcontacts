@@ -77,6 +77,12 @@
             android:exported="false"
             android:theme="@style/Theme.Pcontacts" />
 
+        <!-- READ_CONTACTS transparency list (user or OS apps). Launched from Settings only. -->
+        <activity
+            android:name=".settings.ContactsAccessActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pcontacts" />
+
         <!-- ADR / plan §20 - In-app WebView that hosts Proton's hosted
              captcha page (`verify.proton.me`) and writes the resulting
              verification token into SecretStore. Replaces the previous
