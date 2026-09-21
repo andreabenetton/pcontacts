@@ -79,12 +79,17 @@ class LinkedImportBridge(
             null
         )?.use { if (it.moveToFirst()) it.getString(0) else null }
 
-    /** The owning app's authenticator label ("WhatsApp"); device-local rows have no account type. */
+    /**
+     * The owning app's authenticator label ("WhatsApp"). A type no
+     * authenticator claims (null, or a bare "PHONE" as seen on Pixel) is
+     * device-local.
+     */
     private fun sourceLabel(accountType: String?): String {
-        if (accountType == null) return context.getString(R.string.linked_import_source_device)
+        val device = context.getString(R.string.linked_import_source_device)
+        if (accountType == null) return device
         val authenticator = AccountManager.get(context).authenticatorTypes
             .firstOrNull { it.type == accountType }
-            ?: return accountType
+            ?: return device
         return try {
             context.packageManager
                 .getResourcesForApplication(authenticator.packageName)
