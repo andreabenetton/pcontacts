@@ -17,6 +17,13 @@ sealed interface LinkedField {
     data class Im(val account: ImAccount) : LinkedField
 }
 
+/** Whether the field can reach the person — what [ContactRow] requires at least one of. */
+val LinkedField.reachesContact: Boolean
+    get() = when (this) {
+        is LinkedField.PhoneNumber, is LinkedField.EmailAddress, is LinkedField.Address, is LinkedField.Im -> true
+        is LinkedField.Org, is LinkedField.NoteText -> false
+    }
+
 /**
  * `sourceAccountTypes` lists the owning account type of every linked
  * RawContact that carries the value (e.g. `com.whatsapp`; null for

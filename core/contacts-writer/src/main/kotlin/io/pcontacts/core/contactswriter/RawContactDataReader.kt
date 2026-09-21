@@ -21,6 +21,8 @@ import android.provider.ContactsContract.Data
  *
  * The cursor-parsing step ([parse]) is split out from the provider
  * query for MatrixCursor-based testing, mirroring [RawContactReader].
+ * [parseByRawContact] does the same for a cursor spanning many
+ * RawContacts (the ADR-0023 scan), one [ContactRow] per raw.
  */
 class RawContactDataReader(private val provider: ContentProviderClient) {
 
@@ -36,7 +38,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
     }
 
     companion object {
-        private val PROJECTION = arrayOf(
+        val PROJECTION = arrayOf(
             Data.MIMETYPE,
             Data.DATA1, Data.DATA2, Data.DATA3, Data.DATA4,
             Data.DATA5, Data.DATA6, Data.DATA7, Data.DATA8,
@@ -46,126 +48,123 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
 
         fun parse(cursor: Cursor, sourceId: String): ContactRow? {
             if (cursor.count == 0) return null
+            val columns = Columns(cursor)
+            val row = Accumulator()
+            while (cursor.moveToNext()) row.add(cursor, columns)
+            return row.build(sourceId)
+        }
 
-            val mimeIdx = cursor.getColumnIndexOrThrow(Data.MIMETYPE)
-            val d1 = cursor.getColumnIndexOrThrow(Data.DATA1)
-            val d2 = cursor.getColumnIndexOrThrow(Data.DATA2)
-            val d3 = cursor.getColumnIndexOrThrow(Data.DATA3)
-            val d4 = cursor.getColumnIndexOrThrow(Data.DATA4)
-            val d5 = cursor.getColumnIndexOrThrow(Data.DATA5)
-            val d6 = cursor.getColumnIndexOrThrow(Data.DATA6)
-            val d7 = cursor.getColumnIndexOrThrow(Data.DATA7)
-            val d8 = cursor.getColumnIndexOrThrow(Data.DATA8)
-            val d9 = cursor.getColumnIndexOrThrow(Data.DATA9)
-            val d10 = cursor.getColumnIndexOrThrow(Data.DATA10)
-            val d15 = cursor.getColumnIndexOrThrow(Data.DATA15)
-            val primaryIdx = cursor.getColumnIndexOrThrow(Data.IS_PRIMARY)
-
-            var displayName: String? = null
-            var structuredName: StructuredName? = null
-            val emails = mutableListOf<Pair<String, Boolean>>()
-            val phones = mutableListOf<PhoneEntry>()
-            val addresses = mutableListOf<PostalAddress>()
-            var organization: Organization? = null
-            val notes = mutableListOf<String>()
-            val imAccounts = mutableListOf<ImAccount>()
-            var photo: ContactPhoto? = null
-
+        /**
+         * Splits a cursor that also carries `Data.RAW_CONTACT_ID` into
+         * one row per RawContact. Rows are read-only diff input, so
+         * `sourceId` is left blank; raws without a representable field
+         * are absent from the result.
+         */
+        fun parseByRawContact(cursor: Cursor): Map<Long, ContactRow> {
+            val columns = Columns(cursor)
+            val rawIdx = cursor.getColumnIndexOrThrow(Data.RAW_CONTACT_ID)
+            val rows = LinkedHashMap<Long, Accumulator>()
             while (cursor.moveToNext()) {
-                val mime = cursor.getString(mimeIdx) ?: continue
-                val isPrimary = cursor.getInt(primaryIdx) == 1
+                rows.getOrPut(cursor.getLong(rawIdx)) { Accumulator() }.add(cursor, columns)
+            }
+            return rows.mapNotNull { (id, row) -> row.build(sourceId = "")?.let { id to it } }.toMap()
+        }
+    }
 
-                when (mime) {
-                    CCStructuredName.CONTENT_ITEM_TYPE -> {
-                        displayName = cursor.getString(d1)
-                        val given = cursor.getString(d2)
-                        val family = cursor.getString(d3)
-                        val prefix = cursor.getString(d4)
-                        val middle = cursor.getString(d5)
-                        val suffix = cursor.getString(d6)
-                        if (given != null || family != null || middle != null ||
-                            prefix != null || suffix != null
-                        ) {
-                            structuredName = StructuredName(
-                                given = given,
-                                family = family,
-                                middle = middle,
-                                prefix = prefix,
-                                suffix = suffix
-                            )
-                        }
-                    }
-                    Email.CONTENT_ITEM_TYPE -> {
-                        val address = cursor.getString(d1)
-                        if (address != null) emails += address to isPrimary
-                    }
-                    Phone.CONTENT_ITEM_TYPE -> {
-                        val number = cursor.getString(d1)
-                        val type = cursor.getInt(d2)
-                        if (number != null) {
-                            phones += PhoneEntry(
-                                number = number,
-                                type = PhoneTypeMapper.fromAndroid(type),
-                                isPrimary = isPrimary
-                            )
-                        }
-                    }
-                    StructuredPostal.CONTENT_ITEM_TYPE -> {
-                        addresses += PostalAddress(
-                            street = cursor.getString(d4),
-                            poBox = cursor.getString(d5),
-                            neighborhood = cursor.getString(d6),
-                            city = cursor.getString(d7),
-                            region = cursor.getString(d8),
-                            postcode = cursor.getString(d9),
-                            country = cursor.getString(d10),
-                            type = PostalAddressTypeMapper.fromAndroid(cursor.getInt(d2)),
-                            isPrimary = isPrimary
-                        )
-                    }
-                    CCOrganization.CONTENT_ITEM_TYPE -> {
-                        organization = Organization(
-                            company = cursor.getString(d1),
-                            department = cursor.getString(d5),
-                            title = cursor.getString(d4)
-                        )
-                    }
-                    Note.CONTENT_ITEM_TYPE -> {
-                        val note = cursor.getString(d1)
-                        if (note != null) notes += note
-                    }
-                    Im.CONTENT_ITEM_TYPE -> {
-                        val handle = cursor.getString(d1)
-                        val protocol = cursor.getInt(d5)
-                        val customProtocol = cursor.getString(d6)
-                        val imType = cursor.getInt(d2)
-                        if (handle != null) {
-                            imAccounts += ImAccount(
-                                handle = handle,
-                                protocol = ImProtocolMapper.fromAndroid(protocol),
-                                customProtocol = customProtocol,
-                                type = ImProtocolMapper.typeFromAndroid(imType)
-                            )
-                        }
-                    }
-                    Photo.CONTENT_ITEM_TYPE -> {
-                        val blob = cursor.getBlob(d15)
-                        if (blob != null && blob.isNotEmpty()) {
-                            photo = ContactPhoto(blob)
-                        }
-                    }
+    private class Columns(cursor: Cursor) {
+        val mime = cursor.getColumnIndexOrThrow(Data.MIMETYPE)
+        val d1 = cursor.getColumnIndexOrThrow(Data.DATA1)
+        val d2 = cursor.getColumnIndexOrThrow(Data.DATA2)
+        val d3 = cursor.getColumnIndexOrThrow(Data.DATA3)
+        val d4 = cursor.getColumnIndexOrThrow(Data.DATA4)
+        val d5 = cursor.getColumnIndexOrThrow(Data.DATA5)
+        val d6 = cursor.getColumnIndexOrThrow(Data.DATA6)
+        val d7 = cursor.getColumnIndexOrThrow(Data.DATA7)
+        val d8 = cursor.getColumnIndexOrThrow(Data.DATA8)
+        val d9 = cursor.getColumnIndexOrThrow(Data.DATA9)
+        val d10 = cursor.getColumnIndexOrThrow(Data.DATA10)
+        val d15 = cursor.getColumnIndexOrThrow(Data.DATA15)
+        val primary = cursor.getColumnIndexOrThrow(Data.IS_PRIMARY)
+    }
+
+    /** Collects one RawContact's Data rows; [build] applies the ContactRow guard. */
+    private class Accumulator {
+        private var displayName: String? = null
+        private var structuredName: StructuredName? = null
+        private val emails = mutableListOf<Pair<String, Boolean>>()
+        private val phones = mutableListOf<PhoneEntry>()
+        private val addresses = mutableListOf<PostalAddress>()
+        private var organization: Organization? = null
+        private val notes = mutableListOf<String>()
+        private val imAccounts = mutableListOf<ImAccount>()
+        private var photo: ContactPhoto? = null
+
+        fun add(cursor: Cursor, c: Columns) {
+            val isPrimary = cursor.getInt(c.primary) == 1
+            when (cursor.getString(c.mime) ?: return) {
+                CCStructuredName.CONTENT_ITEM_TYPE -> addName(cursor, c)
+                Email.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { emails += it to isPrimary }
+                Phone.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { number ->
+                    phones += PhoneEntry(
+                        number = number,
+                        type = PhoneTypeMapper.fromAndroid(cursor.getInt(c.d2)),
+                        isPrimary = isPrimary
+                    )
+                }
+                StructuredPostal.CONTENT_ITEM_TYPE -> addresses += PostalAddress(
+                    street = cursor.getString(c.d4),
+                    poBox = cursor.getString(c.d5),
+                    neighborhood = cursor.getString(c.d6),
+                    city = cursor.getString(c.d7),
+                    region = cursor.getString(c.d8),
+                    postcode = cursor.getString(c.d9),
+                    country = cursor.getString(c.d10),
+                    type = PostalAddressTypeMapper.fromAndroid(cursor.getInt(c.d2)),
+                    isPrimary = isPrimary
+                )
+                CCOrganization.CONTENT_ITEM_TYPE -> organization = Organization(
+                    company = cursor.getString(c.d1),
+                    department = cursor.getString(c.d5),
+                    title = cursor.getString(c.d4)
+                )
+                Note.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { notes += it }
+                Im.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { handle ->
+                    imAccounts += ImAccount(
+                        handle = handle,
+                        protocol = ImProtocolMapper.fromAndroid(cursor.getInt(c.d5)),
+                        customProtocol = cursor.getString(c.d6),
+                        type = ImProtocolMapper.typeFromAndroid(cursor.getInt(c.d2))
+                    )
+                }
+                Photo.CONTENT_ITEM_TYPE -> {
+                    val blob = cursor.getBlob(c.d15)
+                    if (blob != null && blob.isNotEmpty()) photo = ContactPhoto(blob)
                 }
             }
+        }
 
+        private fun addName(cursor: Cursor, c: Columns) {
+            displayName = cursor.getString(c.d1)
+            val given = cursor.getString(c.d2)
+            val family = cursor.getString(c.d3)
+            val prefix = cursor.getString(c.d4)
+            val middle = cursor.getString(c.d5)
+            val suffix = cursor.getString(c.d6)
+            if (listOf(given, family, middle, prefix, suffix).any { it != null }) {
+                structuredName = StructuredName(
+                    given = given,
+                    family = family,
+                    middle = middle,
+                    prefix = prefix,
+                    suffix = suffix
+                )
+            }
+        }
+
+        fun build(sourceId: String): ContactRow? {
             // Primary-first ordering for emails
             val sortedEmails = emails.sortedByDescending { it.second }.map { it.first }
-
-            if (sortedEmails.isEmpty() && phones.isEmpty() &&
-                addresses.isEmpty() && imAccounts.isEmpty()
-            ) {
-                return null
-            }
-
+            if (listOf(sortedEmails, phones, addresses, imAccounts).all { it.isEmpty() }) return null
             return ContactRow(
                 sourceId = sourceId,
                 displayName = displayName,

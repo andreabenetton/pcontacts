@@ -104,6 +104,21 @@ class RawContactDataReaderTest {
         handle, type, null, null, protocol, customProtocol, null, null, null, null, null, 0
     )
 
+    @Test fun parse_by_raw_contact_splits_rows_per_raw_and_drops_raws_without_fields() {
+        val grouped = arrayOf(Data.RAW_CONTACT_ID, *columns)
+        val cursor = MatrixCursor(grouped).apply {
+            addRow(arrayOf<Any?>(1L, *structuredNameRow("Alice")))
+            addRow(arrayOf<Any?>(2L, *phoneRow("+39 333", Phone.TYPE_MOBILE)))
+            addRow(arrayOf<Any?>(1L, *emailRow("alice@proton.me")))
+            addRow(arrayOf<Any?>(3L, *structuredNameRow("Nobody")))
+        }
+        val rows = RawContactDataReader.parseByRawContact(cursor)
+        assertEquals(setOf(1L, 2L), rows.keys)
+        assertEquals("Alice", rows.getValue(1L).displayName)
+        assertEquals(listOf("alice@proton.me"), rows.getValue(1L).emails)
+        assertEquals("+39 333", rows.getValue(2L).phones.single().number)
+    }
+
     @Test fun parse_empty_cursor_returns_null() {
         val cursor = MatrixCursor(columns)
         assertNull(RawContactDataReader.parse(cursor, "ct-1"))
