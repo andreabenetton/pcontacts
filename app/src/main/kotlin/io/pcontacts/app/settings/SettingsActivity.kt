@@ -59,6 +59,7 @@ import io.pcontacts.feature.settings.PendingDelete
 import io.pcontacts.feature.settings.QuarantinedChange
 import io.pcontacts.feature.settings.QuarantinedOperation
 import io.pcontacts.feature.settings.SettingsActionResult
+import io.pcontacts.feature.settings.SettingsActions
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SettingsViewModel
 import io.pcontacts.feature.settings.UnverifiedContactSummary
@@ -152,8 +153,12 @@ class SettingsActivity : ComponentActivity() {
                             SettingsScreen(
                                 viewModel = viewModel,
                                 linkedImport = linkedImportViewModel,
-                                onSignedOut = ::finishToLauncher,
-                                onPickContact = { pickContactLauncher.launch(null) },
+                                actions = SettingsActions(
+                                    onSignedOut = ::finishToLauncher,
+                                    onPickContact = { pickContactLauncher.launch(null) },
+                                    onOpenContactsPermission = ::openContactsPermissionSettings,
+                                    onOpenContactsStorage = contactsStorageAction()
+                                ),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -443,8 +448,59 @@ class SettingsActivity : ComponentActivity() {
         startActivity(intent)
     }
 
+    /**
+     * Deepest reachable page for revoking READ_CONTACTS, in order: the
+     * permission controller's per-permission list ("Contacts and
+     * accounts"; the `Intent.ACTION_MANAGE_PERMISSION_APPS` contract,
+     * guarded by a signature permission on recent Pixels), then
+     * Settings' "Privacy controls" (one tap from Permission manager),
+     * then the privacy hub.
+     */
+    private fun openContactsPermissionSettings() {
+        val candidates = listOf(
+            Intent(ACTION_MANAGE_PERMISSION_APPS)
+                .putExtra(EXTRA_PERMISSION_NAME, android.Manifest.permission.READ_CONTACTS),
+            Intent(ACTION_PRIVACY_CONTROLS),
+            Intent(Settings.ACTION_PRIVACY_SETTINGS)
+        )
+        candidates.any(::startActivityIfAvailable)
+    }
+
+    /**
+     * Android 15+ "Contacts storage" (default account for new
+     * contacts). Null when the screen is missing so the button hides.
+     */
+    private fun contactsStorageAction(): (() -> Unit)? {
+        val intent = Intent(ACTION_SET_DEFAULT_ACCOUNT)
+        if (packageManager.resolveActivity(intent, 0) == null) return null
+        return { startActivityIfAvailable(intent) }
+    }
+
+    private fun startActivityIfAvailable(intent: Intent): Boolean =
+        try {
+            startActivity(intent)
+            true
+        } catch (_: android.content.ActivityNotFoundException) {
+            false
+        } catch (_: SecurityException) {
+            false
+        }
+
     private fun currentAccount(): Account? =
         AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull()
+
+    private companion object {
+        // Intent.ACTION_MANAGE_PERMISSION_APPS / EXTRA_PERMISSION_NAME are @SystemApi
+        // constants; the activity behind them is exported by the permission controller.
+        const val ACTION_MANAGE_PERMISSION_APPS = "android.intent.action.MANAGE_PERMISSION_APPS"
+        const val EXTRA_PERMISSION_NAME = "android.intent.extra.PERMISSION_NAME"
+
+        // Settings' "Privacy controls" page; exported but not a public Settings.ACTION_* constant.
+        const val ACTION_PRIVACY_CONTROLS = "android.settings.PRIVACY_CONTROLS"
+
+        // ContactsContract.Settings.ACTION_SET_DEFAULT_ACCOUNT (API 35); spelled out for minSdk 26.
+        const val ACTION_SET_DEFAULT_ACCOUNT = "android.provider.action.SET_DEFAULT_ACCOUNT"
+    }
 
     private fun finishToLauncher() {
         val intent = Intent(this, MainActivity::class.java).apply {
