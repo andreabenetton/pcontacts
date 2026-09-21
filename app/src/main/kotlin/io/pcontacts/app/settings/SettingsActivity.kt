@@ -60,6 +60,7 @@ import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsActions
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SettingsViewModel
+import io.pcontacts.feature.settings.SyncProgress
 import io.pcontacts.feature.settings.UnverifiedContactSummary
 import io.pcontacts.feature.settings.VerificationStats
 
@@ -111,6 +112,9 @@ class SettingsActivity : ComponentActivity() {
             queryContactsAccessApps = ::queryContactsAccessApps,
             querySystemContactsAccessApps = ::querySystemContactsAccessApps,
             onSyncIntervalChanged = ::handleSyncIntervalChanged,
+            querySyncProgress = ::querySyncProgress,
+            querySystemNoticeDismissed = { userPrefs.systemContactsNoticeDismissed },
+            dismissSystemNotice = { userPrefs.systemContactsNoticeDismissed = true },
             initialSyncIntervalHours = userPrefs.syncIntervalHours
         )
     }
@@ -284,6 +288,10 @@ class SettingsActivity : ComponentActivity() {
             // No Contacts app available — silently no-op rather than crash.
         }
     }
+
+    /** The engine's "N of total" for the run in flight; null once the adapter has cleared it. */
+    private fun querySyncProgress(): SyncProgress? =
+        SyncProgress(userPrefs.syncProgressDone, userPrefs.syncProgressTotal).takeIf { it.total > 0 }
 
     private fun handleSyncIntervalChanged(hours: Long) {
         userPrefs.syncIntervalHours = hours
