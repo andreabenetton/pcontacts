@@ -725,7 +725,12 @@ class ContactsContractInstrumentedTest {
             assertNotNull("proton row must be found in the aggregate", candidates)
             assertEquals(protonId, candidates!!.protonRawContactId)
             assertEquals(
-                listOf(LinkedFieldCandidate(LinkedField.PhoneNumber(PhoneEntry("+39 333 1234567")), siblingAccount.type)),
+                listOf(
+                    LinkedFieldCandidate(
+                        LinkedField.PhoneNumber(PhoneEntry("+39 333 1234567")),
+                        listOf(siblingAccount.type)
+                    )
+                ),
                 candidates.candidates
             )
 

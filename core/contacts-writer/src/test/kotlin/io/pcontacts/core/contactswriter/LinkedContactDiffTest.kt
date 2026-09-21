@@ -36,7 +36,7 @@ class LinkedContactDiffTest {
             phones = listOf(PhoneEntry("+39 333 1234567"), work)
         )
         val out = LinkedContactDiff.candidates(proton, listOf("com.whatsapp" to whatsapp))
-        assertEquals(listOf(LinkedFieldCandidate(LinkedField.PhoneNumber(work), "com.whatsapp")), out)
+        assertEquals(listOf(LinkedFieldCandidate(LinkedField.PhoneNumber(work), listOf("com.whatsapp"))), out)
     }
 
     @Test fun phone_suffix_and_email_case_count_as_already_present() {
@@ -65,12 +65,19 @@ class LinkedContactDiffTest {
         assertEquals(1, LinkedContactDiff.candidates(proton, listOf(null to local)).size)
     }
 
-    @Test fun same_value_on_two_siblings_is_offered_once_with_first_source() {
+    @Test fun same_value_on_several_siblings_is_offered_once_attributed_to_each_source() {
         val phone = PhoneEntry("+39 02 9876543")
         val a = sibling(phones = listOf(phone))
-        val b = sibling(phones = listOf(PhoneEntry("02 9876543")))
-        val out = LinkedContactDiff.candidates(proton, listOf("com.whatsapp" to a, null to b))
-        assertEquals(listOf(LinkedFieldCandidate(LinkedField.PhoneNumber(phone), "com.whatsapp")), out)
+        val b = sibling(phones = listOf(PhoneEntry("02 9876543")), emails = listOf("x@y"))
+        val c = sibling(phones = listOf(PhoneEntry("+39029876543")), emails = listOf("X@Y"))
+        val out = LinkedContactDiff.candidates(proton, listOf("com.whatsapp" to a, null to b, null to c))
+        assertEquals(
+            listOf(
+                LinkedFieldCandidate(LinkedField.PhoneNumber(phone), listOf("com.whatsapp", null)),
+                LinkedFieldCandidate(LinkedField.EmailAddress("x@y"), listOf(null))
+            ),
+            out
+        )
     }
 
     @Test fun organization_offered_only_when_proton_has_none() {

@@ -18,13 +18,14 @@ sealed interface LinkedField {
 }
 
 /**
- * `sourceAccountType` is the owning account's type (e.g. `com.whatsapp`);
- * null for device-local rows. It is display-only — the app resolves it
- * to a label — and is never written anywhere.
+ * `sourceAccountTypes` lists the owning account type of every linked
+ * RawContact that carries the value (e.g. `com.whatsapp`; null for
+ * device-local rows), in cluster order. Display-only — the app resolves
+ * them to labels — and never written anywhere.
  */
 data class LinkedFieldCandidate(
     val field: LinkedField,
-    val sourceAccountType: String?
+    val sourceAccountTypes: List<String?>
 )
 
 data class LinkedContactCandidates(

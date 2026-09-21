@@ -6,9 +6,9 @@ package io.pcontacts.core.contactswriter
 /**
  * Pure diff for ADR-0023: which fields on linked RawContacts are
  * missing from the Proton copy. Values already on the Proton row are
- * never re-offered, and the same value seen on two siblings (a phone
+ * never offered; the same value seen on several siblings (a phone
  * stored by both WhatsApp and the SIM) is offered once, attributed to
- * the first sibling that carried it.
+ * every account that carries it.
  *
  * Phone matching is a heuristic, not E.164 parsing: numbers are
  * reduced to their digits and treated as equal when one is a suffix of
@@ -29,49 +29,82 @@ object LinkedContactDiff {
         proton: ContactRow?,
         siblings: List<Pair<String?, ContactRow>>
     ): List<LinkedFieldCandidate> {
-        val seen = Seen(proton)
-        val out = mutableListOf<LinkedFieldCandidate>()
-        for ((accountType, row) in siblings) {
-            for (field in seen.newFields(row)) out += LinkedFieldCandidate(field, accountType)
-        }
-        return out
+        val collector = Collector(proton)
+        for ((accountType, row) in siblings) collector.offer(accountType, row)
+        return collector.result()
     }
 
-    /** Values already accounted for — seeded from Proton, grown by each sibling. */
-    private class Seen(proton: ContactRow?) {
-        private val phones = proton?.phones.orEmpty().map { phoneDigits(it.number) }.toMutableList()
-        private val emails = proton?.emails.orEmpty().map(::emailKey).toMutableSet()
-        private val addresses = proton?.addresses.orEmpty().map(::addressKey).toMutableSet()
-        private val notes = proton?.notes.orEmpty().map { it.trim() }.toMutableSet()
-        private val ims = proton?.imAccounts.orEmpty().map(::imKey).toMutableSet()
-        private var hasOrganization = proton?.organization?.let(::hasContent) ?: false
+    /**
+     * Keys already accounted for, seeded from Proton (never offered) and
+     * grown by each sibling (offered once, sources accumulated).
+     */
+    private class Collector(proton: ContactRow?) {
+        private class Entry(val field: LinkedField, val sources: MutableList<String?>)
+
+        private val offered = mutableListOf<Entry>()
+
+        // Value key → index into [offered]; -1 marks a value Proton already has.
+        private val phones = proton?.phones.orEmpty().map { phoneDigits(it.number) to -1 }.toMutableList()
+        private val emails = seed(proton?.emails.orEmpty().map(::emailKey))
+        private val addresses = seed(proton?.addresses.orEmpty().map(::addressKey))
+        private val notes = seed(proton?.notes.orEmpty().map { it.trim() })
+        private val ims = seed(proton?.imAccounts.orEmpty().map(::imKey))
+        private var organization = if (proton?.organization?.let(::hasContent) == true) -1 else null
 
         // Imported fields are appended, never promoted: drop the sibling's primary flag.
-        fun newFields(row: ContactRow): List<LinkedField> = buildList {
-            row.phones.forEach {
-                if (addPhone(it.number)) add(LinkedField.PhoneNumber(it.copy(isPrimary = false)))
+        fun offer(accountType: String?, row: ContactRow) {
+            for (phone in row.phones) offerPhone(accountType, phone)
+            for (email in row.emails) offer(emails, emailKey(email), accountType) { LinkedField.EmailAddress(email) }
+            for (address in row.addresses) {
+                offer(addresses, addressKey(address), accountType) {
+                    LinkedField.Address(address.copy(isPrimary = false))
+                }
             }
-            row.emails.forEach { if (emails.add(emailKey(it))) add(LinkedField.EmailAddress(it)) }
-            row.addresses.forEach {
-                if (addresses.add(addressKey(it))) add(LinkedField.Address(it.copy(isPrimary = false)))
+            row.organization?.takeIf(::hasContent)?.let { org ->
+                organization = attribute(organization, accountType) { LinkedField.Org(org) }
             }
-            row.organization?.let { if (addOrganization(it)) add(LinkedField.Org(it)) }
-            row.notes.forEach { if (it.isNotBlank() && notes.add(it.trim())) add(LinkedField.NoteText(it)) }
-            row.imAccounts.forEach { if (ims.add(imKey(it))) add(LinkedField.Im(it)) }
+            for (note in row.notes) {
+                if (note.isNotBlank()) offer(notes, note.trim(), accountType) { LinkedField.NoteText(note) }
+            }
+            for (im in row.imAccounts) offer(ims, imKey(im), accountType) { LinkedField.Im(im) }
         }
 
-        private fun addPhone(number: String): Boolean {
-            val digits = phoneDigits(number)
-            if (digits.isEmpty() || phones.any { samePhone(it, digits) }) return false
-            phones += digits
-            return true
+        fun result(): List<LinkedFieldCandidate> =
+            offered.map { LinkedFieldCandidate(it.field, it.sources.toList()) }
+
+        private fun offerPhone(accountType: String?, phone: PhoneEntry) {
+            val digits = phoneDigits(phone.number)
+            if (digits.isEmpty()) return
+            val match = phones.indexOfFirst { samePhone(it.first, digits) }
+            val idx = attribute(phones.getOrNull(match)?.second, accountType) {
+                LinkedField.PhoneNumber(phone.copy(isPrimary = false))
+            }
+            if (match < 0) phones += digits to idx
         }
 
-        private fun addOrganization(org: Organization): Boolean {
-            if (hasOrganization || !hasContent(org)) return false
-            hasOrganization = true
-            return true
+        private fun offer(
+            index: MutableMap<String, Int>,
+            key: String,
+            accountType: String?,
+            field: () -> LinkedField
+        ) {
+            index[key] = attribute(index[key], accountType, field)
         }
+
+        /** Returns the entry index for a value: unchanged when Proton has it, new or updated otherwise. */
+        private fun attribute(existing: Int?, accountType: String?, field: () -> LinkedField): Int {
+            if (existing == -1) return -1
+            if (existing == null) {
+                offered += Entry(field(), mutableListOf(accountType))
+                return offered.lastIndex
+            }
+            val sources = offered[existing].sources
+            if (accountType !in sources) sources += accountType
+            return existing
+        }
+
+        private fun seed(keys: List<String>): MutableMap<String, Int> =
+            keys.associateWith { -1 }.toMutableMap()
     }
 
     private fun phoneDigits(number: String): String = number.filter { it.isDigit() }
