@@ -84,4 +84,28 @@
     </plurals>
     <string name="system_contacts_access_detail">Diese Apps wurden mit dem Betriebssystem vorinstalliert und haben die Berechtigung READ_CONTACTS standardmäßig. Auf Standard-Android sind dies typischerweise Google- oder OEM-Dienste, die nicht deinstalliert werden können. Für mehr Privatsphäre führen Sie pcontacts auf einem Google-freien ROM wie GrapheneOS oder LineageOS aus.</string>
     <string name="system_contacts_access_dialog_title">System-Apps mit Kontaktzugriff</string>
+
+    <string name="linked_import_button">Details aus verknüpften Kontakten importieren</string>
+    <string name="linked_import_hint">Kopiert Telefonnummern und andere Details, die andere Apps zu einem Kontakt speichern, in dessen Proton-Kopie. Kontakte anderer Apps werden nie verändert.</string>
+    <string name="linked_import_dialog_title">In Proton importieren</string>
+    <string name="linked_import_loading">Suche nach verknüpften Details…</string>
+    <string name="linked_import_importing">Wird importiert…</string>
+    <string name="linked_import_not_proton">Dieser Kontakt hat keine Proton-Kopie, in die importiert werden kann.</string>
+    <string name="linked_import_nothing">Die Proton-Kopie enthält bereits alle Details der verknüpften Kontakte.</string>
+    <string name="linked_import_review_detail">Auswählen, was zu %s hinzugefügt werden soll.</string>
+    <string name="linked_import_kind_phone">Telefon</string>
+    <string name="linked_import_kind_email">E-Mail</string>
+    <string name="linked_import_kind_address">Adresse</string>
+    <string name="linked_import_kind_organization">Organisation</string>
+    <string name="linked_import_kind_note">Notiz</string>
+    <string name="linked_import_kind_im">Chat-Konto</string>
+    <string name="linked_import_source">%1$s · aus %2$s</string>
+    <string name="linked_import_confirm">Importieren</string>
+    <string name="linked_import_cancel">Abbrechen</string>
+    <string name="linked_import_close">Schließen</string>
+    <plurals name="linked_import_done">
+        <item quantity="one">%d Detail hinzugefügt. Es wird bei der nächsten Synchronisierung an Proton gesendet.</item>
+        <item quantity="other">%d Details hinzugefügt. Sie werden bei der nächsten Synchronisierung an Proton gesendet.</item>
+    </plurals>
+    <string name="linked_import_failed">Import fehlgeschlagen: %s</string>
 </resources>

@@ -84,4 +84,28 @@
     </plurals>
     <string name="system_contacts_access_detail">Ces apps sont livrées avec votre système d\'exploitation et disposent de READ_CONTACTS par défaut. Sur Android stock, il s\'agit généralement de services Google ou du fabricant qui ne peuvent pas être désinstallés. Pour une meilleure confidentialité, utilisez pcontacts sur une ROM sans Google comme GrapheneOS ou LineageOS.</string>
     <string name="system_contacts_access_dialog_title">Apps système ayant accès aux contacts</string>
+
+    <string name="linked_import_button">Importer des détails depuis les contacts liés</string>
+    <string name="linked_import_hint">Copie les numéros de téléphone et autres détails que d\'autres apps conservent pour un contact dans sa copie Proton. Les contacts des autres apps ne sont jamais modifiés.</string>
+    <string name="linked_import_dialog_title">Importer dans Proton</string>
+    <string name="linked_import_loading">Recherche de détails liés…</string>
+    <string name="linked_import_importing">Importation…</string>
+    <string name="linked_import_not_proton">Ce contact n\'a pas de copie Proton dans laquelle importer.</string>
+    <string name="linked_import_nothing">La copie Proton contient déjà tous les détails trouvés sur les contacts liés.</string>
+    <string name="linked_import_review_detail">Sélectionnez ce qu\'il faut ajouter à %s.</string>
+    <string name="linked_import_kind_phone">Téléphone</string>
+    <string name="linked_import_kind_email">E-mail</string>
+    <string name="linked_import_kind_address">Adresse</string>
+    <string name="linked_import_kind_organization">Organisation</string>
+    <string name="linked_import_kind_note">Note</string>
+    <string name="linked_import_kind_im">Compte de messagerie</string>
+    <string name="linked_import_source">%1$s · depuis %2$s</string>
+    <string name="linked_import_confirm">Importer</string>
+    <string name="linked_import_cancel">Annuler</string>
+    <string name="linked_import_close">Fermer</string>
+    <plurals name="linked_import_done">
+        <item quantity="one">%d détail ajouté. Il sera envoyé à Proton lors de la prochaine synchronisation.</item>
+        <item quantity="other">%d détails ajoutés. Ils seront envoyés à Proton lors de la prochaine synchronisation.</item>
+    </plurals>
+    <string name="linked_import_failed">Échec de l\'importation : %s</string>
 </resources>

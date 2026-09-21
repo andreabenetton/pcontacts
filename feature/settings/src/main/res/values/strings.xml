@@ -84,4 +84,28 @@
     </plurals>
     <string name="system_contacts_access_detail">These apps shipped with your OS and were granted READ_CONTACTS by default. On stock Android they are typically Google or OEM services that cannot be uninstalled. For better privacy, run pcontacts on a de-Googled ROM such as GrapheneOS or LineageOS.</string>
     <string name="system_contacts_access_dialog_title">System apps with contact access</string>
+
+    <string name="linked_import_button">Import details from linked contacts</string>
+    <string name="linked_import_hint">Copy phone numbers and other details that other apps keep for a contact into its Proton copy. Other apps\' contacts are never changed.</string>
+    <string name="linked_import_dialog_title">Import into Proton</string>
+    <string name="linked_import_loading">Looking for linked details…</string>
+    <string name="linked_import_importing">Importing…</string>
+    <string name="linked_import_not_proton">This contact has no Proton copy to import into.</string>
+    <string name="linked_import_nothing">The Proton copy already has every detail found on linked contacts.</string>
+    <string name="linked_import_review_detail">Select what to add to %s.</string>
+    <string name="linked_import_kind_phone">Phone</string>
+    <string name="linked_import_kind_email">Email</string>
+    <string name="linked_import_kind_address">Address</string>
+    <string name="linked_import_kind_organization">Organisation</string>
+    <string name="linked_import_kind_note">Note</string>
+    <string name="linked_import_kind_im">Chat account</string>
+    <string name="linked_import_source">%1$s · from %2$s</string>
+    <string name="linked_import_confirm">Import</string>
+    <string name="linked_import_cancel">Cancel</string>
+    <string name="linked_import_close">Close</string>
+    <plurals name="linked_import_done">
+        <item quantity="one">%d detail added. It will be sent to Proton on the next sync.</item>
+        <item quantity="other">%d details added. They will be sent to Proton on the next sync.</item>
+    </plurals>
+    <string name="linked_import_failed">Import failed: %s</string>
 </resources>

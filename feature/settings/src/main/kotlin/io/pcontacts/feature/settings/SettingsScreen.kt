@@ -50,7 +50,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
+    linkedImport: LinkedImportViewModel,
     onSignedOut: () -> Unit,
+    onPickContact: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -101,28 +103,12 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        when (val s = state) {
-            SettingsUiState.Idle -> Unit
-            SettingsUiState.Syncing, SettingsUiState.SigningOut -> {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                CircularProgressIndicator()
-            }
-            is SettingsUiState.SyncFailed -> Text(
-                text = stringResource(R.string.settings_sync_failed, s.reason),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            SettingsUiState.SignedOut -> {
-                Text(stringResource(R.string.settings_signed_out), style = MaterialTheme.typography.bodyMedium)
-                LaunchedEffect(Unit) { onSignedOut() }
-            }
-            is SettingsUiState.SignOutFailed -> Text(
-                text = stringResource(R.string.settings_sign_out_failed, s.reason),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        LinkedImportSection(enabled = !busy, onPickContact = onPickContact)
+        LinkedImportDialog(linkedImport)
+
+        Spacer(Modifier.height(24.dp))
+
+        ActionStatus(state = state, onSignedOut = onSignedOut)
 
         if (syncRunning) {
             Spacer(Modifier.height(8.dp))
@@ -140,6 +126,33 @@ fun SettingsScreen(
         }
 
         SettingsStatusSection(viewModel)
+    }
+}
+
+/** Progress or failure of the in-flight Sync Now / Sign Out action. */
+@Composable
+private fun ActionStatus(state: SettingsUiState, onSignedOut: () -> Unit) {
+    when (state) {
+        SettingsUiState.Idle -> Unit
+        SettingsUiState.Syncing, SettingsUiState.SigningOut -> {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            CircularProgressIndicator()
+        }
+        is SettingsUiState.SyncFailed -> Text(
+            text = stringResource(R.string.settings_sync_failed, state.reason),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        SettingsUiState.SignedOut -> {
+            Text(stringResource(R.string.settings_signed_out), style = MaterialTheme.typography.bodyMedium)
+            LaunchedEffect(Unit) { onSignedOut() }
+        }
+        is SettingsUiState.SignOutFailed -> Text(
+            text = stringResource(R.string.settings_sign_out_failed, state.reason),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

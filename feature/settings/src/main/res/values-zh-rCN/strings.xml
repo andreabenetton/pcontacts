@@ -77,4 +77,27 @@
     </plurals>
     <string name="system_contacts_access_detail">这些应用随操作系统预装，并默认获得了 READ_CONTACTS 权限。在原生 Android 上，它们通常是无法卸载的 Google 或厂商服务。为了更好地保护隐私，请在 GrapheneOS 或 LineageOS 等去 Google 化的 ROM 上运行 pcontacts。</string>
     <string name="system_contacts_access_dialog_title">可访问联系人的系统应用</string>
+
+    <string name="linked_import_button">从关联联系人导入详情</string>
+    <string name="linked_import_hint">将其他应用为某位联系人保存的电话号码等详情复制到其 Proton 副本中。其他应用的联系人绝不会被修改。</string>
+    <string name="linked_import_dialog_title">导入到 Proton</string>
+    <string name="linked_import_loading">正在查找关联详情…</string>
+    <string name="linked_import_importing">正在导入…</string>
+    <string name="linked_import_not_proton">此联系人没有可导入的 Proton 副本。</string>
+    <string name="linked_import_nothing">Proton 副本已包含关联联系人中的所有详情。</string>
+    <string name="linked_import_review_detail">选择要添加到 %s 的内容。</string>
+    <string name="linked_import_kind_phone">电话</string>
+    <string name="linked_import_kind_email">电子邮件</string>
+    <string name="linked_import_kind_address">地址</string>
+    <string name="linked_import_kind_organization">组织</string>
+    <string name="linked_import_kind_note">备注</string>
+    <string name="linked_import_kind_im">聊天账号</string>
+    <string name="linked_import_source">%1$s · 来自 %2$s</string>
+    <string name="linked_import_confirm">导入</string>
+    <string name="linked_import_cancel">取消</string>
+    <string name="linked_import_close">关闭</string>
+    <plurals name="linked_import_done">
+        <item quantity="other">已添加 %d 项详情，将在下次同步时发送到 Proton。</item>
+    </plurals>
+    <string name="linked_import_failed">导入失败：%s</string>
 </resources>

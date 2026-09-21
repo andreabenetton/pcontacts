@@ -98,4 +98,30 @@
     </plurals>
     <string name="system_contacts_access_detail">Эти приложения предустановлены вместе с операционной системой и по умолчанию имеют разрешение READ_CONTACTS. На стандартном Android это обычно сервисы Google или производителя, которые нельзя удалить. Для большей приватности используйте pcontacts на ROM без сервисов Google, например GrapheneOS или LineageOS.</string>
     <string name="system_contacts_access_dialog_title">Системные приложения с доступом к контактам</string>
+
+    <string name="linked_import_button">Импортировать данные из связанных контактов</string>
+    <string name="linked_import_hint">Копирует номера телефонов и другие данные, которые другие приложения хранят для контакта, в его копию в Proton. Контакты других приложений никогда не изменяются.</string>
+    <string name="linked_import_dialog_title">Импорт в Proton</string>
+    <string name="linked_import_loading">Поиск связанных данных…</string>
+    <string name="linked_import_importing">Импорт…</string>
+    <string name="linked_import_not_proton">У этого контакта нет копии в Proton, в которую можно импортировать.</string>
+    <string name="linked_import_nothing">Копия в Proton уже содержит все данные, найденные в связанных контактах.</string>
+    <string name="linked_import_review_detail">Выберите, что добавить к %s.</string>
+    <string name="linked_import_kind_phone">Телефон</string>
+    <string name="linked_import_kind_email">Эл. почта</string>
+    <string name="linked_import_kind_address">Адрес</string>
+    <string name="linked_import_kind_organization">Организация</string>
+    <string name="linked_import_kind_note">Заметка</string>
+    <string name="linked_import_kind_im">Чат-аккаунт</string>
+    <string name="linked_import_source">%1$s · из %2$s</string>
+    <string name="linked_import_confirm">Импортировать</string>
+    <string name="linked_import_cancel">Отмена</string>
+    <string name="linked_import_close">Закрыть</string>
+    <plurals name="linked_import_done">
+        <item quantity="one">Добавлена %d запись. Она будет отправлена в Proton при следующей синхронизации.</item>
+        <item quantity="few">Добавлено %d записи. Они будут отправлены в Proton при следующей синхронизации.</item>
+        <item quantity="many">Добавлено %d записей. Они будут отправлены в Proton при следующей синхронизации.</item>
+        <item quantity="other">Добавлено %d записи. Они будут отправлены в Proton при следующей синхронизации.</item>
+    </plurals>
+    <string name="linked_import_failed">Импорт не удался: %s</string>
 </resources>
