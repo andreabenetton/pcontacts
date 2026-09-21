@@ -5,6 +5,7 @@ package io.pcontacts.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun LinkedImportScreen(
     listViewModel: LinkedImportListViewModel,
     importViewModel: LinkedImportViewModel,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val state by listViewModel.state.collectAsStateWithLifecycle()
@@ -58,17 +61,24 @@ fun LinkedImportScreen(
         Spacer(Modifier.height(12.dp))
         FilterRow(selected = filter, onSelect = listViewModel::setFilter)
         Spacer(Modifier.height(8.dp))
-        when (val s = state) {
-            LinkedImportListState.Scanning -> ScanningIndicator()
-            is LinkedImportListState.Failed -> Text(
-                text = stringResource(R.string.linked_import_scan_failed, s.reason),
-                color = MaterialTheme.colorScheme.error
-            )
-            is LinkedImportListState.Ready -> ContactList(
-                rows = s.rows.filteredBy(filter),
-                onOpen = importViewModel::start
-            )
+        Box(modifier = Modifier.weight(1f)) {
+            when (val s = state) {
+                LinkedImportListState.Scanning -> ScanningIndicator()
+                is LinkedImportListState.Failed -> Text(
+                    text = stringResource(R.string.linked_import_scan_failed, s.reason),
+                    color = MaterialTheme.colorScheme.error
+                )
+                is LinkedImportListState.Ready -> ContactList(
+                    rows = s.rows.filteredBy(filter),
+                    onOpen = importViewModel::start
+                )
+            }
         }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.contacts_access_back))
+        }
+        Spacer(Modifier.height(16.dp))
     }
     LinkedImportDialog(importViewModel)
 }
