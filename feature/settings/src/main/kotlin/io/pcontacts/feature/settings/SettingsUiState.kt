@@ -3,6 +3,8 @@
 
 package io.pcontacts.feature.settings
 
+import android.graphics.Bitmap
+
 /**
  * Settings screen state. The screen has two actions (Sync Now /
  * Sign Out); the state machine reflects whichever is currently
@@ -72,9 +74,11 @@ data class ConflictInfo(
 
 enum class ConflictResolution { USE_LOCAL, USE_SERVER }
 
+/** `icon` is the launcher icon rasterised by the host; null when it could not be loaded. */
 data class ContactsAccessApp(
     val appName: String,
-    val packageName: String
+    val packageName: String,
+    val icon: Bitmap? = null
 )
 
 /** Which READ_CONTACTS list a banner opens. */

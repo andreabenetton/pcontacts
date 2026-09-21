@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
@@ -108,18 +110,17 @@ private fun AppList(apps: List<ContactsAccessApp>) {
     }
 }
 
+/** The app's own icon; an initial in a circle only when the host could not load one. */
 @Composable
-private fun AppRow(app: ContactsAccessApp) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-    ) {
+private fun AppIcon(app: ContactsAccessApp) {
+    val shape = Modifier.size(36.dp).clip(CircleShape)
+    val icon = app.icon
+    if (icon != null) {
+        Image(bitmap = icon.asImageBitmap(), contentDescription = null, modifier = shape)
+    } else {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+            modifier = shape.background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             Text(
                 text = app.appName.take(1).uppercase(),
@@ -127,6 +128,16 @@ private fun AppRow(app: ContactsAccessApp) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
+    }
+}
+
+@Composable
+private fun AppRow(app: ContactsAccessApp) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        AppIcon(app)
         Spacer(Modifier.width(12.dp))
         Column {
             Text(text = app.appName, style = MaterialTheme.typography.bodyMedium)
