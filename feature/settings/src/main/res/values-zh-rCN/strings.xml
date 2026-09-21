@@ -102,4 +102,6 @@
     <string name="linked_import_failed">导入失败：%s</string>
     <string name="contacts_access_open_permission">管理通讯录权限</string>
     <string name="settings_contacts_storage">新联系人的保存位置</string>
+    <string name="contacts_access_hint_permission_manager">然后点按“权限管理器”→“通讯录”。</string>
+    <string name="contacts_access_hint_privacy_settings">然后找到“权限管理器”并打开“通讯录”。</string>
 </resources>

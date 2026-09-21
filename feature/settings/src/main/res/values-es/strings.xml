@@ -110,4 +110,6 @@
     <string name="linked_import_failed">Error al importar: %s</string>
     <string name="contacts_access_open_permission">Gestionar el permiso de Contactos</string>
     <string name="settings_contacts_storage">Dónde se guardan los contactos nuevos</string>
+    <string name="contacts_access_hint_permission_manager">Luego toca Administrador de permisos → Contactos.</string>
+    <string name="contacts_access_hint_privacy_settings">Luego busca Administrador de permisos y abre Contactos.</string>
 </resources>

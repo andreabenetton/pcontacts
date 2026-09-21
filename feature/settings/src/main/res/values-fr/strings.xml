@@ -110,4 +110,6 @@
     <string name="linked_import_failed">Échec de l\'importation : %s</string>
     <string name="contacts_access_open_permission">Gérer l\'autorisation Contacts</string>
     <string name="settings_contacts_storage">Où enregistrer les nouveaux contacts</string>
+    <string name="contacts_access_hint_permission_manager">Touchez ensuite Gestionnaire d\'autorisations → Contacts.</string>
+    <string name="contacts_access_hint_privacy_settings">Cherchez ensuite Gestionnaire d\'autorisations et ouvrez Contacts.</string>
 </resources>

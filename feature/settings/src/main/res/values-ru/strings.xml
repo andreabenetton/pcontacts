@@ -126,4 +126,6 @@
     <string name="linked_import_failed">Импорт не удался: %s</string>
     <string name="contacts_access_open_permission">Управлять разрешением «Контакты»</string>
     <string name="settings_contacts_storage">Где сохранять новые контакты</string>
+    <string name="contacts_access_hint_permission_manager">Затем нажмите «Диспетчер разрешений» → «Контакты».</string>
+    <string name="contacts_access_hint_privacy_settings">Затем найдите «Диспетчер разрешений» и откройте «Контакты».</string>
 </resources>

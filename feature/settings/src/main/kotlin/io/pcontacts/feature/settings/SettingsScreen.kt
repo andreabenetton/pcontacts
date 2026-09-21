@@ -115,7 +115,7 @@ fun SettingsScreen(
         LinkedImportSection(enabled = !busy, onPickContact = actions.onPickContact)
         LinkedImportDialog(linkedImport)
 
-        SettingsStatusSection(viewModel, actions.onOpenContactsPermission)
+        SettingsStatusSection(viewModel, actions)
 
         Spacer(Modifier.height(24.dp))
 
@@ -215,7 +215,7 @@ private fun LastSyncStatus(info: LastSyncSummary) {
  * them at once.
  */
 @Composable
-private fun SettingsStatusSection(viewModel: SettingsViewModel, onOpenContactsPermission: () -> Unit) {
+private fun SettingsStatusSection(viewModel: SettingsViewModel, actions: SettingsActions) {
     val verificationStats by viewModel.verificationStats.collectAsStateWithLifecycle()
     val unverifiedContacts by viewModel.unverifiedContacts.collectAsStateWithLifecycle()
     val unverifiedDialogOpen by viewModel.unverifiedDialogOpen.collectAsStateWithLifecycle()
@@ -276,12 +276,17 @@ private fun SettingsStatusSection(viewModel: SettingsViewModel, onOpenContactsPe
         )
     }
 
-    ContactsAccessSection(viewModel, onOpenContactsPermission)
+    ContactsAccessSection(viewModel, actions)
 }
 
 /** The two READ_CONTACTS transparency banners and their dialogs. */
 @Composable
-private fun ContactsAccessSection(viewModel: SettingsViewModel, onOpenContactsPermission: () -> Unit) {
+private fun ContactsAccessSection(viewModel: SettingsViewModel, actions: SettingsActions) {
+    val permissionHint = when (actions.contactsPermissionRoute) {
+        ContactsPermissionRoute.DIRECT -> null
+        ContactsPermissionRoute.PERMISSION_MANAGER -> stringResource(R.string.contacts_access_hint_permission_manager)
+        ContactsPermissionRoute.PRIVACY_SETTINGS -> stringResource(R.string.contacts_access_hint_privacy_settings)
+    }
     val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
     val contactsAccessDialogOpen by viewModel.contactsAccessDialogOpen.collectAsStateWithLifecycle()
     val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
@@ -300,7 +305,8 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel, onOpenContactsPe
             title = stringResource(R.string.contacts_access_dialog_title),
             detail = stringResource(R.string.contacts_access_detail),
             apps = contactsAccessApps,
-            onOpenPermission = onOpenContactsPermission,
+            permissionHint = permissionHint,
+            onOpenPermission = actions.onOpenContactsPermission,
             onDismiss = viewModel::dismissContactsAccessDialog
         )
     }
@@ -318,7 +324,8 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel, onOpenContactsPe
             title = stringResource(R.string.system_contacts_access_dialog_title),
             detail = stringResource(R.string.system_contacts_access_detail),
             apps = systemContactsAccessApps,
-            onOpenPermission = onOpenContactsPermission,
+            permissionHint = permissionHint,
+            onOpenPermission = actions.onOpenContactsPermission,
             onDismiss = viewModel::dismissSystemContactsAccessDialog
         )
     }
@@ -723,6 +730,7 @@ private fun AppListDialog(
     title: String,
     detail: String,
     apps: List<ContactsAccessApp>,
+    permissionHint: String?,
     onOpenPermission: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -748,6 +756,14 @@ private fun AppListDialog(
         },
         confirmButton = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                permissionHint?.let { hint ->
+                    Text(
+                        text = hint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
                 Button(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.contacts_access_open_permission))
                 }

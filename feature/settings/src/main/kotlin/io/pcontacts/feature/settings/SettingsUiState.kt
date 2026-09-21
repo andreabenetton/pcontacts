@@ -86,5 +86,14 @@ data class SettingsActions(
     val onSignedOut: () -> Unit,
     val onPickContact: () -> Unit = {},
     val onOpenContactsPermission: () -> Unit = {},
+    val contactsPermissionRoute: ContactsPermissionRoute = ContactsPermissionRoute.DIRECT,
     val onOpenContactsStorage: (() -> Unit)? = null
 )
+
+/**
+ * How far [SettingsActions.onOpenContactsPermission] can get: the
+ * Contacts permission page itself, the system Permission manager one
+ * tap away, or only the privacy hub. Anything short of DIRECT shows
+ * the user the remaining taps next to the button.
+ */
+enum class ContactsPermissionRoute { DIRECT, PERMISSION_MANAGER, PRIVACY_SETTINGS }

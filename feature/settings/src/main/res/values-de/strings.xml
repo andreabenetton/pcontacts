@@ -110,4 +110,6 @@
     <string name="linked_import_failed">Import fehlgeschlagen: %s</string>
     <string name="contacts_access_open_permission">Kontakte-Berechtigung verwalten</string>
     <string name="settings_contacts_storage">Speicherort für neue Kontakte</string>
+    <string name="contacts_access_hint_permission_manager">Tippe dann auf Berechtigungsmanager → Kontakte.</string>
+    <string name="contacts_access_hint_privacy_settings">Suche dann den Berechtigungsmanager und öffne Kontakte.</string>
 </resources>
