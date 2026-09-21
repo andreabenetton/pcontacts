@@ -8,6 +8,8 @@ import android.content.ContentProviderClient
 import android.content.Context
 import android.provider.ContactsContract
 import io.pcontacts.core.contactswriter.LinkedContactCandidates
+import io.pcontacts.core.contactswriter.LinkedContactCreator
+import io.pcontacts.core.contactswriter.LinkedContactName
 import io.pcontacts.core.contactswriter.LinkedContactsReader
 import io.pcontacts.core.contactswriter.LinkedField
 import io.pcontacts.core.contactswriter.LinkedFieldsWriter
@@ -22,12 +24,21 @@ import kotlinx.coroutines.withContext
  */
 object LinkedContactsBootstrap {
 
-    /** Null when the aggregate [contactId] holds no RawContact of [account]. */
+    /** Null when the aggregate [contactId] no longer exists. */
     suspend fun loadCandidates(context: Context, account: Account, contactId: Long): LinkedContactCandidates? =
         withContactsProvider(context) { LinkedContactsReader(it).read(account, contactId) }
 
     suspend fun importFields(context: Context, account: Account, rawContactId: Long, fields: List<LinkedField>) =
         withContactsProvider(context) { LinkedFieldsWriter(it).append(account, rawContactId, fields) }
+
+    /** Creates the Proton copy of aggregate [contactId]; returns the new `RawContacts._ID`. */
+    suspend fun createContact(
+        context: Context,
+        account: Account,
+        contactId: Long,
+        name: LinkedContactName?,
+        fields: List<LinkedField>
+    ): Long = withContactsProvider(context) { LinkedContactCreator(it).create(account, contactId, name, fields) }
 
     private suspend fun <T> withContactsProvider(context: Context, block: (ContentProviderClient) -> T): T =
         withContext(Dispatchers.IO) {
