@@ -779,7 +779,8 @@ class ContactsContractInstrumentedTest {
 
             val candidates = LinkedContactsReader(testProvider).read(testAccount, contactId)!!
             assertNull("no proton copy yet", candidates.protonRawContactId)
-            assertEquals(LinkedContactName("Paola Rossi", null), candidates.name)
+            // The provider may derive given/family pieces itself; the display name is what we rely on.
+            assertEquals("Paola Rossi", candidates.name?.displayName)
             assertEquals(1, candidates.candidates.size)
 
             val newId = LinkedContactCreator(testProvider)
