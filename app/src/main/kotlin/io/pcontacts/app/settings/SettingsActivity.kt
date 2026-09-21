@@ -52,6 +52,7 @@ import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.ContactsAccessApp
+import io.pcontacts.feature.settings.ContactsPermissionRoute
 import io.pcontacts.feature.settings.LastSyncSummary
 import io.pcontacts.feature.settings.LinkedImportViewModel
 import io.pcontacts.feature.settings.OutboxStats
@@ -157,6 +158,7 @@ class SettingsActivity : ComponentActivity() {
                                     onSignedOut = ::finishToLauncher,
                                     onPickContact = { pickContactLauncher.launch(null) },
                                     onOpenContactsPermission = ::openContactsPermissionSettings,
+                                    contactsPermissionRoute = contactsPermissionRoute(),
                                     onOpenContactsStorage = contactsStorageAction()
                                 ),
                                 modifier = Modifier.weight(1f)
@@ -456,14 +458,29 @@ class SettingsActivity : ComponentActivity() {
      * Settings' "Privacy controls" (one tap from Permission manager),
      * then the privacy hub.
      */
+    private fun contactsPermissionPages(): List<Pair<Intent, ContactsPermissionRoute>> = listOf(
+        Intent(ACTION_MANAGE_PERMISSION_APPS)
+            .putExtra(EXTRA_PERMISSION_NAME, android.Manifest.permission.READ_CONTACTS) to
+            ContactsPermissionRoute.DIRECT,
+        Intent(ACTION_PRIVACY_CONTROLS) to ContactsPermissionRoute.PERMISSION_MANAGER,
+        Intent(Settings.ACTION_PRIVACY_SETTINGS) to ContactsPermissionRoute.PRIVACY_SETTINGS
+    )
+
+    /** Which of the pages the button will actually reach, so the dialog can explain the remaining taps. */
+    private fun contactsPermissionRoute(): ContactsPermissionRoute =
+        contactsPermissionPages().firstOrNull { (intent, _) -> canLaunch(intent) }?.second
+            ?: ContactsPermissionRoute.PRIVACY_SETTINGS
+
     private fun openContactsPermissionSettings() {
-        val candidates = listOf(
-            Intent(ACTION_MANAGE_PERMISSION_APPS)
-                .putExtra(EXTRA_PERMISSION_NAME, android.Manifest.permission.READ_CONTACTS),
-            Intent(ACTION_PRIVACY_CONTROLS),
-            Intent(Settings.ACTION_PRIVACY_SETTINGS)
-        )
-        candidates.any(::startActivityIfAvailable)
+        contactsPermissionPages().firstOrNull { (intent, _) -> canLaunch(intent) }
+            ?.let { (intent, _) -> startActivityIfAvailable(intent) }
+    }
+
+    /** Resolvable and not behind a permission this app lacks — the guard that keeps the exact page from third parties. */
+    private fun canLaunch(intent: Intent): Boolean {
+        val info = packageManager.resolveActivity(intent, 0)?.activityInfo ?: return false
+        val guard = info.permission ?: return true
+        return checkSelfPermission(guard) == android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 
     /**
