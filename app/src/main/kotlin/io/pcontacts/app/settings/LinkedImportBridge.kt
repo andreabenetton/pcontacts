@@ -10,13 +10,13 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
 import io.pcontacts.app.R
 import io.pcontacts.core.contactswriter.LinkedContactCandidates
 import io.pcontacts.core.contactswriter.LinkedField
 import io.pcontacts.core.sync.contacts.LinkedContactsBootstrap
+import io.pcontacts.feature.settings.LinkedContactRow
 import io.pcontacts.feature.settings.LinkedFieldKind
 import io.pcontacts.feature.settings.LinkedImportCandidate
 import io.pcontacts.feature.settings.LinkedImportPreview
@@ -35,10 +35,19 @@ class LinkedImportBridge(
     private var loaded: LinkedContactCandidates? = null
     private var loadedContactId: Long = 0L
 
-    /** Maps the picker's Contact URI to its `Contacts._ID`. */
-    fun contactIdOf(pickedUri: Uri): Long? =
-        context.contentResolver.query(pickedUri, arrayOf(ContactsContract.Contacts._ID), null, null, null)
-            ?.use { if (it.moveToFirst()) it.getLong(0) else null }
+    /** Every contact with something to bring into Proton, providers resolved to labels. */
+    suspend fun scan(): List<LinkedContactRow> {
+        val account = account() ?: return emptyList()
+        return LinkedContactsBootstrap.scanLinkedContacts(context, account).map { summary ->
+            LinkedContactRow(
+                contactId = summary.contactId,
+                name = summary.displayName,
+                sources = summary.sourceAccountTypes.map(::sourceLabel).distinct().joinToString(", "),
+                inProton = summary.hasProtonCopy,
+                newFields = summary.newFieldCount
+            )
+        }
+    }
 
     suspend fun loadPreview(contactId: Long): LinkedImportPreview? {
         val account = account() ?: return null

@@ -70,6 +70,13 @@
             android:exported="false"
             android:theme="@style/Theme.Pcontacts" />
 
+        <!-- ADR-0023: the import list (contacts missing from Proton or
+             lacking details there). Launched from Settings only. -->
+        <activity
+            android:name=".settings.LinkedImportActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pcontacts" />
+
         <!-- ADR / plan §20 - In-app WebView that hosts Proton's hosted
              captcha page (`verify.proton.me`) and writes the resulting
              verification token into SecretStore. Replaces the previous

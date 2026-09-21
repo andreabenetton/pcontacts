@@ -76,6 +76,17 @@ address or IM account (`ContactRow`'s guard). Everything else above
 holds unchanged: one-way, consent per action, the linked rows are never
 modified.
 
+### Amendment (2026-09-21): in-app discovery
+
+Contacts are found by pcontacts itself rather than through the system
+contact picker: opening the import screen scans the provider once —
+all live RawContacts, then the allowlisted Data rows of every
+aggregate that has a non-Proton member — and lists each contact that
+is either missing from Proton or whose Proton copy lacks details,
+with the providers it comes from. The scan is read-only, in memory,
+and runs only when the user opens the screen; each row still goes
+through the per-contact review above.
+
 ## Alternatives considered
 
 - **Manual edit in the system Contacts app** — the only option today; works, but is per-field, error-prone (easy to save to the wrong account), and has no dedup or bulk. Kept as the fallback, not sufficient as the answer.

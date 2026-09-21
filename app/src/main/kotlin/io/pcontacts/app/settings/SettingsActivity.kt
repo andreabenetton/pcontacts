@@ -54,7 +54,6 @@ import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.ContactsAccessApp
 import io.pcontacts.feature.settings.ContactsPermissionRoute
 import io.pcontacts.feature.settings.LastSyncSummary
-import io.pcontacts.feature.settings.LinkedImportViewModel
 import io.pcontacts.feature.settings.OutboxStats
 import io.pcontacts.feature.settings.PendingDelete
 import io.pcontacts.feature.settings.QuarantinedChange
@@ -94,16 +93,6 @@ class SettingsActivity : ComponentActivity() {
     ) { _ ->
         userPrefs.contactsPermissionRequested = true
         contactsPermissionStatus = ContactsPermissionState.check(this, true)
-    }
-    private val linkedImportBridge by lazy { LinkedImportBridge(applicationContext, ::currentAccount) }
-    private val linkedImportViewModel by lazy {
-        LinkedImportViewModel(
-            loadPreview = linkedImportBridge::loadPreview,
-            importCandidates = linkedImportBridge::import
-        )
-    }
-    private val pickContactLauncher = registerForActivityResult(ActivityResultContracts.PickContact()) { uri ->
-        uri?.let(linkedImportBridge::contactIdOf)?.let(linkedImportViewModel::start)
     }
     private val viewModel by lazy {
         SettingsViewModel(
@@ -153,10 +142,9 @@ class SettingsActivity : ComponentActivity() {
                             }
                             SettingsScreen(
                                 viewModel = viewModel,
-                                linkedImport = linkedImportViewModel,
                                 actions = SettingsActions(
                                     onSignedOut = ::finishToLauncher,
-                                    onPickContact = { pickContactLauncher.launch(null) },
+                                    onOpenLinkedImport = ::openLinkedImport,
                                     onOpenContactsPermission = ::openContactsPermissionSettings,
                                     contactsPermissionRoute = contactsPermissionRoute(),
                                     onOpenContactsStorage = contactsStorageAction()
@@ -185,7 +173,6 @@ class SettingsActivity : ComponentActivity() {
 
     override fun onDestroy() {
         viewModel.dispose()
-        linkedImportViewModel.dispose()
         super.onDestroy()
     }
 
@@ -441,6 +428,10 @@ class SettingsActivity : ComponentActivity() {
         } else {
             contactsPermissionLauncher.launch(ContactsPermissionState.requiredPermissions())
         }
+    }
+
+    private fun openLinkedImport() {
+        startActivity(Intent(this, LinkedImportActivity::class.java))
     }
 
     private fun openAppSettings() {
