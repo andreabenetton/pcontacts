@@ -130,6 +130,10 @@ class ProtonSyncAdapter(
             if (syncResult.tooManyRetries) {
                 notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
             }
+        } finally {
+            // The in-flight "N of total" is meaningless once the run is over, however it ended.
+            userPreferences.syncProgressDone = 0
+            userPreferences.syncProgressTotal = 0
         }
     }
 
