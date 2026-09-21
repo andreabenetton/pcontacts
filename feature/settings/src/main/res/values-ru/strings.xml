@@ -160,4 +160,15 @@
     <string name="sync_state_never">Ещё не синхронизировано</string>
     <string name="settings_signing_out">Выход…</string>
     <string name="linked_import_screen_title">Импорт из связанных контактов</string>
+    <string name="linked_import_search_hint">Поиск контактов</string>
+    <string name="linked_import_select_all">Выбрать все</string>
+    <string name="linked_import_clear_selection">Снять выбор</string>
+    <plurals name="linked_import_bulk_button">
+        <item quantity="one">Импортировать %d контакт</item>
+        <item quantity="few">Импортировать %d контакта</item>
+        <item quantity="many">Импортировать %d контактов</item>
+        <item quantity="other">Импортировать %d контакта</item>
+    </plurals>
+    <string name="linked_import_bulk_progress">Импорт %1$d из %2$d…</string>
+    <string name="linked_import_bulk_done">Создано: %1$d, обновлено: %2$d, с ошибкой: %3$d. Они будут отправлены в Proton при следующей синхронизации.</string>
 </resources>

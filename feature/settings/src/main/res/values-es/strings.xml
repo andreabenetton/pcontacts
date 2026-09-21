@@ -140,4 +140,13 @@
     <string name="sync_state_never">Aún no sincronizado</string>
     <string name="settings_signing_out">Cerrando sesión…</string>
     <string name="linked_import_screen_title">Importar de contactos vinculados</string>
+    <string name="linked_import_search_hint">Buscar contactos</string>
+    <string name="linked_import_select_all">Seleccionar todo</string>
+    <string name="linked_import_clear_selection">Quitar</string>
+    <plurals name="linked_import_bulk_button">
+        <item quantity="one">Importar %d contacto</item>
+        <item quantity="other">Importar %d contactos</item>
+    </plurals>
+    <string name="linked_import_bulk_progress">Importando %1$d de %2$d…</string>
+    <string name="linked_import_bulk_done">%1$d creados, %2$d actualizados, %3$d con error. Se enviarán a Proton en la próxima sincronización.</string>
 </resources>

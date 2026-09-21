@@ -140,4 +140,13 @@
     <string name="sync_state_never">Not synced yet</string>
     <string name="settings_signing_out">Signing out…</string>
     <string name="linked_import_screen_title">Import from linked contacts</string>
+    <string name="linked_import_search_hint">Search contacts</string>
+    <string name="linked_import_select_all">Select all</string>
+    <string name="linked_import_clear_selection">Clear</string>
+    <plurals name="linked_import_bulk_button">
+        <item quantity="one">Import %d contact</item>
+        <item quantity="other">Import %d contacts</item>
+    </plurals>
+    <string name="linked_import_bulk_progress">Importing %1$d of %2$d…</string>
+    <string name="linked_import_bulk_done">%1$d created, %2$d updated, %3$d failed. They will be sent to Proton on the next sync.</string>
 </resources>

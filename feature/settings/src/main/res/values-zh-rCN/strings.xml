@@ -130,4 +130,12 @@
     <string name="sync_state_never">尚未同步</string>
     <string name="settings_signing_out">正在退出登录…</string>
     <string name="linked_import_screen_title">从关联联系人导入</string>
+    <string name="linked_import_search_hint">搜索联系人</string>
+    <string name="linked_import_select_all">全选</string>
+    <string name="linked_import_clear_selection">清除</string>
+    <plurals name="linked_import_bulk_button">
+        <item quantity="other">导入 %d 位联系人</item>
+    </plurals>
+    <string name="linked_import_bulk_progress">正在导入第 %1$d 个，共 %2$d 个…</string>
+    <string name="linked_import_bulk_done">已创建 %1$d 个，已更新 %2$d 个，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
 </resources>

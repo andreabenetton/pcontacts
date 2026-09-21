@@ -140,4 +140,13 @@
     <string name="sync_state_never">Noch nicht synchronisiert</string>
     <string name="settings_signing_out">Abmeldung…</string>
     <string name="linked_import_screen_title">Aus verknüpften Kontakten importieren</string>
+    <string name="linked_import_search_hint">Kontakte suchen</string>
+    <string name="linked_import_select_all">Alle auswählen</string>
+    <string name="linked_import_clear_selection">Aufheben</string>
+    <plurals name="linked_import_bulk_button">
+        <item quantity="one">%d Kontakt importieren</item>
+        <item quantity="other">%d Kontakte importieren</item>
+    </plurals>
+    <string name="linked_import_bulk_progress">Importiere %1$d von %2$d…</string>
+    <string name="linked_import_bulk_done">%1$d angelegt, %2$d aktualisiert, %3$d fehlgeschlagen. Sie werden bei der nächsten Synchronisierung an Proton gesendet.</string>
 </resources>

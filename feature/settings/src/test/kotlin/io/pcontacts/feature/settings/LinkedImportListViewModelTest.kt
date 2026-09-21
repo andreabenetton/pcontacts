@@ -47,6 +47,49 @@ class LinkedImportListViewModelTest {
         assertEquals(2, scans)
     }
 
+    @Test fun search_narrows_by_name_or_provider_case_insensitively() {
+        assertEquals(listOf(rows[1]), rows.filteredBy(LinkedImportFilter.ALL, "zoe"))
+        assertEquals(listOf(rows[1]), rows.filteredBy(LinkedImportFilter.ALL, "signal"))
+        assertEquals(emptyList<LinkedContactRow>(), rows.filteredBy(LinkedImportFilter.NEW_DETAILS, "zoe"))
+        assertEquals(rows, rows.filteredBy(LinkedImportFilter.ALL, "  "))
+    }
+
+    @Test fun bulk_import_reports_progress_then_result_clears_selection_and_rescans() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var scans = 0
+        var imported: List<Long>? = null
+        val vm = LinkedImportListViewModel(
+            scan = {
+                scans++
+                rows
+            },
+            importMany = { ids, progress ->
+                imported = ids
+                ids.forEachIndexed { i, _ -> progress(i + 1) }
+                BulkResult(created = 1, updated = 1, failed = 0)
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        vm.toggleSelected(1L)
+        vm.selectAll(listOf(1L, 2L))
+        assertEquals(setOf(1L, 2L), vm.selected.value)
+        vm.toggleSelected(2L)
+        vm.selectAll(listOf(2L))
+
+        vm.importSelected()
+        assertEquals(BulkImportState.Running(0, 2), vm.bulk.value)
+        advanceUntilIdle()
+        assertEquals(listOf(1L, 2L), imported)
+        assertEquals(BulkImportState.Done(BulkResult(1, 1, 0)), vm.bulk.value)
+        assertEquals(emptySet<Long>(), vm.selected.value)
+        assertEquals(2, scans)
+
+        vm.dismissBulkResult()
+        assertEquals(BulkImportState.Idle, vm.bulk.value)
+    }
+
     @Test fun a_failing_scan_surfaces_the_exception_class_only() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = LinkedImportListViewModel(

@@ -140,4 +140,13 @@
     <string name="sync_state_never">Non ancora sincronizzato</string>
     <string name="settings_signing_out">Disconnessione…</string>
     <string name="linked_import_screen_title">Importa dai contatti collegati</string>
+    <string name="linked_import_search_hint">Cerca contatti</string>
+    <string name="linked_import_select_all">Seleziona tutto</string>
+    <string name="linked_import_clear_selection">Annulla selezione</string>
+    <plurals name="linked_import_bulk_button">
+        <item quantity="one">Importa %d contatto</item>
+        <item quantity="other">Importa %d contatti</item>
+    </plurals>
+    <string name="linked_import_bulk_progress">Importazione di %1$d su %2$d…</string>
+    <string name="linked_import_bulk_done">%1$d creati, %2$d aggiornati, %3$d non riusciti. Verranno inviati a Proton alla prossima sincronizzazione.</string>
 </resources>
