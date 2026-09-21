@@ -6,6 +6,7 @@ package io.pcontacts.core.contactswriter
 import android.accounts.Account
 import android.content.ContentProviderOperation
 import android.net.Uri
+import android.provider.ContactsContract.AggregationExceptions
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
@@ -104,6 +105,42 @@ object ContactsContractOps {
             .withSelection("${RawContacts._ID} = ?", arrayOf(rawContactId.toString()))
             .withValue(RawContacts.DIRTY, 1)
             .build()
+        return ops
+    }
+
+    /**
+     * A new RawContact for a contact that exists only in other accounts
+     * (ADR-0023 amendment): no SOURCE_ID — the outbox treats the row as
+     * a CREATE and stamps the server id afterwards — DIRTY from the
+     * start, and pinned into the aggregate of [keepWithRawContactId] so
+     * Android does not split it from the rows it was copied from.
+     * `row.sourceId` is ignored.
+     */
+    fun buildCreateLocal(
+        account: Account,
+        row: ContactRow,
+        keepWithRawContactId: Long?
+    ): List<ContentProviderOperation> {
+        val ops = ArrayList<ContentProviderOperation>(estimateOps(row) + 1)
+        val dataUri = SyncAdapterUri.decorate(Data.CONTENT_URI, account.name, account.type)
+        ops += ContentProviderOperation.newInsert(
+            SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
+        )
+            .withValue(RawContacts.ACCOUNT_NAME, account.name)
+            .withValue(RawContacts.ACCOUNT_TYPE, account.type)
+            .withValue(RawContacts.DIRTY, 1)
+            .build()
+        if (hasNameContent(row)) {
+            ops += newStructuredNameInsertWithBackRef(dataUri, 0, row.displayName, row.structuredName)
+        }
+        appendChildDataInsertsWithBackRef(ops, dataUri, 0, row)
+        if (keepWithRawContactId != null) {
+            ops += ContentProviderOperation.newUpdate(AggregationExceptions.CONTENT_URI)
+                .withValue(AggregationExceptions.TYPE, AggregationExceptions.TYPE_KEEP_TOGETHER)
+                .withValue(AggregationExceptions.RAW_CONTACT_ID1, keepWithRawContactId)
+                .withValueBackReference(AggregationExceptions.RAW_CONTACT_ID2, 0)
+                .build()
+        }
         return ops
     }
 

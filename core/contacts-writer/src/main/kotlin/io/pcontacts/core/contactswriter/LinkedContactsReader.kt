@@ -9,7 +9,7 @@ import android.provider.ContactsContract.RawContacts
 
 /**
  * Read-only view of one aggregate Contact for ADR-0023: finds the
- * Proton RawContact inside it and diffs every other account's
+ * Proton RawContact inside it (if any) and diffs every other account's
  * RawContact against it. The cluster is computed from
  * `RawContacts.CONTACT_ID` at call time and never persisted — Android
  * re-aggregates freely (ADR-0022).
@@ -23,24 +23,33 @@ class LinkedContactsReader(private val provider: ContentProviderClient) {
 
     private val dataReader = RawContactDataReader(provider)
 
-    /** Returns null when the aggregate holds no RawContact of [account]. */
+    /** Returns null when the aggregate [contactId] no longer exists. */
     fun read(account: Account, contactId: Long): LinkedContactCandidates? {
         val members = queryMembers(contactId)
+        if (members.isEmpty()) return null
         val proton = members
             .filter { it.accountType == account.type && it.accountName == account.name }
             .maxByOrNull { it.hasSourceId }
-            ?: return null
-        val protonRow = dataReader.read(proton.rawContactId, sourceId = "")
+        val protonRow = proton?.let { dataReader.read(it.rawContactId, sourceId = "") }
         val siblings = members
             .filter { it.accountType != account.type }
             .mapNotNull { member ->
                 dataReader.read(member.rawContactId, sourceId = "")?.let { member.accountType to it }
             }
+        val name = if (proton == null) siblings.firstNotNullOfOrNull { (_, row) -> row.linkedName() } else null
         return LinkedContactCandidates(
-            protonRawContactId = proton.rawContactId,
+            protonRawContactId = proton?.rawContactId,
+            name = name,
             candidates = LinkedContactDiff.candidates(protonRow, siblings)
         )
     }
+
+    private fun ContactRow.linkedName(): LinkedContactName? =
+        if (displayName.isNullOrBlank() && structuredName == null) {
+            null
+        } else {
+            LinkedContactName(displayName, structuredName)
+        }
 
     private data class Member(
         val rawContactId: Long,

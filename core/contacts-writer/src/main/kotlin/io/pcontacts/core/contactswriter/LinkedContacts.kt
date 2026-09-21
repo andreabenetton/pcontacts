@@ -28,7 +28,21 @@ data class LinkedFieldCandidate(
     val sourceAccountTypes: List<String?>
 )
 
+/** Name a new Proton contact is created with, taken from the first linked row that has one. */
+data class LinkedContactName(
+    val displayName: String?,
+    val structuredName: StructuredName?
+)
+
+/**
+ * `protonRawContactId` is null when the aggregate has no Proton copy;
+ * the candidates are then everything the linked rows carry and
+ * [name] is what a new Proton contact would be called. With a Proton
+ * copy present, [name] is null and the candidates are only the fields
+ * it lacks.
+ */
 data class LinkedContactCandidates(
-    val protonRawContactId: Long,
+    val protonRawContactId: Long?,
+    val name: LinkedContactName?,
     val candidates: List<LinkedFieldCandidate>
 )

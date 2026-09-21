@@ -756,6 +756,62 @@ class ContactsContractInstrumentedTest {
         }
     }
 
+    @Test
+    fun linked_create_makes_a_dirty_unsynced_proton_row_inside_the_same_aggregate() {
+        val siblingAccount = Account("sibling-${UUID.randomUUID()}", "io.pcontacts.test.sibling")
+        val applier = BatchApplier(testProvider)
+        try {
+            applier.apply(
+                siblingAccount,
+                listOf(
+                    RawContactOpIntent.CreateContact(
+                        ContactRow(
+                            sourceId = "sibling-2",
+                            displayName = "Paola Rossi",
+                            emails = emptyList(),
+                            phones = listOf(PhoneEntry("+39 02 5551234"))
+                        )
+                    )
+                )
+            )
+            val siblingId = RawContactReader(testProvider).readExistingState(siblingAccount).canonicalId("sibling-2")!!
+            val contactId = contactIdOf(siblingId)
+
+            val candidates = LinkedContactsReader(testProvider).read(testAccount, contactId)!!
+            assertNull("no proton copy yet", candidates.protonRawContactId)
+            assertEquals(LinkedContactName("Paola Rossi", null), candidates.name)
+            assertEquals(1, candidates.candidates.size)
+
+            val newId = LinkedContactCreator(testProvider)
+                .create(testAccount, contactId, candidates.name, candidates.candidates.map { it.field })
+
+            val raw = testProvider.query(
+                ContentUris.withAppendedId(RawContacts.CONTENT_URI, newId),
+                arrayOf(RawContacts.ACCOUNT_TYPE, RawContacts.SOURCE_ID, RawContacts.DIRTY, RawContacts.CONTACT_ID),
+                null,
+                null,
+                null
+            )!!.use { c ->
+                c.moveToFirst()
+                listOf(c.getString(0), c.getString(1), c.getInt(2).toString(), c.getLong(3).toString())
+            }
+            assertEquals(testAccount.type, raw[0])
+            assertNull("SOURCE_ID must stay NULL so the outbox sees a CREATE", raw[1])
+            assertEquals("1", raw[2])
+            assertEquals("pinned into the picked aggregate", contactId.toString(), raw[3])
+            assertEquals("+39 02 5551234", queryAllDataRows(newId, Phone.CONTENT_ITEM_TYPE)[0][Phone.NUMBER])
+            assertEquals(0, dirtyOf(siblingId))
+            assertEquals(1, queryAllDataRows(siblingId, Phone.CONTENT_ITEM_TYPE).size)
+        } finally {
+            val uri = SyncAdapterUri.decorate(RawContacts.CONTENT_URI, siblingAccount.name, siblingAccount.type)
+            testProvider.delete(
+                uri,
+                "${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+                arrayOf(siblingAccount.type, siblingAccount.name)
+            )
+        }
+    }
+
     // ---- Helpers ----
 
     private fun contactIdOf(rawContactId: Long): Long =

@@ -96,6 +96,30 @@ class ContactsContractOpsTest {
         }
     }
 
+    @Test fun create_local_emits_raw_insert_children_and_a_keep_together_exception() {
+        val ops = ContactsContractOps.buildCreateLocal(
+            account = account,
+            row = ContactRow(sourceId = "", displayName = "Evelino", emails = listOf("e@x")),
+            keepWithRawContactId = 77L
+        )
+        // 1 RawContacts + 1 StructuredName + 1 Email + 1 chip + 1 AggregationExceptions update = 5.
+        assertEquals(5, ops.size)
+        assertTrue("op 0 must be the RawContacts insert", ops[0].isInsert)
+        assertEquals("true", ops[0].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
+        assertTrue("children must be inserts", ops.subList(1, 4).all { it.isInsert })
+        assertTrue("last op must be the aggregation exception", ops.last().isUpdate)
+        assertEquals(ContactsContract.AggregationExceptions.CONTENT_URI, ops.last().uri)
+
+        val unpinned = ContactsContractOps.buildCreateLocal(
+            account = account,
+            row = ContactRow(sourceId = "", displayName = null, emails = listOf("e@x")),
+            keepWithRawContactId = null
+        )
+        // No name, no anchor: 1 RawContacts + 1 Email + 1 chip.
+        assertEquals(3, unpinned.size)
+        assertTrue(unpinned.all { it.isInsert })
+    }
+
     @Test fun update_with_no_name_omits_StructuredName_row() {
         val ops = ContactsContractOps.build(
             account = account,
