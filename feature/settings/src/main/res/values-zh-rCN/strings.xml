@@ -85,7 +85,7 @@
     <string name="linked_import_importing">正在导入…</string>
     <string name="linked_import_not_proton">此联系人没有可导入的 Proton 副本。</string>
     <string name="linked_import_nothing">Proton 副本已包含关联联系人中的所有详情。</string>
-    <string name="linked_import_review_detail">选择要添加到 %s 的内容。</string>
+    <string name="linked_import_review_detail">选择要添加到 %s 的内容。原始联系人不会被修改。</string>
     <string name="linked_import_kind_phone">电话</string>
     <string name="linked_import_kind_email">电子邮件</string>
     <string name="linked_import_kind_address">地址</string>

@@ -106,7 +106,7 @@
     <string name="linked_import_importing">Импорт…</string>
     <string name="linked_import_not_proton">У этого контакта нет копии в Proton, в которую можно импортировать.</string>
     <string name="linked_import_nothing">Копия в Proton уже содержит все данные, найденные в связанных контактах.</string>
-    <string name="linked_import_review_detail">Выберите, что добавить к %s.</string>
+    <string name="linked_import_review_detail">Выберите, что добавить к %s. Оригиналы останутся без изменений.</string>
     <string name="linked_import_kind_phone">Телефон</string>
     <string name="linked_import_kind_email">Эл. почта</string>
     <string name="linked_import_kind_address">Адрес</string>

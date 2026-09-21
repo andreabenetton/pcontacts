@@ -92,7 +92,7 @@
     <string name="linked_import_importing">Importation…</string>
     <string name="linked_import_not_proton">Ce contact n\'a pas de copie Proton dans laquelle importer.</string>
     <string name="linked_import_nothing">La copie Proton contient déjà tous les détails trouvés sur les contacts liés.</string>
-    <string name="linked_import_review_detail">Sélectionnez ce qu\'il faut ajouter à %s.</string>
+    <string name="linked_import_review_detail">Sélectionnez ce qu\'il faut ajouter à %s. Les originaux restent intacts.</string>
     <string name="linked_import_kind_phone">Téléphone</string>
     <string name="linked_import_kind_email">E-mail</string>
     <string name="linked_import_kind_address">Adresse</string>
