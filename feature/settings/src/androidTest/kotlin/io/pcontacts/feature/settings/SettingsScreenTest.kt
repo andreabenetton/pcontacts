@@ -54,7 +54,7 @@ class SettingsScreenTest {
         composeRule.setContent {
             SettingsScreen(vm, SettingsActions(onSignedOut = {}))
         }
-        composeRule.onNodeWithText("PContacts").assertIsDisplayed()
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
         composeRule.onNodeWithText("Sync now").assertIsDisplayed()
         composeRule.onNodeWithText("Sign out").assertIsDisplayed()
     }

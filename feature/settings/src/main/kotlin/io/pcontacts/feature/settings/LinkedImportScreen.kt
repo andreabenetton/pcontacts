@@ -5,7 +5,6 @@ package io.pcontacts.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +18,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,16 +51,14 @@ fun LinkedImportScreen(
         if (importState is LinkedImportState.Imported) listViewModel.rescan()
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.linked_import_button),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(Modifier.height(12.dp))
-        FilterRow(selected = filter, onSelect = listViewModel::setFilter)
-        Spacer(Modifier.height(8.dp))
-        Box(modifier = Modifier.weight(1f)) {
+    Scaffold(
+        modifier = modifier,
+        topBar = { ScreenTopBar(title = stringResource(R.string.linked_import_screen_title), onBack = onBack) }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
+            Spacer(Modifier.height(8.dp))
+            FilterRow(selected = filter, onSelect = listViewModel::setFilter)
+            Spacer(Modifier.height(8.dp))
             when (val s = state) {
                 LinkedImportListState.Scanning -> ScanningIndicator()
                 is LinkedImportListState.Failed -> Text(
@@ -74,11 +71,6 @@ fun LinkedImportScreen(
                 )
             }
         }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.contacts_access_back))
-        }
-        Spacer(Modifier.height(16.dp))
     }
     LinkedImportDialog(importViewModel)
 }

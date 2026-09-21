@@ -22,7 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,36 +54,35 @@ fun ContactsAccessScreen(
         ContactsAccessKind.USER -> R.string.contacts_access_detail
         ContactsAccessKind.SYSTEM -> R.string.system_contacts_access_detail
     }
-    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
+    Scaffold(
+        modifier = modifier,
+        topBar = { ScreenTopBar(title = stringResource(titleRes), onBack = onBack) }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Spacer(Modifier.height(8.dp))
+                Text(text = stringResource(detailRes), style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(16.dp))
+                AppList(apps)
+                Spacer(Modifier.height(16.dp))
+            }
+            permissionHint(permissionRoute)?.let { hint ->
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            Button(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.contacts_access_open_permission))
+            }
             Spacer(Modifier.height(16.dp))
-            Text(text = stringResource(titleRes), style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(8.dp))
-            Text(text = stringResource(detailRes), style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(16.dp))
-            AppList(apps)
-            Spacer(Modifier.height(16.dp))
         }
-        permissionHint(permissionRoute)?.let { hint ->
-            Text(
-                text = hint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(8.dp))
-        }
-        Button(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.contacts_access_open_permission))
-        }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.contacts_access_back))
-        }
-        Spacer(Modifier.height(16.dp))
     }
 }
 

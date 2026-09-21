@@ -4,7 +4,7 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 <resources>
-    <string name="settings_title">Контакты Proton</string>
+    <string name="settings_title">Настройки</string>
     <string name="settings_sync_now">Синхронизировать сейчас</string>
     <string name="settings_sign_out">Выйти</string>
     <string name="settings_signed_out">Выход выполнен.</string>
@@ -152,4 +152,12 @@
     <string name="linked_import_list_empty">Нечего импортировать: все связанные контакты уже есть в Proton со всеми данными.</string>
     <string name="linked_import_scan_failed">Не удалось прочитать контакты: %s</string>
     <string name="contacts_access_back">Назад</string>
+    <string name="settings_section_sync">Синхронизация</string>
+    <string name="settings_section_contacts">Контакты</string>
+    <string name="settings_section_privacy">Конфиденциальность</string>
+    <string name="settings_section_account">Аккаунт</string>
+    <string name="sync_state_ok">Всё синхронизировано</string>
+    <string name="sync_state_never">Ещё не синхронизировано</string>
+    <string name="settings_signing_out">Выход…</string>
+    <string name="linked_import_screen_title">Импорт из связанных контактов</string>
 </resources>

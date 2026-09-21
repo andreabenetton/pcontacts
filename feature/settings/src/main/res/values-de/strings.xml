@@ -4,7 +4,7 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 <resources>
-    <string name="settings_title">Proton Kontakte</string>
+    <string name="settings_title">Einstellungen</string>
     <string name="settings_sync_now">Jetzt synchronisieren</string>
     <string name="settings_sign_out">Abmelden</string>
     <string name="settings_signed_out">Abgemeldet.</string>
@@ -132,4 +132,12 @@
     <string name="linked_import_list_empty">Nichts zu importieren: jeder verknüpfte Kontakt ist bereits mit allen Details in Proton.</string>
     <string name="linked_import_scan_failed">Kontakte konnten nicht gelesen werden: %s</string>
     <string name="contacts_access_back">Zurück</string>
+    <string name="settings_section_sync">Synchronisierung</string>
+    <string name="settings_section_contacts">Kontakte</string>
+    <string name="settings_section_privacy">Privatsphäre</string>
+    <string name="settings_section_account">Konto</string>
+    <string name="sync_state_ok">Auf dem neuesten Stand</string>
+    <string name="sync_state_never">Noch nicht synchronisiert</string>
+    <string name="settings_signing_out">Abmeldung…</string>
+    <string name="linked_import_screen_title">Aus verknüpften Kontakten importieren</string>
 </resources>
