@@ -85,13 +85,19 @@ fun SettingsScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        OutlinedButton(
-            enabled = !busy,
-            onClick = viewModel::triggerSignOut,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.settings_sign_out))
+        ActionStatus(state = state, onSignedOut = onSignedOut)
+
+        if (syncRunning) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_sync_running),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(8.dp))
         }
+
+        lastSync?.let { info -> LastSyncStatus(info) }
 
         Spacer(Modifier.height(24.dp))
 
@@ -106,26 +112,17 @@ fun SettingsScreen(
         LinkedImportSection(enabled = !busy, onPickContact = onPickContact)
         LinkedImportDialog(linkedImport)
 
+        SettingsStatusSection(viewModel)
+
         Spacer(Modifier.height(24.dp))
 
-        ActionStatus(state = state, onSignedOut = onSignedOut)
-
-        if (syncRunning) {
-            Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.settings_sync_running),
-                style = MaterialTheme.typography.bodyMedium
-            )
+        OutlinedButton(
+            enabled = !busy,
+            onClick = viewModel::triggerSignOut,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.settings_sign_out))
         }
-
-        lastSync?.let { info ->
-            Spacer(Modifier.height(16.dp))
-            LastSyncStatus(info)
-        }
-
-        SettingsStatusSection(viewModel)
     }
 }
 
