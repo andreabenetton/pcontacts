@@ -121,4 +121,14 @@
         <item quantity="one">Contacto de Proton creado con %d detalle. Se enviará a Proton en la próxima sincronización.</item>
         <item quantity="other">Contacto de Proton creado con %d detalles. Se enviará a Proton en la próxima sincronización.</item>
     </plurals>
+    <string name="linked_import_scanning">Revisando tus contactos…</string>
+    <string name="linked_import_filter_all">Todos</string>
+    <string name="linked_import_not_in_proton">No está en Proton</string>
+    <string name="linked_import_filter_new_details">Detalles nuevos</string>
+    <plurals name="linked_import_new_details">
+        <item quantity="one">%d detalle nuevo</item>
+        <item quantity="other">%d detalles nuevos</item>
+    </plurals>
+    <string name="linked_import_list_empty">Nada que importar: todos los contactos vinculados ya están en Proton con todos sus detalles.</string>
+    <string name="linked_import_scan_failed">No se pudieron leer los contactos: %s</string>
 </resources>

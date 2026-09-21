@@ -27,12 +27,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/** Entry button: the host launches the system contact picker on click. */
+/** Entry button on the Settings screen: the host opens [LinkedImportScreen]. */
 @Composable
-internal fun LinkedImportSection(enabled: Boolean, onPickContact: () -> Unit) {
+internal fun LinkedImportSection(enabled: Boolean, onOpen: () -> Unit) {
     OutlinedButton(
         enabled = enabled,
-        onClick = onPickContact,
+        onClick = onOpen,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(stringResource(R.string.linked_import_button))

@@ -112,4 +112,13 @@
     <plurals name="linked_import_created">
         <item quantity="other">已创建包含 %d 项详情的 Proton 联系人，将在下次同步时发送到 Proton。</item>
     </plurals>
+    <string name="linked_import_scanning">正在查看您的联系人…</string>
+    <string name="linked_import_filter_all">全部</string>
+    <string name="linked_import_not_in_proton">不在 Proton 中</string>
+    <string name="linked_import_filter_new_details">新详情</string>
+    <plurals name="linked_import_new_details">
+        <item quantity="other">%d 项新详情</item>
+    </plurals>
+    <string name="linked_import_list_empty">没有可导入的内容：所有关联联系人都已完整地在 Proton 中。</string>
+    <string name="linked_import_scan_failed">无法读取联系人：%s</string>
 </resources>

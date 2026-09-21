@@ -84,7 +84,7 @@ data class ContactsAccessApp(
  */
 data class SettingsActions(
     val onSignedOut: () -> Unit,
-    val onPickContact: () -> Unit = {},
+    val onOpenLinkedImport: () -> Unit = {},
     val onOpenContactsPermission: () -> Unit = {},
     val contactsPermissionRoute: ContactsPermissionRoute = ContactsPermissionRoute.DIRECT,
     val onOpenContactsStorage: (() -> Unit)? = null

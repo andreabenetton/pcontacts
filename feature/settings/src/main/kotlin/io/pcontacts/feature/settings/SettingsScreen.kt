@@ -54,7 +54,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    linkedImport: LinkedImportViewModel,
     actions: SettingsActions,
     modifier: Modifier = Modifier
 ) {
@@ -112,8 +111,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        LinkedImportSection(enabled = !busy, onPickContact = actions.onPickContact)
-        LinkedImportDialog(linkedImport)
+        LinkedImportSection(enabled = !busy, onOpen = actions.onOpenLinkedImport)
 
         SettingsStatusSection(viewModel, actions)
 

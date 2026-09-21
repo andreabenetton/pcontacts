@@ -139,4 +139,16 @@
         <item quantity="many">Контакт Proton создан с %d записями. Он будет отправлен в Proton при следующей синхронизации.</item>
         <item quantity="other">Контакт Proton создан с %d записями. Он будет отправлен в Proton при следующей синхронизации.</item>
     </plurals>
+    <string name="linked_import_scanning">Просмотр ваших контактов…</string>
+    <string name="linked_import_filter_all">Все</string>
+    <string name="linked_import_not_in_proton">Нет в Proton</string>
+    <string name="linked_import_filter_new_details">Новые данные</string>
+    <plurals name="linked_import_new_details">
+        <item quantity="one">%d новая запись</item>
+        <item quantity="few">%d новые записи</item>
+        <item quantity="many">%d новых записей</item>
+        <item quantity="other">%d новых записей</item>
+    </plurals>
+    <string name="linked_import_list_empty">Нечего импортировать: все связанные контакты уже есть в Proton со всеми данными.</string>
+    <string name="linked_import_scan_failed">Не удалось прочитать контакты: %s</string>
 </resources>
