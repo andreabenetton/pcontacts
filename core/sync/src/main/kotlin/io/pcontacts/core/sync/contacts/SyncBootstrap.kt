@@ -229,7 +229,8 @@ object SyncBootstrap {
             applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } },
             reconcileGroups = { account, labels ->
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
-            }
+            },
+            onProgress = progressSink(context)
         )
     }
 
@@ -307,6 +308,7 @@ object SyncBootstrap {
             reconcileGroups = { account, labels ->
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
             },
+            onProgress = progressSink(context),
             // Same production logger as the write engine — the pull path was
             // previously wired to NoOpSink, so read-path failures (fetch /
             // decrypt / parse) were invisible in production logs.
@@ -385,3 +387,12 @@ private fun hasPendingOutboxDelete(outboxDao: OutboxDao): suspend (String) -> Bo
             !it.quarantined && it.opType == OutboxEntity.OpType.DELETE
         }
     }
+
+/** Persists the pull's "N of total" so the Settings card can show it while the run is in flight. */
+private fun progressSink(context: Context): (Int, Int) -> Unit {
+    val prefs = SharedPreferencesUserPreferences(context.applicationContext)
+    return { done, total ->
+        prefs.syncProgressDone = done
+        prefs.syncProgressTotal = total
+    }
+}

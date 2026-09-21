@@ -65,6 +65,25 @@ class ContactDetailSyncEngineTest {
         assertEquals(listOf("alice@proton.me"), createIntent.row.emails)
     }
 
+    @Test fun progress_reports_the_server_total_first_and_the_final_count_last() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L))),
+            contacts = mapOf(
+                "c1" to contact("c1", 100L, "BEGIN:VCARD\nVERSION:4.0\nFN:A\nEMAIL:a@x\nEND:VCARD"),
+                "c2" to contact("c2", 100L, "BEGIN:VCARD\nVERSION:4.0\nFN:B\nEMAIL:b@x\nEND:VCARD")
+            )
+        )
+        val progress = mutableListOf<Pair<Int, Int>>()
+        val engine = newEngine(api, DetailFakeContactMapDao(), DetailFakeApplier(base = 1000L)) { done, total ->
+            progress += done to total
+        }
+
+        engine.sync(account)
+
+        assertEquals(0 to 2, progress.first())
+        assertEquals(2 to 2, progress.last())
+    }
+
     @Test fun second_run_with_unchanged_modifyTime_cheap_skips_without_fetching_contact() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(

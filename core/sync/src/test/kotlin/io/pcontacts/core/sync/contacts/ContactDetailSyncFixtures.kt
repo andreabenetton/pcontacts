@@ -58,7 +58,8 @@ internal fun newEngine(
     api: DetailFakeApi,
     dao: DetailFakeContactMapDao,
     applier: DetailFakeApplier,
-    hasPendingDelete: suspend (String) -> Boolean = { false }
+    hasPendingDelete: suspend (String) -> Boolean = { false },
+    onProgress: (Int, Int) -> Unit = { _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
         ContactDecrypter(cryptoOp = { _ ->
@@ -74,6 +75,7 @@ internal fun newEngine(
         readExisting = { _ -> applier.knownState() },
         hasPendingDelete = hasPendingDelete,
         applyIntents = { acct, intents -> applier.apply(acct, intents) },
+        onProgress = onProgress,
         clock = { 1_700_000_000L }
     )
 }

@@ -84,6 +84,12 @@ class ContactDetailSyncEngine(
      * groups.
      */
     private val reconcileGroups: suspend (Account, List<ProtonLabel>) -> Map<String, Long> = { _, _ -> emptyMap() },
+    /**
+     * (contacts processed so far, server total) — reported once the
+     * total is known, then every [PROGRESS_EVERY] contacts and at the
+     * end of the per-contact pass, so a UI can show "120 of 898".
+     */
+    private val onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
@@ -114,6 +120,7 @@ class ContactDetailSyncEngine(
         val serverLabelIds: Map<String, List<String>> =
             metadata.associate { it.id to it.labelIds }
         val serverSourceIds = serverModifyTimes.keys
+        onProgress(0, serverSourceIds.size)
 
         // 2. Local state. ContactsProvider is authoritative for which
         //    RawContacts exist; the Room mapping is only sync metadata
@@ -152,8 +159,13 @@ class ContactDetailSyncEngine(
         val now = clock()
         var fetchFailures = 0
         var modifyTimeSkips = 0
+        var processed = 0
 
         for ((sourceId, serverModifyTime) in serverModifyTimes) {
+            processed += 1
+            if (processed % PROGRESS_EVERY == 0 || processed == serverModifyTimes.size) {
+                onProgress(processed, serverModifyTimes.size)
+            }
             val stored = storedMappings[sourceId]
             val liveRawId = existing[sourceId]
             val deletePending = stored != null && liveRawId == null &&
@@ -351,3 +363,6 @@ class ContactDetailSyncEngine(
         val hash: String
     )
 }
+
+/** Progress callback cadence: every N contacts, plus the final one. */
+private const val PROGRESS_EVERY = 10
