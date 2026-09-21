@@ -61,4 +61,5 @@
     </plurals>
 
     <string name="chip_send_via_proton_mail">Отправить через Proton Mail</string>
+    <string name="linked_import_source_device">Устройство</string>
 </resources>

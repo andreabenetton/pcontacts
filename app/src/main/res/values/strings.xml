@@ -54,4 +54,5 @@
          row on a Proton contact. Tap routes the user to Proton Mail
          (Android app if installed, web fallback otherwise). -->
     <string name="chip_send_via_proton_mail">Send via Proton Mail</string>
+    <string name="linked_import_source_device">Device</string>
 </resources>

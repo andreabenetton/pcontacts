@@ -55,4 +55,5 @@
     </plurals>
 
     <string name="chip_send_via_proton_mail">Envoyer via Proton Mail</string>
+    <string name="linked_import_source_device">Appareil</string>
 </resources>

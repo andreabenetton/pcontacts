@@ -53,6 +53,7 @@ import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.ContactsAccessApp
 import io.pcontacts.feature.settings.LastSyncSummary
+import io.pcontacts.feature.settings.LinkedImportViewModel
 import io.pcontacts.feature.settings.OutboxStats
 import io.pcontacts.feature.settings.PendingDelete
 import io.pcontacts.feature.settings.QuarantinedChange
@@ -91,6 +92,16 @@ class SettingsActivity : ComponentActivity() {
     ) { _ ->
         userPrefs.contactsPermissionRequested = true
         contactsPermissionStatus = ContactsPermissionState.check(this, true)
+    }
+    private val linkedImportBridge by lazy { LinkedImportBridge(applicationContext, ::currentAccount) }
+    private val linkedImportViewModel by lazy {
+        LinkedImportViewModel(
+            loadPreview = linkedImportBridge::loadPreview,
+            importCandidates = linkedImportBridge::import
+        )
+    }
+    private val pickContactLauncher = registerForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+        uri?.let(linkedImportBridge::contactIdOf)?.let(linkedImportViewModel::start)
     }
     private val viewModel by lazy {
         SettingsViewModel(
@@ -140,7 +151,9 @@ class SettingsActivity : ComponentActivity() {
                             }
                             SettingsScreen(
                                 viewModel = viewModel,
+                                linkedImport = linkedImportViewModel,
                                 onSignedOut = ::finishToLauncher,
+                                onPickContact = { pickContactLauncher.launch(null) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -165,6 +178,7 @@ class SettingsActivity : ComponentActivity() {
 
     override fun onDestroy() {
         viewModel.dispose()
+        linkedImportViewModel.dispose()
         super.onDestroy()
     }
 

@@ -52,4 +52,5 @@
     </plurals>
 
     <string name="chip_send_via_proton_mail">通过 Proton Mail 发送</string>
+    <string name="linked_import_source_device">设备</string>
 </resources>

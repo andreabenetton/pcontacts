@@ -5,7 +5,7 @@
 
 # ADR-0023: One-way contact enrichment — pull linked accounts' fields into Proton
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-21
 - **Deciders:** project owner
 - **Related:** ADR-0007 (decrypt/read client-side only), ADR-0010 (ContactsContract write strategy), ADR-0011 (module boundaries), ADR-0017 (bidirectional sync), ADR-0022 (ContactsProvider authoritative)
