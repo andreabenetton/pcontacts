@@ -179,4 +179,7 @@
         <item quantity="other">Каждые %d часа</item>
     </plurals>
     <string name="sync_interval_hours_short">%d ч</string>
+    <string name="sync_state_progress">Синхронизация %1$d из %2$d…</string>
+    <string name="contacts_access_got_it">Понятно</string>
+    <string name="contacts_access_view_list">Показать список</string>
 </resources>

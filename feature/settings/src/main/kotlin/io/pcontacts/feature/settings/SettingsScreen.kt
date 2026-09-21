@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,10 +50,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /**
@@ -145,18 +148,24 @@ private class Tone(val icon: ImageVector, val tint: Color, val inProgress: Boole
 
 private class Headline(val text: String, val tone: Tone)
 
+/** Everything the headline is decided from; `now` ticks so relative times and overdue stay live. */
+private class SyncFacts(
+    val state: SettingsUiState,
+    val syncRunning: Boolean,
+    val lastSync: LastSyncSummary?,
+    val outbox: OutboxStats,
+    val intervalHours: Long,
+    val progress: SyncProgress?,
+    val now: Long
+)
+
 /**
  * One line that says what the sync is doing right now. Sign-out states
  * come first; everything else is [syncHealth] rendered.
  */
 @Composable
-private fun headline(
-    state: SettingsUiState,
-    syncRunning: Boolean,
-    lastSync: LastSyncSummary?,
-    outbox: OutboxStats,
-    intervalHours: Long
-): Headline {
+private fun headline(facts: SyncFacts): Headline {
+    val state = facts.state
     val scheme = MaterialTheme.colorScheme
     val ok = Tone(Icons.Default.Check, scheme.primary, inProgress = false)
     val warn = Tone(Icons.Default.Warning, scheme.error, inProgress = false)
@@ -170,15 +179,25 @@ private fun headline(
         else -> Unit
     }
     val health = syncHealth(
-        running = state is SettingsUiState.Syncing || syncRunning,
+        running = state is SettingsUiState.Syncing || facts.syncRunning,
         failed = state is SettingsUiState.SyncFailed,
-        lastSync = lastSync,
-        outbox = outbox,
-        intervalHours = intervalHours,
-        nowMillis = System.currentTimeMillis()
+        lastSync = facts.lastSync,
+        outbox = facts.outbox,
+        intervalHours = facts.intervalHours,
+        nowMillis = facts.now
     )
+    val outbox = facts.outbox
+    val lastSync = facts.lastSync
+    val progress = facts.progress
     return when (health) {
-        SyncHealth.RUNNING -> Headline(stringResource(R.string.settings_sync_running), running)
+        SyncHealth.RUNNING -> Headline(
+            text = if (progress != null && progress.total > 0) {
+                stringResource(R.string.sync_state_progress, progress.done, progress.total)
+            } else {
+                stringResource(R.string.settings_sync_running)
+            },
+            tone = running
+        )
         SyncHealth.FAILED -> Headline(failureText(state, lastSync), warn)
         SyncHealth.ATTENTION -> Headline(plural(R.plurals.outbox_quarantined, outbox.quarantined), warn)
         SyncHealth.PENDING -> Headline(plural(R.plurals.outbox_pending, outbox.pending), info)
@@ -216,7 +235,15 @@ private fun SyncStatusCard(
     val lastSync by viewModel.lastSync.collectAsStateWithLifecycle()
     val outbox by viewModel.outboxStats.collectAsStateWithLifecycle()
     val interval by viewModel.syncInterval.collectAsStateWithLifecycle()
-    val headline = headline(state, syncRunning, lastSync, outbox, interval.hours)
+    val progress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(CLOCK_TICK_MILLIS)
+            now = System.currentTimeMillis()
+        }
+    }
+    val headline = headline(SyncFacts(state, syncRunning, lastSync, outbox, interval.hours, progress, now))
     if (state is SettingsUiState.SignedOut) LaunchedEffect(Unit) { onSignedOut() }
 
     Card(
@@ -233,7 +260,7 @@ private fun SyncStatusCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = headline.tone.tint
                     )
-                    lastSync?.let { LastSyncLine(it) }
+                    lastSync?.let { LastSyncLine(it, now) }
                 }
                 Spacer(Modifier.width(12.dp))
                 Button(enabled = syncEnabled, onClick = viewModel::triggerSyncNow) {
@@ -242,26 +269,48 @@ private fun SyncStatusCard(
             }
             if (headline.tone.inProgress) {
                 Spacer(Modifier.height(12.dp))
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                val p = progress
+                if (p != null && p.total > 0) {
+                    LinearProgressIndicator(
+                        progress = { p.done.toFloat() / p.total },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
             }
         }
         StatusRows(viewModel)
     }
 }
 
-/** When the last completed run happened and how many contacts it could not sync. */
+/**
+ * When the last completed run happened — relative, ticking with [now];
+ * tapping toggles the absolute date and time — and how many contacts
+ * it could not sync.
+ */
 @Composable
-private fun LastSyncLine(info: LastSyncSummary) {
+private fun LastSyncLine(info: LastSyncSummary, now: Long) {
     val syncedAt = info.syncedAtMillis
-    val text = if (syncedAt != null) {
-        stringResource(
+    var absolute by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val text = when {
+        syncedAt == null -> stringResource(R.string.settings_last_sync_never)
+        absolute -> stringResource(
             R.string.settings_last_sync,
-            DateUtils.getRelativeTimeSpanString(syncedAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+            DateUtils.formatDateTime(context, syncedAt, ABSOLUTE_FLAGS)
         )
-    } else {
-        stringResource(R.string.settings_last_sync_never)
+        else -> stringResource(
+            R.string.settings_last_sync,
+            DateUtils.getRelativeTimeSpanString(syncedAt, now, DateUtils.MINUTE_IN_MILLIS)
+        )
     }
-    Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.clickable { absolute = !absolute }
+    )
     if (info.failedContacts > 0) {
         val failed = info.failedContacts
         Text(
@@ -439,6 +488,7 @@ private fun ConflictRows(conflicts: List<ConflictInfo>, onResolve: (String, Conf
 private fun ContactsAccessSection(viewModel: SettingsViewModel, actions: SettingsActions) {
     val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
     val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
+    val systemNoticeDismissed by viewModel.systemNoticeDismissed.collectAsStateWithLifecycle()
     if (contactsAccessApps.isEmpty() && systemContactsAccessApps.isEmpty()) return
 
     SectionHeader(R.string.settings_section_privacy)
@@ -452,7 +502,9 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel, actions: Setting
         if (contactsAccessApps.isNotEmpty()) Spacer(Modifier.height(12.dp))
         SystemContactsAccessBanner(
             apps = systemContactsAccessApps,
-            onClick = { actions.onOpenContactsAccess(ContactsAccessKind.SYSTEM) }
+            dismissed = systemNoticeDismissed,
+            onView = { actions.onOpenContactsAccess(ContactsAccessKind.SYSTEM) },
+            onGotIt = viewModel::acknowledgeSystemNotice
         )
     }
 }
@@ -484,26 +536,54 @@ private fun ContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: () -> U
     }
 }
 
+/**
+ * The OS-apps notice: nothing here is actionable (they cannot be
+ * uninstalled), so it is information, shown once with the explanation
+ * and "Got it"; afterwards a one-line link keeps the list reachable.
+ */
 @Composable
-private fun SystemContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: () -> Unit) {
+private fun SystemContactsAccessBanner(
+    apps: List<ContactsAccessApp>,
+    dismissed: Boolean,
+    onView: () -> Unit,
+    onGotIt: () -> Unit
+) {
+    val count = pluralStringResource(R.plurals.system_contacts_access_count, apps.size, apps.size)
+    if (dismissed) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onView).padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = count,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = stringResource(R.string.contacts_access_view_list),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.errorContainer)
-            .clickable(onClick = onClick)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(16.dp)
     ) {
+        Text(text = count, style = MaterialTheme.typography.bodyMedium)
         Text(
-            text = pluralStringResource(R.plurals.system_contacts_access_count, apps.size, apps.size),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer
-        )
-        Text(
-            text = stringResource(R.string.contacts_access_tap_to_review),
+            text = stringResource(R.string.system_contacts_access_detail),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onErrorContainer
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onView) { Text(stringResource(R.string.contacts_access_view_list)) }
+            TextButton(onClick = onGotIt) { Text(stringResource(R.string.contacts_access_got_it)) }
+        }
     }
 }
 
@@ -734,3 +814,10 @@ private fun ConflictResolutionDialog(
         }
     )
 }
+
+/** How often the relative "last sync" time and the overdue check re-evaluate. */
+private const val CLOCK_TICK_MILLIS = 30_000L
+
+/** Absolute form of the last-sync time, shown on tap. */
+private const val ABSOLUTE_FLAGS =
+    DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_YEAR

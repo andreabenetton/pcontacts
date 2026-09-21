@@ -19,9 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -78,7 +78,7 @@ fun ContactsAccessScreen(
                 )
                 Spacer(Modifier.height(8.dp))
             }
-            Button(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.contacts_access_open_permission))
             }
             Spacer(Modifier.height(16.dp))

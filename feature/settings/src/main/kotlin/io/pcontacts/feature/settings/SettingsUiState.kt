@@ -36,6 +36,9 @@ data class LastSyncSummary(
     val failedContacts: Int = 0
 )
 
+/** The pull in flight: contacts processed so far out of the server total. */
+data class SyncProgress(val done: Int, val total: Int)
+
 data class OutboxStats(
     val pending: Int,
     val quarantined: Int

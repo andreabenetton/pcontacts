@@ -9,9 +9,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -49,6 +51,9 @@ class SettingsViewModel(
     private val queryContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val querySystemContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val onSyncIntervalChanged: (Long) -> Unit = {},
+    private val querySyncProgress: suspend () -> SyncProgress? = { null },
+    private val querySystemNoticeDismissed: suspend () -> Boolean = { false },
+    private val dismissSystemNotice: suspend () -> Unit = {},
     initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours,
     private val scope: CoroutineScope = MainScope(),
     private val workDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -95,7 +100,15 @@ class SettingsViewModel(
     private val _syncInterval = MutableStateFlow(SyncInterval.fromHours(initialSyncIntervalHours))
     val syncInterval: StateFlow<SyncInterval> = _syncInterval.asStateFlow()
 
+    /** Polled every [PROGRESS_POLL_MILLIS] while a sync runs; null when idle or unknown. */
+    private val _syncProgress = MutableStateFlow<SyncProgress?>(null)
+    val syncProgress: StateFlow<SyncProgress?> = _syncProgress.asStateFlow()
+
+    private val _systemNoticeDismissed = MutableStateFlow(false)
+    val systemNoticeDismissed: StateFlow<Boolean> = _systemNoticeDismissed.asStateFlow()
+
     private var pendingJob: Job? = null
+    private var progressJob: Job? = null
 
     init {
         scope.launch { refreshSyncStatus() }
@@ -119,6 +132,33 @@ class SettingsViewModel(
             _contactsAccessApps.value = try { queryContactsAccessApps() } catch (_: Exception) { emptyList() }
             _systemContactsAccessApps.value =
                 try { querySystemContactsAccessApps() } catch (_: Exception) { emptyList() }
+            _systemNoticeDismissed.value = try { querySystemNoticeDismissed() } catch (_: Exception) { false }
+        }
+    }
+
+    /** "Got it" on the OS-apps notice: remembered, so the banner shrinks to a link from now on. */
+    fun acknowledgeSystemNotice() {
+        _systemNoticeDismissed.value = true
+        scope.launch { withContext(workDispatcher) { dismissSystemNotice() } }
+    }
+
+    private fun setRunning(running: Boolean) {
+        _syncRunning.value = running
+        if (running && progressJob == null) {
+            progressJob = scope.launch {
+                while (isActive) {
+                    _syncProgress.value = try {
+                        withContext(workDispatcher) { querySyncProgress() }
+                    } catch (_: Exception) {
+                        null
+                    }
+                    delay(PROGRESS_POLL_MILLIS)
+                }
+            }
+        } else if (!running) {
+            progressJob?.cancel()
+            progressJob = null
+            _syncProgress.value = null
         }
     }
 
@@ -177,7 +217,7 @@ class SettingsViewModel(
      */
     fun updateSyncRunning(running: Boolean) {
         val wasRunning = _syncRunning.value
-        _syncRunning.value = running
+        setRunning(running)
         if (wasRunning && !running) {
             scope.launch { refreshSyncStatus() }
         }
@@ -193,7 +233,7 @@ class SettingsViewModel(
                     // Optimistic: bridges the gap until the framework
                     // reports the sync pending/active; the observer
                     // confirms and later clears it.
-                    _syncRunning.value = true
+                    setRunning(true)
                     SettingsUiState.Idle
                 }
                 is SettingsActionResult.Failure ->
@@ -237,7 +277,12 @@ class SettingsViewModel(
 
     fun dispose() {
         pendingJob?.cancel()
+        progressJob?.cancel()
         scope.cancel()
+    }
+
+    private companion object {
+        const val PROGRESS_POLL_MILLIS = 2_000L
     }
 }
 

@@ -155,4 +155,7 @@
         <item quantity="other">Toutes les %d heures</item>
     </plurals>
     <string name="sync_interval_hours_short">%d h</string>
+    <string name="sync_state_progress">Synchronisation de %1$d sur %2$d…</string>
+    <string name="contacts_access_got_it">Compris</string>
+    <string name="contacts_access_view_list">Voir la liste</string>
 </resources>

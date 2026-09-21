@@ -7,6 +7,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -53,6 +54,51 @@ class SettingsViewModelTest {
         advanceUntilIdle()
         assertEquals(0, callCount)
         assertEquals(SettingsUiState.Idle, vm.uiState.value)
+    }
+
+    @Test fun progress_is_polled_only_while_a_sync_runs() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var polls = 0
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            querySyncProgress = {
+                polls++
+                SyncProgress(done = polls * 10, total = 898)
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(null, vm.syncProgress.value)
+
+        vm.updateSyncRunning(true)
+        advanceTimeBy(4_500)
+        assertEquals(SyncProgress(done = 30, total = 898), vm.syncProgress.value)
+
+        vm.updateSyncRunning(false)
+        advanceTimeBy(10_000)
+        assertEquals(null, vm.syncProgress.value)
+        assertEquals(3, polls)
+    }
+
+    @Test fun acknowledging_the_system_notice_persists_it() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var dismissed = false
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            querySystemNoticeDismissed = { dismissed },
+            dismissSystemNotice = { dismissed = true },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertFalse(vm.systemNoticeDismissed.value)
+        vm.acknowledgeSystemNotice()
+        advanceUntilIdle()
+        assertTrue(vm.systemNoticeDismissed.value)
+        assertTrue(dismissed)
     }
 
     @Test fun last_sync_refreshed_when_running_sync_completes() = runTest {
