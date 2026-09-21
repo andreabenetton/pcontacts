@@ -93,15 +93,13 @@ fun SettingsScreen(
             banner()
 
             SectionHeader(R.string.settings_section_sync)
-            SyncStatusCard(viewModel, state, syncRunning, actions.onSignedOut)
-            Spacer(Modifier.height(12.dp))
-            Button(
-                enabled = !busy,
-                onClick = viewModel::triggerSyncNow,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.settings_sync_now))
-            }
+            SyncStatusCard(
+                viewModel = viewModel,
+                state = state,
+                syncRunning = syncRunning,
+                syncEnabled = !busy,
+                onSignedOut = actions.onSignedOut
+            )
             Spacer(Modifier.height(12.dp))
             SyncIntervalSelector(
                 selected = syncInterval,
@@ -176,15 +174,17 @@ private fun headline(state: SettingsUiState, syncRunning: Boolean, lastSync: Las
 }
 
 /**
- * Everything about the sync in one place: the current state, when it
- * last ran, and the things that need attention (unverified contacts,
- * pending or failed changes, scheduled deletions, conflicts) as rows.
+ * Everything about the sync in one place: the current state with the
+ * Sync now action beside it, when it last ran, and the things that need
+ * attention (unverified contacts, pending or failed changes, scheduled
+ * deletions, conflicts) as rows.
  */
 @Composable
 private fun SyncStatusCard(
     viewModel: SettingsViewModel,
     state: SettingsUiState,
     syncRunning: Boolean,
+    syncEnabled: Boolean,
     onSignedOut: () -> Unit
 ) {
     val lastSync by viewModel.lastSync.collectAsStateWithLifecycle()
@@ -199,13 +199,17 @@ private fun SyncStatusCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = headline.tone.icon, contentDescription = null, tint = headline.tone.tint)
                 Spacer(Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = headline.text,
                         style = MaterialTheme.typography.titleMedium,
                         color = headline.tone.tint
                     )
                     lastSync?.let { LastSyncLine(it) }
+                }
+                Spacer(Modifier.width(12.dp))
+                Button(enabled = syncEnabled, onClick = viewModel::triggerSyncNow) {
+                    Text(stringResource(R.string.settings_sync_now))
                 }
             }
             if (headline.tone.inProgress) {
