@@ -50,7 +50,7 @@ class ProtonSyncAdapter(
             val (writeEngine, readEngine) = SyncBootstrap.createBidirectionalEngines(ctx, prov, writeLogger)
             val wr = writeEngine.run {
                 detectChanges(acct)
-                push()
+                push(acct)
             }
             val rr = readEngine.sync(acct)
             wr to rr
