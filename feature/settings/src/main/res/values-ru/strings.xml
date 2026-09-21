@@ -104,7 +104,6 @@
     <string name="linked_import_dialog_title">Импорт в Proton</string>
     <string name="linked_import_loading">Поиск связанных данных…</string>
     <string name="linked_import_importing">Импорт…</string>
-    <string name="linked_import_not_proton">У этого контакта нет копии в Proton, в которую можно импортировать.</string>
     <string name="linked_import_nothing">Копия в Proton уже содержит все данные, найденные в связанных контактах.</string>
     <string name="linked_import_review_detail">Выберите, что добавить к %s. Оригиналы останутся без изменений.</string>
     <string name="linked_import_kind_phone">Телефон</string>
@@ -128,4 +127,16 @@
     <string name="settings_contacts_storage">Где сохранять новые контакты</string>
     <string name="contacts_access_hint_permission_manager">Затем нажмите «Диспетчер разрешений» → «Контакты».</string>
     <string name="contacts_access_hint_privacy_settings">Затем найдите «Диспетчер разрешений» и откройте «Контакты».</string>
+    <string name="linked_import_not_found">Контакт больше не найден.</string>
+    <string name="linked_import_create_title">Создать в Proton</string>
+    <string name="linked_import_create_detail">%s ещё нет в Proton. Выберите данные для нового контакта Proton. Оригиналы останутся без изменений.</string>
+    <string name="linked_import_create_confirm">Создать</string>
+    <string name="linked_import_create_nothing">В этом контакте не найдено данных для создания контакта Proton.</string>
+    <string name="linked_import_create_needs_contact_field">Выберите хотя бы номер телефона, эл. почту, адрес или чат-аккаунт.</string>
+    <plurals name="linked_import_created">
+        <item quantity="one">Контакт Proton создан с %d записью. Он будет отправлен в Proton при следующей синхронизации.</item>
+        <item quantity="few">Контакт Proton создан с %d записями. Он будет отправлен в Proton при следующей синхронизации.</item>
+        <item quantity="many">Контакт Proton создан с %d записями. Он будет отправлен в Proton при следующей синхронизации.</item>
+        <item quantity="other">Контакт Proton создан с %d записями. Он будет отправлен в Proton при следующей синхронизации.</item>
+    </plurals>
 </resources>

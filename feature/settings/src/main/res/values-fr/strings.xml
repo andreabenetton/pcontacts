@@ -90,7 +90,6 @@
     <string name="linked_import_dialog_title">Importer dans Proton</string>
     <string name="linked_import_loading">Recherche de détails liés…</string>
     <string name="linked_import_importing">Importation…</string>
-    <string name="linked_import_not_proton">Ce contact n\'a pas de copie Proton dans laquelle importer.</string>
     <string name="linked_import_nothing">La copie Proton contient déjà tous les détails trouvés sur les contacts liés.</string>
     <string name="linked_import_review_detail">Sélectionnez ce qu\'il faut ajouter à %s. Les originaux restent intacts.</string>
     <string name="linked_import_kind_phone">Téléphone</string>
@@ -112,4 +111,14 @@
     <string name="settings_contacts_storage">Où enregistrer les nouveaux contacts</string>
     <string name="contacts_access_hint_permission_manager">Touchez ensuite Gestionnaire d\'autorisations → Contacts.</string>
     <string name="contacts_access_hint_privacy_settings">Cherchez ensuite Gestionnaire d\'autorisations et ouvrez Contacts.</string>
+    <string name="linked_import_not_found">Le contact est introuvable.</string>
+    <string name="linked_import_create_title">Créer dans Proton</string>
+    <string name="linked_import_create_detail">%s n\'est pas encore dans Proton. Sélectionnez les détails du nouveau contact Proton. Les originaux restent intacts.</string>
+    <string name="linked_import_create_confirm">Créer</string>
+    <string name="linked_import_create_nothing">Aucun détail n\'a été trouvé sur ce contact pour créer un contact Proton.</string>
+    <string name="linked_import_create_needs_contact_field">Sélectionnez au moins un numéro de téléphone, un e-mail, une adresse ou un compte de messagerie.</string>
+    <plurals name="linked_import_created">
+        <item quantity="one">Contact Proton créé avec %d détail. Il sera envoyé à Proton lors de la prochaine synchronisation.</item>
+        <item quantity="other">Contact Proton créé avec %d détails. Il sera envoyé à Proton lors de la prochaine synchronisation.</item>
+    </plurals>
 </resources>

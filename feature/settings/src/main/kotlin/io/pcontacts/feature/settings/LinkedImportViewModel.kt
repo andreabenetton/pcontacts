@@ -16,6 +16,14 @@ import kotlinx.coroutines.withContext
 
 enum class LinkedFieldKind { PHONE, EMAIL, ADDRESS, ORGANIZATION, NOTE, IM }
 
+/** Kinds a contact can be reached by; a new Proton contact needs at least one of them. */
+private val CONTACT_KINDS = setOf(
+    LinkedFieldKind.PHONE,
+    LinkedFieldKind.EMAIL,
+    LinkedFieldKind.ADDRESS,
+    LinkedFieldKind.IM
+)
+
 /**
  * One importable detail. `id` is the position the app assigned when it
  * built the preview and is what [LinkedImportViewModel] hands back on
@@ -28,28 +36,41 @@ data class LinkedImportCandidate(
     val source: String?
 )
 
+/** `createsNewContact` is true when the contact has no Proton copy and confirming creates one. */
 data class LinkedImportPreview(
     val contactName: String?,
-    val candidates: List<LinkedImportCandidate>
+    val candidates: List<LinkedImportCandidate>,
+    val createsNewContact: Boolean = false
 )
 
 sealed interface LinkedImportState {
     data object Hidden : LinkedImportState
     data object Loading : LinkedImportState
 
-    /** The picked contact has no Proton copy to import into. */
-    data object NotProtonContact : LinkedImportState
-    data class Review(val preview: LinkedImportPreview, val selected: Set<Int>) : LinkedImportState
+    /** The picked contact no longer exists. */
+    data object NotFound : LinkedImportState
+
+    data class Review(val preview: LinkedImportPreview, val selected: Set<Int>) : LinkedImportState {
+        /** A selection that reaches the contact somehow; a note-only new contact is not one. */
+        val canConfirm: Boolean
+            get() {
+                if (selected.isEmpty()) return false
+                if (!preview.createsNewContact) return true
+                return preview.candidates.any { it.id in selected && it.kind in CONTACT_KINDS }
+            }
+    }
+
     data object Importing : LinkedImportState
-    data class Imported(val count: Int) : LinkedImportState
+    data class Imported(val count: Int, val created: Boolean = false) : LinkedImportState
     data class Failed(val reason: String) : LinkedImportState
 }
 
 /**
  * Drives the linked-contact import dialog (ADR-0023). Same shape as
  * [SettingsViewModel]: plain class, function-type seams, injectable
- * scope and dispatcher. `loadPreview` returns null when the contact has
- * no Proton copy; `importCandidates` receives the selected ids.
+ * scope and dispatcher. `loadPreview` returns null when the contact no
+ * longer exists; `importCandidates` receives the selected ids and,
+ * for a preview that creates a new contact, creates it.
  */
 class LinkedImportViewModel(
     private val loadPreview: suspend (Long) -> LinkedImportPreview?,
@@ -70,7 +91,7 @@ class LinkedImportViewModel(
                 return@launch
             }
             _state.value = if (preview == null) {
-                LinkedImportState.NotProtonContact
+                LinkedImportState.NotFound
             } else {
                 LinkedImportState.Review(preview, preview.candidates.map { it.id }.toSet())
             }
@@ -85,12 +106,12 @@ class LinkedImportViewModel(
 
     fun confirm() {
         val review = _state.value as? LinkedImportState.Review ?: return
-        if (review.selected.isEmpty()) return
+        if (!review.canConfirm) return
         _state.value = LinkedImportState.Importing
         scope.launch {
             _state.value = try {
                 withContext(workDispatcher) { importCandidates(review.selected.sorted()) }
-                LinkedImportState.Imported(review.selected.size)
+                LinkedImportState.Imported(review.selected.size, created = review.preview.createsNewContact)
             } catch (e: Exception) {
                 LinkedImportState.Failed(e.javaClass.simpleName)
             }

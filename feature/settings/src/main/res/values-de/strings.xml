@@ -90,7 +90,6 @@
     <string name="linked_import_dialog_title">In Proton importieren</string>
     <string name="linked_import_loading">Suche nach verknüpften Details…</string>
     <string name="linked_import_importing">Wird importiert…</string>
-    <string name="linked_import_not_proton">Dieser Kontakt hat keine Proton-Kopie, in die importiert werden kann.</string>
     <string name="linked_import_nothing">Die Proton-Kopie enthält bereits alle Details der verknüpften Kontakte.</string>
     <string name="linked_import_review_detail">Auswählen, was zu %s hinzugefügt werden soll. Die Originale bleiben unverändert.</string>
     <string name="linked_import_kind_phone">Telefon</string>
@@ -112,4 +111,14 @@
     <string name="settings_contacts_storage">Speicherort für neue Kontakte</string>
     <string name="contacts_access_hint_permission_manager">Tippe dann auf Berechtigungsmanager → Kontakte.</string>
     <string name="contacts_access_hint_privacy_settings">Suche dann den Berechtigungsmanager und öffne Kontakte.</string>
+    <string name="linked_import_not_found">Der Kontakt wurde nicht mehr gefunden.</string>
+    <string name="linked_import_create_title">In Proton anlegen</string>
+    <string name="linked_import_create_detail">%s ist noch nicht in Proton. Wähle die Details für den neuen Proton-Kontakt. Die Originale bleiben unverändert.</string>
+    <string name="linked_import_create_confirm">Anlegen</string>
+    <string name="linked_import_create_nothing">Auf diesem Kontakt wurden keine Details gefunden, aus denen ein Proton-Kontakt erstellt werden könnte.</string>
+    <string name="linked_import_create_needs_contact_field">Wähle mindestens eine Telefonnummer, E-Mail, Adresse oder ein Chat-Konto.</string>
+    <plurals name="linked_import_created">
+        <item quantity="one">Proton-Kontakt mit %d Detail angelegt. Er wird bei der nächsten Synchronisierung an Proton gesendet.</item>
+        <item quantity="other">Proton-Kontakt mit %d Details angelegt. Er wird bei der nächsten Synchronisierung an Proton gesendet.</item>
+    </plurals>
 </resources>

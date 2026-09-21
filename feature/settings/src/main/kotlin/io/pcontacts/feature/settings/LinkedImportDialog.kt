@@ -52,10 +52,16 @@ internal fun LinkedImportDialog(viewModel: LinkedImportViewModel) {
         LinkedImportState.Hidden -> Unit
         LinkedImportState.Loading -> ProgressDialog(R.string.linked_import_loading)
         LinkedImportState.Importing -> ProgressDialog(R.string.linked_import_importing)
-        LinkedImportState.NotProtonContact ->
-            MessageDialog(stringResource(R.string.linked_import_not_proton), viewModel::dismiss)
-        is LinkedImportState.Imported ->
-            MessageDialog(pluralStringResource(R.plurals.linked_import_done, s.count, s.count), viewModel::dismiss)
+        LinkedImportState.NotFound ->
+            MessageDialog(stringResource(R.string.linked_import_not_found), viewModel::dismiss)
+        is LinkedImportState.Imported -> MessageDialog(
+            message = if (s.created) {
+                pluralStringResource(R.plurals.linked_import_created, s.count, s.count)
+            } else {
+                pluralStringResource(R.plurals.linked_import_done, s.count, s.count)
+            },
+            onDismiss = viewModel::dismiss
+        )
         is LinkedImportState.Failed ->
             MessageDialog(stringResource(R.string.linked_import_failed, s.reason), viewModel::dismiss)
         is LinkedImportState.Review -> ReviewDialog(
@@ -104,19 +110,20 @@ private fun ReviewDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val creates = review.preview.createsNewContact
     val name = review.preview.contactName ?: stringResource(R.string.unverified_no_name)
+    val titleRes = if (creates) R.string.linked_import_create_title else R.string.linked_import_dialog_title
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.linked_import_dialog_title)) },
+        title = { Text(stringResource(titleRes)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (review.preview.candidates.isEmpty()) {
-                    Text(stringResource(R.string.linked_import_nothing))
+                    val emptyRes = if (creates) R.string.linked_import_create_nothing else R.string.linked_import_nothing
+                    Text(stringResource(emptyRes))
                 } else {
-                    Text(
-                        text = stringResource(R.string.linked_import_review_detail, name),
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    val detailRes = if (creates) R.string.linked_import_create_detail else R.string.linked_import_review_detail
+                    Text(text = stringResource(detailRes, name), style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(12.dp))
                     review.preview.candidates.forEach { candidate ->
                         CandidateRow(
@@ -125,13 +132,22 @@ private fun ReviewDialog(
                             onToggle = { onToggle(candidate.id) }
                         )
                     }
+                    if (creates && review.selected.isNotEmpty() && !review.canConfirm) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.linked_import_create_needs_contact_field),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         },
         confirmButton = {
             if (review.preview.candidates.isNotEmpty()) {
-                TextButton(onClick = onConfirm, enabled = review.selected.isNotEmpty()) {
-                    Text(stringResource(R.string.linked_import_confirm))
+                TextButton(onClick = onConfirm, enabled = review.canConfirm) {
+                    val confirmRes = if (creates) R.string.linked_import_create_confirm else R.string.linked_import_confirm
+                    Text(stringResource(confirmRes))
                 }
             }
         },

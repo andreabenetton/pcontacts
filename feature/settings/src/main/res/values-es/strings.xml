@@ -90,7 +90,6 @@
     <string name="linked_import_dialog_title">Importar a Proton</string>
     <string name="linked_import_loading">Buscando detalles vinculados…</string>
     <string name="linked_import_importing">Importando…</string>
-    <string name="linked_import_not_proton">Este contacto no tiene copia en Proton a la que importar.</string>
     <string name="linked_import_nothing">La copia de Proton ya tiene todos los detalles encontrados en los contactos vinculados.</string>
     <string name="linked_import_review_detail">Selecciona qué añadir a %s. Los originales no se modifican.</string>
     <string name="linked_import_kind_phone">Teléfono</string>
@@ -112,4 +111,14 @@
     <string name="settings_contacts_storage">Dónde se guardan los contactos nuevos</string>
     <string name="contacts_access_hint_permission_manager">Luego toca Administrador de permisos → Contactos.</string>
     <string name="contacts_access_hint_privacy_settings">Luego busca Administrador de permisos y abre Contactos.</string>
+    <string name="linked_import_not_found">El contacto ya no se encuentra.</string>
+    <string name="linked_import_create_title">Crear en Proton</string>
+    <string name="linked_import_create_detail">%s aún no está en Proton. Selecciona los detalles del nuevo contacto de Proton. Los originales no se modifican.</string>
+    <string name="linked_import_create_confirm">Crear</string>
+    <string name="linked_import_create_nothing">No se encontraron detalles en este contacto para crear un contacto de Proton.</string>
+    <string name="linked_import_create_needs_contact_field">Selecciona al menos un número de teléfono, correo, dirección o cuenta de chat.</string>
+    <plurals name="linked_import_created">
+        <item quantity="one">Contacto de Proton creado con %d detalle. Se enviará a Proton en la próxima sincronización.</item>
+        <item quantity="other">Contacto de Proton creado con %d detalles. Se enviará a Proton en la próxima sincronización.</item>
+    </plurals>
 </resources>

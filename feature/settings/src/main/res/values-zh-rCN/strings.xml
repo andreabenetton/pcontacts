@@ -83,7 +83,6 @@
     <string name="linked_import_dialog_title">导入到 Proton</string>
     <string name="linked_import_loading">正在查找关联详情…</string>
     <string name="linked_import_importing">正在导入…</string>
-    <string name="linked_import_not_proton">此联系人没有可导入的 Proton 副本。</string>
     <string name="linked_import_nothing">Proton 副本已包含关联联系人中的所有详情。</string>
     <string name="linked_import_review_detail">选择要添加到 %s 的内容。原始联系人不会被修改。</string>
     <string name="linked_import_kind_phone">电话</string>
@@ -104,4 +103,13 @@
     <string name="settings_contacts_storage">新联系人的保存位置</string>
     <string name="contacts_access_hint_permission_manager">然后点按“权限管理器”→“通讯录”。</string>
     <string name="contacts_access_hint_privacy_settings">然后找到“权限管理器”并打开“通讯录”。</string>
+    <string name="linked_import_not_found">找不到该联系人了。</string>
+    <string name="linked_import_create_title">在 Proton 中创建</string>
+    <string name="linked_import_create_detail">%s 尚未在 Proton 中。请选择新 Proton 联系人的详情。原始联系人不会被修改。</string>
+    <string name="linked_import_create_confirm">创建</string>
+    <string name="linked_import_create_nothing">此联系人中未找到可用于创建 Proton 联系人的详情。</string>
+    <string name="linked_import_create_needs_contact_field">请至少选择一个电话号码、电子邮件、地址或聊天账号。</string>
+    <plurals name="linked_import_created">
+        <item quantity="other">已创建包含 %d 项详情的 Proton 联系人，将在下次同步时发送到 Proton。</item>
+    </plurals>
 </resources>

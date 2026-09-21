@@ -67,7 +67,7 @@ class LinkedImportViewModelTest {
         assertTrue(vm.state.value is LinkedImportState.Review)
     }
 
-    @Test fun null_preview_means_no_proton_copy() = runTest {
+    @Test fun null_preview_means_the_contact_is_gone() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = LinkedImportViewModel(
             loadPreview = { null },
@@ -77,7 +77,36 @@ class LinkedImportViewModelTest {
         )
         vm.start(7L)
         advanceUntilIdle()
-        assertEquals(LinkedImportState.NotProtonContact, vm.state.value)
+        assertEquals(LinkedImportState.NotFound, vm.state.value)
+    }
+
+    @Test fun creating_a_contact_needs_a_reachable_field_and_reports_created() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var imported: List<Int>? = null
+        val vm = LinkedImportViewModel(
+            loadPreview = { preview.copy(createsNewContact = true) },
+            importCandidates = { imported = it },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.start(7L)
+        advanceUntilIdle()
+
+        // Only the note selected: not enough to make a contact.
+        vm.toggle(0)
+        val noteOnly = vm.state.value as LinkedImportState.Review
+        assertEquals(setOf(1), noteOnly.selected)
+        assertTrue(!noteOnly.canConfirm)
+        vm.confirm()
+        advanceUntilIdle()
+        assertNull(imported)
+
+        vm.toggle(0)
+        assertTrue((vm.state.value as LinkedImportState.Review).canConfirm)
+        vm.confirm()
+        advanceUntilIdle()
+        assertEquals(listOf(0, 1), imported)
+        assertEquals(LinkedImportState.Imported(2, created = true), vm.state.value)
     }
 
     @Test fun failures_surface_the_exception_class_only() = runTest {
