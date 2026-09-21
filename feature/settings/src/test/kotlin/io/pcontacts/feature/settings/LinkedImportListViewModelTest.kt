@@ -66,7 +66,7 @@ class LinkedImportListViewModelTest {
             importMany = { ids, progress ->
                 imported = ids
                 ids.forEachIndexed { i, _ -> progress(i + 1) }
-                BulkResult(created = 1, updated = 1, failed = 0)
+                BulkResult(created = 1, enriched = 1, failed = 0)
             },
             scope = TestScope(dispatcher),
             workDispatcher = dispatcher

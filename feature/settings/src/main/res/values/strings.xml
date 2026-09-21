@@ -148,5 +148,5 @@
         <item quantity="other">Import %d contacts</item>
     </plurals>
     <string name="linked_import_bulk_progress">Importing %1$d of %2$d…</string>
-    <string name="linked_import_bulk_done">%1$d created, %2$d updated, %3$d failed. They will be sent to Proton on the next sync.</string>
+    <string name="linked_import_bulk_done">%1$d created in Proton, %2$d given new details, %3$d failed. They will be sent to Proton on the next sync.</string>
 </resources>

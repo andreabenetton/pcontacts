@@ -148,5 +148,5 @@
         <item quantity="other">Importar %d contactos</item>
     </plurals>
     <string name="linked_import_bulk_progress">Importando %1$d de %2$d…</string>
-    <string name="linked_import_bulk_done">%1$d creados, %2$d actualizados, %3$d con error. Se enviarán a Proton en la próxima sincronización.</string>
+    <string name="linked_import_bulk_done">%1$d creados en Proton, %2$d con detalles añadidos, %3$d con error. Se enviarán a Proton en la próxima sincronización.</string>
 </resources>

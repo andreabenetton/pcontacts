@@ -36,8 +36,8 @@ sealed interface LinkedImportListState {
     data class Failed(val reason: String) : LinkedImportListState
 }
 
-/** Outcome of importing a selection: contacts created in Proton, Proton copies updated, contacts that failed. */
-data class BulkResult(val created: Int, val updated: Int, val failed: Int)
+/** Outcome of importing a selection: contacts created in Proton, Proton copies given new details, failures. */
+data class BulkResult(val created: Int, val enriched: Int, val failed: Int)
 
 sealed interface BulkImportState {
     data object Idle : BulkImportState
@@ -121,7 +121,7 @@ class LinkedImportListViewModel(
                     importMany(ids) { done -> _bulk.value = BulkImportState.Running(done, ids.size) }
                 }
             } catch (_: Exception) {
-                BulkResult(created = 0, updated = 0, failed = ids.size)
+                BulkResult(created = 0, enriched = 0, failed = ids.size)
             }
             _bulk.value = BulkImportState.Done(result)
             _selected.value = emptySet()

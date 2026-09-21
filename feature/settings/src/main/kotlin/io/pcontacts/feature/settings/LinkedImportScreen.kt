@@ -244,7 +244,7 @@ private fun BulkImportDialog(state: BulkImportState, onDismiss: () -> Unit) {
             title = { Text(stringResource(R.string.linked_import_dialog_title)) },
             text = {
                 val r = state.result
-                Text(stringResource(R.string.linked_import_bulk_done, r.created, r.updated, r.failed))
+                Text(stringResource(R.string.linked_import_bulk_done, r.created, r.enriched, r.failed))
             },
             confirmButton = {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.linked_import_close)) }

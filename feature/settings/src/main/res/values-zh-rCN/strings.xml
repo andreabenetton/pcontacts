@@ -137,5 +137,5 @@
         <item quantity="other">导入 %d 位联系人</item>
     </plurals>
     <string name="linked_import_bulk_progress">正在导入第 %1$d 个，共 %2$d 个…</string>
-    <string name="linked_import_bulk_done">已创建 %1$d 个，已更新 %2$d 个，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
+    <string name="linked_import_bulk_done">已在 Proton 中创建 %1$d 个，已为 %2$d 个添加详情，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
 </resources>
