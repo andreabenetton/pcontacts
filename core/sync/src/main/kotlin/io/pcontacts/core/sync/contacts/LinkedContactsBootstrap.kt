@@ -10,7 +10,9 @@ import android.provider.ContactsContract
 import io.pcontacts.core.contactswriter.LinkedContactCandidates
 import io.pcontacts.core.contactswriter.LinkedContactCreator
 import io.pcontacts.core.contactswriter.LinkedContactName
+import io.pcontacts.core.contactswriter.LinkedContactSummary
 import io.pcontacts.core.contactswriter.LinkedContactsReader
+import io.pcontacts.core.contactswriter.LinkedContactsScanner
 import io.pcontacts.core.contactswriter.LinkedField
 import io.pcontacts.core.contactswriter.LinkedFieldsWriter
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +25,10 @@ import kotlinx.coroutines.withContext
  * re-read from what Android currently aggregates.
  */
 object LinkedContactsBootstrap {
+
+    /** Every aggregate with something to bring into Proton, for the import list. */
+    suspend fun scanLinkedContacts(context: Context, account: Account): List<LinkedContactSummary> =
+        withContactsProvider(context) { LinkedContactsScanner(it).scan(account) }
 
     /** Null when the aggregate [contactId] no longer exists. */
     suspend fun loadCandidates(context: Context, account: Account, contactId: Long): LinkedContactCandidates? =
