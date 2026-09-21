@@ -108,4 +108,6 @@
         <item quantity="other">%d dettagli aggiunti. Verranno inviati a Proton alla prossima sincronizzazione.</item>
     </plurals>
     <string name="linked_import_failed">Importazione non riuscita: %s</string>
+    <string name="contacts_access_open_permission">Gestisci il permesso Contatti</string>
+    <string name="settings_contacts_storage">Dove salvare i nuovi contatti</string>
 </resources>

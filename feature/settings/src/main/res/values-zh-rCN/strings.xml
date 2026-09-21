@@ -100,4 +100,6 @@
         <item quantity="other">已添加 %d 项详情，将在下次同步时发送到 Proton。</item>
     </plurals>
     <string name="linked_import_failed">导入失败：%s</string>
+    <string name="contacts_access_open_permission">管理通讯录权限</string>
+    <string name="settings_contacts_storage">新联系人的保存位置</string>
 </resources>

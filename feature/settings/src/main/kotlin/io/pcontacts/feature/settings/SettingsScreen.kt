@@ -7,6 +7,7 @@ import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -27,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -51,8 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     linkedImport: LinkedImportViewModel,
-    onSignedOut: () -> Unit,
-    onPickContact: () -> Unit,
+    actions: SettingsActions,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -85,7 +88,7 @@ fun SettingsScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        ActionStatus(state = state, onSignedOut = onSignedOut)
+        ActionStatus(state = state, onSignedOut = actions.onSignedOut)
 
         if (syncRunning) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -109,12 +112,19 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        LinkedImportSection(enabled = !busy, onPickContact = onPickContact)
+        LinkedImportSection(enabled = !busy, onPickContact = actions.onPickContact)
         LinkedImportDialog(linkedImport)
 
-        SettingsStatusSection(viewModel)
+        SettingsStatusSection(viewModel, actions.onOpenContactsPermission)
 
         Spacer(Modifier.height(24.dp))
+
+        actions.onOpenContactsStorage?.let { open ->
+            OutlinedButton(onClick = open, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.settings_contacts_storage))
+            }
+            Spacer(Modifier.height(12.dp))
+        }
 
         OutlinedButton(
             enabled = !busy,
@@ -205,7 +215,7 @@ private fun LastSyncStatus(info: LastSyncSummary) {
  * them at once.
  */
 @Composable
-private fun SettingsStatusSection(viewModel: SettingsViewModel) {
+private fun SettingsStatusSection(viewModel: SettingsViewModel, onOpenContactsPermission: () -> Unit) {
     val verificationStats by viewModel.verificationStats.collectAsStateWithLifecycle()
     val unverifiedContacts by viewModel.unverifiedContacts.collectAsStateWithLifecycle()
     val unverifiedDialogOpen by viewModel.unverifiedDialogOpen.collectAsStateWithLifecycle()
@@ -266,12 +276,12 @@ private fun SettingsStatusSection(viewModel: SettingsViewModel) {
         )
     }
 
-    ContactsAccessSection(viewModel)
+    ContactsAccessSection(viewModel, onOpenContactsPermission)
 }
 
 /** The two READ_CONTACTS transparency banners and their dialogs. */
 @Composable
-private fun ContactsAccessSection(viewModel: SettingsViewModel) {
+private fun ContactsAccessSection(viewModel: SettingsViewModel, onOpenContactsPermission: () -> Unit) {
     val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
     val contactsAccessDialogOpen by viewModel.contactsAccessDialogOpen.collectAsStateWithLifecycle()
     val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
@@ -286,8 +296,11 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel) {
     }
 
     if (contactsAccessDialogOpen) {
-        ContactsAccessDialog(
+        AppListDialog(
+            title = stringResource(R.string.contacts_access_dialog_title),
+            detail = stringResource(R.string.contacts_access_detail),
             apps = contactsAccessApps,
+            onOpenPermission = onOpenContactsPermission,
             onDismiss = viewModel::dismissContactsAccessDialog
         )
     }
@@ -301,8 +314,11 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel) {
     }
 
     if (systemContactsAccessDialogOpen) {
-        SystemContactsAccessDialog(
+        AppListDialog(
+            title = stringResource(R.string.system_contacts_access_dialog_title),
+            detail = stringResource(R.string.system_contacts_access_detail),
             apps = systemContactsAccessApps,
+            onOpenPermission = onOpenContactsPermission,
             onDismiss = viewModel::dismissSystemContactsAccessDialog
         )
     }
@@ -697,36 +713,82 @@ private fun ContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: () -> U
     }
 }
 
+/**
+ * Lists the apps holding READ_CONTACTS and links to the system
+ * permission page where the user can actually revoke it. Both
+ * buttons are full-width so the dialog reads as an action sheet.
+ */
 @Composable
-private fun ContactsAccessDialog(
+private fun AppListDialog(
+    title: String,
+    detail: String,
     apps: List<ContactsAccessApp>,
+    onOpenPermission: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.contacts_access_dialog_title)) },
+        title = { Text(title) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(
-                    text = stringResource(R.string.contacts_access_detail),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(Modifier.height(12.dp))
-                apps.forEach { app ->
-                    Text(
-                        text = "${app.appName} (${app.packageName})",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    )
+                Text(text = detail, style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                ) {
+                    apps.forEachIndexed { index, app ->
+                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        AppRow(app)
+                    }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.unverified_dialog_close))
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.contacts_access_open_permission))
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.unverified_dialog_close))
+                }
             }
         }
     )
+}
+
+@Composable
+private fun AppRow(app: ContactsAccessApp) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Text(
+                text = app.appName.take(1).uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(text = app.appName, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = app.packageName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable
@@ -750,38 +812,6 @@ private fun SystemContactsAccessBanner(apps: List<ContactsAccessApp>, onClick: (
             color = MaterialTheme.colorScheme.onErrorContainer
         )
     }
-}
-
-@Composable
-private fun SystemContactsAccessDialog(
-    apps: List<ContactsAccessApp>,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.system_contacts_access_dialog_title)) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(
-                    text = stringResource(R.string.system_contacts_access_detail),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(Modifier.height(12.dp))
-                apps.forEach { app ->
-                    Text(
-                        text = "${app.appName} (${app.packageName})",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.unverified_dialog_close))
-            }
-        }
-    )
 }
 
 @Composable

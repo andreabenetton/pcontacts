@@ -124,4 +124,6 @@
         <item quantity="other">Добавлено %d записи. Они будут отправлены в Proton при следующей синхронизации.</item>
     </plurals>
     <string name="linked_import_failed">Импорт не удался: %s</string>
+    <string name="contacts_access_open_permission">Управлять разрешением «Контакты»</string>
+    <string name="settings_contacts_storage">Где сохранять новые контакты</string>
 </resources>

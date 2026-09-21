@@ -54,7 +54,7 @@ class SettingsScreenTest {
     fun initial_idle_state_shows_title_and_buttons() {
         val vm = viewModel()
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.onNodeWithText("PContacts").assertIsDisplayed()
         composeRule.onNodeWithText("Sync now").assertIsDisplayed()
@@ -67,7 +67,7 @@ class SettingsScreenTest {
         val vm = viewModel(syncNow = { gate.await() })
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.onNodeWithText("Sync now").performClick()
         composeRule.waitForIdle()
@@ -88,7 +88,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.onNodeWithText("Sync now").performClick()
         composeRule.waitForIdle()
@@ -104,7 +104,7 @@ class SettingsScreenTest {
         val vm = viewModel(signOut = { gate.await() })
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = { signedOutCalled = true }, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = { signedOutCalled = true }))
         }
         composeRule.onNodeWithText("Sign out").performClick()
         composeRule.waitForIdle()
@@ -124,7 +124,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.onNodeWithText("Sign out").performClick()
         composeRule.waitForIdle()
@@ -140,7 +140,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 
@@ -155,7 +155,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 
@@ -170,7 +170,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 
@@ -188,7 +188,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 
@@ -205,7 +205,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 
@@ -221,7 +221,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 
@@ -242,7 +242,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 
@@ -262,7 +262,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(vm, linkedImport(), onSignedOut = {}, onPickContact = {})
+            SettingsScreen(vm, linkedImport(), SettingsActions(onSignedOut = {}))
         }
         composeRule.waitForIdle()
 

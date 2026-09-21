@@ -76,3 +76,15 @@ data class ContactsAccessApp(
     val appName: String,
     val packageName: String
 )
+
+/**
+ * Navigation the host (`:app`) performs for the screen. Intents that
+ * may not resolve on every device are nullable: a null action hides
+ * its button rather than showing one that fails.
+ */
+data class SettingsActions(
+    val onSignedOut: () -> Unit,
+    val onPickContact: () -> Unit = {},
+    val onOpenContactsPermission: () -> Unit = {},
+    val onOpenContactsStorage: (() -> Unit)? = null
+)
