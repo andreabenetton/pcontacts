@@ -26,7 +26,9 @@ import io.pcontacts.feature.settings.LinkedImportViewModel
 class LinkedImportActivity : ComponentActivity() {
 
     private val bridge by lazy { LinkedImportBridge(applicationContext, ::currentAccount) }
-    private val listViewModel by lazy { LinkedImportListViewModel(scan = bridge::scan) }
+    private val listViewModel by lazy {
+        LinkedImportListViewModel(scan = bridge::scan, importMany = bridge::importMany)
+    }
     private val importViewModel by lazy {
         LinkedImportViewModel(
             loadPreview = bridge::loadPreview,

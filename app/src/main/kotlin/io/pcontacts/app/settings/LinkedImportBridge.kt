@@ -16,6 +16,7 @@ import io.pcontacts.app.R
 import io.pcontacts.core.contactswriter.LinkedContactCandidates
 import io.pcontacts.core.contactswriter.LinkedField
 import io.pcontacts.core.sync.contacts.LinkedContactsBootstrap
+import io.pcontacts.feature.settings.BulkResult
 import io.pcontacts.feature.settings.LinkedContactRow
 import io.pcontacts.feature.settings.LinkedFieldKind
 import io.pcontacts.feature.settings.LinkedImportCandidate
@@ -46,6 +47,52 @@ class LinkedImportBridge(
                 inProton = summary.hasProtonCopy,
                 newFields = summary.newFieldCount
             )
+        }
+    }
+
+    /**
+     * Imports whole contacts without review: every candidate the scan
+     * found, created or appended as for the single flow. One sync
+     * request at the end. A contact that vanished or whose write fails
+     * counts as failed and does not stop the rest.
+     */
+    suspend fun importMany(contactIds: List<Long>, onProgress: (Int) -> Unit): BulkResult {
+        val account = account() ?: return BulkResult(0, 0, contactIds.size)
+        var created = 0
+        var updated = 0
+        var failed = 0
+        contactIds.forEachIndexed { index, contactId ->
+            when (importWhole(account, contactId)) {
+                WholeImport.CREATED -> created++
+                WholeImport.UPDATED -> updated++
+                WholeImport.FAILED -> failed++
+            }
+            onProgress(index + 1)
+        }
+        requestSync(account)
+        return BulkResult(created, updated, failed)
+    }
+
+    private enum class WholeImport { CREATED, UPDATED, FAILED }
+
+    private suspend fun importWhole(account: Account, contactId: Long): WholeImport {
+        val candidates = LinkedContactsBootstrap.loadCandidates(context, account, contactId) ?: return WholeImport.FAILED
+        val fields = candidates.candidates.map { it.field }
+        if (fields.isEmpty()) return WholeImport.FAILED
+        val protonRawContactId = candidates.protonRawContactId
+        return try {
+            if (protonRawContactId == null) {
+                LinkedContactsBootstrap.createContact(context, account, contactId, candidates.name, fields)
+                WholeImport.CREATED
+            } else {
+                LinkedContactsBootstrap.importFields(context, account, protonRawContactId, fields)
+                WholeImport.UPDATED
+            }
+        } catch (_: IllegalArgumentException) {
+            // ContactRow's guard: nothing reachable to create a contact from.
+            WholeImport.FAILED
+        } catch (_: android.os.RemoteException) {
+            WholeImport.FAILED
         }
     }
 
@@ -84,6 +131,10 @@ class LinkedImportBridge(
             LinkedContactsBootstrap.importFields(context, account, protonRawContactId, fields)
         }
         loaded = null
+        requestSync(account)
+    }
+
+    private fun requestSync(account: Account) {
         val extras = Bundle().apply {
             putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
             putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
