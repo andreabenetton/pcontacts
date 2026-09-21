@@ -20,10 +20,8 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -125,32 +123,32 @@ class SettingsActivity : ComponentActivity() {
         setContent {
             PcontactsTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize().systemBarsPadding(),
+                    modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val account = currentAccount()
                     if (account == null) {
                         Text("No Proton account. Sign in from the launcher.")
                     } else {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
-                                ContactsPermissionBanner(
-                                    isPermanentlyDenied = contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED,
-                                    onAction = ::handleContactsPermissionAction,
-                                    modifier = Modifier.padding(16.dp)
-                                )
+                        SettingsScreen(
+                            viewModel = viewModel,
+                            actions = SettingsActions(
+                                onSignedOut = ::finishToLauncher,
+                                onBack = ::finish,
+                                onOpenLinkedImport = ::openLinkedImport,
+                                onOpenContactsAccess = ::openContactsAccess,
+                                onOpenContactsStorage = contactsStorageAction()
+                            ),
+                            banner = {
+                                if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
+                                    ContactsPermissionBanner(
+                                        isPermanentlyDenied = contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED,
+                                        onAction = ::handleContactsPermissionAction,
+                                        modifier = Modifier.padding(top = 16.dp)
+                                    )
+                                }
                             }
-                            SettingsScreen(
-                                viewModel = viewModel,
-                                actions = SettingsActions(
-                                    onSignedOut = ::finishToLauncher,
-                                    onOpenLinkedImport = ::openLinkedImport,
-                                    onOpenContactsAccess = ::openContactsAccess,
-                                    onOpenContactsStorage = contactsStorageAction()
-                                ),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        )
                     }
                 }
             }
