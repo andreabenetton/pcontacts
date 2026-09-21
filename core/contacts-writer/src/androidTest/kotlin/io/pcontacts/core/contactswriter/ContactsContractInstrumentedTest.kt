@@ -6,6 +6,8 @@ package io.pcontacts.core.contactswriter
 import android.Manifest
 import android.accounts.Account
 import android.content.ContentProviderClient
+import android.content.ContentUris
+import android.content.ContentValues
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.provider.ContactsContract
@@ -569,6 +571,37 @@ class ContactsContractInstrumentedTest {
         val result = applier.apply(testAccount, intents)
         assertEquals(20, result.insertedContacts)
         assertEquals(20, countRawContactsForAccount())
+    }
+
+    @Test
+    fun write_source_id_stamps_server_id_onto_a_local_raw_contact() {
+        // A locally-created contact starts with no SOURCE_ID; once the CREATE
+        // reaches Proton, SourceIdWriter stamps the server id so the next pull
+        // matches this row instead of inserting a duplicate (create-orphan).
+        val insertUri = SyncAdapterUri.decorate(RawContacts.CONTENT_URI, testAccount.name, testAccount.type)
+        val rawId = ContentUris.parseId(
+            testProvider.insert(
+                insertUri,
+                ContentValues().apply {
+                    put(RawContacts.ACCOUNT_NAME, testAccount.name)
+                    put(RawContacts.ACCOUNT_TYPE, testAccount.type)
+                }
+            )!!
+        )
+
+        SourceIdWriter(testProvider).writeSourceId(testAccount, rawId, "srv-created-99")
+
+        val cursor = testProvider.query(
+            RawContacts.CONTENT_URI,
+            arrayOf(RawContacts.SOURCE_ID),
+            "${RawContacts._ID} = ?",
+            arrayOf(rawId.toString()),
+            null
+        )!!
+        cursor.use {
+            assertTrue("row must exist", it.moveToFirst())
+            assertEquals("srv-created-99", it.getString(0))
+        }
     }
 
     // ---- Duplicate SOURCE_ID reconciliation ----
