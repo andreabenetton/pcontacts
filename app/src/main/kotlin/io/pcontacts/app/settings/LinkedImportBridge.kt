@@ -50,7 +50,7 @@ class LinkedImportBridge(
                     id = idx,
                     kind = LinkedImportFormat.kind(candidate.field),
                     value = LinkedImportFormat.value(candidate.field),
-                    source = sourceLabel(candidate.sourceAccountType)
+                    source = candidate.sourceAccountTypes.map(::sourceLabel).distinct().joinToString(", ")
                 )
             }
         )
