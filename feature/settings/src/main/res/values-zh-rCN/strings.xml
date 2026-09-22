@@ -161,6 +161,7 @@
     <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
     <string name="de_googled_rom_link">去 Google 化的 ROM</string>
     <string name="sign_in_rom_notice">同步后，任何拥有“通讯录”权限的应用都能读取您的联系人。在原生 Android 上，这包括无法移除的 Google 和厂商服务。若要保护隐私，请在%1$s上运行 pcontacts。</string>
+    <string name="sign_in_disclaimer">与 Proton AG 无关联，亦未获其认可。</string>
     <string name="rom_screen_title">去 Google 化的 Android ROM</string>
     <string name="rom_intro_definition">去 Google 化的 Android ROM 是一种源自 Android 的操作系统，可以在 Google 专有的 Play 服务和 Google 应用不拥有设备特权访问的情况下使用。</string>
     <string name="rom_intro_approaches">各项目采取不同的做法：有的完全移除 Google 组件，有的用 microG 替代部分 Google Play 服务，还有的允许在没有系统特权的情况下选择性安装 Google Play 服务。</string>

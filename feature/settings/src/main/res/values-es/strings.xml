@@ -174,6 +174,7 @@
     <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
     <string name="de_googled_rom_link">ROM sin Google</string>
     <string name="sign_in_rom_notice">Una vez sincronizados, tus contactos pueden ser leídos por cualquier app con el permiso de Contactos. En Android de fábrica eso incluye servicios de Google y del fabricante que no puedes eliminar. Para una configuración privada, usa pcontacts en una %1$s.</string>
+    <string name="sign_in_disclaimer">Sin afiliación ni respaldo de Proton AG.</string>
     <string name="rom_screen_title">ROMs de Android sin Google</string>
     <string name="rom_intro_definition">Una ROM de Android sin Google es un sistema operativo derivado de Android que puede usarse sin que los Servicios de Google Play propietarios y las apps de Google tengan acceso privilegiado al dispositivo.</string>
     <string name="rom_intro_approaches">Los proyectos siguen enfoques distintos: algunos eliminan por completo los componentes de Google, otros sustituyen partes de los Servicios de Google Play por microG y otros permiten instalar opcionalmente los Servicios de Google Play sin acceso privilegiado al sistema.</string>

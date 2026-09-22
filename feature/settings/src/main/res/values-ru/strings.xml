@@ -200,6 +200,7 @@
     <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
     <string name="de_googled_rom_link">ROM без Google</string>
     <string name="sign_in_rom_notice">После синхронизации ваши контакты сможет читать любое приложение с разрешением «Контакты». На стандартном Android это включает сервисы Google и производителя, которые нельзя удалить. Для приватной настройки используйте pcontacts на %1$s.</string>
+    <string name="sign_in_disclaimer">Не связано с Proton AG и не одобрено ею.</string>
     <string name="rom_screen_title">Android-прошивки без Google</string>
     <string name="rom_intro_definition">ROM без Google — это производная от Android операционная система, которой можно пользоваться без привилегированного доступа проприетарных сервисов Google Play и приложений Google к устройству.</string>
     <string name="rom_intro_approaches">Проекты идут разными путями: одни полностью убирают компоненты Google, другие заменяют часть сервисов Google Play на microG, третьи позволяют по желанию установить сервисы Google Play без привилегированного доступа к системе.</string>

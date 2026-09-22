@@ -33,6 +33,7 @@ class SignInScreenTest {
         assertTrue(signedIn)
         composeRule.onNodeWithText("de-Googled ROM", substring = true).assertDoesNotExist()
         composeRule.onNodeWithText("You were signed out", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Not affiliated with or endorsed by Proton AG.").assertIsDisplayed()
     }
 
     @Test
@@ -70,6 +71,7 @@ class SignInScreenTest {
             )
         }
         composeRule.onNodeWithText("de-Googled ROM", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Not affiliated with or endorsed by Proton AG.").assertIsDisplayed()
         composeRule.clickLink("de-Googled ROM")
         assertEquals(1, opened)
     }

@@ -77,16 +77,22 @@ fun SignInScreen(
             ) {
                 Text(stringResource(R.string.settings_sign_in))
             }
+            Spacer(Modifier.weight(1f))
             if (!contactsPermissionGranted) {
-                Spacer(Modifier.weight(1f))
                 LinkedText(
                     templateRes = R.string.sign_in_rom_notice,
                     phraseRes = R.string.de_googled_rom_link,
                     onClick = onOpenDeGoogledRoms,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
             }
+            Text(
+                text = stringResource(R.string.sign_in_disclaimer),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
