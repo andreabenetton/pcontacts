@@ -11,6 +11,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
@@ -39,7 +40,7 @@ import java.io.IOException
  * inferred from the Proton web client's challenge flow and has NOT
  * been validated against a live 9001 response — callers MUST handle
  * a null URL gracefully (fail-closed: show a manual-instructions
- * dialog instead of opening a Custom Tab).
+ * dialog instead of opening the in-app WebView of ADR-0019).
  *
  * `HumanVerificationRequiredException` extends `IOException` so
  * Retrofit propagates it from `Call.execute()` / suspend functions
@@ -100,6 +101,9 @@ class HumanVerificationInterceptor(
     }
 
     companion object {
+        /** `[U]` The verification host, inferred from the web client; the WebView allowlists exactly this host. */
+        const val VERIFICATION_HOST: String = "verify.proton.me"
+
         const val DEFAULT_MAX_PEEK_BYTES: Long = 8 * 1024
         const val HUMAN_VERIFICATION_CODE = 9001
         const val STALE_CAPTCHA_CODE = 12087
@@ -157,7 +161,14 @@ class HumanVerificationInterceptor(
                     try { it.jsonPrimitive.content } catch (_: Exception) { null }
                 } ?: return null
             if ("captcha" !in methods) return null
-            "https://verify.proton.me/?token=$token&methods=captcha"
+            // Built, not interpolated: the token is server-supplied and lands in a query value.
+            HttpUrl.Builder()
+                .scheme("https")
+                .host(VERIFICATION_HOST)
+                .addQueryParameter("token", token)
+                .addQueryParameter("methods", "captcha")
+                .build()
+                .toString()
         } catch (_: Exception) {
             null
         }

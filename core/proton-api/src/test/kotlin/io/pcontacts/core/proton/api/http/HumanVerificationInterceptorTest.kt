@@ -3,6 +3,7 @@
 
 package io.pcontacts.core.proton.api.http
 
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.mockwebserver.MockResponse
@@ -161,6 +162,18 @@ class HumanVerificationInterceptorTest {
         val result = HumanVerificationInterceptor.parseHvCode(body)
         assertNotNull(result)
         assertEquals("https://verify.proton.me/?token=tok42&methods=captcha", result!!.verificationUrl)
+    }
+
+    @Test fun parse9001_url_encodes_reserved_characters_in_token() {
+        val body = """{"Code":9001,"Details":{"HumanVerificationToken":"a b&methods=x#y","HumanVerificationMethods":["captcha"]}}"""
+
+        val url = HumanVerificationInterceptor.parseHvCode(body)!!.verificationUrl!!.toHttpUrl()
+
+        assertEquals("https", url.scheme)
+        assertEquals(HumanVerificationInterceptor.VERIFICATION_HOST, url.host)
+        assertEquals("a b&methods=x#y", url.queryParameter("token"))
+        assertEquals("captcha", url.queryParameter("methods"))
+        assertEquals(listOf("token", "methods"), url.queryParameterNames.toList())
     }
 
     @Test fun parse9001_with_empty_details_returns_null_url() {
