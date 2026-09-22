@@ -35,6 +35,7 @@ class ContactsAccessActivity : ComponentActivity() {
                         apps = apps,
                         permissionRoute = permissionPage.route(),
                         onOpenPermission = permissionPage::open,
+                        onOpenDeGoogledRoms = { startActivity(Intent(this, DeGoogledRomsActivity::class.java)) },
                         onBack = ::finish
                     )
                 }

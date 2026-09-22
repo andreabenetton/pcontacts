@@ -86,6 +86,12 @@
             android:exported="false"
             android:theme="@style/Theme.Pcontacts" />
 
+        <!-- What "de-Googled ROM" means; project sites open in the user's browser via ACTION_VIEW. -->
+        <activity
+            android:name=".settings.DeGoogledRomsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pcontacts" />
+
         <!-- ADR-0021: tap target for the per-email "Send via Proton
              Mail" chip rendered next to every Email row on a Proton
              contact. Exported true so Android's Contacts UI can

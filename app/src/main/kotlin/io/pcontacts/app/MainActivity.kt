@@ -43,6 +43,7 @@ import io.pcontacts.app.notifications.SyncNotifier
 import io.pcontacts.app.permissions.ContactsPermissionBanner
 import io.pcontacts.app.permissions.ContactsPermissionState
 import io.pcontacts.app.permissions.ContactsPermissionStatus
+import io.pcontacts.app.settings.DeGoogledRomsActivity
 import io.pcontacts.app.settings.SettingsHost
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
@@ -119,7 +120,9 @@ class MainActivity : ComponentActivity() {
                 } else {
                     SignInScreen(
                         loading = state is LauncherUiState.Loading,
+                        contactsPermissionGranted = contactsPermissionStatus == ContactsPermissionStatus.GRANTED,
                         onSignIn = ::launchLogin,
+                        onOpenDeGoogledRoms = { startActivity(Intent(this, DeGoogledRomsActivity::class.java)) },
                         snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } }
                     )
                 }
