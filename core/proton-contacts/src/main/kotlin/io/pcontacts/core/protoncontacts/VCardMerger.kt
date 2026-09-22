@@ -123,9 +123,11 @@ internal class VCardMerger(
             notes = notes,
             imAccounts = imAccounts,
             photo = photo,
+            serverPhotoHash = photo?.let { PhotoHash.of(it.data) },
             verified = unverified == 0,
             cardCount = sourceCards.size,
-            unverifiedCardCount = unverified
+            unverifiedCardCount = unverified,
+            cards = sourceCards
         )
     }
 

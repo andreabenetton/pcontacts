@@ -55,8 +55,18 @@ class DecryptedContactJsonTest {
     }
 
     @Test fun version_mismatch_decodes_to_null() {
-        val text = DecryptedContactJson.encode(contact).decodeToString().replaceFirst("\"v\":1", "\"v\":2")
+        val text = DecryptedContactJson.encode(contact).decodeToString().replaceFirst("\"v\":2", "\"v\":1")
 
         assertNull(DecryptedContactJson.decode(text.encodeToByteArray()))
+    }
+
+    @Test fun photo_digests_round_trip_without_the_bytes() {
+        val withDigests = contact.copy(serverPhotoHash = "ab".repeat(32), localPhotoHash = "cd".repeat(32))
+
+        val decoded = DecryptedContactJson.decode(DecryptedContactJson.encode(withDigests))
+
+        assertEquals("ab".repeat(32), decoded?.serverPhotoHash)
+        assertEquals("cd".repeat(32), decoded?.localPhotoHash)
+        assertNull(decoded?.photo)
     }
 }

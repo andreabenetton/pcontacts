@@ -34,8 +34,15 @@ import kotlinx.serialization.Transient
  *
  * Serializable so the sync engine can persist the last-known server
  * state as a merge base (ADR-0017 §3, sealed under the Keystore KEK
- * per ADR-0018). The photo never enters that blob: it is not a merge
- * input and would multiply the ciphertext size.
+ * per ADR-0018). Photo bytes never enter that blob; the photo takes
+ * part in the merge through two digests instead (ADR-0017 second
+ * amendment): [serverPhotoHash] is the digest of the server's bytes,
+ * [localPhotoHash] the digest of the bytes as the provider stored
+ * them (it re-encodes inline photos, so the two never agree).
+ *
+ * [cards] are the decrypted server cards this contact was projected
+ * from — the carrier an update is patched onto ([ContactSerializer]).
+ * Heap only, never serialised.
  */
 @Serializable
 data class DecryptedContact(
@@ -50,9 +57,12 @@ data class DecryptedContact(
     val notes: List<String> = emptyList(),
     val imAccounts: List<DecryptedIm> = emptyList(),
     @Transient val photo: DecryptedPhoto? = null,
+    val serverPhotoHash: String? = null,
+    val localPhotoHash: String? = null,
     val verified: Boolean,
     val cardCount: Int,
-    val unverifiedCardCount: Int
+    val unverifiedCardCount: Int,
+    @Transient val cards: List<DecryptedCard> = emptyList()
 ) {
     companion object {
         fun empty(protonContactId: String) = DecryptedContact(

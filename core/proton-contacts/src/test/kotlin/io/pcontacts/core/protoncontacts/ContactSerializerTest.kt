@@ -53,14 +53,13 @@ class ContactSerializerTest {
         assertNotNull(vcard.structuredName)
         assertEquals("Alice", vcard.structuredName.given)
         assertEquals("Smith", vcard.structuredName.family)
-        assertEquals(1, vcard.emails.size)
-        assertEquals("alice@proton.me", vcard.emails[0].value)
+        assertTrue(vcard.emails.isEmpty())
         assertEquals(1, vcard.telephoneNumbers.size)
         assertEquals("555-1234", vcard.telephoneNumbers[0].text)
         assertNull(vcard.formattedName)
     }
 
-    @Test fun signed_card_does_not_contain_email_or_tel() {
+    @Test fun signed_card_carries_email_as_proton_does_but_not_tel() {
         val contact = contact(
             fullName = "Bob",
             emails = listOf(DecryptedEmail("bob@proton.me", emptyList(), false)),
@@ -68,7 +67,7 @@ class ContactSerializerTest {
         )
         val cards = serializer.serialize(contact)
         val signed = Ezvcard.parse(cards[0].data).first()
-        assertTrue(signed.emails.isEmpty())
+        assertEquals(listOf("bob@proton.me"), signed.emails.map { it.value })
         assertTrue(signed.telephoneNumbers.isEmpty())
     }
 

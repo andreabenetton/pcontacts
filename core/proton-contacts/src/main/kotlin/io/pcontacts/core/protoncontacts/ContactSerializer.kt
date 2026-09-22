@@ -28,15 +28,19 @@ import java.net.URI
 import java.util.UUID
 
 /**
- * Inverse of [ContactDecrypter] + [VCardMerger]. Takes a
- * [DecryptedContact] and produces a list of [ContactCardDto] ready
- * for the Proton write API.
+ * Inverse of [ContactDecrypter] + [VCardMerger]: produces the
+ * [ContactCardDto]s for the Proton write API.
  *
- * Card topology follows ADR-0017 §2 (Choice 2B):
- *   - Card 1: SIGNED (type 2) — vCard with `FN`, `UID`, `VERSION`.
- *   - Card 2: ENCRYPTED_AND_SIGNED (type 3) — vCard with all other
- *     properties (`N`, `EMAIL`, `TEL`, `ADR`, `ORG`, `TITLE`,
- *     `NOTE`, `IMPP`, `PHOTO`).
+ * Two entry points (ADR-0017 §2):
+ *   - [serialize] `(contact)` — a **create** builds the cards from
+ *     scratch (Choice 2B): a SIGNED card with `FN`, `UID` and `EMAIL`
+ *     (where Proton's client keeps them, `[V]` WebClients
+ *     `packages/shared/lib/contacts/constants.ts`) and an
+ *     ENCRYPTED_AND_SIGNED card with everything else.
+ *   - [serialize] `(carrier, patch, fallbackUid)` — an **update**
+ *     patches the contact's current cards (Choice 2C, [CardPatcher]):
+ *     only the changed owned properties move; everything else on the
+ *     server's cards is written back untouched.
  *
  * The [encryptOp] seam is wired to `:core:crypto` in production and
  * to a pass-through lambda in tests.
@@ -46,6 +50,29 @@ class ContactSerializer(
     private val logger: Logger = RedactingLogger(tag = "ContactSerialize", sink = NoOpSink)
 ) {
 
+    /** Update: the carrier's cards with [patch] applied; a CLEAR_TEXT card is passed through unsigned. */
+    fun serialize(carrier: List<DecryptedCard>, patch: ContactPatch, fallbackUid: String): List<ContactCardDto> {
+        val patcher = CardPatcher(carrier, fallbackUid)
+        patcher.apply(patch)
+        return patcher.render().map { (type, text) ->
+            when (type) {
+                CardType.CLEAR_TEXT -> ContactCardDto(type = type.wireValue, data = text, signature = null)
+                CardType.SIGNED -> encryptOp(CardEncryptRequest.SignOnly(text)).let {
+                    ContactCardDto(type = type.wireValue, data = it.data, signature = it.signature)
+                }
+                CardType.ENCRYPTED, CardType.ENCRYPTED_AND_SIGNED ->
+                    encryptOp(CardEncryptRequest.EncryptAndSign(text)).let {
+                        ContactCardDto(
+                            type = CardType.ENCRYPTED_AND_SIGNED.wireValue,
+                            data = it.data,
+                            signature = it.signature
+                        )
+                    }
+            }
+        }
+    }
+
+    /** Create: cards built from scratch. */
     fun serialize(contact: DecryptedContact): List<ContactCardDto> {
         val signedVCard = buildSignedCard(contact)
         val encryptedVCard = buildEncryptedCard(contact)
@@ -82,9 +109,10 @@ class ContactSerializer(
         // UID reach us with a null protonUid, so fall back to a stable UID
         // derived from the contact id — deterministic, so repeated syncs of
         // the same contact don't churn its UID.
-        val uidValue = contact.protonUid?.takeIf { it.isNotBlank() }
-            ?: "urn:uuid:${UUID.nameUUIDFromBytes(contact.protonContactId.toByteArray())}"
-        vcard.uid = Uid(uidValue)
+        vcard.uid = Uid(contact.protonUid?.takeIf { it.isNotBlank() } ?: fallbackUid(contact.protonContactId))
+        // [V] Proton keeps EMAIL in the signed card; [A] the server derives
+        // ContactEmails (autocomplete, `contacts/emails`) from it.
+        contact.emails.forEach { e -> vcard.addEmail(buildEmail(e)) }
 
         return vcard
     }
@@ -93,7 +121,6 @@ class ContactSerializer(
         val vcard = VCard()
 
         buildStructuredName(contact)?.let { vcard.structuredName = it }
-        contact.emails.forEach { e -> vcard.addEmail(buildEmail(e)) }
         contact.phones.forEach { p -> vcard.addTelephoneNumber(buildPhone(p)) }
         contact.addresses.forEach { a -> vcard.addAddress(buildAddress(a)) }
         buildOrganization(contact.organization)?.let { vcard.addOrganization(it) }
@@ -184,4 +211,14 @@ class ContactSerializer(
 
     private fun writeVCard(vcard: VCard): String =
         Ezvcard.write(vcard).version(VCardVersion.V4_0).prodId(false).go().trimEnd()
+
+    companion object {
+        /**
+         * The UID a create mints for a contact that has none: stable per
+         * local id, so a retried create after a lost response can be
+         * recognised on the server by this value (ADR-0017 §5).
+         */
+        fun fallbackUid(protonContactId: String): String =
+            "urn:uuid:${UUID.nameUUIDFromBytes(protonContactId.toByteArray())}"
+    }
 }

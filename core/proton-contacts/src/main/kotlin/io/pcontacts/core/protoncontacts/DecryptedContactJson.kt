@@ -20,7 +20,8 @@ import kotlinx.serialization.json.Json
  */
 object DecryptedContactJson {
 
-    const val VERSION = 1
+    /** 2 since the photo digests joined the envelope (ADR-0018); a v1 blob reads as "no base". */
+    const val VERSION = 2
 
     @Serializable
     private data class Envelope(val v: Int, val contact: DecryptedContact)
