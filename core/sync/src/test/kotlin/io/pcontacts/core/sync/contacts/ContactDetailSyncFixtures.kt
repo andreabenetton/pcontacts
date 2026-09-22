@@ -26,6 +26,8 @@ import io.pcontacts.core.proton.api.labels.GetLabelsResponse
 import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
+import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.protoncontacts.DecryptedContactJson
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 
@@ -59,6 +61,10 @@ internal fun newEngine(
     dao: DetailFakeContactMapDao,
     applier: DetailFakeApplier,
     hasPendingDelete: suspend (String) -> Boolean = { false },
+    /** Like production, the base lands in the mapping row's column (unsealed here). */
+    saveMergeBase: suspend (String, DecryptedContact) -> Unit = { id, c ->
+        dao.setMergeBase(id, DecryptedContactJson.encode(c))
+    },
     onProgress: (Int, Int) -> Unit = { _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
@@ -76,6 +82,7 @@ internal fun newEngine(
         hasPendingDelete = hasPendingDelete,
         applyIntents = { acct, intents -> applier.apply(acct, intents) },
         onProgress = onProgress,
+        saveMergeBase = saveMergeBase,
         clock = { 1_700_000_000L }
     )
 }

@@ -11,6 +11,7 @@ import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.protoncontacts.CardCryptoOutcome
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
+import io.pcontacts.core.protoncontacts.DecryptedContactJson
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -151,6 +152,77 @@ class ContactDetailSyncEngineTest {
         assertEquals("hash matched — no ContactsContract write", 1, applier.applyCallCount)
         // Mapping's modifyTime got refreshed to 200 even though we skipped the write.
         assertEquals(200L, dao.snapshot()["c1"]!!.modifyTime)
+    }
+
+    @Test fun pull_captures_the_merge_base_after_a_write() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
+            contacts = mapOf(
+                "c1" to contact("c1", 100L, """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice
+                    EMAIL:alice@proton.me
+                    END:VCARD
+                """.trimIndent())
+            )
+        )
+        val dao = DetailFakeContactMapDao()
+        val engine = newEngine(api, dao, DetailFakeApplier(base = 1L))
+
+        engine.sync(account)
+
+        val base = DecryptedContactJson.decode(dao.snapshot()["c1"]!!.lastKnownServerPayload!!)!!
+        assertEquals("Alice", base.fullName)
+        assertEquals(listOf("alice@proton.me"), base.emails.map { it.address })
+    }
+
+    @Test fun pull_captures_the_merge_base_on_the_hash_equal_path_too() = runTest {
+        val sameVCard = """
+            BEGIN:VCARD
+            VERSION:4.0
+            FN:Alice
+            EMAIL:alice@proton.me
+            END:VCARD
+        """.trimIndent()
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L)), metaPage(meta("c1", 200L))),
+            contacts = mapOf("c1" to contact("c1", 100L, sameVCard)),
+            secondRoundContacts = mapOf("c1" to contact("c1", 200L, sameVCard))
+        )
+        val dao = DetailFakeContactMapDao()
+        val captured = ArrayList<String>()
+        val engine = newEngine(api, dao, DetailFakeApplier(base = 1L), saveMergeBase = { id, _ -> captured += id })
+
+        engine.sync(account)
+        engine.sync(account)
+
+        assertEquals(listOf("c1", "c1"), captured)
+    }
+
+    @Test fun pull_refetches_a_contact_without_a_base_even_when_modifyTime_is_unchanged() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L)), metaPage(meta("c1", 100L))),
+            contacts = mapOf(
+                "c1" to contact("c1", 100L, """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice
+                    EMAIL:alice@proton.me
+                    END:VCARD
+                """.trimIndent())
+            ),
+            repeatContacts = true
+        )
+        val dao = DetailFakeContactMapDao()
+        // A pre-v3 install: the mapping exists but no base was ever stored.
+        val engine = newEngine(api, dao, DetailFakeApplier(base = 1L), saveMergeBase = { _, _ -> })
+        engine.sync(account)
+        val firstFetchCount = api.getContactCallCount
+
+        engine.sync(account)
+
+        assertEquals("no cheap-skip without a base", firstFetchCount + 1, api.getContactCallCount)
     }
 
     @Test fun content_change_triggers_update_with_same_rawContactId() = runTest {

@@ -19,6 +19,7 @@ import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.proton.api.labels.LabelType
 import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.protoncontacts.ContactProcessor
+import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import kotlinx.coroutines.flow.toList
@@ -90,6 +91,12 @@ class ContactDetailSyncEngine(
      * end of the per-contact pass, so a UI can show "120 of 898".
      */
     private val onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    /**
+     * Records the server state just written locally as the contact's
+     * merge base (ADR-0017 §3); the write engine merges against it.
+     * Called after the mapping row is upserted, never before.
+     */
+    private val saveMergeBase: suspend (protonContactId: String, DecryptedContact) -> Unit = { _, _ -> },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
@@ -183,15 +190,19 @@ class ContactDetailSyncEngine(
                 stored?.contentHash?.startsWith(EmailSyncHash.FORMAT_PREFIX) == true
             val serverUnchanged = serverModifyTime > 0L && stored != null &&
                 stored.modifyTime >= serverModifyTime
-            if (serverUnchanged && storedFormatCurrent && liveRawId != null) {
+            val baseKnown = stored?.lastKnownServerPayload != null
+            val skipEligible = serverUnchanged && storedFormatCurrent && baseKnown
+            if (skipEligible && liveRawId != null) {
                 // Cheap-skip: server says unchanged AND the stored hash
-                // is in the current writer format AND the provider still
-                // holds the row. If the hash format has rolled (Phase 12
-                // hash bump for the chip row), we fall through to
-                // fetch+rewrite even when the server ModifyTime hasn't
-                // advanced — otherwise the one-shot migration never
-                // lands. If the row vanished (external app deleted it),
-                // we fall through so the contact is recreated.
+                // is in the current writer format AND the merge base is
+                // stored AND the provider still holds the row. If the
+                // hash format has rolled (Phase 12 hash bump for the chip
+                // row) or the base is missing (first pull after the v3
+                // upgrade), we fall through to fetch+rewrite even when
+                // the server ModifyTime hasn't advanced — otherwise the
+                // one-shot migration never lands. If the row vanished
+                // (external app deleted it), we fall through so the
+                // contact is recreated.
                 modifyTimeSkips += 1
                 contactMapDao.upsert(repairMapping(stored, liveRawId).copy(lastSyncedAt = now))
                 continue
@@ -238,7 +249,8 @@ class ContactDetailSyncEngine(
                 modifyTime = response.contact.modifyTime,
                 verified = decrypted.verified,
                 protonUid = decrypted.protonUid,
-                hash = newHash
+                hash = newHash,
+                decrypted = decrypted
             )
             perContactMeta[sourceId] = meta
 
@@ -258,6 +270,7 @@ class ContactDetailSyncEngine(
                         lastSyncedAt = now
                     )
                 )
+                saveMergeBase(sourceId, decrypted)
                 continue
             }
 
@@ -316,6 +329,7 @@ class ContactDetailSyncEngine(
                     lastSyncedAt = now
                 )
             )
+            saveMergeBase(row.sourceId, meta.decrypted)
         }
         for (intent in intents.filterIsInstance<RawContactOpIntent.DeleteContact>()) {
             contactMapDao.deleteByProtonId(intent.sourceId)
@@ -360,7 +374,9 @@ class ContactDetailSyncEngine(
         val modifyTime: Long,
         val verified: Boolean,
         val protonUid: String?,
-        val hash: String
+        val hash: String,
+        /** Heap only, same lifetime as the target row; becomes the sealed merge base after the write. */
+        val decrypted: DecryptedContact
     )
 }
 

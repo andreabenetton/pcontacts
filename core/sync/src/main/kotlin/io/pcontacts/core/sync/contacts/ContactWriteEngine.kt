@@ -20,10 +20,14 @@ import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.storage.InMemoryMergeBaseStore
+import io.pcontacts.core.storage.MergeBaseStore
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
+import io.pcontacts.core.storage.db.dao.OutboxEnqueue
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -40,33 +44,38 @@ import kotlin.math.min
  * SyncAdapter **before** the pull engine (push-before-pull per
  * ADR-0017 §7B).
  *
- * Concurrency is bounded by a [Semaphore] with [MAX_CONCURRENT_PUSHES]
- * permits (ADR-0017 §4A). Each entry is processed independently; one
- * failure does not abort the run.
+ * Every UPDATE is a three-way merge (ADR-0017 §3, as amended): the
+ * persisted server state in [mergeBases], the server-current contact
+ * and the local row. No base, no server state, or a same-field
+ * conflict all end as a user-visible CONFLICT on the mapping — never a
+ * merge against an empty base and never a local-wins push. A
+ * FORCE_UPDATE (the user chose the phone version) skips the merge.
+ *
+ * The outbox holds one live row per contact; [push] still groups by
+ * contact and runs at most one row per contact, with groups bounded by
+ * a [Semaphore] of [MAX_CONCURRENT_PUSHES] permits (ADR-0017 §4A). One
+ * failure does not abort the run. After a push the local row is read
+ * again: if it changed meanwhile, the change is re-queued (§5).
  *
  * Error classification:
  *   - Transient (5xx, 429, [IOException]) → [OutboxDao.recordFailure]
  *     with exponential backoff.
  *   - Permanent (4xx except 429) → [OutboxDao.quarantine].
- *
- * The [readLocalContact] seam is wired by Stage 3 to
- * `RawContactDataReader` + [RowToDecryptedContact]; until then it
- * returns null (quarantining the entry) which is safe because the
- * outbox is empty until Stage 3 populates it.
  */
 // Many injectable seams by design (readers, writers, API, clock, logger)
 // so the whole engine stays pure-JVM testable; the count is structural.
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 class ContactWriteEngine(
     private val contactsApi: ProtonContactsApi,
     private val serializer: ContactSerializer,
     private val outboxDao: OutboxDao,
     private val contactMapDao: ContactMapDao,
-    private val readLocalContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
+    private val mergeBases: MergeBaseStore = InMemoryMergeBaseStore(),
     private val readDirtyContacts: suspend (Account) -> List<DirtyContact> = { emptyList() },
     private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
+    /** Server-current contact; throws on transport failure (handled like any push failure), null if there is none. */
     private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
@@ -74,10 +83,10 @@ class ContactWriteEngine(
 
     /**
      * Scans for locally-modified contacts (DIRTY=1 or DELETED=1) and
-     * populates the outbox with corresponding CREATE / UPDATE / DELETE
-     * entries. Called before [push] in each sync run (ADR-0017 §1C).
+     * coalesces each into the outbox (ADR-0017 §1C). Called before
+     * [push] in each sync run.
      *
-     * Returns the number of outbox entries created.
+     * Returns the number of contacts whose change entered the queue.
      */
     suspend fun detectChanges(account: Account): Int {
         val dirty = readDirtyContacts(account)
@@ -86,7 +95,7 @@ class ContactWriteEngine(
 
         var enqueued = 0
         for (dc in dirty) {
-            val result = enqueueChange(account, dc)
+            val result = enqueueChange(dc)
             logger.info { "detectChanges: rawId=${dc.rawContactId} sourceId=${dc.sourceId} deleted=${dc.isDeleted} result=$result" }
             when (result) {
                 EnqueueResult.ENQUEUED -> {
@@ -102,77 +111,41 @@ class ContactWriteEngine(
 
     private enum class EnqueueResult { ENQUEUED, SKIPPED, FAILED }
 
-    private suspend fun enqueueChange(account: Account, dc: DirtyContact): EnqueueResult {
+    private suspend fun enqueueChange(dc: DirtyContact): EnqueueResult {
+        val now = clock()
         if (dc.isDeleted) {
-            val protonId = dc.sourceId ?: return EnqueueResult.SKIPPED
-            if (outboxDao.findByContact(protonId).any { !it.quarantined && it.opType == OutboxEntity.OpType.DELETE }) {
+            val protonId = dc.sourceId
+            if (protonId == null) {
+                // Never reached Proton: whatever CREATE is queued has nothing to create any more.
+                outboxDao.findLive("$LOCAL_ID_PREFIX${dc.rawContactId}")?.let { outboxDao.deleteById(it.id) }
                 return EnqueueResult.SKIPPED
             }
-            outboxDao.insert(
-                OutboxEntity(
-                    protonContactId = protonId,
-                    opType = OutboxEntity.OpType.DELETE,
-                    payloadHash = "",
-                    createdAt = clock()
-                )
-            )
-            return EnqueueResult.ENQUEUED
+            return outboxDao.enqueue(protonId, OutboxEntity.OpType.DELETE, "", now).toResult()
         }
 
         val isCreate = dc.sourceId == null
-        if (isCreate) {
-            val localId = "$LOCAL_ID_PREFIX${dc.rawContactId}"
-            val row = readContactRow(dc.rawContactId, localId) ?: return EnqueueResult.FAILED
-            val hash = EmailSyncHash.compute(row)
-            outboxDao.insert(
-                OutboxEntity(
-                    protonContactId = localId,
-                    opType = OutboxEntity.OpType.CREATE,
-                    payloadHash = hash,
-                    createdAt = clock()
-                )
-            )
-            return EnqueueResult.ENQUEUED
-        }
-
-        val protonId = dc.sourceId!!
-
-        // Cancel pending DELETE if the contact is now dirty (re-edited
-        // during grace period) — ADR-0017 §6A.
-        val pendingDeletes = outboxDao.findByContact(protonId)
-            .filter { it.opType == OutboxEntity.OpType.DELETE }
-        for (del in pendingDeletes) {
-            outboxDao.deleteById(del.id)
-        }
-
+        val protonId = dc.sourceId ?: "$LOCAL_ID_PREFIX${dc.rawContactId}"
         val row = readContactRow(dc.rawContactId, protonId)
         if (row == null) {
             logger.warn { "enqueue: readContactRow returned null for rawId=${dc.rawContactId}" }
             return EnqueueResult.FAILED
         }
         val hash = EmailSyncHash.compute(row)
-        val mapping = contactMapDao.findByProtonId(protonId)
-        if (mapping != null && mapping.contentHash == hash) {
-            logger.info { "enqueue: hash unchanged, skipping (stored=${mapping.contentHash.take(8)})" }
-            return EnqueueResult.SKIPPED
-        }
-        logger.info { "enqueue: hash differs stored=${mapping?.contentHash?.take(8)} new=${hash.take(8)}" }
-        if (outboxDao.findByContact(protonId).any {
-                !it.quarantined && it.opType == OutboxEntity.OpType.UPDATE && it.payloadHash == hash
+        if (!isCreate) {
+            val mapping = contactMapDao.findByProtonId(protonId)
+            if (mapping != null && mapping.contentHash == hash) {
+                logger.info { "enqueue: hash unchanged, skipping (stored=${mapping.contentHash.take(8)})" }
+                return EnqueueResult.SKIPPED
             }
-        ) {
-            logger.info { "enqueue: dedup match in outbox, skipping" }
-            return EnqueueResult.SKIPPED
+            logger.info { "enqueue: hash differs stored=${mapping?.contentHash?.take(8)} new=${hash.take(8)}" }
         }
-        outboxDao.insert(
-            OutboxEntity(
-                protonContactId = protonId,
-                opType = OutboxEntity.OpType.UPDATE,
-                payloadHash = hash,
-                createdAt = clock()
-            )
-        )
-        return EnqueueResult.ENQUEUED
+        val op = if (isCreate) OutboxEntity.OpType.CREATE else OutboxEntity.OpType.UPDATE
+        return outboxDao.enqueue(protonId, op, hash, now).toResult()
+    }
+
+    private fun OutboxEnqueue.toResult(): EnqueueResult = when (this) {
+        OutboxEnqueue.INSERTED, OutboxEnqueue.REPLACED -> EnqueueResult.ENQUEUED
+        OutboxEnqueue.UNCHANGED, OutboxEnqueue.DROPPED -> EnqueueResult.SKIPPED
     }
 
     /**
@@ -186,9 +159,16 @@ class ContactWriteEngine(
         logger.info { "push: ${ready.size} entries ready" }
         if (ready.isEmpty()) return WriteReport.EMPTY
 
+        // One row per contact: the newest wins, older live duplicates (pre-v3 rows) go.
+        val survivors = ready.groupBy { it.protonContactId }.values.map { group ->
+            val newest = group.maxBy { it.id }
+            group.filter { it.id != newest.id }.forEach { outboxDao.deleteById(it.id) }
+            newest
+        }
+
         val semaphore = Semaphore(MAX_CONCURRENT_PUSHES)
         val results = coroutineScope {
-            ready.map { entry ->
+            survivors.map { entry ->
                 async { semaphore.withPermit { pushEntry(entry, account) } }
             }.awaitAll()
         }
@@ -198,7 +178,7 @@ class ContactWriteEngine(
 
     private suspend fun pushEntry(entry: OutboxEntity, account: Account?): WriteReport = when (entry.opType) {
         OutboxEntity.OpType.DELETE -> pushDelete(entry)
-        OutboxEntity.OpType.UPDATE -> pushUpdate(entry)
+        OutboxEntity.OpType.UPDATE, OutboxEntity.OpType.FORCE_UPDATE -> pushUpdate(entry)
         OutboxEntity.OpType.CREATE -> pushCreate(entry, account)
         else -> {
             logger.warn { "unknown outbox op_type=${entry.opType}, quarantining" }
@@ -228,61 +208,32 @@ class ContactWriteEngine(
     }
 
     private suspend fun pushUpdate(entry: OutboxEntity): WriteReport {
-        val localContact = readLocalContact(entry.protonContactId)
-        if (localContact == null) {
+        val id = entry.protonContactId
+        val mapping = contactMapDao.findByProtonId(id)
+        val row = mapping?.let { readContactRow(it.androidRawContactId, id) }
+        if (mapping == null || row == null) {
             logger.warn { "pushUpdate: contact not found locally, quarantining id=${entry.id}" }
             outboxDao.quarantine(entry.id, "contact not found locally")
             return WriteReport(quarantined = 1)
         }
-
-        val existing = contactMapDao.findByProtonId(entry.protonContactId)
-
-        var contactToSerialize = localContact
-
-        // Three-way merge (ADR-0017 §3B): if we have a stored hash,
-        // fetch the server-current and run ThreeWayMerger. Without a
-        // stored base snapshot, we use DecryptedContact.empty() as the
-        // base — this gives set-based merge semantics where disjoint
-        // additions (e.g., server added an email, local added a phone)
-        // auto-merge instead of conflicting.
-        if (existing?.lastKnownServerPayloadHash != null) {
-            val serverContact = fetchServerContact(entry.protonContactId)
-            if (serverContact != null) {
-                val base = DecryptedContact.empty(entry.protonContactId)
-                val result = ThreeWayMerger.merge(
-                    ThreeWayMerger.MergeInput(base, serverContact, localContact)
-                )
-                when (result) {
-                    is ThreeWayMerger.MergeResult.AutoMerged -> {
-                        contactToSerialize = result.merged
-                    }
-                    is ThreeWayMerger.MergeResult.Conflicted -> {
-                        contactMapDao.upsert(
-                            existing.copy(
-                                syncStatus = ContactMapEntity.Status.CONFLICT,
-                                lastError = "conflict: ${result.conflicts.joinToString { it.fieldName }}"
-                            )
-                        )
-                        return WriteReport(conflicted = 1)
-                    }
-                }
-            }
-        }
+        val pushedHash = EmailSyncHash.compute(row)
+        val local = RowToDecryptedContact.convert(row, id, mapping.protonUid)
 
         return try {
-            val cards = serializer.serialize(contactToSerialize)
-            contactsApi.updateContact(entry.protonContactId, UpdateContactRequest(cards = cards))
-            if (existing != null) {
-                contactMapDao.upsert(
-                    existing.copy(
-                        syncStatus = ContactMapEntity.Status.CLEAN,
-                        lastKnownServerPayloadHash = entry.payloadHash,
-                        lastSyncedAt = clock()
-                    )
-                )
+            val payload = if (entry.opType == OutboxEntity.OpType.FORCE_UPDATE) local else mergeForPush(entry, local)
+            if (payload == null) {
+                WriteReport(conflicted = 1)
+            } else {
+                val cards = serializer.serialize(payload)
+                contactsApi.updateContact(id, UpdateContactRequest(cards = cards))
+                // [A] Proton stores exactly the cards it accepted, so the payload is the
+                // server state until the next pull re-captures it. Column updates only:
+                // an upsert here would overwrite the sealed base.
+                MergeBaseCodec.save(mergeBases, id, payload)
+                contactMapDao.markClean(id, clock())
+                completeEntry(entry, mapping.androidRawContactId, pushedHash)
+                WriteReport(pushed = 1, updated = 1)
             }
-            outboxDao.deleteById(entry.id)
-            WriteReport(pushed = 1, updated = 1)
         } catch (e: HumanVerificationRequiredException) {
             throw e
         } catch (e: Exception) {
@@ -291,54 +242,87 @@ class ContactWriteEngine(
         }
     }
 
+    /**
+     * The three-way merge, or null when the contact is now a conflict:
+     * the mapping carries the reason and the outbox row is gone, so the
+     * user's decision (ConflictResolver) is what happens next.
+     */
+    private suspend fun mergeForPush(entry: OutboxEntity, local: DecryptedContact): DecryptedContact? {
+        val id = entry.protonContactId
+        val base = MergeBaseCodec.load(mergeBases, id) ?: return markConflict(entry, "no merge base")
+        val server = fetchServerContact(id)?.let(MergeBaseCodec::canonical)
+            ?: return markConflict(entry, "server state unavailable")
+        return when (val result = ThreeWayMerger.merge(ThreeWayMerger.MergeInput(base, server, local))) {
+            is ThreeWayMerger.MergeResult.AutoMerged -> result.merged
+            is ThreeWayMerger.MergeResult.Conflicted ->
+                markConflict(entry, result.conflicts.joinToString { it.fieldName })
+        }
+    }
+
+    private suspend fun markConflict(entry: OutboxEntity, reason: String): DecryptedContact? {
+        contactMapDao.markConflict(entry.protonContactId, "conflict: $reason")
+        outboxDao.deleteIfUnchanged(entry.id, entry.opType, entry.payloadHash)
+        logger.warn { "pushUpdate: conflict ($reason) idTag=${entry.protonContactId.hashCode()}" }
+        return null
+    }
+
+    /**
+     * ADR-0017 §5: the row is done only if it still describes what was
+     * pushed; if the contact changed meanwhile, the new state is queued.
+     */
+    private suspend fun completeEntry(entry: OutboxEntity, rawContactId: Long, pushedHash: String) {
+        outboxDao.deleteIfUnchanged(entry.id, entry.opType, entry.payloadHash)
+        val nowHash = readContactRow(rawContactId, entry.protonContactId)?.let(EmailSyncHash::compute)
+        if (nowHash != null && nowHash != pushedHash) {
+            logger.info { "push: contact changed during push, re-queued idTag=${entry.protonContactId.hashCode()}" }
+            outboxDao.enqueue(entry.protonContactId, OutboxEntity.OpType.UPDATE, nowHash, clock())
+        }
+    }
+
     private suspend fun pushCreate(entry: OutboxEntity, account: Account?): WriteReport {
-        val contact = readLocalContact(entry.protonContactId)
-        if (contact == null) {
+        val localId = entry.protonContactId
+        val rawContactId = resolveRawContactId(localId, contactMapDao)
+        val row = rawContactId?.let { readContactRow(it, localId) }
+        if (rawContactId == null || row == null) {
             outboxDao.quarantine(entry.id, "contact not found locally")
             return WriteReport(quarantined = 1)
         }
+        val pushedHash = EmailSyncHash.compute(row)
+        // A CREATE has no stored UID — the serializer mints one.
+        val contact = RowToDecryptedContact.convert(row, localId, null)
         return try {
             val cards = serializer.serialize(contact)
             val response = contactsApi.createContacts(
                 CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards)))
             )
             val serverContact = response.responses.firstOrNull()?.response?.contact
-            val existing = contactMapDao.findByProtonId(entry.protonContactId)
+            val existing = contactMapDao.findByProtonId(localId)
             if (existing != null && serverContact != null) {
-                contactMapDao.deleteByProtonId(entry.protonContactId)
+                contactMapDao.deleteByProtonId(localId)
                 contactMapDao.upsert(
                     existing.copy(
                         protonContactId = serverContact.id,
                         protonUid = serverContact.uid,
                         syncStatus = ContactMapEntity.Status.CLEAN,
-                        lastKnownServerPayloadHash = entry.payloadHash,
                         lastSyncedAt = clock()
                     )
                 )
             }
-            if (serverContact != null && account != null) {
-                writeCreatedSourceId(account, entry.protonContactId, serverContact.id)
+            if (serverContact != null) {
+                MergeBaseCodec.save(mergeBases, serverContact.id, contact)
+                if (account != null) writeSourceId(account, rawContactId, serverContact.id)
             }
-            outboxDao.deleteByContact(entry.protonContactId)
+            outboxDao.deleteByContact(localId)
+            val nowHash = readContactRow(rawContactId, localId)?.let(EmailSyncHash::compute)
+            if (serverContact != null && nowHash != null && nowHash != pushedHash) {
+                outboxDao.enqueue(serverContact.id, OutboxEntity.OpType.UPDATE, nowHash, clock())
+            }
             WriteReport(pushed = 1, created = 1)
         } catch (e: HumanVerificationRequiredException) {
             throw e
         } catch (e: Exception) {
             handleFailure(entry, e)
         }
-    }
-
-    /**
-     * Stamp the server-assigned id onto the just-created local RawContact
-     * so the following pull matches it by SOURCE_ID instead of inserting a
-     * second, orphaned copy. Only a `local-<rawId>` placeholder carries the
-     * raw contact id; a malformed one is skipped (the pull's duplicate
-     * reconciliation is the backstop).
-     */
-    private suspend fun writeCreatedSourceId(account: Account, protonContactId: String, sourceId: String) {
-        if (!protonContactId.startsWith(LOCAL_ID_PREFIX)) return
-        val rawContactId = protonContactId.removePrefix(LOCAL_ID_PREFIX).toLongOrNull() ?: return
-        writeSourceId(account, rawContactId, sourceId)
     }
 
     private suspend fun handleFailure(entry: OutboxEntity, e: Exception): WriteReport {

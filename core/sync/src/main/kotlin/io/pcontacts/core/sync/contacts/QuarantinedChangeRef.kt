@@ -82,7 +82,7 @@ internal suspend fun resolveRawContactId(
 
 private fun Int.toChangeOp(): ChangeOp? = when (this) {
     OutboxEntity.OpType.CREATE -> ChangeOp.CREATE
-    OutboxEntity.OpType.UPDATE -> ChangeOp.UPDATE
+    OutboxEntity.OpType.UPDATE, OutboxEntity.OpType.FORCE_UPDATE -> ChangeOp.UPDATE
     OutboxEntity.OpType.DELETE -> ChangeOp.DELETE
     else -> null
 }

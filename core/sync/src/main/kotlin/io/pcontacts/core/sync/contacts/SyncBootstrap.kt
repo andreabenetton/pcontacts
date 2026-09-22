@@ -25,6 +25,8 @@ import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.storage.EncryptedSecretStore
+import io.pcontacts.core.storage.KeystoreMergeBaseStore
+import io.pcontacts.core.storage.MergeBaseStore
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.PcontactsDatabase
@@ -35,6 +37,7 @@ import io.pcontacts.core.sync.contacts.decrypt.ContactDecryptBootstrap
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
 import io.pcontacts.core.sync.contacts.decrypt.OpenPgpCardCryptoOp
 import io.pcontacts.core.sync.contacts.encrypt.ContactEncryptBootstrap
+import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -65,6 +68,8 @@ import kotlinx.coroutines.withContext
  *     [ContactDetailSyncEngine] (pull) sharing the same session and
  *     key material (ADR-0017 §7B).
  */
+// The composition root wires every engine; each entry point is one screen's or one run's wiring.
+@Suppress("TooManyFunctions")
 object SyncBootstrap {
 
     suspend fun countVerificationStats(context: Context): Pair<Int, Int> {
@@ -218,6 +223,7 @@ object SyncBootstrap {
         val reader = RawContactReader(provider)
         val applier = BatchApplier(provider)
         val groupsWriter = LocalGroupsWriter(provider)
+        val mergeBases = KeystoreMergeBaseStore(db.contactMapDao())
         return ContactDetailSyncEngine(
             metadataPager = metadataPager,
             contactsApi = apis.contacts,
@@ -230,7 +236,8 @@ object SyncBootstrap {
             reconcileGroups = { account, labels ->
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
             },
-            onProgress = progressSink(context)
+            onProgress = progressSink(context),
+            saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) }
         )
     }
 
@@ -295,6 +302,7 @@ object SyncBootstrap {
         val reader = RawContactReader(provider)
         val applier = BatchApplier(provider)
         val groupsWriter = LocalGroupsWriter(provider)
+        val mergeBases = KeystoreMergeBaseStore(db.contactMapDao(), logger = logger)
 
         val readEngine = ContactDetailSyncEngine(
             metadataPager = metadataPager,
@@ -309,13 +317,14 @@ object SyncBootstrap {
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
             },
             onProgress = progressSink(context),
+            saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
             // Same production logger as the write engine — the pull path was
             // previously wired to NoOpSink, so read-path failures (fetch /
             // decrypt / parse) were invisible in production logs.
             logger = logger
         )
 
-        val writeEngine = buildWriteEngine(apis, db, provider, processor, serializer, logger)
+        val writeEngine = buildWriteEngine(apis, db, provider, processor, serializer, mergeBases, logger)
         return writeEngine to readEngine
     }
 
@@ -325,6 +334,7 @@ object SyncBootstrap {
         provider: ContentProviderClient,
         processor: ContactProcessor,
         serializer: ContactSerializer,
+        mergeBases: MergeBaseStore,
         logger: Logger
     ): ContactWriteEngine {
         val dirtyReader = DirtyContactReader(provider)
@@ -337,21 +347,7 @@ object SyncBootstrap {
             outboxDao = db.outboxDao(),
             contactMapDao = db.contactMapDao(),
             logger = logger,
-            readLocalContact = { protonContactId ->
-                // A CREATE carries the synthetic "local-<rawId>" id and has no
-                // contact-map row yet, so its Android raw contact resolves from
-                // the encoded id (shared with the quarantine view's decode); a
-                // real Proton id resolves through the map, which also supplies
-                // the UID. A CREATE has no stored UID — the serializer mints one.
-                val rawContactId = resolveRawContactId(protonContactId, db.contactMapDao())
-                if (rawContactId != null) {
-                    val protonUid = db.contactMapDao().findByProtonId(protonContactId)?.protonUid
-                    val row = withContext(Dispatchers.IO) {
-                        dataReader.read(rawContactId, protonContactId)
-                    }
-                    row?.let { RowToDecryptedContact.convert(it, protonContactId, protonUid) }
-                } else null
-            },
+            mergeBases = mergeBases,
             readDirtyContacts = { account ->
                 withContext(Dispatchers.IO) { dirtyReader.readDirty(account) }
             },
@@ -364,15 +360,17 @@ object SyncBootstrap {
             writeSourceId = { account, rawContactId, sourceId ->
                 withContext(Dispatchers.IO) { sourceIdWriter.writeSourceId(account, rawContactId, sourceId) }
             },
+            // Failures propagate: the engine backs off or quarantines, never local-wins.
             fetchServerContact = { protonContactId ->
-                try {
-                    val response = apis.contacts.getContact(protonContactId)
-                    processor.process(response.contact)
-                } catch (_: Exception) {
-                    null
-                }
+                processor.process(apis.contacts.getContact(protonContactId).contact)
             }
         )
+    }
+
+    /** The user's answer to a conflict row (Settings): phone version or Proton version. */
+    suspend fun resolveConflict(context: Context, protonContactId: String, useLocal: Boolean) {
+        val db = DatabaseFactory.create(context.applicationContext)
+        resolveConflict(db.contactMapDao(), db.outboxDao(), protonContactId, useLocal, System.currentTimeMillis())
     }
 }
 
