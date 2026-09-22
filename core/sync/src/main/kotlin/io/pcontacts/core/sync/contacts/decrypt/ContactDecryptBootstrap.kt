@@ -9,6 +9,7 @@ import io.pcontacts.core.crypto.openpgp.OpenPgpService
 import io.pcontacts.core.crypto.openpgp.PgpPrivateKeyHandle
 import io.pcontacts.core.crypto.openpgp.PgpPublicKeyHandle
 import io.pcontacts.core.crypto.openpgp.UnlockedKey
+import io.pcontacts.core.crypto.openpgp.VerificationStatus
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
@@ -126,7 +127,7 @@ object ContactDecryptBootstrap {
             val unlockedAddressKeys = mutableListOf<UnlockedKey>()
             var skipped = 0
             for (ak in activeAddressKeys) {
-                val result = tryUnlockAddressKey(ak, primaryUnlocked, openPgp, keyPasswordBytes, logger)
+                val result = tryUnlockAddressKey(ak, allUserUnlocked, openPgp, keyPasswordBytes, logger)
                 if (result != null) unlockedAddressKeys += result else skipped += 1
             }
 
@@ -177,8 +178,12 @@ object ContactDecryptBootstrap {
      *
      *   - **Modern**: `Token` is a PGP message encrypted to the user's
      *     primary public; decrypting it yields the address-key
-     *     passphrase. [V] WebClients `getDecryptedAddressKeys.ts`.
-     *     Token signature verification deferred per ADR-0020 [D].
+     *     passphrase, accepted only when `Signature` verifies under the
+     *     user's keys. [V] WebClients `addressKeys.ts`
+     *     (`decryptAddressKeyToken` requires SIGNED_AND_VALID); ADR-0020
+     *     amendment. A key whose Token is unsigned or wrongly signed is
+     *     skipped: it joins neither the decryption nor the verification
+     *     key set.
      *   - **Legacy v1**: `Token == null`; the address key was created
      *     before key-transparency and unlocks with the user
      *     `keyPassword` directly. [V] same WebClients file's
@@ -186,7 +191,7 @@ object ContactDecryptBootstrap {
      */
     private fun tryUnlockAddressKey(
         ak: AddressKeyDto,
-        primaryUnlocked: UnlockedKey,
+        userKeys: List<UnlockedKey>,
         openPgp: OpenPgpService,
         userKeyPasswordBytes: ByteArray,
         logger: Logger
@@ -195,7 +200,7 @@ object ContactDecryptBootstrap {
         return if (token == null) {
             unlockLegacyV1(ak, userKeyPasswordBytes, logger)
         } else {
-            unlockModern(ak, token, primaryUnlocked, openPgp, logger)
+            unlockModern(ak, token, userKeys, openPgp, logger)
         }
     }
 
@@ -215,22 +220,44 @@ object ContactDecryptBootstrap {
         }
     }
 
+    // Four returns: no signature, undecryptable token, failed verification, unlock.
+    @Suppress("ReturnCount")
     private fun unlockModern(
         ak: AddressKeyDto,
         token: String,
-        primaryUnlocked: UnlockedKey,
+        userKeys: List<UnlockedKey>,
         openPgp: OpenPgpService,
         logger: Logger
     ): UnlockedKey? {
+        val signature = ak.signature
+        if (signature == null) {
+            logger.warn { "skipped address key ${ak.id}: token has no signature" }
+            return null
+        }
         val tokenPlaintext = try {
             openPgp.decryptAndVerify(
                 armoredMessage = token,
                 detachedSignature = null,
-                decryptionKeys = primaryUnlocked.allPrivateKeys,
+                decryptionKeys = userKeys.flatMap { it.allPrivateKeys },
                 verificationKeys = emptyList()
             ).plaintext
         } catch (t: Throwable) {
             logger.warn(t) { "skipped address key ${ak.id}: token decrypt failed (${t.javaClass.simpleName})" }
+            return null
+        }
+        // [U] Proton signs the Token as a detached signature over the token
+        // text; a hex token has no line endings, so text and binary
+        // canonicalisation agree. Anything but SIGNED_AND_VALID fails closed.
+        val status = openPgp.verifyDetached(
+            plaintext = tokenPlaintext,
+            armoredSignature = signature,
+            verificationKeys = userKeys.map { it.public },
+            canonicalText = false,
+            stripTrailingSpaces = false
+        )
+        if (status != VerificationStatus.SIGNED_AND_VALID) {
+            tokenPlaintext.fill(0)
+            logger.warn { "skipped address key ${ak.id}: token signature $status" }
             return null
         }
 
