@@ -11,8 +11,8 @@
 - Android SDK with platform 34
 - Gradle 8.10+ (the wrapper handles this)
 - For the dependency audit snapshot only (ADR-0024): a free NVD API key
-  pasted into the gitignored `nvd.properties` at the repo root as
-  `nvd.apiKey=...` (request one at
+  pasted into the gitignored `.env` at the repo root as
+  `NVD_API_KEY=...` (request one at
   https://nvd.nist.gov/developers/request-an-api-key). CI has its own
   key in the `NVD_API_KEY` secret.
 
@@ -146,7 +146,7 @@ licenses, the Dependency-Check JSON report and the `<notes>` of
 amber, "assessed" CVE).
 
 ```bash
-./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit   # needs nvd.properties
+./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit   # needs NVD_API_KEY in .env
 git add app/src/main/assets/dependency-audit.json
 ```
 

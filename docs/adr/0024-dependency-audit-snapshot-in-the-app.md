@@ -71,7 +71,7 @@ the app itself sends nothing.
   against the shipped artifacts as of the stated NVD date". A CVE published
   later is only reflected by the next release; the screen says so.
 - Regenerating the snapshot becomes a release-checklist step and needs an
-  NVD API key locally (read from the gitignored `nvd.properties`), or the
+  NVD API key locally (read from the gitignored `.env`), or the
   JSON report downloaded from the CI scan artifact.
 - Suppressions now carry user-visible consequences: every `<suppress>`
   entry's `<notes>` is the reason shown in amber, so it must read as an

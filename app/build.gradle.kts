@@ -319,7 +319,7 @@ tasks.register("dependencyAudit") {
         val reportFile = dependencyCheckReport.get().asFile
         require(reportFile.exists()) {
             "No Dependency-Check report at $reportFile — run ./gradlew :app:dependencyCheckAnalyze " +
-                "(needs the NVD API key in nvd.properties) or copy the CI artifact there."
+                "(needs NVD_API_KEY in .env) or copy the CI artifact there."
         }
         @Suppress("UNCHECKED_CAST")
         val report = groovy.json.JsonSlurper().parse(reportFile) as Map<String, Any?>
@@ -545,14 +545,15 @@ dependencyCheck {
     // classpaths pull in transitives (gRPC, Netty, protobuf, kotlin-compiler)
     // with their own CVE histories, none of which reach end users.
     scanConfigurations = listOf("releaseRuntimeClasspath")
-    // Locally the key lives in the gitignored nvd.properties (`nvd.apiKey=...`).
-    val nvdKeyFile = rootProject.file("nvd.properties")
-    val nvdKeyFromFile: String? = if (nvdKeyFile.exists()) {
-        Properties().also { props -> nvdKeyFile.inputStream().use { props.load(it) } }.getProperty("nvd.apiKey")
+    // Locally the key lives in the gitignored .env at the repo root (`NVD_API_KEY=...`),
+    // next to the test-account variables; CI sets the environment variable.
+    val dotEnv = rootProject.file(".env")
+    val nvdKeyFromDotEnv: String? = if (dotEnv.exists()) {
+        Properties().also { props -> dotEnv.inputStream().use { props.load(it) } }.getProperty("NVD_API_KEY")
     } else {
         null
     }
-    val nvdKey: String = System.getenv("NVD_API_KEY") ?: nvdKeyFromFile?.trim().orEmpty()
+    val nvdKey: String = System.getenv("NVD_API_KEY") ?: nvdKeyFromDotEnv?.trim().orEmpty()
     nvd.apiKey = nvdKey
     // NVD's API returns intermittent 503/timeout responses. Bump retry count
     // and inter-request delay enough to survive a brief blip, but not so much
