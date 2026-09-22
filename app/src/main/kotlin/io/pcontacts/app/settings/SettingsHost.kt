@@ -26,7 +26,6 @@ import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
-import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.contacts.ChangeOp
 import io.pcontacts.core.sync.contacts.SyncBootstrap
@@ -281,24 +280,7 @@ class SettingsHost(
     }
 
     private suspend fun resolveConflict(protonContactId: String, resolution: ConflictResolution) {
-        val contactMapDao = db.contactMapDao()
-        val outboxDao = db.outboxDao()
-        contactMapDao.resolveConflict(protonContactId)
-        when (resolution) {
-            ConflictResolution.USE_LOCAL -> {
-                outboxDao.insert(
-                    OutboxEntity(
-                        protonContactId = protonContactId,
-                        opType = OutboxEntity.OpType.UPDATE,
-                        payloadHash = "",
-                        createdAt = System.currentTimeMillis()
-                    )
-                )
-            }
-            ConflictResolution.USE_SERVER -> {
-                // No outbox entry needed — next pull overwrites the local copy.
-            }
-        }
+        SyncBootstrap.resolveConflict(activity, protonContactId, useLocal = resolution == ConflictResolution.USE_LOCAL)
     }
 
     /**
