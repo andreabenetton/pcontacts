@@ -97,6 +97,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Editing a contact Proton created by itself now syncs.** A contact
+  Proton auto-saved from a sent mail is stored as a single clear-text
+  card; a rename or any edit of it on the phone was refused by Proton
+  ("HTTP 400") and parked as a failed change. The update now rebuilds
+  such a contact into the signed and encrypted cards Proton's own client
+  writes, as vCard 4.0. A refused change also records Proton's error
+  code next to the HTTP status.
+
 - **Three-way merge used an empty base.** A field deleted on Proton was
   resurrected from the phone and a field deleted on the phone was
   resurrected from Proton, and unchanged fields could read as

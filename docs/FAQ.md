@@ -15,9 +15,12 @@ The contact was never in the Proton account. WhatsApp's own "save contact"
 screen offers a storage called "Phone" ("Telefono" on an Italian phone).
 That is not Android's device storage and not any account your phone knows:
 WhatsApp writes the row under an account of type `PHONE` that no app
-registers with Android. Android's contacts provider treats rows of an
-unregistered account as leftovers and deletes them, without a trace, the
-next time the list of accounts on the phone changes. Signing out of
+registers with Android. Android's real device storage is the account with
+no name and no type on AOSP and GrapheneOS, or the one the maker configures
+(`vnd.sec.contact.phone` on Samsung); a bare `PHONE` is neither. Android's
+contacts provider treats rows of an unregistered account as leftovers and
+deletes them, without a trace, the next time the list of accounts on the
+phone changes. Signing out of
 pcontacts removes the Proton account and is such a change; adding or
 removing a Google account or any other account would do the same. The
 automatic sign-out of the 2.0 update triggered it too.
@@ -56,8 +59,8 @@ mix up.
 ## The Contacts app shows two or three entries for one person
 
 Every messenger keeps its own read-only mirror row per matched contact:
-"WhatsApp", "Telegram", "Signal". Apps like Fossify Contacts list those
-sources separately; Google Contacts folds them under one name. The mirrors
+"WhatsApp", "Telegram", "Signal". Apps like Fossify Contacts permit to list
+those sources separately; Google Contacts folds them under one name. The mirrors
 follow the real contact and disappear with it. The real contact is the row
 under the Proton account, or under "Telefono"/"Phone" if it was saved the
 way described above.

@@ -406,3 +406,16 @@ extended address, street, locality, region, postal code, country).
 Types are not part of the identity: a changed `TYPE` is a
 modification of the same address, never a second address.
 
+## Amendment 2026-09-22 — carriers Proton wrote itself
+
+A contact Proton auto-saves from a sent mail arrives as one CLEAR_TEXT card
+holding `PRODID`, `FN`, `UID` and a grouped `EMAIL` (seen live). `[A]` The
+server refuses an update that hands `FN` back in a clear card, and refuses
+a signed card written as vCard 3.0, both with Code 2001. Choice 2C therefore
+normalises the carrier before patching: `FN`, `UID`, `EMAIL` and the key
+fields move to the signed card, anything else in a clear card moves to the
+encrypted card (`[V]` WebClients `constants.ts` keeps only `CATEGORIES`
+clear), and a card the patcher creates is 4.0. Cards that already exist keep
+their own version. Validated live on 2026-09-22 with the refused contact:
+the update returned Code 1000.
+
