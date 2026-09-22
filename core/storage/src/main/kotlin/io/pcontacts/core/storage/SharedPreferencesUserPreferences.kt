@@ -69,7 +69,6 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
             .remove(KEY_LAST_SYNC_FAILED_CONTACTS)
             .remove(KEY_SYNC_PROGRESS_DONE)
             .remove(KEY_SYNC_PROGRESS_TOTAL)
-            .remove(KEY_SECRETS_STORAGE_UPGRADED)
             .commit()
     }
 

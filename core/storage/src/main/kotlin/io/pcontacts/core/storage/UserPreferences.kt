@@ -63,19 +63,19 @@ interface UserPreferences {
     /**
      * `true` from the moment the pre-2.0 secret file was purged (the
      * session it held cannot be carried into the Keystore-sealed store,
-     * ADR-0009) until the user has signed in again. Lets the UI explain
-     * the one-time re-login instead of reporting an expired session.
-     * Cleared by the first successful sync and by [clearSyncState].
+     * ADR-0009) until the user has signed in again. The app signs the
+     * stale account out on the next start and the sign-in screen
+     * explains why. Survives [clearSyncState] (that sign-out runs it);
+     * cleared by the sign-in that completes afterwards.
      */
     var secretsStorageUpgraded: Boolean
 
     /**
      * Forgets everything that describes the signed-out account's syncs:
-     * last success time, last error, failed-contact count, any
-     * in-flight progress and the storage-upgrade flag. Device
-     * preferences (interval, permission and notice flags) are kept —
-     * they are about this install, not the account. Called by the
-     * sign-out flow.
+     * last success time, last error, failed-contact count and any
+     * in-flight progress. Device preferences (interval, permission and
+     * notice flags) and [secretsStorageUpgraded] are kept — they are
+     * about this install, not the account. Called by the sign-out flow.
      */
     fun clearSyncState()
 

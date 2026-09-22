@@ -25,6 +25,5 @@ class InMemoryUserPreferences : UserPreferences {
         lastSyncFailedContacts = 0
         syncProgressDone = 0
         syncProgressTotal = 0
-        secretsStorageUpgraded = false
     }
 }

@@ -72,7 +72,7 @@ class SharedPreferencesUserPreferencesTest {
 
         prefs().clearSyncState()
 
-        assertEquals(false, prefs().secretsStorageUpgraded)
+        assertEquals(true, prefs().secretsStorageUpgraded)
 
         assertEquals(0L, prefs().lastSyncSuccessAtMillis)
         assertNull(prefs().lastSyncErrorCode)
