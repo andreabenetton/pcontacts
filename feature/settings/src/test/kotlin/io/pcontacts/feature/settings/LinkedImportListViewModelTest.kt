@@ -90,6 +90,19 @@ class LinkedImportListViewModelTest {
         assertEquals(BulkImportState.Idle, vm.bulk.value)
     }
 
+    @Test fun marking_a_row_imported_unselects_it_and_a_rescan_forgets_it() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = LinkedImportListViewModel(scan = { rows }, scope = TestScope(dispatcher), workDispatcher = dispatcher)
+        advanceUntilIdle()
+        vm.toggleSelected(1L)
+        vm.markImported(1L)
+        assertEquals(setOf(1L), vm.imported.value)
+        assertEquals(emptySet<Long>(), vm.selected.value)
+        vm.rescan()
+        advanceUntilIdle()
+        assertEquals(emptySet<Long>(), vm.imported.value)
+    }
+
     @Test fun a_failing_scan_surfaces_the_exception_class_only() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = LinkedImportListViewModel(

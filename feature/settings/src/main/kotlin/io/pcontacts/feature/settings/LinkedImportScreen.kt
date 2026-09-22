@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,14 +30,18 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -44,9 +50,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /**
  * The import list (ADR-0023 in-app discovery): every contact that is
  * missing from Proton or whose Proton copy lacks details, with the
- * providers it comes from. Tapping a row runs the usual review dialog;
- * ticking rows and pressing Import brings them all in at once. Either
- * way the list rescans afterwards so rows update or disappear.
+ * providers it comes from. Tapping a row runs the review dialog and the
+ * row then says "Added to Proton"; ticking rows and pressing Import
+ * brings them all in at once and the list rescans. Outcomes are
+ * snackbars; dialogs are only for decisions and progress.
  */
 @Composable
 fun LinkedImportScreen(
@@ -59,22 +66,22 @@ fun LinkedImportScreen(
     val filter by listViewModel.filter.collectAsStateWithLifecycle()
     val query by listViewModel.query.collectAsStateWithLifecycle()
     val selected by listViewModel.selected.collectAsStateWithLifecycle()
+    val imported by listViewModel.imported.collectAsStateWithLifecycle()
     val bulk by listViewModel.bulk.collectAsStateWithLifecycle()
-    val importState by importViewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val visible = (state as? LinkedImportListState.Ready)?.rows?.filteredBy(filter, query).orEmpty()
 
-    LaunchedEffect(importState) {
-        if (importState is LinkedImportState.Imported) listViewModel.rescan()
-    }
+    ImportOutcomes(importViewModel, listViewModel, snackbarHostState)
 
     Scaffold(
         modifier = modifier,
         topBar = { ScreenTopBar(title = stringResource(R.string.linked_import_screen_title), onBack = onBack) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (selected.isNotEmpty()) {
                 SelectionBar(
                     count = selected.size,
-                    onSelectAll = { listViewModel.selectAll(visible.map { it.contactId }) },
+                    onSelectAll = { listViewModel.selectAll(visible.map { it.contactId } - imported) },
                     onClear = listViewModel::clearSelection,
                     onImport = listViewModel::importSelected
                 )
@@ -96,6 +103,7 @@ fun LinkedImportScreen(
                 is LinkedImportListState.Ready -> ContactList(
                     rows = visible,
                     selected = selected,
+                    imported = imported,
                     onToggle = listViewModel::toggleSelected,
                     onOpen = importViewModel::start
                 )
@@ -103,7 +111,47 @@ fun LinkedImportScreen(
         }
     }
     LinkedImportDialog(importViewModel)
-    BulkImportDialog(state = bulk, onDismiss = listViewModel::dismissBulkResult)
+    if (bulk is BulkImportState.Running) BulkProgressDialog(bulk as BulkImportState.Running)
+}
+
+/**
+ * Turns the two view models' outcomes into snackbars and row state:
+ * a single import marks its row, a bulk import reports its tally and
+ * the list rescans (already triggered by the view model).
+ */
+@Composable
+private fun ImportOutcomes(
+    importViewModel: LinkedImportViewModel,
+    listViewModel: LinkedImportListViewModel,
+    snackbarHostState: SnackbarHostState
+) {
+    val importState by importViewModel.state.collectAsStateWithLifecycle()
+    val bulk by listViewModel.bulk.collectAsStateWithLifecycle()
+    val resources = LocalContext.current.resources
+
+    LaunchedEffect(importState) {
+        val message = when (val s = importState) {
+            is LinkedImportState.Imported -> {
+                listViewModel.markImported(s.contactId)
+                val plural = if (s.created) R.plurals.linked_import_created else R.plurals.linked_import_done
+                resources.getQuantityString(plural, s.count, s.count)
+            }
+            is LinkedImportState.Failed -> resources.getString(R.string.linked_import_failed, s.reason)
+            LinkedImportState.NotFound -> resources.getString(R.string.linked_import_not_found)
+            else -> null
+        }
+        if (message != null) {
+            importViewModel.dismiss()
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+    LaunchedEffect(bulk) {
+        val done = bulk as? BulkImportState.Done ?: return@LaunchedEffect
+        val r = done.result
+        listViewModel.dismissBulkResult()
+        val message = resources.getString(R.string.linked_import_bulk_done, r.created, r.enriched, r.failed)
+        snackbarHostState.showSnackbar(message)
+    }
 }
 
 @Composable
@@ -144,6 +192,7 @@ private fun ScanningIndicator() {
 private fun ContactList(
     rows: List<LinkedContactRow>,
     selected: Set<Long>,
+    imported: Set<Long>,
     onToggle: (Long) -> Unit,
     onOpen: (Long) -> Unit
 ) {
@@ -157,11 +206,13 @@ private fun ContactList(
     }
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(rows, key = { it.contactId }) { row ->
+            val done = row.contactId in imported
             ContactRowItem(
                 row = row,
                 checked = row.contactId in selected,
+                done = done,
                 onToggle = { onToggle(row.contactId) },
-                onClick = { onOpen(row.contactId) }
+                onClick = { if (!done) onOpen(row.contactId) }
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
@@ -169,7 +220,13 @@ private fun ContactList(
 }
 
 @Composable
-private fun ContactRowItem(row: LinkedContactRow, checked: Boolean, onToggle: () -> Unit, onClick: () -> Unit) {
+private fun ContactRowItem(
+    row: LinkedContactRow,
+    checked: Boolean,
+    done: Boolean,
+    onToggle: () -> Unit,
+    onClick: () -> Unit
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -177,29 +234,55 @@ private fun ContactRowItem(row: LinkedContactRow, checked: Boolean, onToggle: ()
             .clickable(onClick = onClick)
             .padding(vertical = 8.dp)
     ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Checkbox(checked = checked, onCheckedChange = { onToggle() }, enabled = !done)
         Spacer(Modifier.width(4.dp))
         Column {
             Text(
                 text = row.name ?: stringResource(R.string.unverified_no_name),
                 style = MaterialTheme.typography.bodyLarge
             )
-            Text(
-                text = row.sources,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SourceIcons(row.sourceIcons)
+                Text(
+                    text = row.sources,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            RowBadge(row, done)
+        }
+    }
+}
+
+/** "Not in Proton" / "N new details" before an import, "Added to Proton" with a check after one. */
+@Composable
+private fun RowBadge(row: LinkedContactRow, done: Boolean) {
+    if (done) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp)
             )
+            Spacer(Modifier.width(4.dp))
             Text(
-                text = if (row.inProton) {
-                    pluralStringResource(R.plurals.linked_import_new_details, row.newFields, row.newFields)
-                } else {
-                    stringResource(R.string.linked_import_not_in_proton)
-                },
+                text = stringResource(R.string.linked_import_row_added),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
         }
+        return
     }
+    Text(
+        text = if (row.inProton) {
+            pluralStringResource(R.plurals.linked_import_new_details, row.newFields, row.newFields)
+        } else {
+            stringResource(R.string.linked_import_not_in_proton)
+        },
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary
+    )
 }
 
 /** Sticks to the bottom while something is ticked: select all / clear, and the one primary action. */
@@ -221,36 +304,22 @@ private fun SelectionBar(count: Int, onSelectAll: () -> Unit, onClear: () -> Uni
 }
 
 @Composable
-private fun BulkImportDialog(state: BulkImportState, onDismiss: () -> Unit) {
-    when (state) {
-        BulkImportState.Idle -> Unit
-        is BulkImportState.Running -> AlertDialog(
-            onDismissRequest = {},
-            title = { Text(stringResource(R.string.linked_import_dialog_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.linked_import_bulk_progress, state.done, state.total))
-                    Spacer(Modifier.height(12.dp))
-                    LinearProgressIndicator(
-                        progress = { if (state.total == 0) 0f else state.done.toFloat() / state.total },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {}
-        )
-        is BulkImportState.Done -> AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.linked_import_dialog_title)) },
-            text = {
-                val r = state.result
-                Text(stringResource(R.string.linked_import_bulk_done, r.created, r.enriched, r.failed))
-            },
-            confirmButton = {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.linked_import_close)) }
+private fun BulkProgressDialog(state: BulkImportState.Running) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(stringResource(R.string.linked_import_dialog_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.linked_import_bulk_progress, state.done, state.total))
+                Spacer(Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { if (state.total == 0) 0f else state.done.toFloat() / state.total },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-        )
-    }
+        },
+        confirmButton = {}
+    )
 }
 
 private fun filterLabel(filter: LinkedImportFilter): Int = when (filter) {

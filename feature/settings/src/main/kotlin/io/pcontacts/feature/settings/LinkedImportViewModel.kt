@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.settings
 
+import android.graphics.Bitmap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +34,8 @@ data class LinkedImportCandidate(
     val id: Int,
     val kind: LinkedFieldKind,
     val value: String,
-    val source: String?
+    val source: String?,
+    val sourceIcons: List<Bitmap> = emptyList()
 )
 
 /** `createsNewContact` is true when the contact has no Proton copy and confirming creates one. */
@@ -61,7 +63,7 @@ sealed interface LinkedImportState {
     }
 
     data object Importing : LinkedImportState
-    data class Imported(val count: Int, val created: Boolean = false) : LinkedImportState
+    data class Imported(val count: Int, val created: Boolean = false, val contactId: Long = 0L) : LinkedImportState
     data class Failed(val reason: String) : LinkedImportState
 }
 
@@ -81,7 +83,10 @@ class LinkedImportViewModel(
     private val _state = MutableStateFlow<LinkedImportState>(LinkedImportState.Hidden)
     val state: StateFlow<LinkedImportState> = _state.asStateFlow()
 
+    private var contactId: Long = 0L
+
     fun start(contactId: Long) {
+        this.contactId = contactId
         _state.value = LinkedImportState.Loading
         scope.launch {
             val preview = try {
@@ -111,7 +116,7 @@ class LinkedImportViewModel(
         scope.launch {
             _state.value = try {
                 withContext(workDispatcher) { importCandidates(review.selected.sorted()) }
-                LinkedImportState.Imported(review.selected.size, created = review.preview.createsNewContact)
+                LinkedImportState.Imported(review.selected.size, review.preview.createsNewContact, contactId)
             } catch (e: Exception) {
                 LinkedImportState.Failed(e.javaClass.simpleName)
             }

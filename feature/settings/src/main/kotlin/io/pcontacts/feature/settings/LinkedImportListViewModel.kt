@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.settings
 
+import android.graphics.Bitmap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,9 @@ data class LinkedContactRow(
     val name: String?,
     val sources: String,
     val inProton: Boolean,
-    val newFields: Int
+    val newFields: Int,
+    /** The providers' launcher icons, same order as [sources]; empty for device-only rows. */
+    val sourceIcons: List<Bitmap> = emptyList()
 )
 
 enum class LinkedImportFilter { ALL, NOT_IN_PROTON, NEW_DETAILS }
@@ -75,12 +78,17 @@ class LinkedImportListViewModel(
     private val _bulk = MutableStateFlow<BulkImportState>(BulkImportState.Idle)
     val bulk: StateFlow<BulkImportState> = _bulk.asStateFlow()
 
+    /** Contacts imported one by one since the last scan; their rows say so instead of vanishing. */
+    private val _imported = MutableStateFlow<Set<Long>>(emptySet())
+    val imported: StateFlow<Set<Long>> = _imported.asStateFlow()
+
     init {
         rescan()
     }
 
     fun rescan() {
         _state.value = LinkedImportListState.Scanning
+        _imported.value = emptySet()
         scope.launch {
             _state.value = try {
                 LinkedImportListState.Ready(withContext(workDispatcher) { scan() })
@@ -96,6 +104,11 @@ class LinkedImportListViewModel(
 
     fun setQuery(query: String) {
         _query.value = query
+    }
+
+    fun markImported(contactId: Long) {
+        _imported.value = _imported.value + contactId
+        _selected.value = _selected.value - contactId
     }
 
     fun toggleSelected(contactId: Long) {

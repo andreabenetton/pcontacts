@@ -3,13 +3,19 @@
 
 package io.pcontacts.feature.settings
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -22,7 +28,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,31 +52,27 @@ internal fun LinkedImportSection(enabled: Boolean, onOpen: () -> Unit) {
     )
 }
 
+/**
+ * The dialogs of the single-contact flow: progress while loading or
+ * writing, and the review checklist. Outcomes (imported, failed, gone)
+ * are not dialogs — the hosting screen reports them in place.
+ */
 @Composable
 internal fun LinkedImportDialog(viewModel: LinkedImportViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     when (val s = state) {
-        LinkedImportState.Hidden -> Unit
         LinkedImportState.Loading -> ProgressDialog(R.string.linked_import_loading)
         LinkedImportState.Importing -> ProgressDialog(R.string.linked_import_importing)
-        LinkedImportState.NotFound ->
-            MessageDialog(stringResource(R.string.linked_import_not_found), viewModel::dismiss)
-        is LinkedImportState.Imported -> MessageDialog(
-            message = if (s.created) {
-                pluralStringResource(R.plurals.linked_import_created, s.count, s.count)
-            } else {
-                pluralStringResource(R.plurals.linked_import_done, s.count, s.count)
-            },
-            onDismiss = viewModel::dismiss
-        )
-        is LinkedImportState.Failed ->
-            MessageDialog(stringResource(R.string.linked_import_failed, s.reason), viewModel::dismiss)
         is LinkedImportState.Review -> ReviewDialog(
             review = s,
             onToggle = viewModel::toggle,
             onConfirm = viewModel::confirm,
             onDismiss = viewModel::dismiss
         )
+        LinkedImportState.Hidden,
+        LinkedImportState.NotFound,
+        is LinkedImportState.Imported,
+        is LinkedImportState.Failed -> Unit
     }
 }
 
@@ -86,20 +89,6 @@ private fun ProgressDialog(messageRes: Int) {
             }
         },
         confirmButton = {}
-    )
-}
-
-@Composable
-private fun MessageDialog(message: String, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.linked_import_dialog_title)) },
-        text = { Text(message) },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.linked_import_close))
-            }
-        }
     )
 }
 
@@ -167,13 +156,32 @@ private fun CandidateRow(candidate: LinkedImportCandidate, checked: Boolean, onT
             Text(text = candidate.value, style = MaterialTheme.typography.bodyMedium)
             val kind = stringResource(kindLabel(candidate.kind))
             val detail = candidate.source?.let { stringResource(R.string.linked_import_source, kind, it) } ?: kind
-            Text(
-                text = detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SourceIcons(candidate.sourceIcons)
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** The providers' launcher icons at text height, followed by a gap; nothing when there are none. */
+@Composable
+internal fun SourceIcons(icons: List<Bitmap>) {
+    if (icons.isEmpty()) return
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        icons.forEach { icon ->
+            Image(
+                bitmap = icon.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp).clip(CircleShape)
             )
         }
     }
+    Spacer(Modifier.width(6.dp))
 }
 
 private fun kindLabel(kind: LinkedFieldKind): Int = when (kind) {

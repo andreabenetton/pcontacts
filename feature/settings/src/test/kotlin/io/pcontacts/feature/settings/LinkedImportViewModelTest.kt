@@ -45,7 +45,7 @@ class LinkedImportViewModelTest {
         assertEquals(LinkedImportState.Importing, vm.state.value)
         advanceUntilIdle()
         assertEquals(listOf(0), imported)
-        assertEquals(LinkedImportState.Imported(1), vm.state.value)
+        assertEquals(LinkedImportState.Imported(1, created = false, contactId = 7L), vm.state.value)
     }
 
     @Test fun confirm_with_nothing_selected_is_a_noop() = runTest {
@@ -106,7 +106,7 @@ class LinkedImportViewModelTest {
         vm.confirm()
         advanceUntilIdle()
         assertEquals(listOf(0, 1), imported)
-        assertEquals(LinkedImportState.Imported(2, created = true), vm.state.value)
+        assertEquals(LinkedImportState.Imported(2, created = true, contactId = 7L), vm.state.value)
     }
 
     @Test fun failures_surface_the_exception_class_only() = runTest {
