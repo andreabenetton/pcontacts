@@ -88,7 +88,6 @@ class MainActivity : ComponentActivity() {
             )
         )[LauncherViewModel::class.java]
 
-        requestPermissionsOnce()
         contactsPermissionStatus = ContactsPermissionState.check(
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
@@ -163,6 +162,10 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         resumeTick++
         viewModel.refresh()
+        // Permissions are asked for only once there is an account to sync: a first launch shows the
+        // sign-in screen undisturbed, and the prompts follow the return from LoginActivity. The
+        // prefs flags inside make repeated resumes a no-op.
+        if (hasProtonAccount()) requestPermissionsOnce()
         contactsPermissionStatus = ContactsPermissionState.check(
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
