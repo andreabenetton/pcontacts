@@ -345,9 +345,9 @@ class ContactWriteEngine(
         val contact = RowToDecryptedContact.convert(row, localId, null)
         return try {
             val cards = serializer.serialize(contact)
+            // Only a confirmed server identity lets the CREATE leave the outbox.
             val serverContact = createOnServer(cards, ContactSerializer.fallbackUid(localId))
-            val existing = contactMapDao.findByProtonId(localId)
-            if (existing != null && serverContact != null) {
+            contactMapDao.findByProtonId(localId)?.let { existing ->
                 contactMapDao.deleteByProtonId(localId)
                 contactMapDao.upsert(
                     existing.copy(
@@ -358,19 +358,17 @@ class ContactWriteEngine(
                     )
                 )
             }
-            if (serverContact != null && account != null) writeSourceId(account, rawContactId, serverContact.id)
+            if (account != null) writeSourceId(account, rawContactId, serverContact.id)
             outboxDao.deleteByContact(localId)
             val nowRow = readContactRow(rawContactId, localId)
-            if (serverContact != null) {
-                MergeBaseCodec.save(
-                    mergeBases,
-                    serverContact.id,
-                    contact,
-                    localPhotoHash = nowRow?.photo?.data?.let(PhotoHash::of)
-                )
-            }
+            MergeBaseCodec.save(
+                mergeBases,
+                serverContact.id,
+                contact,
+                localPhotoHash = nowRow?.photo?.data?.let(PhotoHash::of)
+            )
             val nowHash = nowRow?.let(EmailSyncHash::compute)
-            if (serverContact != null && nowHash != null && nowHash != pushedHash) {
+            if (nowHash != null && nowHash != pushedHash) {
                 outboxDao.enqueue(serverContact.id, OutboxEntity.OpType.UPDATE, nowHash, clock())
             }
             WriteReport(pushed = 1, created = 1)
@@ -383,9 +381,14 @@ class ContactWriteEngine(
         }
     }
 
-    /** `[V]` the batch envelope is 1001 with one Code per item; anything but 1000 is a refusal. */
+    /**
+     * `[V]` the batch envelope is 1001 with one Code per item; anything but 1000 is a refusal.
+     * `[U]` an envelope without our item says nothing about the deletion: it is retried, not
+     * taken as done (a still-existing contact would otherwise be pulled back as new).
+     */
     private fun requireItemAccepted(response: BulkDeleteResponse, id: String) {
-        val itemCode = response.responses.firstOrNull { it.id == id }?.response?.code ?: return
+        val itemCode = response.responses.firstOrNull { it.id == id }?.response?.code
+            ?: throw IOException("delete not acknowledged by Proton")
         if (itemCode != ProtonCodeInterceptor.SUCCESS_CODE) throw ProtonApiException(itemCode, null)
     }
 
@@ -398,16 +401,26 @@ class ContactWriteEngine(
      * keyed on the UID, not the code), the contact is looked up by that
      * UID before the attempt counts as failed.
      */
-    private suspend fun createOnServer(cards: List<ContactCardDto>, uid: String): ContactDto? {
+    // One throw per outcome that must not count as created: lost response, refusal, no confirmation.
+    @Suppress("ThrowsCount")
+    private suspend fun createOnServer(cards: List<ContactCardDto>, uid: String): ContactDto {
         val response = try {
             contactsApi.createContacts(CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards))))
         } catch (e: IOException) {
             return findByUid(uid) ?: throw e
         }
-        val item = response.responses.firstOrNull()?.response ?: return null
-        if (item.code == ProtonCodeInterceptor.SUCCESS_CODE) return item.contact
-        logger.warn { "create refused with Code:${item.code}; looking the contact up by UID" }
-        return findByUid(uid) ?: throw ProtonApiException(item.code, null)
+        val item = response.responses.firstOrNull()?.response
+        val created = item?.contact
+        if (item != null && item.code == ProtonCodeInterceptor.SUCCESS_CODE && created != null) return created
+        if (item != null && item.code != ProtonCodeInterceptor.SUCCESS_CODE) {
+            logger.warn { "create refused with Code:${item.code}; looking the contact up by UID" }
+            return findByUid(uid) ?: throw ProtonApiException(item.code, null)
+        }
+        // `[U]` An accepted envelope without our item, or an item without a contact, says nothing
+        // about what Proton stored. Only the UID does; without it the CREATE stays queued and is
+        // retried rather than counted as done.
+        logger.warn { "create answered without a contact; looking the contact up by UID" }
+        return findByUid(uid) ?: throw IOException("create not confirmed by Proton")
     }
 
     /** The server contact carrying [uid], or null; a failed lookup is not a failure of the create. */

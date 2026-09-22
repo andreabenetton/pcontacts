@@ -1249,6 +1249,91 @@ class ContactWriteEngineTest {
         assertNotNull(contactMap.findByProtonId("srv-9"))
     }
 
+    @Test fun push_create_whose_response_carries_no_item_stays_queued_and_is_never_reported_created() = runTest {
+        val api = WriteFakeApi().apply { createResponse = CreateContactsResponse(code = 1001, responses = emptyList()) }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        queuedCreate(outbox, contactMap)
+        val written = mutableListOf<Pair<Long, String>>()
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to sampleContact("local-200")),
+            writtenSourceIds = written
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(0, report.created)
+        assertEquals(1, report.failed)
+        val row = outbox.entries.values.single()
+        assertFalse(row.quarantined)
+        assertEquals(1, row.attempts)
+        assertNotNull(contactMap.findByProtonId("local-200"))
+        assertTrue(written.isEmpty())
+    }
+
+    @Test fun push_create_accepted_without_a_contact_is_settled_by_the_uid_lookup_only() = runTest {
+        val uid = ContactSerializer.fallbackUid("local-200")
+        val api = WriteFakeApi().apply {
+            createResponse = CreateContactsResponse(
+                code = 1001,
+                responses = listOf(CreateContactResponseItem(0, CreateContactResponseBody(code = 1000)))
+            )
+        }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        queuedCreate(outbox, contactMap)
+        val written = mutableListOf<Pair<Long, String>>()
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to sampleContact("local-200")),
+            writtenSourceIds = written
+        )
+
+        // Nothing under our UID: the CREATE stays queued.
+        assertEquals(1, engine.push(testAccount).failed)
+        assertNotNull(contactMap.findByProtonId("local-200"))
+        assertFalse(outbox.entries.values.single().quarantined)
+        assertTrue(written.isEmpty())
+
+        // The contact is there under our UID: recovered like a lost response.
+        api.listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = uid))
+        outbox.entries.values.single().let { outbox.entries[it.id] = it.copy(nextAttemptAt = 0L) }
+        val report = engine.push(testAccount)
+        assertEquals(1, report.created)
+        assertNull(contactMap.findByProtonId("local-200"))
+        assertEquals(uid, contactMap.findByProtonId("srv-9")!!.protonUid)
+        assertEquals(listOf(200L to "srv-9"), written)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun push_delete_without_an_item_acknowledgement_stays_queued() = runTest {
+        val api = WriteFakeApi().apply { deleteAckMissing = true }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "ct-1",
+                opType = OutboxEntity.OpType.DELETE,
+                payloadHash = "",
+                createdAt = 0L
+            )
+        )
+        val engine = newEngine(api, outbox, contactMap)
+
+        val report = engine.push(testAccount)
+
+        assertEquals(0, report.deleted)
+        assertEquals(1, report.failed)
+        assertFalse(outbox.entries.values.single().quarantined)
+        assertNotNull(contactMap.findByProtonId("ct-1"))
+    }
+
     @Test fun push_delete_refused_by_item_code_is_quarantined_with_the_code() = runTest {
         val api = WriteFakeApi().apply { deleteItemCode = 2501 }
         val outbox = WriteFakeOutboxDao()
@@ -1543,6 +1628,9 @@ private class WriteFakeApi : ProtonContactsApi {
     /** The per-item Code `deleteContacts` answers with. */
     var deleteItemCode: Int = 1000
 
+    /** When true, `deleteContacts` answers the 1001 envelope with no item at all. */
+    var deleteAckMissing: Boolean = false
+
     /** Runs inside a successful PUT — the hook for "the contact changed during the push" and for gating. */
     var onUpdate: (suspend () -> Unit)? = null
 
@@ -1577,7 +1665,11 @@ private class WriteFakeApi : ProtonContactsApi {
         lastDeleteRequest = request
         return BulkDeleteResponse(
             code = 1001,
-            responses = request.ids.map { DeleteResponseItem(it, DeleteResponseBody(code = deleteItemCode)) }
+            responses = if (deleteAckMissing) {
+                emptyList()
+            } else {
+                request.ids.map { DeleteResponseItem(it, DeleteResponseBody(code = deleteItemCode)) }
+            }
         )
     }
 }
