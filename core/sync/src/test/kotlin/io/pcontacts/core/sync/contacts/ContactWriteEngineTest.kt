@@ -885,6 +885,23 @@ internal class WriteFakeOutboxDao : OutboxDao {
         }
     }
 
+    override suspend fun findLive(contactId: String): OutboxEntity? =
+        entries.values.firstOrNull { it.protonContactId == contactId && !it.quarantined }
+    override suspend fun replaceLive(id: Long, opType: Int, payloadHash: String, createdAt: Long) {
+        entries[id]?.let {
+            entries[id] = it.copy(
+                opType = opType,
+                payloadHash = payloadHash,
+                attempts = 0,
+                lastError = null,
+                nextAttemptAt = 0L,
+                createdAt = createdAt
+            )
+        }
+    }
+    override suspend fun deleteIfUnchanged(id: Long, opType: Int, payloadHash: String) {
+        entries[id]?.takeIf { it.opType == opType && it.payloadHash == payloadHash }?.let { entries.remove(id) }
+    }
     override suspend fun deleteById(id: Long) { entries.remove(id) }
     override suspend fun deleteByContact(contactId: String) {
         entries.entries.removeIf { it.value.protonContactId == contactId }
@@ -928,5 +945,20 @@ internal class WriteFakeContactMapDao : ContactMapDao {
     override suspend fun maxLastSyncedAt(): Long? =
         rows.values.filter { !it.deleted }.maxOfOrNull { it.lastSyncedAt }
     override suspend fun deleteByProtonId(id: String) { rows.remove(id) }
+    override suspend fun setMergeBase(id: String, sealed: ByteArray?) {
+        rows[id]?.let { rows[id] = it.copy(lastKnownServerPayload = sealed) }
+    }
+    override suspend fun mergeBase(id: String): ByteArray? = rows[id]?.lastKnownServerPayload
+    override suspend fun markClean(id: String, now: Long) {
+        rows[id]?.let {
+            rows[id] = it.copy(syncStatus = ContactMapEntity.Status.CLEAN, lastError = null, lastSyncedAt = now)
+        }
+    }
+    override suspend fun markConflict(id: String, error: String) {
+        rows[id]?.let { rows[id] = it.copy(syncStatus = ContactMapEntity.Status.CONFLICT, lastError = error) }
+    }
+    override suspend fun forceRefetch(id: String) {
+        rows[id]?.let { rows[id] = it.copy(modifyTime = 0L, contentHash = "") }
+    }
     override suspend fun deleteAll() { rows.clear() }
 }

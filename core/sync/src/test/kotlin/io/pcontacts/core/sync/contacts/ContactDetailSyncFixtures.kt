@@ -180,6 +180,21 @@ internal class DetailFakeContactMapDao : ContactMapDao {
     override suspend fun maxLastSyncedAt(): Long? =
         rows.values.filter { !it.deleted }.maxOfOrNull { it.lastSyncedAt }
     override suspend fun deleteByProtonId(id: String) { rows.remove(id) }
+    override suspend fun setMergeBase(id: String, sealed: ByteArray?) {
+        rows[id]?.let { rows[id] = it.copy(lastKnownServerPayload = sealed) }
+    }
+    override suspend fun mergeBase(id: String): ByteArray? = rows[id]?.lastKnownServerPayload
+    override suspend fun markClean(id: String, now: Long) {
+        rows[id]?.let {
+            rows[id] = it.copy(syncStatus = ContactMapEntity.Status.CLEAN, lastError = null, lastSyncedAt = now)
+        }
+    }
+    override suspend fun markConflict(id: String, error: String) {
+        rows[id]?.let { rows[id] = it.copy(syncStatus = ContactMapEntity.Status.CONFLICT, lastError = error) }
+    }
+    override suspend fun forceRefetch(id: String) {
+        rows[id]?.let { rows[id] = it.copy(modifyTime = 0L, contentHash = "") }
+    }
     override suspend fun deleteAll() { rows.clear() }
 }
 
