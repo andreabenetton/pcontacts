@@ -63,18 +63,42 @@ reproducible-build verification (signing is a separate step).
 
 ## Release build (CI)
 
-Tag a commit with `vX.Y.Z` and push. The `release.yml` workflow:
+Tag a commit with `vX.Y.Z` and push. The `release.yml` workflow runs
+in the protected `release` GitHub Environment (see below) and:
 
-1. Decodes the release keystore from `RELEASE_KEYSTORE_BASE64` to a
+1. Waits for the environment's required reviewer to approve the run.
+2. Validates the Gradle wrapper checksum, then re-runs the same gates
+   as `build.yml` — every module's unit tests, detekt, lint, the
+   forbidden-dependency and license checks — before any secret is
+   read. A tag is not trusted to come from a green commit.
+3. Decodes the release keystore from `RELEASE_KEYSTORE_BASE64` to a
    temporary file.
-2. Exports `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`,
+4. Exports `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`,
    `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD` as environment
-   variables. The signing config in `app/build.gradle.kts` reads
-   Gradle properties first, then falls back to environment variables.
-3. Runs `assembleRelease` — produces a signed APK.
-4. Computes SHA-256 checksums.
-5. Creates a GitHub Release with the APK and checksums attached.
-6. Shreds the decoded keystore from the runner.
+   variables; nothing is passed on the command line. The signing
+   config in `app/build.gradle.kts` reads Gradle properties first,
+   then falls back to environment variables.
+5. Runs `assembleRelease` — produces a signed APK.
+6. Computes SHA-256 checksums.
+7. Creates a GitHub Release with the APK and checksums attached.
+8. Shreds the decoded keystore from the runner.
+
+Every action in every workflow is pinned to a full commit SHA with the
+release tag as a trailing comment; Dependabot's `github-actions`
+schedule bumps the SHA and the comment together. Never replace a SHA
+with a tag.
+
+### The `release` environment (owner-side, once)
+
+The job declares `environment: release`. Until the environment exists
+GitHub creates it on first use with no protection, so set it up before
+the first tag of a release:
+
+1. Settings → Environments → New environment → `release`.
+2. Required reviewers: the owner.
+3. Deployment branches and tags: tags matching `v*` only.
+4. Environment secrets: the four `RELEASE_*` secrets below. Then delete
+   the repository-level copies, so only this gated job can read them.
 
 ### Required secrets
 
@@ -257,9 +281,11 @@ git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-Pushing the tag triggers the `release.yml` CI workflow, which builds a
-signed APK, computes SHA-256 checksums, and creates a draft GitHub
-Release with the APK and checksums attached.
+Pushing the tag triggers the `release.yml` CI workflow. It pauses for
+the `release` environment's approval — approve it in the Actions run —
+then re-runs the verification gates, builds a signed APK, computes
+SHA-256 checksums, and creates a draft GitHub Release with the APK and
+checksums attached.
 
 ### 6. Create or finalise the GitHub Release
 
