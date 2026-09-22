@@ -109,6 +109,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Android's sync switch is honoured.** The periodic background sync
   and the refresh after a permission grant no longer bypass "Sync off"
   in Android Settings; only "Sync now", sign-in and a linked import do.
+- **Sync can be switched off from the app.** The sync-interval slider
+  starts with an "Off" position that turns Android's Contacts sync off
+  for the Proton account; any interval turns it back on. The slider
+  reflects a switch flipped in Android Settings, and when the
+  phone-wide "Auto-sync data" switch is off the sync card says that
+  only "Sync now" works and opens Android's sync settings.
 - **Verification during two-factor sign-in works.** A captcha demanded
   while entering the code opens the verification page and returns to
   the code screen for a fresh code, instead of a dead-end error. One
