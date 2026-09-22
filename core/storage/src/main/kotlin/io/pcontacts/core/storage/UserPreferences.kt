@@ -65,6 +65,13 @@ interface UserPreferences {
     var syncProgressDone: Int
     var syncProgressTotal: Int
 
+    /**
+     * How many sync problems (failed contacts, failed or quarantined changes, conflicts) the
+     * last background-sync notification announced; 0 when none is showing. A background run
+     * notifies only when the number changes, and a clean run clears it.
+     */
+    var syncProblemsNotified: Int
+
     /** Whether the user acknowledged the OS-apps contact-access notice ("Got it"). */
     var systemContactsNoticeDismissed: Boolean
 

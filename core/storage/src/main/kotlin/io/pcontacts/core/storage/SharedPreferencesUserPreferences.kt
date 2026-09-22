@@ -58,6 +58,10 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getInt(KEY_SYNC_PROGRESS_TOTAL, 0)
         set(value) { prefs.edit().putInt(KEY_SYNC_PROGRESS_TOTAL, value).apply() }
 
+    override var syncProblemsNotified: Int
+        get() = prefs.getInt(KEY_SYNC_PROBLEMS_NOTIFIED, 0)
+        set(value) { prefs.edit().putInt(KEY_SYNC_PROBLEMS_NOTIFIED, value).apply() }
+
     override var systemContactsNoticeDismissed: Boolean
         get() = prefs.getBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, false)
         set(value) { prefs.edit().putBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, value).apply() }
@@ -102,6 +106,7 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
             .remove(KEY_LAST_SYNC_FAILED_CONTACTS)
             .remove(KEY_SYNC_PROGRESS_DONE)
             .remove(KEY_SYNC_PROGRESS_TOTAL)
+            .remove(KEY_SYNC_PROBLEMS_NOTIFIED)
             .commit()
     }
 
@@ -117,6 +122,7 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_SYNC_PROGRESS_DONE = "sync_progress_done"
         const val KEY_SYNC_PROGRESS_TOTAL = "sync_progress_total"
         const val KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED = "system_contacts_notice_dismissed"
+        const val KEY_SYNC_PROBLEMS_NOTIFIED = "sync_problems_notified"
         const val KEY_SECRETS_STORAGE_UPGRADED = "secrets_storage_upgraded"
         const val KEY_VULNERABILITY_NOTICE_VERSION_CODE = "vulnerability_notice_version_code"
         const val KEY_ADVISORY_CHECK_ENABLED = "advisory_check_enabled"

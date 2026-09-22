@@ -81,6 +81,13 @@ class SharedPreferencesUserPreferencesTest {
     }
 
     @Test
+    fun syncProblemsNotified_defaults_zero_and_round_trips() {
+        assertEquals(0, prefs().syncProblemsNotified)
+        prefs().syncProblemsNotified = 3
+        assertEquals(3, prefs().syncProblemsNotified)
+    }
+
+    @Test
     fun systemContactsNoticeDismissed_defaults_false_and_round_trips() {
         assertEquals(false, prefs().systemContactsNoticeDismissed)
         prefs().systemContactsNoticeDismissed = true

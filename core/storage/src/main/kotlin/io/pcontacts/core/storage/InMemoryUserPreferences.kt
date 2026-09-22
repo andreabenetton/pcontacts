@@ -17,6 +17,7 @@ class InMemoryUserPreferences : UserPreferences {
     override var lastSyncFailedContacts: Int = 0
     override var syncProgressDone: Int = 0
     override var syncProgressTotal: Int = 0
+    override var syncProblemsNotified: Int = 0
     override var systemContactsNoticeDismissed: Boolean = false
     override var secretsStorageUpgraded: Boolean = false
     override var vulnerabilityNoticeVersionCode: Int = 0
@@ -33,5 +34,6 @@ class InMemoryUserPreferences : UserPreferences {
         lastSyncFailedContacts = 0
         syncProgressDone = 0
         syncProgressTotal = 0
+        syncProblemsNotified = 0
     }
 }
