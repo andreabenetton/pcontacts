@@ -23,6 +23,7 @@ import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationActivity
 import io.pcontacts.core.logging.RedactingLogger
+import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.feature.onboarding.LoginScreen
 import io.pcontacts.feature.onboarding.LoginUiState
@@ -126,6 +127,8 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun finishWithAccount(uid: String, username: String) {
+        // The one-time re-login after the 2.0 secret-store upgrade is done.
+        SharedPreferencesUserPreferences(this).secretsStorageUpgraded = false
         ProtonAccountRegistrar.register(
             context = this,
             uid = uid,

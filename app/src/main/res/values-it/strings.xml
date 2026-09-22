@@ -7,7 +7,6 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Contatti Proton</string>
     <string name="launcher_sync_failed_reauth">Sincronizzazione non riuscita — accedi di nuovo.</string>
-    <string name="launcher_sync_failed_reauth_storage_upgrade">Accedi di nuovo una sola volta — la versione 2.0 conserva la sessione in un archivio cifrato più robusto e legato al dispositivo, e quella precedente non è stata trasferibile. Tocca Esci e poi accedi.</string>
     <string name="launcher_sync_failed_verification">Sincronizzazione non riuscita — verifica necessaria sul sito web di Proton.</string>
     <string name="launcher_sync_failed_app_version">Sincronizzazione non riuscita — aggiorna pcontacts.</string>
     <string name="launcher_sync_failed_network">Sincronizzazione non riuscita — controlla la connessione e riprova.</string>

@@ -7,7 +7,6 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Contacts Proton</string>
     <string name="launcher_sync_failed_reauth">Échec de la synchronisation — veuillez vous reconnecter.</string>
-    <string name="launcher_sync_failed_reauth_storage_upgrade">Reconnectez-vous une seule fois — la version 2.0 conserve votre session dans un stockage chiffré plus robuste et lié à l\'appareil, et l\'ancienne n\'a pas pu être reprise. Touchez Se déconnecter, puis reconnectez-vous.</string>
     <string name="launcher_sync_failed_verification">Échec de la synchronisation — vérification requise sur le site web de Proton.</string>
     <string name="launcher_sync_failed_app_version">Échec de la synchronisation — veuillez mettre à jour pcontacts.</string>
     <string name="launcher_sync_failed_network">Échec de la synchronisation — vérifiez votre connexion et réessayez.</string>

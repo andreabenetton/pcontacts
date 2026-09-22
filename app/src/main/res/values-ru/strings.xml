@@ -7,7 +7,6 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Контакты Proton</string>
     <string name="launcher_sync_failed_reauth">Синхронизация не удалась — войдите снова.</string>
-    <string name="launcher_sync_failed_reauth_storage_upgrade">Войдите снова один раз — версия 2.0 хранит сессию в более надёжном хранилище, зашифрованном и привязанном к устройству, и прежнюю сессию перенести не удалось. Нажмите «Выйти», затем войдите.</string>
     <string name="launcher_sync_failed_verification">Синхронизация не удалась — требуется проверка на сайте Proton.</string>
     <string name="launcher_sync_failed_app_version">Синхронизация не удалась — обновите pcontacts.</string>
     <string name="launcher_sync_failed_network">Синхронизация не удалась — проверьте подключение и повторите попытку.</string>

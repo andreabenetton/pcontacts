@@ -35,8 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import io.pcontacts.app.account.LogoutHelper
+import io.pcontacts.app.account.MissingContactsPermissionException
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.auth.LoginActivity
+import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.app.notifications.SyncNotifier
 import io.pcontacts.app.permissions.ContactsPermissionBanner
 import io.pcontacts.app.permissions.ContactsPermissionState
@@ -46,10 +50,13 @@ import io.pcontacts.app.settings.SettingsHost
 import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
+import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
+import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SignInScreen
+import kotlinx.coroutines.launch
 
 /**
  * The one screen of the app: the Settings shell reduced to its Account
@@ -64,6 +71,8 @@ class MainActivity : ComponentActivity() {
     private var pendingVerificationReturn = false
     private var notificationDenied = false
     private var contactsPermissionStatus by mutableStateOf(ContactsPermissionStatus.GRANTED)
+    private var upgradeSignOutRunning by mutableStateOf(false)
+    private var storageUpgradeNotice by mutableStateOf(false)
 
     private val settingsHost: SettingsHost = SettingsHost(this, ::onSignedOutFromSettings)
 
@@ -93,6 +102,7 @@ class MainActivity : ComponentActivity() {
         contactsPermissionStatus = ContactsPermissionState.check(
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
+        signOutAfterStorageUpgradeIfNeeded()
 
         setContent {
             PcontactsTheme {
@@ -103,7 +113,7 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(tick) { viewModel.refresh() }
 
-                if (state is LauncherUiState.SignedIn) {
+                if (state is LauncherUiState.SignedIn && !upgradeSignOutRunning) {
                     SettingsScreen(
                         viewModel = settingsHost.viewModel,
                         actions = settingsHost.actions(),
@@ -120,10 +130,11 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     SignInScreen(
-                        loading = state is LauncherUiState.Loading,
+                        loading = state is LauncherUiState.Loading || upgradeSignOutRunning,
                         contactsPermissionGranted = contactsPermissionStatus == ContactsPermissionStatus.GRANTED,
                         onSignIn = ::launchLogin,
                         onOpenDeGoogledRoms = { startActivity(Intent(this, DeGoogledRomsActivity::class.java)) },
+                        storageUpgradeNotice = storageUpgradeNotice,
                         snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } }
                     )
                 }
@@ -166,6 +177,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         resumeTick++
         viewModel.refresh()
+        storageUpgradeNotice = SharedPreferencesUserPreferences(this).secretsStorageUpgraded
         // Permissions are asked for only once there is an account to sync: a first launch shows the
         // sign-in screen undisturbed, and the prompts follow the return from LoginActivity. The
         // prefs flags inside make repeated resumes a no-op.
@@ -277,6 +289,29 @@ class MainActivity : ComponentActivity() {
 
     private fun hasProtonAccount(): Boolean =
         AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).isNotEmpty()
+
+    /**
+     * First start after a 1.x install: the old session went with its purged secret file (ADR-0009)
+     * and cannot be carried over, so the stale account is signed out here, before the screen is
+     * decided, and the sign-in screen says why. Without Contacts access the sign-out cannot run;
+     * the account then stays and the sync card reports the re-auth instead.
+     */
+    private fun signOutAfterStorageUpgradeIfNeeded() {
+        val account = AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull() ?: return
+        if (!AuthBootstrap.storageUpgradePending(this)) return
+        storageUpgradeNotice = true
+        upgradeSignOutRunning = true
+        lifecycleScope.launch {
+            try {
+                LogoutHelper(this@MainActivity).signOut(account)
+            } catch (e: MissingContactsPermissionException) {
+                RedactingLogger(tag = "Main", sink = AndroidLogcatSink())
+                    .warn(e) { "storage-upgrade sign-out skipped: no Contacts access" }
+            }
+            upgradeSignOutRunning = false
+            onSignedOutFromSettings()
+        }
+    }
 
     private fun launchLogin() {
         startActivity(Intent(this, LoginActivity::class.java))

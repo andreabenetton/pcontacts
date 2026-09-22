@@ -5,6 +5,8 @@ package io.pcontacts.app.sync
 
 import android.accounts.Account
 import android.app.Application
+import android.app.Notification
+import android.app.NotificationManager
 import android.content.ContentProvider
 import android.content.ContentProviderClient
 import android.content.ContentValues
@@ -13,6 +15,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
+import io.pcontacts.app.R
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.storage.InMemoryUserPreferences
@@ -29,6 +32,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -117,21 +121,21 @@ class ProtonSyncAdapterErrorPropagationTest {
     }
 
     @Test
-    fun decryptUnavailable_after_the_storage_upgrade_records_the_upgrade_code() {
+    fun decryptUnavailable_after_the_storage_upgrade_explains_the_upgrade_in_the_notification() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(app).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
         val prefs = InMemoryUserPreferences().apply { secretsStorageUpgraded = true }
         val adapter = adapter(prefs) { _, _, _ -> throw DecryptUnavailableException("no key") }
-        adapter.onPerformSync(account, extras, authority, provider, SyncResult())
-        assertEquals("reauth_storage_upgrade", prefs.lastSyncErrorCode)
-        assertTrue("the flag stays until the user has signed in again", prefs.secretsStorageUpgraded)
-    }
 
-    @Test
-    fun successful_sync_clears_the_storage_upgrade_flag() {
-        val prefs = InMemoryUserPreferences().apply { secretsStorageUpgraded = true }
-        val adapter = adapter(prefs) { _, _, _ -> WriteReport.EMPTY to SyncReport(0, 0, 0, 0, 0) }
         adapter.onPerformSync(account, extras, authority, provider, SyncResult())
-        assertEquals(false, prefs.secretsStorageUpgraded)
-        assertNull(prefs.lastSyncErrorCode)
+
+        val posted = shadowOf(app.getSystemService(NotificationManager::class.java)).allNotifications.single()
+        assertEquals(
+            app.getString(R.string.notification_reauth_storage_upgrade_text),
+            posted.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+        )
+        assertEquals("reauth", prefs.lastSyncErrorCode)
+        assertTrue("the flag stays until the user has signed in again", prefs.secretsStorageUpgraded)
     }
 
     @Test
