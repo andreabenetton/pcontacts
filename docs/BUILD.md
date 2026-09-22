@@ -234,8 +234,8 @@ Follow this sequence exactly. Do not tag until the build is verified.
       link reference at the bottom.
 - [ ] Update `README.md` status section if the release changes the
       project's maturity level (e.g. pre-release → stable).
-- [ ] Update `docs/ROADMAP.md` — check off completed items, update the
-      "Done" heading version if needed.
+- [ ] Update `docs/ROADMAP.md` — remove the items this release ships
+      (the roadmap lists only open items; shipped work is the changelog's).
 - [ ] Nothing to do for F-Droid metadata. It is **not** stored in this
       repo — see [§F-Droid](#f-droid). Once the app is published,
       F-Droid's `checkupdates` bot picks up the new signed tag on its
