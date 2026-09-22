@@ -31,6 +31,15 @@ dependencies {
         implementation(libs.freemarker) {
             because("CVE-2026-84939 path-traversal in freemarker < 2.3.35")
         }
+        // Same story for ez-vcard's jCard (jackson-core) and hCard (jsoup) support, which
+        // this app never calls: keep them at versions without open advisories (found by
+        // the ADR-0025 runtime check against osv.dev on 2026-09-22).
+        implementation(libs.jackson.core) {
+            because("GHSA-72hv-8253-57qq and GHSA-r7wm-3cxj-wff9 in jackson-core < 2.21.4")
+        }
+        implementation(libs.jsoup) {
+            because("GHSA-pmhh-3w7g-xqp8 (CVE-2026-71497) in jsoup < 1.23.1")
+        }
     }
 
     // ContactDto / ContactCardDto live here; pulling :core:proton-api in as

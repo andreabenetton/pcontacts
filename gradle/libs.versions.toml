@@ -45,6 +45,8 @@ bouncycastle                 = "1.86"
 ezvcard                      = "0.12.2"
 # Security pin (constraint in :core:proton-contacts): 2.3.35 fixes CVE-2026-84939. Do not downgrade.
 freemarker                   = "2.3.35"
+jackson-core                 = "2.22.3"
+jsoup                        = "1.23.2"
 
 # Test
 junit                        = "4.13.2"
@@ -98,6 +100,8 @@ bouncycastle-bcprov          = { group = "org.bouncycastle",      name = "bcprov
 # vCard
 ezvcard                      = { group = "com.googlecode.ez-vcard", name = "ez-vcard",                    version.ref = "ezvcard" }
 freemarker                   = { group = "org.freemarker",          name = "freemarker",                    version.ref = "freemarker" }
+jackson-core                 = { group = "com.fasterxml.jackson.core", name = "jackson-core",             version.ref = "jackson-core" }
+jsoup                        = { group = "org.jsoup",             name = "jsoup",                    version.ref = "jsoup" }
 
 # Android Lint (for custom check module in :tools:lint)
 android-lint-api             = { group = "com.android.tools.lint", name = "lint-api",                     version.ref = "android-lint" }
