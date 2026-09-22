@@ -67,16 +67,17 @@ fun ContactsAccessScreen(
                 AppList(apps)
                 Spacer(Modifier.height(16.dp))
             }
+            OutlinedButton(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.contacts_access_open_permission))
+            }
+            // As everywhere else in the app, the explanation of a button sits under it.
             permissionHint(permissionRoute)?.let { hint ->
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = hint,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(8.dp))
-            }
-            OutlinedButton(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.contacts_access_open_permission))
             }
             Spacer(Modifier.height(16.dp))
         }
