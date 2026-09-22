@@ -56,10 +56,11 @@ class LoginActivity : ComponentActivity() {
     private var response: AccountAuthenticatorResponse? = null
 
     // Receives the result of the HV WebView Activity. RESULT_OK means
-    // the JS bridge wrote a verification token to SecretStore; we then
-    // retry the original /auth (now carrying the HV headers). Anything
-    // else (back-button, ESC) means the user gave up — reset the VM to
-    // Idle instead of looping into the captcha screen forever.
+    // the JS bridge wrote a verification token to SecretStore; the view
+    // model then re-runs /auth (credentials phase) or returns to the TOTP
+    // screen for a fresh code (2FA phase), both now carrying the HV
+    // headers. Anything else (back-button, ESC) means the user gave up —
+    // reset the VM to Idle instead of looping into the captcha screen.
     private val humanVerificationLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
@@ -81,10 +82,12 @@ class LoginActivity : ComponentActivity() {
                     when (state) {
                         is LoginUiState.TwoFactorRequired,
                         is LoginUiState.TwoFactorSubmitting,
+                        is LoginUiState.TwoFactorHumanVerificationRequired,
                         is LoginUiState.TwoFactorFailed -> TwoFactorScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onCancel = { viewModel.reset() },
+                            onHumanVerificationRequired = { url -> launchHumanVerification(url) },
                             modifier = Modifier.padding(padding)
                         )
                         else -> LoginScreen(
