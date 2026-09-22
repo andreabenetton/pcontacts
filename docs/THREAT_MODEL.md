@@ -227,8 +227,15 @@ This is the same threat surface every account-syncing app has
 opts into it explicitly when they install pcontacts and grants
 READ_CONTACTS individually to each consuming app.
 
-**No mitigation**. The whole point of the app is to put contacts
-where other apps can use them. If you want decrypted contacts
+**No technical mitigation inside the app**. The whole point of the
+app is to put contacts where other apps can use them. What the app
+does do is make the exposure visible: the Privacy section lists the
+user-installed and the OS-installed apps that hold `READ_CONTACTS`,
+links to the system page where the permission can be revoked, and
+explains (with a dedicated "De-Googled Android ROMs" screen, also
+linked from the sign-in screen before the first sync) that on stock
+Android the OS-installed set includes Google and OEM services the
+user cannot remove. If you want decrypted contacts
 that no other app can read, the right tool is Proton's own
 Android Mail app's contact picker (which doesn't expose to
 ContactsContract).
@@ -293,14 +300,14 @@ Implemented (ADR-0017/0018):
 - Outbox wiped on logout alongside SecretStore and Room mapping
   (`LogoutOrchestrator` step 3).
 
+Since delivered: instrumented ContactsContract tests on the API 26
+and 33 emulator pipeline, the reproducible-build gate (diffoscope),
+the OWASP dependency-check job, Compose UI tests for the
+onboarding and settings screens (all in `.github/workflows/build.yml`),
+and the `verifyManifestInvariants` Gradle task that fails the build
+when a merged manifest has `allowBackup` or `debuggable` set wrong.
+
 Deferred (tracked):
-- Instrumented ContactsContract tests on an emulator pipeline
-  (aggregation behaviour, deletion tombstones, photo round-trip).
-- Reproducible-build CI gate (diffoscope).
-- OWASP dependency-check CI task (Dependabot covers update PRs but not blocking CI on known CVEs).
-- Compose UI tests for the login + settings screens.
-- Manifest-merger test asserting `allowBackup=false` +
-  `debuggable=false` on release builds.
 - Full license-scan plugin in addition to the
   forbidden-group check (the latter doesn't catch
   non-GPL-3-compatible licenses on allowed groups).

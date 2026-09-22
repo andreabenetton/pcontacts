@@ -18,11 +18,12 @@ What works in code (verified by unit tests + live integration test):
 - Per-card encrypt + sign for write-back: `ContactSerializer` produces SIGNED (FN + UID) and ENCRYPTED_AND_SIGNED (all remaining fields) cards. Full encrypt→decrypt round-trip verified with real BouncyCastle keys.
 - 401 → `/auth/refresh` → retry under a single-flight mutex; 429 → Fibonacci backoff (1s, 2s, 3s, 5s, 8s) honouring `Retry-After`; 9001 (human verification) surfaced as a typed exception that stops the sync framework from retrying.
 - Logout: server-side revoke + ContactsContract wipe + Room mapping wipe + outbox wipe + `SecretStore.logout()` (zeroes secrets + deletes Keystore AEAD KEK alias) + Android Account removal.
-- Periodic sync every 12h via `PeriodicSyncWorker` (NetworkType.CONNECTED + battery-not-low) plus the system `SyncAdapter`. Settings screen with sync interval selector, outbox status, pending-delete banner, and conflict resolution UI.
+- Periodic sync every 12h by default via `PeriodicSyncWorker` (NetworkType.CONNECTED + battery-not-low) plus the system `SyncAdapter`. The app's single screen shows a sync status card (health headline, progress, last-sync time, pending / failed / unverified / conflict rows with their dialogs), a stepped interval slider (1 / 6 / 12 / 24 h), the linked-contact import (ADR-0023), the lists of apps that hold `READ_CONTACTS`, and sign-in / sign-out.
+- **One-way enrichment from other accounts** (ADR-0023): an in-app list of contacts that exist only in other providers (WhatsApp, Telegram, device-local, …) or whose Proton copy lacks details; the user picks what to copy into the Proton contact, or creates the Proton copy. Other apps' contacts are never modified.
 
 ### Known gaps
 
-1. **Once contacts land in `ContactsContract`, the OS owns them.** Stock Android ships with pre-installed system applications (Google Play Services, Google Contacts, Gmail, the OEM dialer, the OEM messaging app, vendor "assistant" services, etc.) that are granted `READ_CONTACTS` by default or are very difficult to revoke. Decrypting Proton contacts onto a device with those apps still installed effectively shares them with Google and the OEM. **For a meaningful privacy posture, run pcontacts on a de-Googled ROM such as [GrapheneOS](https://grapheneos.org/) (preferred — sandboxed Google Play, per-app contacts scopes) or [LineageOS for microG](https://lineage.microg.org/)** (or vanilla LineageOS without GApps). pcontacts cannot fix this for you on stock Android; it is a property of the platform's permission model, not of this app.
+1. **Once contacts land in `ContactsContract`, the OS owns them.** Stock Android ships with pre-installed system applications (Google Play Services, Google Contacts, Gmail, the OEM dialer, the OEM messaging app, vendor "assistant" services, etc.) that are granted `READ_CONTACTS` by default or are very difficult to revoke. Decrypting Proton contacts onto a device with those apps still installed effectively shares them with Google and the OEM. **For a meaningful privacy posture, run pcontacts on a de-Googled ROM.** The app's own "De-Googled Android ROMs" screen (reached from the sign-in screen and from the OS-installed-apps list under Privacy) explains the term and lists GrapheneOS, CalyxOS, iodéOS, /e/OS, LineageOS for microG, LineageOS, ShiftOS-L and Replicant with what each does about Google services; being de-Googled says nothing about a ROM's security properties, which must be judged separately. [GrapheneOS](https://grapheneos.org/) is the usual recommendation for this app specifically because its sandboxed Google Play and per-app Contacts scopes keep synced contacts out of Google's privileged reach. pcontacts cannot fix this for you on stock Android; it is a property of the platform's permission model, not of this app. The Privacy section shows which installed apps hold `READ_CONTACTS` and links to the system page where the permission can be revoked.
 
 2. **`x-pm-appversion` window drift.** The hardcoded version (`android-mail@3.0.12`) must stay within Proton's `2.0.0`–`3.0.12` acceptance window for the direct-`auth/info` login flow. It is a client identifier, not the latest app version — bumping it to newer android-mail releases breaks login. Requires occasional maintenance if the window shifts.
 
@@ -67,17 +68,18 @@ The load-bearing calls:
 
 ```bash
 ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/pcontacts-debug.apk
 ```
 
 For a release build (R8 + minification, exercises every `proguard-rules.pro` keep rule):
 
 ```bash
 ./gradlew :app:assembleRelease
-# unsigned APK at app/build/outputs/apk/release/app-release-unsigned.apk
+# app/build/outputs/apk/release/pcontacts-release.apk when signing properties are set,
+# pcontacts-release-unsigned.apk otherwise (the CI reproducible-build path)
 ```
 
-The Gradle wrapper bootstraps Gradle 8.10.2 + AGP 8.7.0 + Kotlin 2.0.21. JDK 17 is required.
+The Gradle wrapper pins the Gradle version; AGP and Kotlin versions live in `gradle/libs.versions.toml`. JDK 17 is required.
 
 Reproducible-build verification is documented in [`docs/BUILD.md`](docs/BUILD.md) and enforced in CI via `diffoscope`.
 
@@ -104,7 +106,9 @@ Reproducible-build verification is documented in [`docs/BUILD.md`](docs/BUILD.md
 ./gradlew checkForbiddenDependencies
 
 # Instrumented tests (requires connected device or emulator):
-./gradlew :core:contacts-writer:connectedDebugAndroidTest
+./gradlew :core:contacts-writer:connectedDebugAndroidTest \
+          :feature:onboarding:connectedDebugAndroidTest \
+          :feature:settings:connectedDebugAndroidTest
 ```
 
 GitHub Actions runs all of the above plus `:app:assembleRelease` on every push / PR. Instrumented tests run on API 26 and 33 emulators.
@@ -122,8 +126,9 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the STRIDE pass. Highligh
 
 Both the SRP auth flow and the bidirectional sync write path (CREATE / UPDATE / DELETE round-trip) are validated against the live Proton API via nightly canary tests. PRs welcome for:
 
-- Compose UI tests for the login + settings screens.
+- Review of the non-English translations (de, es, fr, it, ru, zh-CN) by native speakers.
 - Additional OpenPGP test vector capture in `tools/vectors/capture.js`.
+- Device reports for the "Default account for new contacts" and Contacts-permission shortcuts, which depend on OEM Settings intents.
 
 Open an issue first for anything larger; this is a single-maintainer project and an unscoped PR is hard to absorb.
 

@@ -111,17 +111,17 @@ compares the outputs with `diffoscope`.
 ./gradlew --no-daemon --no-build-cache \
   --project-cache-dir=/tmp/repro-a/cache \
   clean :app:assembleRelease
-cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/repro-a/
+cp app/build/outputs/apk/release/pcontacts-release-unsigned.apk /tmp/repro-a/
 
 # Build B
 ./gradlew --no-daemon --no-build-cache \
   --project-cache-dir=/tmp/repro-b/cache \
   clean :app:assembleRelease
-cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/repro-b/
+cp app/build/outputs/apk/release/pcontacts-release-unsigned.apk /tmp/repro-b/
 
 # Compare
-sha256sum /tmp/repro-a/app-release-unsigned.apk \
-          /tmp/repro-b/app-release-unsigned.apk
+sha256sum /tmp/repro-a/pcontacts-release-unsigned.apk \
+          /tmp/repro-b/pcontacts-release-unsigned.apk
 ```
 
 If the two hashes match, the build is reproducible. If they differ,
