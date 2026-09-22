@@ -5,6 +5,7 @@ package io.pcontacts.feature.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -110,6 +111,8 @@ private fun RomCard(rom: DeGoogledRom, onOpenWebsite: (String) -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(
                 onClick = { onOpenWebsite(rom.website) },
+                // No side padding, so the action lines up with the labels above it.
+                contentPadding = PaddingValues(vertical = 8.dp),
                 modifier = Modifier.semantics { contentDescription = openLabel }
             ) {
                 Text(stringResource(R.string.rom_website))
