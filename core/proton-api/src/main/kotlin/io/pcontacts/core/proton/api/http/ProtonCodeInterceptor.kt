@@ -64,6 +64,9 @@ class ProtonCodeInterceptor(
             isLenient = true
         }
 
+        /** The Proton `Code` of an error body (a 4xx/5xx envelope has the same shape), or null. */
+        fun codeOf(body: String): Int? = parse(body)?.code
+
         /** The `Code` (and `Error`) of a JSON object body, or null when there is no `Code` at all. */
         internal fun parse(body: String): Envelope? = try {
             val root = lenientJson.parseToJsonElement(body).jsonObject
