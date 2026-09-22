@@ -12,7 +12,7 @@
     <string name="login_sign_in">Iniciar sesión</string>
 
     <string name="two_factor_title">Autenticación de dos factores</string>
-    <string name="two_factor_subtitle">Introduce el código de 6 dígitos de tu app de autenticación.</string>
+    <string name="two_factor_subtitle">Introduce el código de Proton de 6 dígitos de tu app de autenticación.</string>
     <string name="two_factor_code_label">Código</string>
     <string name="two_factor_verify">Verificar</string>
     <string name="two_factor_cancel">Cancelar inicio de sesión</string>

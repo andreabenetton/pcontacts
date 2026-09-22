@@ -12,7 +12,7 @@
     <string name="login_sign_in">Войти</string>
 
     <string name="two_factor_title">Двухфакторная аутентификация</string>
-    <string name="two_factor_subtitle">Введите 6-значный код из приложения-аутентификатора.</string>
+    <string name="two_factor_subtitle">Введите 6-значный код Proton из приложения-аутентификатора.</string>
     <string name="two_factor_code_label">Код</string>
     <string name="two_factor_verify">Подтвердить</string>
     <string name="two_factor_cancel">Отменить вход</string>

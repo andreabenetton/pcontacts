@@ -12,7 +12,7 @@
     <string name="login_sign_in">Anmelden</string>
 
     <string name="two_factor_title">Zwei-Faktor-Authentifizierung</string>
-    <string name="two_factor_subtitle">Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.</string>
+    <string name="two_factor_subtitle">Geben Sie den 6-stelligen Proton-Code aus Ihrer Authenticator-App ein.</string>
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Bestätigen</string>
     <string name="two_factor_cancel">Anmeldung abbrechen</string>

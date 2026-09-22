@@ -12,7 +12,7 @@
     <string name="login_sign_in">Sign in</string>
 
     <string name="two_factor_title">Two-factor authentication</string>
-    <string name="two_factor_subtitle">Enter the 6-digit code from your authenticator app.</string>
+    <string name="two_factor_subtitle">Enter the 6-digit Proton code from your authenticator app.</string>
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Verify</string>
     <string name="two_factor_cancel">Cancel sign-in</string>

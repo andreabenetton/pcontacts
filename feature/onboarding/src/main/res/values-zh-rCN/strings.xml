@@ -12,7 +12,7 @@
     <string name="login_sign_in">登录</string>
 
     <string name="two_factor_title">双重验证</string>
-    <string name="two_factor_subtitle">请输入验证器应用中的 6 位数字代码。</string>
+    <string name="two_factor_subtitle">请输入验证器应用中的 6 位 Proton 验证码。</string>
     <string name="two_factor_code_label">验证码</string>
     <string name="two_factor_verify">验证</string>
     <string name="two_factor_cancel">取消登录</string>

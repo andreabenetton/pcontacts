@@ -12,7 +12,7 @@
     <string name="login_sign_in">Se connecter</string>
 
     <string name="two_factor_title">Authentification à deux facteurs</string>
-    <string name="two_factor_subtitle">Saisissez le code à 6 chiffres de votre app d\'authentification.</string>
+    <string name="two_factor_subtitle">Saisissez le code Proton à 6 chiffres de votre app d\'authentification.</string>
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Vérifier</string>
     <string name="two_factor_cancel">Annuler la connexion</string>
