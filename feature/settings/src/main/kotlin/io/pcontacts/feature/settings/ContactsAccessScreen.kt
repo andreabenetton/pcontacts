@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,9 +66,7 @@ fun ContactsAccessScreen(
                 AppList(apps)
                 Spacer(Modifier.height(16.dp))
             }
-            OutlinedButton(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.contacts_access_open_permission))
-            }
+            ActionButton(enabled = true, onClick = onOpenPermission, textRes = R.string.contacts_access_open_permission)
             // As everywhere else in the app, the explanation of a button sits under it.
             permissionHint(permissionRoute)?.let { hint ->
                 Spacer(Modifier.height(4.dp))

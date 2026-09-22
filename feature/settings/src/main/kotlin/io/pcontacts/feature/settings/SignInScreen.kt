@@ -72,7 +72,7 @@ fun SignInScreen(
                 enabled = !loading,
                 onClick = onSignIn,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = SignInGreen),
-                border = BorderStroke(1.dp, SignInGreen),
+                border = BorderStroke(2.dp, SignInGreen),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.settings_sign_in))

@@ -114,7 +114,7 @@ fun SettingsScreen(
                 enabled = !busy,
                 onClick = viewModel::triggerSignOut,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.settings_sign_out))
