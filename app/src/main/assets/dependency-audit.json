@@ -1063,6 +1063,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-5895",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1071,6 +1072,7 @@
                     "severity": "CRITICAL",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-10989",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1079,6 +1081,7 @@
                     "severity": "CRITICAL",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19646",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1087,6 +1090,7 @@
                     "severity": "CRITICAL",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11656",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1095,6 +1099,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20346",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1103,6 +1108,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20506",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1111,6 +1117,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11822",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1119,6 +1126,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11824",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1127,6 +1135,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-6965",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1135,6 +1144,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3414",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1143,6 +1153,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3415",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1151,6 +1162,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3416",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1159,6 +1171,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3717",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1167,6 +1180,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20505",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1175,6 +1189,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-8740",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1183,6 +1198,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11655",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1191,6 +1207,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-35737",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1199,6 +1216,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-70873",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1207,6 +1225,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-7104",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1215,6 +1234,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13630",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1223,6 +1243,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-6607",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1231,6 +1252,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2016-6153",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1239,6 +1261,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19645",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1247,6 +1270,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13434",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1255,6 +1279,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13435",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1263,6 +1288,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13631",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1271,6 +1297,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13632",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1279,6 +1306,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-15358",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 }
             ]
@@ -1308,6 +1336,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-5895",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1316,6 +1345,7 @@
                     "severity": "CRITICAL",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-10989",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1324,6 +1354,7 @@
                     "severity": "CRITICAL",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19646",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1332,6 +1363,7 @@
                     "severity": "CRITICAL",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11656",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1340,6 +1372,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20346",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1348,6 +1381,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20506",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1356,6 +1390,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11822",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1364,6 +1399,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11824",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1372,6 +1408,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-6965",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1380,6 +1417,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3414",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1388,6 +1426,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3415",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1396,6 +1435,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3416",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1404,6 +1444,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3717",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1412,6 +1453,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20505",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1420,6 +1462,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-8740",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1428,6 +1471,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11655",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1436,6 +1480,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-35737",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1444,6 +1489,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-70873",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1452,6 +1498,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-7104",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1460,6 +1507,7 @@
                     "severity": "HIGH",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13630",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1468,6 +1516,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-6607",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1476,6 +1525,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2016-6153",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1484,6 +1534,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19645",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1492,6 +1543,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13434",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1500,6 +1552,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13435",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1508,6 +1561,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13631",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1516,6 +1570,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13632",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 },
                 {
@@ -1524,6 +1579,7 @@
                     "severity": "MEDIUM",
                     "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-15358",
                     "suppressed": true,
+                    "falsePositive": true,
                     "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
                 }
             ]

@@ -11,6 +11,12 @@
     - A <notes> element explaining WHY the CVE does not apply to this project
     - A re-evaluation date (when the suppression should be reviewed)
 
+  The notes are shown in the app (ADR-0024). Open them with "False positive:"
+  when the scanner matched a different product than the artifact (a CPE
+  mismatch): such matches are listed but leave the artifact green. Any other
+  suppression is a real CVE of the artifact assessed as not applicable and
+  shows the artifact as amber with these notes as the reason.
+
   See https://jeremylong.github.io/DependencyCheck/general/suppression.html
 -->
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">

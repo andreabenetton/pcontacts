@@ -296,11 +296,22 @@ fun readAuditCves(reportFile: File): Map<String, List<Map<String, Any?>>> {
                     val reason = if (!suppressed) null else suppressions.firstOrNull { id in it.cves }?.notes
                         ?: suppressions.firstOrNull { it.packageUrl?.containsMatchIn(purl) == true }?.notes
                         ?: "Suppressed in config/dependency-check-suppressions.xml"
+                    // Convention: a suppression whose notes open with "False positive" says the scanner
+                    // matched the wrong product; such matches do not colour the artifact (ADR-0024).
+                    val falsePositive = reason?.startsWith("False positive", ignoreCase = true) == true
                     val url = if (id.startsWith("CVE-")) "https://nvd.nist.gov/vuln/detail/$id" else
                         (v["references"] as? List<Map<String, Any?>>)?.firstOrNull()?.get("url")?.toString() ?: "https://github.com/advisories/$id"
                     out.getOrPut(coordinate) { linkedMapOf() }.putIfAbsent(
                         id,
-                        linkedMapOf("id" to id, "score" to score, "severity" to severity, "url" to url, "suppressed" to suppressed, "reason" to reason)
+                        linkedMapOf(
+                            "id" to id,
+                            "score" to score,
+                            "severity" to severity,
+                            "url" to url,
+                            "suppressed" to suppressed,
+                            "falsePositive" to falsePositive,
+                            "reason" to reason
+                        )
                     )
                 }
             }
