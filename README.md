@@ -128,6 +128,10 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the STRIDE pass. Highligh
 - SPKI certificate pins (ISRG Root X1 + X2) are enforced via OkHttp's `CertificatePinner`. Release builds gate on non-empty pins. SRP modulus signature verification provides a second TLS-independent layer.
 - When Proton requires a captcha (Code 9001), the verification page (`verify.proton.me`) is loaded in an in-app `WebView` with JavaScript enabled. Navigation is restricted to `*.proton.me`, DOM storage / file / content access are disabled, and the only JS bridge call accepted is the success envelope from Proton's own page. The resulting verification token is stored in the Keystore-sealed `SecretStore` (ADR-0009) and attached to subsequent requests via the `x-pm-human-verification-token{,-type}` headers. The pattern mirrors `ProtonMail/protoncore_android`'s `HV3DialogFragment`; see [ADR-0019](docs/adr/0019-human-verification-webview-flow.md).
 
+## Reporting a security issue
+
+See `docs/THREAT_MODEL.md §7` and [`SECURITY.md`](SECURITY.md). Short version: email **&#97;&#110;&#100;&#114;&#101;&#97;&#46;&#98;&#101;&#110;&#101;&#116;&#116;&#111;&#110;&#64;&#98;&#108;&#117;&#101;&#116;&#101;&#97;&#109;&#46;&#101;&#101;** or open a private GitHub issue — NOT a public PR. Expect a 30-day coordinated-disclosure embargo from first acknowledgement.
+
 ## Contributing
 
 Both the SRP auth flow and the bidirectional sync write path (CREATE / UPDATE / DELETE round-trip) are validated against the live Proton API via nightly canary tests. PRs welcome for:
@@ -143,7 +147,3 @@ Open an issue first for anything larger; this is a single-maintainer project and
 If pcontacts is useful to you, a coffee is welcome, in bitcoin:
 
 `bc1qe793n6n6yvfyazu6wrt4upueljksfg8lep8x2p`
-
-## Reporting a security issue
-
-See `docs/THREAT_MODEL.md §7` and [`SECURITY.md`](SECURITY.md). Short version: email **&#97;&#110;&#100;&#114;&#101;&#97;&#46;&#98;&#101;&#110;&#101;&#116;&#116;&#111;&#110;&#64;&#98;&#108;&#117;&#101;&#116;&#101;&#97;&#109;&#46;&#101;&#101;** or open a private GitHub issue — NOT a public PR. Expect a 30-day coordinated-disclosure embargo from first acknowledgement.
