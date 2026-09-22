@@ -80,10 +80,11 @@ What this makes harder / new obligations:
   redirects elsewhere, the navigation is refused. This is the only host
   guard between our WebView and an attacker, and it's our responsibility
   to keep the allowlist correct.
-- The HV token is persisted in `EncryptedSharedPreferences` alongside
-  `accessToken`. Same threat profile (session-scoped, no KEK wrap),
-  cleared on `SecretStore.logout()` and on the next 9001 with stale-token
-  detection. THREAT_MODEL.md updated to list it as a session asset.
+- The HV token is persisted in the `SecretStore` alongside `accessToken`
+  (since 2.0.0 every value is sealed under the Keystore key of ADR-0009;
+  before that, `EncryptedSharedPreferences`). Same threat profile
+  (session-scoped), cleared on `SecretStore.logout()` and on the next
+  9001 with stale-token detection. THREAT_MODEL.md updated to list it as a session asset.
 - The `androidx.browser` (Chrome Custom Tabs) dependency could be dropped
   if nothing else uses it — left in place for now since the cost is small.
 - The JS-bridge envelope shape (`{type: "HUMAN_VERIFICATION_SUCCESS",

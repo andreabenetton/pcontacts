@@ -54,7 +54,7 @@ These are the load-bearing invariants. Every one corresponds to an ADR; read the
 ### Secrets storage (ADR-0009)
 - All secret reads/writes go through the `SecretStore` interface in `:core:storage`.
 - Direct `SharedPreferences` constructor calls outside `:core:storage` are forbidden (detekt rule).
-- `keyPassword` is wrapped under a Keystore AEAD key (`pcontacts.kekv1`) before it touches EncryptedSharedPreferences.
+- Every secret (tokens, `keyPassword`, the verification token) is sealed under the Keystore AEAD key `pcontacts.kekv1` before it touches the plain preferences file `pcontacts_auth_v2`; nothing in that file is readable without the key.
 - Manifest invariants on release builds: `android:allowBackup="false"`, `android:debuggable="false"`. Asserted in a manifest-merger test.
 
 ### ContactsContract writes (ADR-0010)
