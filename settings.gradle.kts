@@ -40,6 +40,7 @@ include(":core:contacts-writer")
 include(":core:storage")
 include(":core:sync")
 include(":core:logging")
+include(":core:advisories")
 
 include(":feature:onboarding")
 include(":feature:settings")
