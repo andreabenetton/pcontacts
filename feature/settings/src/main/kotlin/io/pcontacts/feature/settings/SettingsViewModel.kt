@@ -51,7 +51,8 @@ class SettingsViewModel(
     private val queryContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val querySystemContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val onSyncIntervalChanged: (Long) -> Unit = {},
-    private val querySyncProgress: suspend () -> SyncProgress? = { null },
+    /** Where the in-flight "N of total" comes from; null (the default) means there is nothing to poll. */
+    private val querySyncProgress: (suspend () -> SyncProgress?)? = null,
     private val querySystemNoticeDismissed: suspend () -> Boolean = { false },
     private val dismissSystemNotice: suspend () -> Unit = {},
     initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours,
@@ -144,11 +145,12 @@ class SettingsViewModel(
 
     private fun setRunning(running: Boolean) {
         _syncRunning.value = running
-        if (running && progressJob == null) {
+        val source = querySyncProgress
+        if (running && source != null && progressJob == null) {
             progressJob = scope.launch {
                 while (isActive) {
                     _syncProgress.value = try {
-                        withContext(workDispatcher) { querySyncProgress() }
+                        withContext(workDispatcher) { source() }
                     } catch (_: Exception) {
                         null
                     }
