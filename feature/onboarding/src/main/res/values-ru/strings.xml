@@ -34,4 +34,5 @@
     <string name="two_factor_error_session_expired">Сессия входа истекла. Начните заново.</string>
     <string name="two_factor_error_unexpected">Неожиданный ответ сервера. Повторите попытку или начните вход заново.</string>
     <string name="two_factor_error_generic">Двухфакторная проверка не удалась. Повторите попытку или начните вход заново.</string>
+    <string name="two_factor_error_verification_rejected">Proton снова запросил проверку. Начните вход заново.</string>
 </resources>

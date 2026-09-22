@@ -34,4 +34,5 @@
     <string name="two_factor_error_session_expired">登录会话已过期。请重新开始。</string>
     <string name="two_factor_error_unexpected">服务器返回异常响应。请重试或重新登录。</string>
     <string name="two_factor_error_generic">双重验证失败。请重试或重新登录。</string>
+    <string name="two_factor_error_verification_rejected">Proton 再次要求进行验证。请重新登录。</string>
 </resources>

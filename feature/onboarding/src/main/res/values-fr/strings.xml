@@ -34,4 +34,5 @@
     <string name="two_factor_error_session_expired">La session de connexion a expiré. Veuillez recommencer.</string>
     <string name="two_factor_error_unexpected">Réponse inattendue du serveur. Réessayez ou recommencez la connexion.</string>
     <string name="two_factor_error_generic">Échec de la vérification à deux facteurs. Réessayez ou recommencez la connexion.</string>
+    <string name="two_factor_error_verification_rejected">Proton a de nouveau demandé une vérification. Veuillez recommencer la connexion.</string>
 </resources>

@@ -34,4 +34,5 @@
     <string name="two_factor_error_session_expired">Anmeldesitzung abgelaufen. Bitte beginnen Sie von vorne.</string>
     <string name="two_factor_error_unexpected">Unerwartete Antwort vom Server. Versuchen Sie es erneut oder starten Sie die Anmeldung neu.</string>
     <string name="two_factor_error_generic">Zwei-Faktor-Verifizierung fehlgeschlagen. Versuchen Sie es erneut oder starten Sie die Anmeldung neu.</string>
+    <string name="two_factor_error_verification_rejected">Proton hat erneut eine Verifizierung angefordert. Bitte starten Sie die Anmeldung neu.</string>
 </resources>

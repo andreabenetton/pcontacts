@@ -151,6 +151,7 @@ private fun LoginStatusView(
         // TwoFactorRequired. If we still observe them here it's a stale
         // recomposition — render nothing.
         is LoginUiState.TwoFactorSubmitting,
+        is LoginUiState.TwoFactorHumanVerificationRequired,
         is LoginUiState.TwoFactorFailed -> Unit
         is LoginUiState.Failed -> Text(
             text = friendlyError(state.reason),
@@ -180,6 +181,7 @@ internal fun friendlyTotpError(reason: String): String = when (reason) {
     "two_factor_failed" -> stringResource(R.string.two_factor_error_unreachable)
     "two_factor_rejected" -> stringResource(R.string.two_factor_error_rejected)
     "no_session" -> stringResource(R.string.two_factor_error_session_expired)
+    "verification_rejected" -> stringResource(R.string.two_factor_error_verification_rejected)
     "unexpected_state" -> stringResource(R.string.two_factor_error_unexpected)
     else -> stringResource(R.string.two_factor_error_generic)
 }

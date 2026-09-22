@@ -136,6 +136,108 @@ class LoginViewModelTest {
         assertEquals("retryAfterVerification must not re-run from Failed state", 1, attemptCount)
     }
 
+    // --- 9001 during the two-factor phase ---
+
+    private fun twoFactorVm(submitTotp: suspend (String) -> LoginResult, attempts: MutableList<Int> = mutableListOf()) =
+        LoginViewModel(
+            attemptLogin = { _, _ ->
+                attempts += 1
+                LoginResult.TwoFactorRequired(uid = "uid-2fa", username = "u")
+            },
+            submitTotp = submitTotp,
+            workDispatcher = testDispatcher
+        )
+
+    @Test fun human_verification_during_two_factor_surfaces_the_two_factor_state_and_keeps_the_uid() = runTest {
+        val url = "https://verify.proton.me/?token=t"
+        val vm = twoFactorVm({ LoginResult.HumanVerificationRequired(url, "uid-2fa", "u") })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+
+        vm.submitTwoFactor("123456")
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.TwoFactorHumanVerificationRequired("uid-2fa", "u", url), vm.uiState.value)
+    }
+
+    @Test fun retry_after_verification_in_the_two_factor_phase_returns_to_the_code_screen_without_a_request() = runTest {
+        val attempts = mutableListOf<Int>()
+        var totpCalls = 0
+        val vm = twoFactorVm(
+            submitTotp = {
+                totpCalls += 1
+                LoginResult.HumanVerificationRequired("u", "uid-2fa", "u")
+            },
+            attempts = attempts
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("123456")
+        advanceUntilIdle()
+
+        vm.retryAfterVerification()
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.TwoFactorRequired("uid-2fa", "u"), vm.uiState.value)
+        assertEquals("no /auth re-run in the 2FA phase", 1, attempts.size)
+        assertEquals(1, totpCalls)
+    }
+
+    @Test fun fresh_code_after_verification_succeeds_on_the_same_session() = runTest {
+        val codes = mutableListOf<String>()
+        val vm = twoFactorVm({ code ->
+            codes += code
+            if (codes.size == 1) {
+                LoginResult.HumanVerificationRequired("u", "uid-2fa", "u")
+            } else {
+                LoginResult.Success("uid-2fa", "u")
+            }
+        })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("111111")
+        advanceUntilIdle()
+        vm.retryAfterVerification()
+
+        vm.submitTwoFactor("222222")
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.Success("uid-2fa", "u"), vm.uiState.value)
+        assertEquals(listOf("111111", "222222"), codes)
+    }
+
+    @Test fun a_second_verification_demand_in_the_two_factor_phase_fails_closed() = runTest {
+        val vm = twoFactorVm({ LoginResult.HumanVerificationRequired("u", "uid-2fa", "u") })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("111111")
+        advanceUntilIdle()
+        vm.retryAfterVerification()
+
+        vm.submitTwoFactor("222222")
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.TwoFactorFailed("uid-2fa", "u", "verification_rejected"), vm.uiState.value)
+    }
+
+    @Test fun reset_from_the_two_factor_verification_state_returns_to_idle_and_clears_the_flag() = runTest {
+        val vm = twoFactorVm({ LoginResult.HumanVerificationRequired("u", "uid-2fa", "u") })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("111111")
+        advanceUntilIdle()
+
+        vm.reset()
+        assertEquals(LoginUiState.Idle, vm.uiState.value)
+
+        // A new sign-in starts over: the next 9001 during 2FA opens the WebView again.
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("111111")
+        advanceUntilIdle()
+        assertEquals(LoginUiState.TwoFactorHumanVerificationRequired("uid-2fa", "u", "u"), vm.uiState.value)
+    }
+
     @Test fun failure_surfaces_reason_in_state() = runTest {
         val vm = LoginViewModel(
             attemptLogin = { _, _ -> LoginResult.Failed(reason = "auth_failed") },

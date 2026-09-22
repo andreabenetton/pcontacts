@@ -34,4 +34,5 @@
     <string name="two_factor_error_session_expired">Sessione di accesso scaduta. Ricomincia.</string>
     <string name="two_factor_error_unexpected">Risposta imprevista dal server. Riprova o riavvia l\'accesso.</string>
     <string name="two_factor_error_generic">Verifica a due fattori non riuscita. Riprova o riavvia l\'accesso.</string>
+    <string name="two_factor_error_verification_rejected">Proton ha richiesto di nuovo la verifica. Riavvia l\'accesso.</string>
 </resources>

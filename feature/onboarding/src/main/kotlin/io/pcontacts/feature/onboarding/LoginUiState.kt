@@ -19,7 +19,10 @@ package io.pcontacts.feature.onboarding
  *       └→ Success | Failed | TwoFactorRequired | HumanVerificationRequired
  *
  *   TwoFactorRequired ─(submitTwoFactor)→ TwoFactorSubmitting
- *       └→ Success | TwoFactorFailed
+ *       └→ Success | TwoFactorFailed | TwoFactorHumanVerificationRequired
+ *
+ *   TwoFactorHumanVerificationRequired ─(retryAfterVerification)→ TwoFactorRequired   // fresh code, same session
+ *       └─(a second 9001 on the resubmit)→ TwoFactorFailed("verification_rejected")   // fail closed
  *
  *   TwoFactorFailed ─(submitTwoFactor)→ TwoFactorSubmitting   // retry path
  */
@@ -33,13 +36,25 @@ sealed interface LoginUiState {
 
     /**
      * Proton demanded a captcha (Code 9001) at `/auth` before issuing
-     * the 2FA challenge. The hosting Activity should launch the captcha
-     * URL in a Custom Tab and call `retryAfterVerification()` when the
-     * user returns. [verificationUrl] is null when the 9001 body did
+     * the 2FA challenge. The hosting Activity opens the in-app
+     * verification WebView (ADR-0019) and calls `retryAfterVerification()`
+     * on RESULT_OK. [verificationUrl] is null when the 9001 body did
      * not include a captcha Details block — fall back to a "verify on
      * the web" dialog.
      */
     data class HumanVerificationRequired(val verificationUrl: String?) : LoginUiState
+
+    /**
+     * The same demand, raised on `/auth/2fa`: the SRP session is
+     * established and kept. The host opens the same WebView; on
+     * RESULT_OK `retryAfterVerification()` returns to [TwoFactorRequired]
+     * so the user enters a fresh code rather than re-sending an aged one.
+     */
+    data class TwoFactorHumanVerificationRequired(
+        val uid: String,
+        val username: String,
+        val verificationUrl: String?
+    ) : LoginUiState
 
     data class Failed(val reason: String) : LoginUiState
 }

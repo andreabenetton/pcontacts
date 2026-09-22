@@ -48,12 +48,14 @@ fun TwoFactorScreen(
     viewModel: LoginViewModel,
     onSuccess: (uid: String, username: String) -> Unit,
     onCancel: () -> Unit,
+    onHumanVerificationRequired: (verificationUrl: String?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     var code by remember { mutableStateOf("") }
-    val submitting = state is LoginUiState.TwoFactorSubmitting
+    // Input stays locked while the verification WebView is up, as while a code is in flight.
+    val submitting = state is LoginUiState.TwoFactorSubmitting || state is LoginUiState.TwoFactorHumanVerificationRequired
     val canSubmit = !submitting && code.length >= 6
     val submit = {
         val pending = code
@@ -102,6 +104,10 @@ fun TwoFactorScreen(
             is LoginUiState.HumanVerificationRequired -> Unit
             is LoginUiState.TwoFactorSubmitting ->
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            is LoginUiState.TwoFactorHumanVerificationRequired -> {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LaunchedEffect(s.verificationUrl) { onHumanVerificationRequired(s.verificationUrl) }
+            }
             is LoginUiState.TwoFactorFailed -> Text(
                 text = friendlyTotpError(s.reason),
                 color = MaterialTheme.colorScheme.error,

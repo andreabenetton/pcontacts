@@ -34,4 +34,5 @@
     <string name="two_factor_error_session_expired">La sesión de inicio ha caducado. Empieza de nuevo.</string>
     <string name="two_factor_error_unexpected">Respuesta inesperada del servidor. Vuelve a intentarlo o reinicia el inicio de sesión.</string>
     <string name="two_factor_error_generic">La verificación de dos factores falló. Vuelve a intentarlo o reinicia el inicio de sesión.</string>
+    <string name="two_factor_error_verification_rejected">Proton ha vuelto a pedir verificación. Reinicia el inicio de sesión.</string>
 </resources>

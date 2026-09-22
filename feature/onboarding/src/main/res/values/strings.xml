@@ -34,4 +34,5 @@
     <string name="two_factor_error_session_expired">Sign-in session expired. Please start over.</string>
     <string name="two_factor_error_unexpected">Unexpected response from server. Try again or restart sign-in.</string>
     <string name="two_factor_error_generic">Two-factor verification failed. Try again or restart sign-in.</string>
+    <string name="two_factor_error_verification_rejected">Proton asked for verification again. Please restart sign-in.</string>
 </resources>
