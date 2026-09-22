@@ -10,6 +10,7 @@ import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.storage.SecretStore
+import io.pcontacts.core.storage.UserPreferences
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.dao.SyncStateDao
@@ -33,16 +34,23 @@ import io.pcontacts.core.storage.db.dao.SyncStateDao
  *                             system Settings → Accounts screen stops
  *                             showing it.
  *
- * Best-effort: a failure in steps 1–3 logs (non-sensitive) and
+ * Steps 1–3 are best-effort: a failure logs (non-sensitive) and
  * continues, because the user has chosen to sign out and the local
  * cleanup MUST happen even if the server is unreachable. Step 4 is
- * the only step that must succeed for the device to be "safe to
- * hand to someone else"; step 5 is the UX bookkeeping.
+ * mandatory: it is what makes the device "safe to hand to someone
+ * else", and `SecretStore.logout()` is durable (synchronous commit,
+ * verified Keystore alias deletion) and throws when it is not. When it
+ * throws, the sign-out is **aborted**: step 5 is skipped so the
+ * Android account stays, the UI reports the failure, and the user can
+ * retry — never a signed-out screen over secrets still on disk. Step 5
+ * is the UX bookkeeping.
  *
  * Per CLAUDE.md anti-patterns the AccountManager call lives in :app
  * (the only module that depends on AccountManager); we take it as a
  * lambda.
  */
+// Every parameter is an injectable seam (API, stores, DAOs, platform lambdas).
+@Suppress("LongParameterList")
 class LogoutOrchestrator(
     private val authApi: ProtonAuthApi,
     private val secretStore: SecretStore,
@@ -50,6 +58,7 @@ class LogoutOrchestrator(
     private val contactMapDao: ContactMapDao,
     private val outboxDao: OutboxDao,
     private val syncStateDao: SyncStateDao,
+    private val userPreferences: UserPreferences,
     /** Deletes every RawContact owned by `account`; returns the row count. */
     private val deleteAllContactsFor: suspend (Account) -> Int,
     /** Removes the Android Account; returns true on success. */
@@ -78,22 +87,31 @@ class LogoutOrchestrator(
             0
         }
 
-        // 3) Clear Room mapping + per-account sync state + outbox.
+        // 3) Clear Room mapping + per-account sync state + outbox + the
+        //    account's sync bookkeeping in the preferences.
         try {
             contactMapDao.deleteAll()
             outboxDao.deleteAll()
             syncStateDao.delete(account.name)
+            userPreferences.clearSyncState()
         } catch (t: Throwable) {
             logger.error(t) { "clear Room mapping failed" }
             errors += LOGOUT_ERR_ROOM
         }
 
         // 4) SecretStore wipe + Keystore alias deletion + session clear.
+        //    Mandatory: on failure the account stays so the user can retry.
         try {
             secretStore.logout()
         } catch (t: Throwable) {
-            logger.error(t) { "SecretStore.logout() failed" }
+            logger.error(t) { "SecretStore.logout() failed; keeping the Android account so sign-out can be retried" }
             errors += LOGOUT_ERR_SECRETSTORE
+            session.clear()
+            return LogoutResult(
+                contactsDeleted = contactsDeleted,
+                androidAccountRemoved = false,
+                errors = errors.toList()
+            )
         }
         session.clear()
 

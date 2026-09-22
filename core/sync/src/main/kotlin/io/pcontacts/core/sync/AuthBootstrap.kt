@@ -16,6 +16,7 @@ import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
 import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.SecretStore
+import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.auth.SecretStoreHumanVerificationSource
@@ -104,6 +105,7 @@ object AuthBootstrap {
             contactMapDao = db.contactMapDao(),
             outboxDao = db.outboxDao(),
             syncStateDao = db.syncStateDao(),
+            userPreferences = SharedPreferencesUserPreferences(appContext),
             deleteAllContactsFor = { account ->
                 withContext(Dispatchers.IO) { applier.deleteAllForAccount(account) }
             },
