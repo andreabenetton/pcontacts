@@ -464,6 +464,22 @@ class SettingsViewModelTest {
         assertEquals(QuarantinedOperation.UPDATE, vm.quarantinedChanges.value.single().operation)
     }
 
+    @Test fun quarantined_change_opens_its_contact_in_system() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val opened = mutableListOf<Long>()
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            openContactInSystem = { opened += it },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+
+        vm.openQuarantinedContactInSystem(42L)
+
+        assertEquals(listOf(42L), opened)
+    }
+
     @Test fun quarantined_changes_default_on_query_failure() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = SettingsViewModel(

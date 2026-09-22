@@ -70,13 +70,16 @@ enum class QuarantinedOperation { CREATE, UPDATE, DELETE, UNKNOWN }
  *
  * `reason` is the persisted quarantine reason (an exception class name
  * plus HTTP code, or a short internal reason); it never carries
- * decrypted contact content.
+ * decrypted contact content. `rawContactId` lets the row open the
+ * contact in the system app; null when the change no longer maps to a
+ * local row.
  */
 data class QuarantinedChange(
     val outboxId: Long,
     val displayName: String?,
     val operation: QuarantinedOperation,
-    val reason: String?
+    val reason: String?,
+    val rawContactId: Long? = null
 )
 
 data class ConflictInfo(

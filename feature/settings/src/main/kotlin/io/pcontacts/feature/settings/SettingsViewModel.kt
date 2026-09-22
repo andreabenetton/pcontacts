@@ -176,6 +176,10 @@ class SettingsViewModel(
         openContactInSystem(rawContactId)
     }
 
+    fun openQuarantinedContactInSystem(rawContactId: Long) {
+        openContactInSystem(rawContactId)
+    }
+
     fun showQuarantinedChangesDialog() {
         _quarantinedDialogOpen.value = true
     }

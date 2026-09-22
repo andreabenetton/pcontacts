@@ -389,6 +389,7 @@ private fun StatusRows(viewModel: SettingsViewModel) {
     if (quarantinedDialogOpen) {
         QuarantinedChangesDialog(
             changes = quarantinedChanges,
+            onOpenContact = viewModel::openQuarantinedContactInSystem,
             onRetry = viewModel::retryQuarantined,
             onDiscard = viewModel::discardQuarantined,
             onDismiss = viewModel::dismissQuarantinedChangesDialog
@@ -716,6 +717,7 @@ private fun UnverifiedContactsDialog(
 @Composable
 private fun QuarantinedChangesDialog(
     changes: List<QuarantinedChange>,
+    onOpenContact: (Long) -> Unit,
     onRetry: (Long) -> Unit,
     onDiscard: (Long) -> Unit,
     onDismiss: () -> Unit
@@ -739,6 +741,7 @@ private fun QuarantinedChangesDialog(
                     changes.forEach { change ->
                         QuarantinedChangeRow(
                             change = change,
+                            onOpenContact = onOpenContact,
                             onRetry = onRetry,
                             onDiscard = onDiscard
                         )
@@ -757,25 +760,30 @@ private fun QuarantinedChangesDialog(
 @Composable
 private fun QuarantinedChangeRow(
     change: QuarantinedChange,
+    onOpenContact: (Long) -> Unit,
     onRetry: (Long) -> Unit,
     onDiscard: (Long) -> Unit
 ) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(
-            text = change.displayName ?: stringResource(R.string.quarantined_no_name),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = stringResource(operationLabel(change.operation)),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        change.reason?.takeIf { it.isNotBlank() }?.let { reason ->
+        // The details open the contact in the system app, as unverified rows do, when it still exists.
+        val open = change.rawContactId?.let { id -> Modifier.clickable { onOpenContact(id) } } ?: Modifier
+        Column(modifier = Modifier.fillMaxWidth().then(open)) {
             Text(
-                text = reason,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
+                text = change.displayName ?: stringResource(R.string.quarantined_no_name),
+                style = MaterialTheme.typography.bodyMedium
             )
+            Text(
+                text = stringResource(operationLabel(change.operation)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            change.reason?.takeIf { it.isNotBlank() }?.let { reason ->
+                Text(
+                    text = reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
         }
         Row {
             TextButton(onClick = { onRetry(change.outboxId) }) {
