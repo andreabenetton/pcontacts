@@ -2,16 +2,11 @@
 <resources>
     <string name="app_name">pcontacts</string>
     <string name="account_label">PContacts</string>
-    <string name="launcher_synced_contacts">Synced: %d contacts</string>
-    <string name="launcher_last_sync">Last sync: %s</string>
-    <string name="launcher_last_sync_never">Last sync: never</string>
-    <string name="launcher_sync_running">Sync in progress…</string>
     <string name="launcher_sync_failed_reauth">Last sync failed — please sign in again.</string>
     <string name="launcher_sync_failed_verification">Last sync failed — verification needed on the Proton website.</string>
     <string name="launcher_sync_failed_app_version">Last sync failed — please update pcontacts.</string>
     <string name="launcher_sync_failed_network">Last sync failed — check your connection and try again.</string>
     <string name="launcher_sync_failed_generic">Last sync failed — please try again. If it persists, report it.</string>
-    <string name="launcher_unverified_warning">%d contacts failed signature verification</string>
     <string name="channel_status_name">Sync status</string>
     <string name="channel_status_description">Non-actionable sync status information</string>
     <string name="channel_action_required_name">Action required</string>
@@ -34,21 +29,6 @@
     <string name="launcher_loading">Loading…</string>
     <string name="launcher_no_account">Sign in with your Proton account to start syncing contacts.</string>
     <string name="launcher_sign_in">Sign in</string>
-    <string name="launcher_settings">Settings</string>
-    <string name="launcher_settings_detail">Settings (Sync Now / Sign Out)</string>
-    <string name="launcher_signed_in">Signed in. Your Proton contacts sync into the system Contacts app.</string>
-    <plurals name="launcher_pending_changes">
-        <item quantity="one">%d change pending sync</item>
-        <item quantity="other">%d changes pending sync</item>
-    </plurals>
-    <plurals name="launcher_failed_contacts">
-        <item quantity="one">%d contact couldn\'t be synced (see logs)</item>
-        <item quantity="other">%d contacts couldn\'t be synced (see logs)</item>
-    </plurals>
-    <plurals name="launcher_quarantined_changes">
-        <item quantity="one">%d change failed</item>
-        <item quantity="other">%d changes failed</item>
-    </plurals>
 
     <!-- ADR-0021: per-email action chip rendered next to every Email
          row on a Proton contact. Tap routes the user to Proton Mail

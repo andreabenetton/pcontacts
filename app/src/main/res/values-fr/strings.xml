@@ -6,16 +6,11 @@
 <resources>
     <string name="app_name">pcontacts</string>
     <string name="account_label">Contacts Proton</string>
-    <string name="launcher_synced_contacts">Synchronisés : %d contacts</string>
-    <string name="launcher_last_sync">Dernière synchronisation : %s</string>
-    <string name="launcher_last_sync_never">Dernière synchronisation : jamais</string>
-    <string name="launcher_sync_running">Synchronisation en cours…</string>
     <string name="launcher_sync_failed_reauth">Échec de la synchronisation — veuillez vous reconnecter.</string>
     <string name="launcher_sync_failed_verification">Échec de la synchronisation — vérification requise sur le site web de Proton.</string>
     <string name="launcher_sync_failed_app_version">Échec de la synchronisation — veuillez mettre à jour pcontacts.</string>
     <string name="launcher_sync_failed_network">Échec de la synchronisation — vérifiez votre connexion et réessayez.</string>
     <string name="launcher_sync_failed_generic">Échec de la synchronisation — veuillez réessayer. Si le problème persiste, signalez-le.</string>
-    <string name="launcher_unverified_warning">La vérification de signature a échoué pour %d contacts</string>
     <string name="channel_status_name">État de la synchronisation</string>
     <string name="channel_status_description">Informations sur l\'état de la synchronisation</string>
     <string name="channel_action_required_name">Action requise</string>
@@ -38,21 +33,6 @@
     <string name="launcher_loading">Chargement…</string>
     <string name="launcher_no_account">Connectez-vous avec votre compte Proton pour commencer à synchroniser vos contacts.</string>
     <string name="launcher_sign_in">Se connecter</string>
-    <string name="launcher_settings">Paramètres</string>
-    <string name="launcher_settings_detail">Paramètres (Synchroniser maintenant / Se déconnecter)</string>
-    <string name="launcher_signed_in">Connecté. Vos contacts Proton sont synchronisés dans l\'app Contacts du système.</string>
-    <plurals name="launcher_pending_changes">
-        <item quantity="one">%d modification en attente de synchronisation</item>
-        <item quantity="other">%d modifications en attente de synchronisation</item>
-    </plurals>
-    <plurals name="launcher_failed_contacts">
-        <item quantity="one">%d contact n\'a pas pu être synchronisé (voir les logs)</item>
-        <item quantity="other">%d contacts n\'ont pas pu être synchronisés (voir les logs)</item>
-    </plurals>
-    <plurals name="launcher_quarantined_changes">
-        <item quantity="one">%d modification échouée</item>
-        <item quantity="other">%d modifications échouées</item>
-    </plurals>
 
     <string name="chip_send_via_proton_mail">Envoyer via Proton Mail</string>
     <string name="linked_import_source_device">Appareil</string>

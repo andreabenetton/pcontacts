@@ -6,16 +6,11 @@
 <resources>
     <string name="app_name">pcontacts</string>
     <string name="account_label">Контакты Proton</string>
-    <string name="launcher_synced_contacts">Синхронизировано: %d контактов</string>
-    <string name="launcher_last_sync">Последняя синхронизация: %s</string>
-    <string name="launcher_last_sync_never">Последняя синхронизация: никогда</string>
-    <string name="launcher_sync_running">Выполняется синхронизация…</string>
     <string name="launcher_sync_failed_reauth">Синхронизация не удалась — войдите снова.</string>
     <string name="launcher_sync_failed_verification">Синхронизация не удалась — требуется проверка на сайте Proton.</string>
     <string name="launcher_sync_failed_app_version">Синхронизация не удалась — обновите pcontacts.</string>
     <string name="launcher_sync_failed_network">Синхронизация не удалась — проверьте подключение и повторите попытку.</string>
     <string name="launcher_sync_failed_generic">Синхронизация не удалась — повторите попытку. Если проблема сохраняется, сообщите о ней.</string>
-    <string name="launcher_unverified_warning">Не удалось проверить подпись у %d контактов</string>
     <string name="channel_status_name">Состояние синхронизации</string>
     <string name="channel_status_description">Сведения о состоянии синхронизации</string>
     <string name="channel_action_required_name">Требуется действие</string>
@@ -38,27 +33,6 @@
     <string name="launcher_loading">Загрузка…</string>
     <string name="launcher_no_account">Войдите в свой аккаунт Proton, чтобы начать синхронизацию контактов.</string>
     <string name="launcher_sign_in">Войти</string>
-    <string name="launcher_settings">Настройки</string>
-    <string name="launcher_settings_detail">Настройки (Синхронизировать сейчас / Выйти)</string>
-    <string name="launcher_signed_in">Вход выполнен. Ваши контакты Proton синхронизируются с системным приложением «Контакты».</string>
-    <plurals name="launcher_pending_changes">
-        <item quantity="one">%d изменение ожидает синхронизации</item>
-        <item quantity="few">%d изменения ожидают синхронизации</item>
-        <item quantity="many">%d изменений ожидают синхронизации</item>
-        <item quantity="other">%d изменений ожидают синхронизации</item>
-    </plurals>
-    <plurals name="launcher_failed_contacts">
-        <item quantity="one">%d контакт не удалось синхронизировать (см. журнал)</item>
-        <item quantity="few">%d контакта не удалось синхронизировать (см. журнал)</item>
-        <item quantity="many">%d контактов не удалось синхронизировать (см. журнал)</item>
-        <item quantity="other">%d контактов не удалось синхронизировать (см. журнал)</item>
-    </plurals>
-    <plurals name="launcher_quarantined_changes">
-        <item quantity="one">%d изменение завершилось ошибкой</item>
-        <item quantity="few">%d изменения завершились ошибкой</item>
-        <item quantity="many">%d изменений завершились ошибкой</item>
-        <item quantity="other">%d изменений завершились ошибкой</item>
-    </plurals>
 
     <string name="chip_send_via_proton_mail">Отправить через Proton Mail</string>
     <string name="linked_import_source_device">Устройство</string>

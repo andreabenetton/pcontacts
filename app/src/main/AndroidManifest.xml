@@ -63,13 +63,6 @@
             android:exported="false"
             android:theme="@style/Theme.Pcontacts" />
 
-        <!-- Settings surface: Sync Now + Sign Out. Exported so MainActivity
-             can launch it directly (no cross-app intent dispatch needed). -->
-        <activity
-            android:name=".settings.SettingsActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Pcontacts" />
-
         <!-- ADR-0023: the import list (contacts missing from Proton or
              lacking details there). Launched from Settings only. -->
         <activity

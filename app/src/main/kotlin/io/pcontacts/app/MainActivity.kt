@@ -13,7 +13,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.provider.Settings
-import android.text.format.DateUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,9 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
@@ -48,7 +45,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -58,14 +54,19 @@ import io.pcontacts.app.notifications.SyncNotifier
 import io.pcontacts.app.permissions.ContactsPermissionBanner
 import io.pcontacts.app.permissions.ContactsPermissionState
 import io.pcontacts.app.permissions.ContactsPermissionStatus
-import io.pcontacts.app.settings.SettingsActivity
-import io.pcontacts.app.sync.SyncErrorCodes
-import io.pcontacts.app.sync.SyncRunningMonitor
+import io.pcontacts.app.settings.SettingsHost
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.feature.settings.SettingsScreen
 
+/**
+ * The one screen of the app: the sign-in prompt while there is no
+ * Proton account, the Settings screen (status card on top) once there
+ * is. Also owns first-run permission requests and the return from the
+ * human-verification web flow.
+ */
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: LauncherViewModel
@@ -74,18 +75,7 @@ class MainActivity : ComponentActivity() {
     private var notificationDenied = false
     private var contactsPermissionStatus by mutableStateOf(ContactsPermissionStatus.GRANTED)
 
-    // Refreshes the launcher status when a sync starts/finishes so the counts,
-    // the "last sync" line, and the running indicator update live while the
-    // screen is foregrounded, rather than only on the next onResume.
-    private val syncRunningMonitor = SyncRunningMonitor(
-        account = {
-            AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull()
-        },
-        onChange = { running ->
-            viewModel.updateSyncRunning(running)
-            viewModel.refresh()
-        }
-    )
+    private val settingsHost: SettingsHost = SettingsHost(this, ::onSignedOutFromSettings)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -116,55 +106,62 @@ class MainActivity : ComponentActivity() {
         setContent {
             PcontactsTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
+                val state by viewModel.uiState.collectAsState()
+                val tick by remember { mutableIntStateOf(resumeTick) }
+                var showFallbackDialog by remember { mutableStateOf(false) }
 
-                Scaffold(
-                    snackbarHost = {
-                        SnackbarHost(snackbarHostState) { data ->
-                            Snackbar(snackbarData = data)
+                LaunchedEffect(tick) { viewModel.refresh() }
+
+                if (state is LauncherUiState.SignedIn) {
+                    SettingsScreen(
+                        viewModel = settingsHost.viewModel,
+                        actions = settingsHost.actions(onBack = null),
+                        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } },
+                        banner = {
+                            if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
+                                ContactsPermissionBanner(
+                                    isPermanentlyDenied = contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED,
+                                    onAction = ::handleContactsPermissionAction,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                )
+                            }
                         }
-                    },
-                    containerColor = MaterialTheme.colorScheme.background
-                ) { innerPadding ->
-                    val state by viewModel.uiState.collectAsState()
-                    val syncRunning by viewModel.syncRunning.collectAsState()
-                    val tick by remember { mutableIntStateOf(resumeTick) }
-                    var showFallbackDialog by remember { mutableStateOf(false) }
-
-                    LaunchedEffect(tick) { viewModel.refresh() }
-
-                    LauncherScreen(
-                        state = state,
-                        onSignIn = ::launchLogin,
-                        onOpenSettings = ::launchSettings,
-                        contactsPermissionStatus = contactsPermissionStatus,
-                        onGrantContactsPermission = ::handleContactsPermissionAction,
-                        syncRunning = syncRunning,
-                        modifier = Modifier.padding(innerPadding)
                     )
-
-                    if (showFallbackDialog) {
-                        VerificationFallbackDialog(
-                            onDismiss = { showFallbackDialog = false }
+                } else {
+                    Scaffold(
+                        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } },
+                        containerColor = MaterialTheme.colorScheme.background
+                    ) { innerPadding ->
+                        LauncherScreen(
+                            state = state,
+                            onSignIn = ::launchLogin,
+                            modifier = Modifier.padding(innerPadding)
                         )
                     }
+                }
 
+                if (showFallbackDialog) {
+                    VerificationFallbackDialog(
+                        onDismiss = { showFallbackDialog = false }
+                    )
+                }
+
+                LaunchedEffect(Unit) {
+                    showFallbackDialog = handleVerificationIntent(intent)
+                }
+
+                if (notificationDenied) {
+                    notificationDenied = false
+                    val message = getString(R.string.notification_permission_denied)
+                    val action = getString(R.string.notification_permission_settings)
                     LaunchedEffect(Unit) {
-                        showFallbackDialog = handleVerificationIntent(intent)
-                    }
-
-                    if (notificationDenied) {
-                        notificationDenied = false
-                        val message = getString(R.string.notification_permission_denied)
-                        val action = getString(R.string.notification_permission_settings)
-                        LaunchedEffect(Unit) {
-                            val result = snackbarHostState.showSnackbar(
-                                message = message,
-                                actionLabel = action,
-                                duration = SnackbarDuration.Long
-                            )
-                            if (result == SnackbarResult.ActionPerformed) {
-                                openAppNotificationSettings()
-                            }
+                        val result = snackbarHostState.showSnackbar(
+                            message = message,
+                            actionLabel = action,
+                            duration = SnackbarDuration.Long
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            openAppNotificationSettings()
                         }
                     }
                 }
@@ -184,7 +181,7 @@ class MainActivity : ComponentActivity() {
         contactsPermissionStatus = ContactsPermissionState.check(
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
-        syncRunningMonitor.start()
+        settingsHost.onResume()
 
         if (pendingVerificationReturn) {
             pendingVerificationReturn = false
@@ -194,7 +191,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        syncRunningMonitor.stop()
+        settingsHost.onPause()
+    }
+
+    override fun onDestroy() {
+        settingsHost.dispose()
+        super.onDestroy()
     }
 
     private fun handleVerificationIntent(intent: Intent?): Boolean {
@@ -272,26 +274,25 @@ class MainActivity : ComponentActivity() {
         startActivity(intent)
     }
 
+    /** Back to the sign-in prompt; the settings view model forgets its "signed out" state for the next login. */
+    private fun onSignedOutFromSettings() {
+        settingsHost.viewModel.reset()
+        viewModel.refresh()
+    }
+
     private fun hasProtonAccount(): Boolean =
         AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).isNotEmpty()
 
     private fun launchLogin() {
         startActivity(Intent(this, LoginActivity::class.java))
     }
-
-    private fun launchSettings() {
-        startActivity(Intent(this, SettingsActivity::class.java))
-    }
 }
 
+/** What the app shows before there is an account; once signed in the Settings screen takes over. */
 @Composable
 internal fun LauncherScreen(
     state: LauncherUiState,
     onSignIn: () -> Unit,
-    onOpenSettings: () -> Unit,
-    contactsPermissionStatus: ContactsPermissionStatus = ContactsPermissionStatus.GRANTED,
-    onGrantContactsPermission: () -> Unit = {},
-    syncRunning: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -308,13 +309,10 @@ internal fun LauncherScreen(
         Spacer(Modifier.height(8.dp))
 
         when (state) {
-            is LauncherUiState.Loading -> {
-                Text(
-                    text = stringResource(R.string.launcher_loading),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
+            is LauncherUiState.Loading -> Text(
+                text = stringResource(R.string.launcher_loading),
+                style = MaterialTheme.typography.bodyMedium
+            )
             is LauncherUiState.NoAccount -> {
                 Text(
                     text = stringResource(R.string.launcher_no_account),
@@ -324,119 +322,11 @@ internal fun LauncherScreen(
                 Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.launcher_sign_in))
                 }
-                Spacer(Modifier.height(12.dp))
-                OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.launcher_settings))
-                }
             }
-
-            is LauncherUiState.SignedIn -> {
-                SignedInStatus(state.status)
-                if (syncRunning) {
-                    Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.launcher_sync_running),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
-                    Spacer(Modifier.height(16.dp))
-                    ContactsPermissionBanner(
-                        isPermanentlyDenied = contactsPermissionStatus == ContactsPermissionStatus.PERMANENTLY_DENIED,
-                        onAction = onGrantContactsPermission
-                    )
-                }
-                Spacer(Modifier.height(24.dp))
-                Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.launcher_settings_detail))
-                }
-            }
+            is LauncherUiState.SignedIn -> Unit
         }
     }
 }
-
-@Composable
-private fun SignedInStatus(status: io.pcontacts.core.sync.contacts.LauncherStatus) {
-    Text(
-        text = stringResource(R.string.launcher_signed_in),
-        style = MaterialTheme.typography.bodyMedium
-    )
-    Spacer(Modifier.height(16.dp))
-    Text(
-        text = stringResource(R.string.launcher_synced_contacts, status.totalContacts),
-        style = MaterialTheme.typography.bodyMedium
-    )
-    val lastSyncMillis = status.lastSyncedAtMillis
-    val lastSyncText = if (lastSyncMillis != null) {
-        stringResource(
-            R.string.launcher_last_sync,
-            DateUtils.getRelativeTimeSpanString(
-                lastSyncMillis,
-                System.currentTimeMillis(),
-                DateUtils.MINUTE_IN_MILLIS
-            )
-        )
-    } else {
-        stringResource(R.string.launcher_last_sync_never)
-    }
-    Text(
-        text = lastSyncText,
-        style = MaterialTheme.typography.bodyMedium
-    )
-    if (status.lastSyncFailed) {
-        Text(
-            text = syncFailureMessage(status.lastSyncErrorCode),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error
-        )
-    }
-    if (status.pendingChanges > 0) {
-        Text(
-            text = pluralStringResource(
-                R.plurals.launcher_pending_changes,
-                status.pendingChanges,
-                status.pendingChanges
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-    if (status.quarantinedChanges > 0) {
-        Text(
-            text = pluralStringResource(
-                R.plurals.launcher_quarantined_changes,
-                status.quarantinedChanges,
-                status.quarantinedChanges
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error
-        )
-    }
-    if (status.unverifiedContacts > 0) {
-        Text(
-            text = stringResource(R.string.launcher_unverified_warning, status.unverifiedContacts),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error
-        )
-    }
-    if (status.failedContacts > 0) {
-        Text(
-            text = pluralStringResource(
-                R.plurals.launcher_failed_contacts,
-                status.failedContacts,
-                status.failedContacts
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error
-        )
-    }
-}
-
-@Composable
-private fun syncFailureMessage(code: String?): String =
-    stringResource(SyncErrorCodes.messageRes(code))
 
 @Composable
 private fun VerificationFallbackDialog(onDismiss: () -> Unit) {
