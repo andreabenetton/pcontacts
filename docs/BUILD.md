@@ -10,11 +10,11 @@
 - JDK 17 (Temurin recommended)
 - Android SDK with platform 34
 - Gradle 8.10+ (the wrapper handles this)
-- For the dependency audit snapshot only (ADR-0024): a free NVD API key
-  pasted into the gitignored `.env` at the repo root as
-  `NVD_API_KEY=...` (request one at
-  https://nvd.nist.gov/developers/request-an-api-key). CI has its own
-  key in the `NVD_API_KEY` secret.
+- Only for running OWASP Dependency-Check locally (optional; the audit
+  snapshot of ADR-0024 does not need it): a free NVD API key pasted into
+  the gitignored `.env` at the repo root as `NVD_API_KEY=...`. The first
+  run mirrors the whole NVD (30 to 90 minutes). CI has its own key in the
+  `NVD_API_KEY` secret.
 
 ## Debug build
 
@@ -136,31 +136,29 @@ the tagged commit and the published release APK.
 
 ## Dependency audit snapshot (ADR-0024)
 
-The app shows, next to its version, whether any shipped dependency has a
-known CVE, and a Dependencies screen with every artifact, its license and
-its CVEs. It never looks anything up at runtime: what it shows is
+The app shows a Dependencies screen with every shipped artifact, its
+license and its known advisories, and (while the opt-in runtime check is
+off) a snapshot of that state next to the version. The snapshot is
 `app/src/main/assets/dependency-audit.json`, a committed file that
 `:app:dependencyAudit` writes from the resolved release classpath, the POM
-licenses, the Dependency-Check JSON report and the `<notes>` of
+licenses, one batch query to osv.dev (the same source as the runtime
+check of ADR-0025; no download, no key) and the `<notes>` of
 `config/dependency-check-suppressions.xml` (the reason shown for an
-amber, "assessed" CVE).
+assessed advisory, matched by CVE id or alias, or by package URL).
 
 ```bash
-./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit   # needs NVD_API_KEY in .env
+./gradlew :app:dependencyAudit          # a few seconds; needs network
 git add app/src/main/assets/dependency-audit.json
 ```
 
-Without a local key, download the `dependency-check-reports` artifact of
-the latest CI scan, drop its JSON at
-`app/build/reports/dependency-check/dependency-check-report.json` and run
-`:app:dependencyAudit` alone.
-
 `:app:verifyDependencyAudit` keeps the file honest: the CI unit-test job
 fails when the classpath and the snapshot differ (a bump without a
-regenerated snapshot), and the CI scan job fails when it finds an open
-CVE the snapshot does not list. A red status therefore only ships if the
-owner regenerates the snapshot with an open CVE and releases anyway; the
-app then posts one notification per version pointing at the screen.
+regenerated snapshot); the CI scan job runs it with `-PauditLive=true`,
+which asks osv.dev again and fails on an open advisory the snapshot does
+not list, and then compares the Dependency-Check report as a second
+opinion. OWASP Dependency-Check itself keeps running weekly in CI with its
+own NVD mirror and key; locally it is optional (`NVD_API_KEY` in `.env`)
+and never needed for the snapshot.
 
 ### Runtime advisory check (ADR-0025)
 
@@ -312,10 +310,10 @@ Follow this sequence exactly. Do not tag until the build is verified.
       `strings.xml` has the same keys as the default `values/strings.xml`
       in every module.
 - [ ] Regenerate the dependency audit snapshot (ADR-0024) so the release
-      shows the current scan: `./gradlew :app:dependencyCheckAnalyze
-      :app:dependencyAudit`, then commit `app/src/main/assets/dependency-audit.json`.
-      If it reports an open CVE, bump the dependency or write an assessed
-      suppression before tagging; shipping red is a deliberate decision.
+      shows the current state: `./gradlew :app:dependencyAudit`, then
+      commit `app/src/main/assets/dependency-audit.json`. If it reports an
+      open advisory, bump the dependency or write an assessed suppression
+      before tagging; shipping red is a deliberate decision.
 
 ### 2. Run the full test suite
 

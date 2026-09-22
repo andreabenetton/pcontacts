@@ -5,7 +5,7 @@
 
 # ADR-0024: The app ships a build-time dependency audit snapshot, never a runtime CVE lookup
 
-- **Status:** Accepted (amended 2026-09-22 — ADR-0025 adds an opt-in runtime check on top; the snapshot stays the default and the baseline every runtime result is compared with)
+- **Status:** Accepted (amended 2026-09-22 — ADR-0025 adds an opt-in runtime check on top; the snapshot stays the default and the baseline every runtime result is compared with. Amended the same day: the snapshot is generated from one osv.dev batch query instead of the Dependency-Check report, so regenerating it needs no NVD mirror and no key; Dependency-Check stays the weekly CI second opinion)
 - **Date:** 2026-09-22
 - **Deciders:** project owner
 - **Related:** ADR-0015 (no telemetry, no Google services, no remote configuration), ADR-0001 (license and attribution), ADR-0011 (module boundaries)

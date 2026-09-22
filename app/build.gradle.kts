@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // SPDX-FileCopyrightText: 2026 pcontacts contributors
 
-import java.time.LocalDate
-import java.time.ZoneOffset
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.Properties
 
 plugins {
@@ -247,8 +251,9 @@ tasks.register("checkLicense") {
 }
 
 // ADR-0024: the dependency audit snapshot the app ships as an asset. Built from
-// the resolved release classpath, the POM licenses, the Dependency-Check JSON
-// report and the suppression file; committed so the F-Droid build reproduces it.
+// the resolved release classpath, the POM licenses, one batch query to osv.dev
+// (the same source the app's opt-in runtime check uses, ADR-0025) and the
+// suppression file; committed so the F-Droid build reproduces it.
 val dependencyAuditFile = layout.projectDirectory.file("src/main/assets/dependency-audit.json")
 val dependencyCheckReport = layout.buildDirectory.file("reports/dependency-check/dependency-check-report.json")
 val suppressionFileForAudit = rootProject.file("config/dependency-check-suppressions.xml")
@@ -321,28 +326,94 @@ fun readAuditCves(reportFile: File): Map<String, List<Map<String, Any?>>> {
     return out.mapValues { (_, byId) -> byId.values.sortedByDescending { (it["score"] as? Double) ?: 0.0 } }
 }
 
+/** The osv.dev batch query for the given coordinates: advisory ids per coordinate, in order. */
+fun osvQueryBatch(coordinates: List<String>): Map<String, List<String>> {
+    val client = HttpClient.newHttpClient()
+    val out = linkedMapOf<String, List<String>>()
+    // osv.dev caps a batch at 1000 queries; chunk well below it.
+    for (chunk in coordinates.chunked(200)) {
+        val queries = chunk.map { c ->
+            val (group, name, version) = c.split(':', limit = 3)
+            mapOf("package" to mapOf("name" to "$group:$name", "ecosystem" to "Maven"), "version" to version)
+        }
+        val body = groovy.json.JsonOutput.toJson(mapOf("queries" to queries))
+        val request = HttpRequest.newBuilder(URI.create("https://api.osv.dev/v1/querybatch"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build()
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        require(response.statusCode() == 200) { "osv.dev querybatch answered HTTP ${response.statusCode()}" }
+        @Suppress("UNCHECKED_CAST")
+        val parsed = groovy.json.JsonSlurper().parseText(response.body()) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val results = parsed["results"] as List<Map<String, Any?>>
+        require(results.size == chunk.size) { "osv.dev returned ${results.size} results for ${chunk.size} queries" }
+        chunk.zip(results).forEach { (c, r) ->
+            @Suppress("UNCHECKED_CAST")
+            out[c] = (r["vulns"] as? List<Map<String, Any?>>).orEmpty().mapNotNull { it["id"] as? String }
+        }
+    }
+    return out
+}
+
+/** One advisory's details from osv.dev: aliases, severity label and summary. */
+fun osvVulnerability(id: String): Map<String, Any?> {
+    val request = HttpRequest.newBuilder(URI.create("https://api.osv.dev/v1/vulns/$id")).GET().build()
+    val response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString())
+    require(response.statusCode() == 200) { "osv.dev vulns/$id answered HTTP ${response.statusCode()}" }
+    @Suppress("UNCHECKED_CAST")
+    val v = groovy.json.JsonSlurper().parseText(response.body()) as Map<String, Any?>
+    @Suppress("UNCHECKED_CAST")
+    val severity = (v["database_specific"] as? Map<String, Any?>)?.get("severity")?.toString()?.uppercase()
+    return mapOf(
+        "aliases" to ((v["aliases"] as? List<*>)?.map { it.toString() } ?: emptyList<String>()),
+        "severity" to severity,
+        "summary" to v["summary"]?.toString()
+    )
+}
+
+/**
+ * CVEs per coordinate as osv.dev reports them, each marked open or suppressed by the
+ * suppression file (by id or alias, or by packageUrl regex) — the snapshot's content.
+ */
+fun osvAuditCves(coordinates: List<String>): Map<String, List<Map<String, Any?>>> {
+    val suppressions = readAuditSuppressions()
+    val ids = osvQueryBatch(coordinates)
+    return ids.filterValues { it.isNotEmpty() }.mapValues { (coordinate, vulnIds) ->
+        val (group, name, version) = coordinate.split(':', limit = 3)
+        val purl = "pkg:maven/$group/$name@$version"
+        vulnIds.distinct().map { id ->
+            val details = osvVulnerability(id)
+            @Suppress("UNCHECKED_CAST")
+            val aliases = details["aliases"] as List<String>
+            val entry = suppressions.firstOrNull { s -> id in s.cves || aliases.any { it in s.cves } }
+                ?: suppressions.firstOrNull { it.packageUrl?.containsMatchIn(purl) == true }
+            val falsePositive = entry?.notes?.startsWith("False positive", ignoreCase = true) == true
+            linkedMapOf(
+                "id" to id,
+                "aliases" to aliases,
+                "score" to null,
+                "severity" to details["severity"],
+                "url" to "https://osv.dev/vulnerability/$id",
+                "suppressed" to (entry != null),
+                "falsePositive" to falsePositive,
+                "reason" to entry?.notes,
+                "summary" to details["summary"]
+            )
+        }
+    }
+}
+
 tasks.register("dependencyAudit") {
     group = "verification"
     description = "Regenerates src/main/assets/dependency-audit.json (ADR-0024) from the resolved release " +
-        "classpath and the Dependency-Check report; run :app:dependencyCheckAnalyze first."
+        "classpath, the POM licenses and one osv.dev batch query; no download and no key needed."
     notCompatibleWithConfigurationCache("walks resolved configurations at execution time")
 
     doLast {
-        val reportFile = dependencyCheckReport.get().asFile
-        require(reportFile.exists()) {
-            "No Dependency-Check report at $reportFile — run ./gradlew :app:dependencyCheckAnalyze " +
-                "(needs NVD_API_KEY in .env) or copy the CI artifact there."
-        }
-        @Suppress("UNCHECKED_CAST")
-        val report = groovy.json.JsonSlurper().parse(reportFile) as Map<String, Any?>
-        @Suppress("UNCHECKED_CAST")
-        val scanInfo = report["scanInfo"] as Map<String, Any?>
-        @Suppress("UNCHECKED_CAST")
-        val nvdAsOf = (scanInfo["dataSource"] as? List<Map<String, Any?>>)
-            ?.firstOrNull { it["name"] == "NVD API Last Modified" }?.get("timestamp")?.toString()
         val components = resolvedReleaseComponents()
         val licenses = pomLicenses(components)
-        val cves = readAuditCves(reportFile)
+        val cves = osvAuditCves(components.map { "${it.group}:${it.module}:${it.version}" })
         val dependencies = components
             .sortedWith(compareBy({ it.group }, { it.module }, { it.version }))
             .map { c ->
@@ -355,13 +426,10 @@ tasks.register("dependencyAudit") {
                     "cves" to cves[coordinate].orEmpty()
                 )
             }
-        val unmatched = cves.keys - dependencies.map { "${it["group"]}:${it["name"]}:${it["version"]}" }.toSet()
-        if (unmatched.isNotEmpty()) logger.warn("dependencyAudit: report CVEs on artifacts outside the classpath: $unmatched")
         val snapshot = linkedMapOf(
-            "schema" to 1,
-            "generatedAt" to LocalDate.now(ZoneOffset.UTC).toString(),
-            "nvdDataAsOf" to nvdAsOf,
-            "engine" to scanInfo["engineVersion"],
+            "schema" to 2,
+            "generatedAt" to Instant.now().truncatedTo(ChronoUnit.SECONDS).toString(),
+            "source" to "osv.dev",
             "dependencies" to dependencies
         )
         dependencyAuditFile.asFile.parentFile.mkdirs()
@@ -374,12 +442,13 @@ tasks.register("dependencyAudit") {
 tasks.register("verifyDependencyAudit") {
     group = "verification"
     description = "Fails if the committed dependency audit snapshot (ADR-0024) does not match the resolved " +
-        "release classpath, or — when a Dependency-Check report is present — lists a different set of open CVEs."
+        "release classpath; with -PauditLive=true also asks osv.dev and fails on an open advisory the snapshot " +
+        "does not list; when a Dependency-Check report is present, compares its open CVEs too."
     notCompatibleWithConfigurationCache("walks resolved configurations at execution time")
 
     doLast {
         val file = dependencyAuditFile.asFile
-        require(file.exists()) { "Missing $file — run ./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit" }
+        require(file.exists()) { "Missing $file — run ./gradlew :app:dependencyAudit" }
         @Suppress("UNCHECKED_CAST")
         val snapshot = groovy.json.JsonSlurper().parse(file) as Map<String, Any?>
         @Suppress("UNCHECKED_CAST")
@@ -389,6 +458,22 @@ tasks.register("verifyDependencyAudit") {
         val problems = mutableListOf<String>()
         (resolved - snapshotCoordinates).sorted().forEach { problems += "on the classpath, not in the snapshot: $it" }
         (snapshotCoordinates - resolved).sorted().forEach { problems += "in the snapshot, not on the classpath: $it" }
+
+        if (project.findProperty("auditLive")?.toString() == "true") {
+            val snapshotKnown = deps.flatMap { d ->
+                auditCvesOf(d).flatMap { c -> listOf(c["id"] as String) + ((c["aliases"] as? List<*>)?.map { it.toString() } ?: emptyList()) }
+            }.toSet()
+            val live = osvAuditCves(resolved.sorted())
+            for ((coordinate, cves) in live) {
+                for (c in cves) {
+                    val open = c["suppressed"] == false
+                    val known = (c["id"] as String) in snapshotKnown ||
+                        ((c["aliases"] as List<*>).any { it.toString() in snapshotKnown })
+                    if (open && !known) problems += "osv.dev reports an open advisory the snapshot does not list: $coordinate ${c["id"]}"
+                }
+            }
+            logger.lifecycle("ADR-0024 live comparison with osv.dev done for ${resolved.size} artifacts.")
+        }
 
         val reportFile = dependencyCheckReport.get().asFile
         if (reportFile.exists()) {
@@ -405,7 +490,7 @@ tasks.register("verifyDependencyAudit") {
 
         if (problems.isNotEmpty()) {
             throw GradleException(
-                "ADR-0024 — dependency audit snapshot is stale; run ./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit and commit:\n  - " +
+                "ADR-0024 — dependency audit snapshot is stale; run ./gradlew :app:dependencyAudit and commit:\n  - " +
                     problems.joinToString("\n  - ")
             )
         }
