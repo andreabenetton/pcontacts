@@ -22,6 +22,8 @@
     <string name="notification_vulnerability_text">This version ships a dependency with a known open vulnerability. Tap to see which one and what it affects.</string>
     <string name="notification_advisory_title">New security advisory</string>
     <string name="notification_advisory_text">%1$d new advisories for this version\'s dependencies were reported by osv.dev. Tap to see them.</string>
+    <string name="notification_sync_problems_title">Some contacts did not sync</string>
+    <string name="notification_sync_problems_text">%1$d contacts or changes could not be synced in the background. Open pcontacts to see which ones and why.</string>
     <string name="notification_sync_failure_title">Contact sync failed</string>
     <string name="notification_sync_failure_text">Sync has failed repeatedly. Open the app to check your connection and retry.</string>
     <string name="notification_permission_denied">Notifications are disabled. Sync still works, but you won\'t see alerts when action is needed.</string>

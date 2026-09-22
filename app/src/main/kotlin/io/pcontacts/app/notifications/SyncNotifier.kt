@@ -81,6 +81,23 @@ class SyncNotifier(private val context: Context) {
         )
     }
 
+    /**
+     * A background sync left contacts or changes behind; the sync card in the app has the
+     * details. Posted when the count changes, cleared by [clearContactProblems].
+     */
+    fun notifyContactProblems(count: Int) {
+        post(
+            id = NOTIFICATION_ID_CONTACT_PROBLEMS,
+            title = R.string.notification_sync_problems_title,
+            text = R.string.notification_sync_problems_text,
+            formatArg = count
+        )
+    }
+
+    fun clearContactProblems() {
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID_CONTACT_PROBLEMS)
+    }
+
     fun notifyPersistentFailure(
         @Suppress("UNUSED_PARAMETER") account: Account,
         @Suppress("UNUSED_PARAMETER") reason: String
@@ -142,5 +159,6 @@ class SyncNotifier(private val context: Context) {
         private const val NOTIFICATION_ID_FAILURE = 9003
         private const val NOTIFICATION_ID_VULNERABILITY = 9004
         private const val NOTIFICATION_ID_ADVISORY = 9005
+        private const val NOTIFICATION_ID_CONTACT_PROBLEMS = 9006
     }
 }

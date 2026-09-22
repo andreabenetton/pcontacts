@@ -97,6 +97,8 @@ class ProtonSyncAdapter(
                     "unchanged=${readReport.unchanged} failed=${readReport.failed}"
             }
             recordRun(writeReport, readReport)
+            val manual = extras.getBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, false)
+            announceProblems(writeReport, readReport, manual)
         } catch (e: CancellationException) {
             // A cancelled run (the framework's onSyncCanceled) is neither a failure nor a run.
             throw e
@@ -149,6 +151,25 @@ class ProtonSyncAdapter(
      * only a converged one — nothing failed, conflicted or quarantined
      * on either side — stamps [UserPreferences.lastSyncSuccessAtMillis].
      */
+    /**
+     * A background run that left contacts or changes behind says so once per change of the
+     * count; the user asked for nothing, so a manual run (the card is on screen) stays quiet.
+     * A run with no problems takes the notification down.
+     */
+    private fun announceProblems(writeReport: WriteReport, readReport: SyncReport, manual: Boolean) {
+        val problems = readReport.failed + writeReport.failed + writeReport.quarantined + writeReport.conflicted
+        when {
+            problems == 0 -> {
+                if (userPreferences.syncProblemsNotified != 0) notifier.clearContactProblems()
+                userPreferences.syncProblemsNotified = 0
+            }
+            !manual && problems != userPreferences.syncProblemsNotified -> {
+                notifier.notifyContactProblems(problems)
+                userPreferences.syncProblemsNotified = problems
+            }
+        }
+    }
+
     private fun recordRun(writeReport: WriteReport, readReport: SyncReport) {
         val now = System.currentTimeMillis()
         userPreferences.lastSyncRunAtMillis = now

@@ -26,6 +26,8 @@
     <string name="notification_vulnerability_text">Diese Version enthält eine Abhängigkeit mit einer bekannten offenen Schwachstelle. Tippen Sie, um zu sehen, welche und was betroffen ist.</string>
     <string name="notification_advisory_title">Neuer Sicherheitshinweis</string>
     <string name="notification_advisory_text">osv.dev hat %1$d neue Hinweise zu Abhängigkeiten dieser Version gemeldet. Tippen Sie, um sie zu sehen.</string>
+    <string name="notification_sync_problems_title">Einige Kontakte wurden nicht synchronisiert</string>
+    <string name="notification_sync_problems_text">%1$d Kontakte oder Änderungen konnten im Hintergrund nicht synchronisiert werden. Öffnen Sie pcontacts, um zu sehen, welche und warum.</string>
     <string name="notification_sync_failure_title">Kontaktsynchronisierung fehlgeschlagen</string>
     <string name="notification_sync_failure_text">Die Synchronisierung ist wiederholt fehlgeschlagen. Öffnen Sie die App, um Ihre Verbindung zu prüfen und es erneut zu versuchen.</string>
     <string name="notification_permission_denied">Benachrichtigungen sind deaktiviert. Die Synchronisierung funktioniert weiterhin, aber Sie erhalten keine Hinweise, wenn eine Aktion erforderlich ist.</string>

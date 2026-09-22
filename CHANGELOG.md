@@ -129,7 +129,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A create whose answer was lost** is recognised on Proton by its
   identity instead of being sent again or reported as failed.
 - **"Up to date" means it**: a run that left contacts or changes behind
-  shows attention, and the card shows when the last run happened.
+  shows attention, and the card shows when the last run happened. A
+  background sync that leaves contacts or changes behind also posts a
+  notification, once per change of the count and taken down by the
+  next clean run; a sync started from the app stays quiet because the
+  card is on screen.
 - Two postal addresses that share a street and city are no longer
   treated as the same address.
 - Leaving the sign-in flow half-way now wipes the partial session at

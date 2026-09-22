@@ -26,6 +26,8 @@
     <string name="notification_vulnerability_text">В этой версии есть зависимость с известной неисправленной уязвимостью. Нажмите, чтобы узнать, какая и что она затрагивает.</string>
     <string name="notification_advisory_title">Новое предупреждение безопасности</string>
     <string name="notification_advisory_text">osv.dev сообщил о новых предупреждениях для зависимостей этой версии: %1$d. Нажмите, чтобы посмотреть.</string>
+    <string name="notification_sync_problems_title">Некоторые контакты не синхронизировались</string>
+    <string name="notification_sync_problems_text">Не удалось синхронизировать в фоне контактов или изменений: %1$d. Откройте pcontacts, чтобы узнать, какие и почему.</string>
     <string name="notification_sync_failure_title">Синхронизация контактов не удалась</string>
     <string name="notification_sync_failure_text">Синхронизация неоднократно завершалась ошибкой. Откройте приложение, проверьте подключение и повторите попытку.</string>
     <string name="notification_permission_denied">Уведомления отключены. Синхронизация продолжает работать, но вы не увидите оповещений, когда потребуется действие.</string>
