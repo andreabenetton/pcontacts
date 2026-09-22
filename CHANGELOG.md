@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Contribute section** at the bottom of the main screen — a word on the
+  repository and "buy me a coffee" with a bitcoin address that is copied
+  with a tap — and a GitHub mark at the top right of the app bar that
+  opens the source repository in the browser.
 - **Dependency audit in the app** (ADR-0024). A "Dependencies" chip
   next to the version opens a screen listing every shipped artifact
   with version, license and known advisories linked to osv.dev. The
@@ -122,6 +126,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   kept and the contacts are re-checked once it is back.
 - **A contact reduced to a name on Proton is updated on the phone**,
   instead of keeping its stale phone number or e-mail forever.
+- **A detected conflict can no longer be wiped out by the pull that
+  follows the push.** A row the phone still owns a change to — a
+  conflict awaiting the user, or a change still queued or quarantined —
+  is neither overwritten by the server version nor deleted when the
+  server no longer has the contact. A contact deleted on Proton after it
+  was changed on the phone becomes a "deleted on Proton" conflict: the
+  phone version creates it on Proton again, the Proton version deletes
+  it here too. Only the user's decision returns such a row to normal.
+- **A create is counted as done only with a confirmed server identity.**
+  An accepted batch without an item, or an item without a contact, is
+  settled by the identity lookup or stays queued and is retried; before,
+  it could be dropped from the outbox as "created" with no server id,
+  leaving the contact permanently unsynced. A delete whose acknowledgement
+  is missing is likewise retried instead of taken as done.
+- **Leaving the sign-in flow by any route wipes the half session.**
+  System back on the code screen now aborts the login like the explicit
+  cancel does, so no partial tokens stay in the secret store.
 - **Cancelling a sync no longer marks the pending change as failed.**
 - **Cancelling a deletion brings the contact back** on the phone (or
   re-fetches it) instead of only forgetting the queued delete.
