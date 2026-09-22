@@ -113,7 +113,8 @@ class MainActivity : ComponentActivity() {
         signOutAfterStorageUpgradeIfNeeded()
         VulnerabilityNotice.postIfOpen(this)
         val audit = DependencyAuditAsset.load(this)
-        val signedOutStatus = audit.withRuntime(AdvisoryBootstrap.state(this)).status
+        val runtime = AdvisoryBootstrap.state(this)
+        val signedOutStatus = if (runtime.enabled) audit.withRuntime(runtime).status else null
         val openDependencies = { startActivity(Intent(this, DependenciesActivity::class.java)) }
 
         setContent {

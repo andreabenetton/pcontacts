@@ -105,7 +105,10 @@ class SettingsHost(
         onOpenDependencies = { activity.startActivity(Intent(activity, DependenciesActivity::class.java)) }
     )
 
-    fun onResume() = syncRunningMonitor.start()
+    fun onResume() {
+        syncRunningMonitor.start()
+        viewModel.refreshAdvisoryState()
+    }
 
     fun onPause() = syncRunningMonitor.stop()
 
