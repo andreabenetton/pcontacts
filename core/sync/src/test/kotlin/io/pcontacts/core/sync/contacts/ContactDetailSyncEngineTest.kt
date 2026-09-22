@@ -7,7 +7,11 @@ import android.accounts.Account
 import io.pcontacts.core.contactswriter.RawContactOpIntent
 import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import io.pcontacts.core.proton.api.contacts.ContactDto
+import io.pcontacts.core.proton.api.contacts.ContactMetadataDto
 import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
+import io.pcontacts.core.proton.api.labels.GetLabelsResponse
+import io.pcontacts.core.proton.api.labels.LabelDto
+import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.protoncontacts.CardCryptoOutcome
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
@@ -20,6 +24,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.IOException
 
 /**
  * Engine test against fakes. Uses CLEAR_TEXT cards so the real
@@ -647,5 +652,60 @@ class ContactDetailSyncEngineTest {
         assertEquals("bad contact counted as failed", 1, report.failed)
         assertNotNull(dao.snapshot()["c1"])
         assertNull(dao.snapshot()["c2"])
+    }
+
+    /** A Labels API that can be switched off between rounds. */
+    private class FlakyLabelsApi : ProtonLabelsApi {
+        var down = false
+        override suspend fun listLabels(type: Int): GetLabelsResponse {
+            if (down) throw IOException("labels down")
+            return GetLabelsResponse(code = 1000, labels = listOf(LabelDto(id = "L1", name = "Family")))
+        }
+    }
+
+    @Test fun a_labels_outage_keeps_group_memberships_and_converges_once_labels_return() = runTest {
+        val labels = FlakyLabelsApi()
+        val page = { modifyTime: Long ->
+            metaPage(ContactMetadataDto(id = "c1", modifyTime = modifyTime, labelIds = listOf("L1")))
+        }
+        val vcard = { tel: String -> "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nTEL:$tel\nEND:VCARD" }
+        val api = DetailFakeApi(
+            metadataPages = listOf(page(100L), page(200L), page(200L)),
+            contacts = mapOf("c1" to contact("c1", 100L, vcard("+1"))),
+            secondRoundContacts = mapOf("c1" to contact("c1", 200L, vcard("+2")))
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        // The provider keeps whatever memberships were last written.
+        var providerGroups: List<Long> = emptyList()
+        val engine = newEngine(
+            api,
+            dao,
+            applier,
+            labelsApi = labels,
+            reconcileGroups = { _, list -> list.associate { it.id to 7L } },
+            readGroupRowIds = { providerGroups }
+        )
+
+        // Round 1: labels work, the contact joins Family (local group 7).
+        engine.sync(account)
+        val created = applier.lastIntents.filterIsInstance<RawContactOpIntent.CreateContact>().single()
+        assertEquals(listOf(7L), created.row.groupRowIds)
+        providerGroups = created.row.groupRowIds
+        assertEquals(100L, dao.snapshot()["c1"]!!.modifyTime)
+
+        // Round 2: the server changed the phone while the Labels API is down.
+        labels.down = true
+        engine.sync(account)
+        val updated = applier.lastIntents.filterIsInstance<RawContactOpIntent.UpdateContact>().single()
+        assertEquals("Family membership must survive the outage", listOf(7L), updated.row.groupRowIds)
+        assertEquals("the contact is marked for a refetch", 0L, dao.snapshot()["c1"]!!.modifyTime)
+        val callsAfterOutage = applier.applyCallCount
+
+        // Round 3: labels are back, nothing changed on the server.
+        labels.down = false
+        engine.sync(account)
+        assertEquals(200L, dao.snapshot()["c1"]!!.modifyTime)
+        assertEquals("nothing to rewrite once the state agrees", callsAfterOutage, applier.applyCallCount)
     }
 }

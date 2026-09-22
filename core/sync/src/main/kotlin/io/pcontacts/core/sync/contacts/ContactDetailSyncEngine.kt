@@ -105,6 +105,13 @@ class ContactDetailSyncEngine(
      * the re-encoding (ADR-0017 second amendment).
      */
     private val readLocalPhotoHash: suspend (rawContactId: Long) -> String? = { null },
+    /**
+     * The GroupMembership rows the provider currently holds for a
+     * RawContact. Consulted only while the label state is unknown (the
+     * Labels call failed), so a rewrite keeps the memberships it cannot
+     * recompute instead of wiping them.
+     */
+    private val readGroupRowIds: suspend (rawContactId: Long) -> List<Long> = { emptyList() },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
@@ -117,9 +124,13 @@ class ContactDetailSyncEngine(
 
         // 1a. Labels: fetch + reconcile ContactsContract.Groups before any
         //     contact write so per-contact GroupMembership rows have a
-        //     valid local Groups._ID to point at. Failure is non-fatal —
-        //     contacts still sync, just without group memberships.
-        val labelMap: Map<String, Long> = try {
+        //     valid local Groups._ID to point at. Failure is non-fatal but
+        //     leaves the group state UNKNOWN (null, not empty): contacts
+        //     written this run keep the memberships the provider already
+        //     holds and are marked for a refetch, so the memberships are
+        //     recomputed once labels are back. An empty label set is a
+        //     known state and does delete local groups.
+        val labelMap: Map<String, Long>? = try {
             val labels = labelsApi.listLabels(LabelType.CONTACT_GROUP).labels
                 .map { ProtonLabel(id = it.id, name = it.name.ifBlank { it.id }) }
             reconcileGroups(account, labels)
@@ -130,8 +141,8 @@ class ContactDetailSyncEngine(
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
-            logger.warn(t) { "labels fetch / reconcile failed; contacts will sync without groups" }
-            emptyMap()
+            logger.warn(t) { "labels fetch / reconcile failed; group state unknown this run, memberships kept" }
+            null
         }
 
         // 1b. Cheap metadata enumeration → ID + ModifyTime + labelIds.
@@ -256,14 +267,19 @@ class ContactDetailSyncEngine(
                 continue
             }
             // Attach the contact's group memberships (translating Proton
-            // LabelIDs → local Groups._ID via the reconciled labelMap).
-            val groupRowIds = serverLabelIds[sourceId].orEmpty()
-                .mapNotNull { labelId -> labelMap[labelId] }
+            // LabelIDs → local Groups._ID via the reconciled labelMap); with
+            // the label state unknown, keep what the provider holds.
+            val groupRowIds = if (labelMap != null) {
+                serverLabelIds[sourceId].orEmpty().mapNotNull { labelId -> labelMap[labelId] }
+            } else {
+                liveRawId?.let { readGroupRowIds(it) }.orEmpty()
+            }
             val row = if (groupRowIds.isEmpty()) baseRow else baseRow.copy(groupRowIds = groupRowIds)
 
             val newHash = EmailSyncHash.compute(row)
             val meta = PerContactMeta(
-                modifyTime = response.contact.modifyTime,
+                // Unknown group state: forget the server time so the next pull refetches the contact.
+                modifyTime = if (labelMap == null) 0L else response.contact.modifyTime,
                 verified = decrypted.verified,
                 protonUid = decrypted.protonUid,
                 hash = newHash,

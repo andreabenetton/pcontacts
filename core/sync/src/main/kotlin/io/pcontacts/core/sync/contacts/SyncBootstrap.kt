@@ -240,7 +240,8 @@ object SyncBootstrap {
             },
             onProgress = progressSink(context),
             saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
-            readLocalPhotoHash = localPhotoHashReader(dataReader)
+            readLocalPhotoHash = localPhotoHashReader(dataReader),
+            readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { dataReader.readGroupRowIds(rawId) } }
         )
     }
 
@@ -306,6 +307,7 @@ object SyncBootstrap {
         val applier = BatchApplier(provider)
         val groupsWriter = LocalGroupsWriter(provider)
         val mergeBases = KeystoreMergeBaseStore(db.contactMapDao(), logger = logger)
+        val readDataReader = RawContactDataReader(provider)
 
         val readEngine = ContactDetailSyncEngine(
             metadataPager = metadataPager,
@@ -321,7 +323,8 @@ object SyncBootstrap {
             },
             onProgress = progressSink(context),
             saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
-            readLocalPhotoHash = localPhotoHashReader(RawContactDataReader(provider)),
+            readLocalPhotoHash = localPhotoHashReader(readDataReader),
+            readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { readDataReader.readGroupRowIds(rawId) } },
             // Same production logger as the write engine — the pull path was
             // previously wired to NoOpSink, so read-path failures (fetch /
             // decrypt / parse) were invisible in production logs.

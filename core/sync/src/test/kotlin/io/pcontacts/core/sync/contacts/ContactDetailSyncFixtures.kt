@@ -7,6 +7,7 @@ import android.accounts.Account
 import io.pcontacts.core.contactswriter.ApplyResult
 import io.pcontacts.core.contactswriter.ExistingRawContact
 import io.pcontacts.core.contactswriter.ExistingRawContacts
+import io.pcontacts.core.contactswriter.ProtonLabel
 import io.pcontacts.core.contactswriter.RawContactOpIntent
 import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
 import io.pcontacts.core.proton.api.contacts.BulkDeleteResponse
@@ -56,6 +57,8 @@ internal fun contact(id: String, modifyTime: Long, clearTextVCard: String) = Con
     cards = listOf(ContactCardDto(type = 0, data = clearTextVCard))
 )
 
+// Test factory: every engine seam optional, so the parameter count is by design.
+@Suppress("LongParameterList")
 internal fun newEngine(
     api: DetailFakeApi,
     dao: DetailFakeContactMapDao,
@@ -66,6 +69,9 @@ internal fun newEngine(
         dao.setMergeBase(id, DecryptedContactJson.encode(c))
     },
     readLocalPhotoHash: suspend (Long) -> String? = { null },
+    labelsApi: ProtonLabelsApi = NoLabelsApi,
+    reconcileGroups: suspend (Account, List<ProtonLabel>) -> Map<String, Long> = { _, _ -> emptyMap() },
+    readGroupRowIds: suspend (Long) -> List<Long> = { emptyList() },
     onProgress: (Int, Int) -> Unit = { _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
@@ -76,12 +82,14 @@ internal fun newEngine(
     return ContactDetailSyncEngine(
         metadataPager = ContactsMetadataPager(api = api, pageSize = 1000),
         contactsApi = api,
-        labelsApi = NoLabelsApi,
+        labelsApi = labelsApi,
         processor = processor,
         contactMapDao = dao,
         readExisting = { _ -> applier.knownState() },
         hasPendingDelete = hasPendingDelete,
         applyIntents = { acct, intents -> applier.apply(acct, intents) },
+        reconcileGroups = reconcileGroups,
+        readGroupRowIds = readGroupRowIds,
         onProgress = onProgress,
         saveMergeBase = saveMergeBase,
         readLocalPhotoHash = readLocalPhotoHash,
