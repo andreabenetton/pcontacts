@@ -274,6 +274,39 @@ class ContactWriteEngineTest {
         assertTrue(entry.nextAttemptAt > 2_000_000_000L)
     }
 
+    @Test fun push_quarantine_reason_carries_protons_code_from_the_error_body() = runTest {
+        val api = WriteFakeApi().apply {
+            failWith = http(400, """{"Code":2002,"Error":"UID Field is missing"}""")
+        }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val contacts = mutableMapOf("ct-1" to sampleContact("ct-1"))
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.UPDATE,
+            payloadHash = "hash-v2",
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts
+        )
+        val report = engine.push()
+
+        assertEquals(1, report.quarantined)
+        val entry = outbox.entries.values.single()
+        assertTrue(entry.quarantined)
+        // The server's text never reaches the reason; its code does.
+        assertEquals("HTTP 400, Proton code 2002", entry.lastError)
+    }
+
     @Test fun push_quarantines_on_4xx() = runTest {
         val api = WriteFakeApi().apply { failWith = http(400) }
         val outbox = WriteFakeOutboxDao()
@@ -1634,8 +1667,8 @@ class ContactWriteEngineTest {
         lastSyncedAt = 1_700_000_001L
     )
 
-    private fun http(code: Int): HttpException =
-        HttpException(Response.error<Unit>(code, "".toResponseBody(null)))
+    private fun http(code: Int, body: String = ""): HttpException =
+        HttpException(Response.error<Unit>(code, body.toResponseBody(null)))
 }
 
 // --- fakes ---

@@ -301,11 +301,12 @@ class ContactWriteEngine(
             patch.isEmpty -> null
             // A server contact always has cards; a fixture without them gets the create layout.
             server.cards.isEmpty() -> serializer.serialize(merged)
-            else -> serializer.serialize(
-                server.cards,
-                patch,
-                mapping.protonUid?.takeIf { it.isNotBlank() } ?: ContactSerializer.fallbackUid(id)
-            )
+            else -> {
+                val uid = mapping.protonUid?.takeIf { it.isNotBlank() } ?: ContactSerializer.fallbackUid(id)
+                // Types and property names only: what Proton is handed, for a refusal's post-mortem.
+                logger.info { "push: cards ${serializer.shape(server.cards, patch, uid)} idTag=${id.hashCode()}" }
+                serializer.serialize(server.cards, patch, uid)
+            }
         }
         return merged to cards
     }
@@ -453,8 +454,12 @@ class ContactWriteEngine(
         val isTransient = e is IOException || httpCode == 429 || (httpCode != null && httpCode >= 500)
         // A stable, non-sensitive reason. NOT e.javaClass.simpleName: R8
         // minifies it to a meaningless letter on release builds (the "p:
-        // 400" users saw), and e.message can carry contact content.
+        // 400" users saw), and e.message can carry contact content. Proton's
+        // own code from the error body says why a 4xx was refused; its text
+        // may echo the input and stays out.
+        val protonCode = (e as? HttpException)?.let(::protonCodeOf)
         val reason = when {
+            httpCode != null && protonCode != null -> "HTTP $httpCode, Proton code $protonCode"
             httpCode != null -> "HTTP $httpCode"
             e is ProtonApiException -> "Proton code ${e.protonCode}"
             e is IOException -> "network error"
@@ -473,9 +478,13 @@ class ContactWriteEngine(
             return WriteReport(failed = 1)
         }
 
+        logger.warn { "push refused ($reason), quarantined idTag=${entry.protonContactId.hashCode()}" }
         outboxDao.quarantine(entry.id, reason)
         return WriteReport(quarantined = 1)
     }
+
+    private fun protonCodeOf(e: HttpException): Int? =
+        runCatching { e.response()?.errorBody()?.string() }.getOrNull()?.let(ProtonCodeInterceptor::codeOf)
 
     companion object {
         private const val HTTP_NOT_FOUND = 404
