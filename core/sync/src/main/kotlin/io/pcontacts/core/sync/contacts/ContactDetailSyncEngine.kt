@@ -40,7 +40,7 @@ import kotlinx.coroutines.flow.toList
  *   7. RawContactDiffer + applier produce + apply ContactsContract ops.
  *   8. Reconcile the Room mapping with the post-apply RawContacts._IDs.
  *
- * Sibling to EmailSyncEngine — same IO seams, same idempotency
+ * Same IO seams and same idempotency
  * contract. Differs in that the displayName written to
  * ContactsContract comes from the decrypted SIGNED card's FN rather
  * than the email row's denormalised Name, and the per-contact

@@ -21,7 +21,6 @@ import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
-import io.pcontacts.core.proton.api.contacts.ContactEmailsPager
 import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
 import io.pcontacts.core.protoncontacts.ContactDecrypter
@@ -59,10 +58,7 @@ import kotlinx.coroutines.withContext
  * non-sensitive error (401) — which is the desired outcome ("re-login
  * required") rather than a silent zero-contact sync.
  *
- * Three factory methods are exposed:
- *   - `createEmailSyncEngine` — name + email only, no decrypt; kept for
- *     a future "fast-sync" mode or as a fallback when the decrypt
- *     prerequisites (keyPassword + primary key) are unavailable.
+ * Two factory methods are exposed:
  *   - `createContactDetailSyncEngine` — full fetch + decrypt + merge
  *     (plan §17 task 17 wired end-to-end). The current read-only path.
  *     Throws `DecryptUnavailableException` if keyPassword / primary key
@@ -148,37 +144,6 @@ object SyncBootstrap {
             lastSyncFailed = prefs.lastSyncErrorCode != null,
             lastSyncErrorCode = prefs.lastSyncErrorCode,
             failedContacts = prefs.lastSyncFailedContacts
-        )
-    }
-
-    fun createEmailSyncEngine(
-        context: Context,
-        provider: ContentProviderClient
-    ): EmailSyncEngine {
-        val appContext = context.applicationContext
-        val secretStore = EncryptedSecretStore.create(appContext)
-        val session = InMemorySession().apply {
-            val uid = secretStore.uid()
-            val token = secretStore.accessToken()
-            if (uid != null && token != null) update(uid = uid, accessToken = token)
-        }
-        val api = ProtonApiFactory(
-            config = ProtonApiConfig(),
-            session = session,
-            humanVerificationTokens = SecretStoreHumanVerificationSource(secretStore)
-        )
-        val pager = ContactEmailsPager(api = api.contacts)
-        val db = DatabaseFactory.create(appContext)
-        val reader = RawContactReader(provider)
-        val applier = BatchApplier(provider)
-        return EmailSyncEngine(
-            pager = pager,
-            contactMapDao = db.contactMapDao(),
-            // The ContactsContract calls under reader/applier are blocking;
-            // park them on Dispatchers.IO so the engine's suspend chain
-            // doesn't pin the calling thread.
-            readExisting = { account -> withContext(Dispatchers.IO) { reader.readExisting(account) } },
-            applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } }
         )
     }
 
