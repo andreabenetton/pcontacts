@@ -104,7 +104,7 @@ private fun VersionRow(version: String?, audit: AuditIndicator?) {
         version?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
