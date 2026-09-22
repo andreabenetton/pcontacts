@@ -45,11 +45,11 @@ internal fun ScreenTopBar(title: String, onBack: () -> Unit) {
 /**
  * The root screens' bar: the launcher icon and the app's name, read
  * from the installed package at runtime so the module carries no copy
- * of either.
+ * of either. Public so the host can give the sign-in flow the same bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AppTopBar() {
+fun AppTopBar() {
     val context = LocalContext.current
     val brand = remember {
         val info = context.applicationInfo

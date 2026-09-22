@@ -13,9 +13,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +28,7 @@ import io.pcontacts.feature.onboarding.LoginScreen
 import io.pcontacts.feature.onboarding.LoginUiState
 import io.pcontacts.feature.onboarding.LoginViewModel
 import io.pcontacts.feature.onboarding.TwoFactorScreen
+import io.pcontacts.feature.settings.AppTopBar
 
 /**
  * AccountAuthenticator's addAccount Intent target. The system Settings →
@@ -75,7 +75,8 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             PcontactsTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                // The same shell as the Settings root, so signing in looks like the screen that follows.
+                Scaffold(topBar = { AppTopBar() }) { padding ->
                     val state by viewModel.uiState.collectAsStateWithLifecycle()
                     when (state) {
                         is LoginUiState.TwoFactorRequired,
@@ -83,13 +84,15 @@ class LoginActivity : ComponentActivity() {
                         is LoginUiState.TwoFactorFailed -> TwoFactorScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
-                            onCancel = { viewModel.reset() }
+                            onCancel = { viewModel.reset() },
+                            modifier = Modifier.padding(padding)
                         )
                         else -> LoginScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onTwoFactorRequired = { /* handled by state-driven branch */ },
-                            onHumanVerificationRequired = { url -> launchHumanVerification(url) }
+                            onHumanVerificationRequired = { url -> launchHumanVerification(url) },
+                            modifier = Modifier.padding(padding)
                         )
                     }
                 }
