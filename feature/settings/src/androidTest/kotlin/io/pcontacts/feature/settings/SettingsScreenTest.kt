@@ -10,6 +10,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -57,7 +58,8 @@ class SettingsScreenTest {
         }
         composeRule.onNodeWithText("Sync interval").assertIsDisplayed()
         composeRule.onNodeWithText("Sync now").assertIsDisplayed()
-        composeRule.onNodeWithText("Sign out").assertIsDisplayed()
+        // The sign-out button sits at the bottom; on tall-inset images (API 35) it starts off-screen.
+        composeRule.onNodeWithText("Sign out").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -111,7 +113,7 @@ class SettingsScreenTest {
         composeRule.setContent {
             SettingsScreen(vm, SettingsActions(onSignedOut = { signedOutCalled = true }))
         }
-        composeRule.onNodeWithText("Sign out").performClick()
+        composeRule.onNodeWithText("Sign out").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Sign out").assertIsNotEnabled()
@@ -131,10 +133,11 @@ class SettingsScreenTest {
         composeRule.setContent {
             SettingsScreen(vm, SettingsActions(onSignedOut = {}))
         }
-        composeRule.onNodeWithText("Sign out").performClick()
+        composeRule.onNodeWithText("Sign out").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         composeRule.onNode(hasText("missing_contacts_permission", substring = true))
+            .performScrollTo()
             .assertIsDisplayed()
     }
 
