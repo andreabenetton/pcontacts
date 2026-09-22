@@ -104,3 +104,12 @@ What this makes harder / new obligations:
 - Cross-reference: `protoncore_android/human-verification/.../HV3DialogFragment.kt`
   remains the upstream pattern; if Proton significantly rewrites it we
   should reread it.
+- Amended 2026-09-22 (hardening): the initial URL and every top-level
+  navigation must be `https://verify.proton.me` exactly; sub-frames and
+  subresources only https `*.proton.me`, everything else answered with
+  an empty body; the bridge accepts one success envelope, only while the
+  top-level document is the verification page, with printable-ASCII,
+  bounded token/type. Robolectric tests cover each rule. On the first
+  organic 9001, check that the captcha renders and completes with the
+  resource block active: any `HV: blocked … host=` warning in logcat
+  names a host to add to the allowlist. `[U]`
