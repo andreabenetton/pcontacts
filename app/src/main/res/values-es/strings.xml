@@ -30,9 +30,6 @@
     <string name="verification_fallback_message">Proton requiere una verificación humana antes de continuar la sincronización. Inicia sesión en mail.proton.me desde un navegador, completa la verificación y vuelve aquí: la sincronización se reintentará automáticamente.</string>
     <string name="verification_fallback_dismiss">OK</string>
 
-    <string name="launcher_loading">Cargando…</string>
-    <string name="launcher_no_account">Inicia sesión con tu cuenta de Proton para empezar a sincronizar contactos.</string>
-    <string name="launcher_sign_in">Iniciar sesión</string>
 
     <string name="chip_send_via_proton_mail">Enviar con Proton Mail</string>
     <string name="linked_import_source_device">Dispositivo</string>

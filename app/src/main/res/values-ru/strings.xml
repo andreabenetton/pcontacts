@@ -30,9 +30,6 @@
     <string name="verification_fallback_message">Proton требует проверку человеком, прежде чем синхронизация сможет продолжиться. Войдите на mail.proton.me в браузере, пройдите проверку и вернитесь сюда — синхронизация возобновится автоматически.</string>
     <string name="verification_fallback_dismiss">OK</string>
 
-    <string name="launcher_loading">Загрузка…</string>
-    <string name="launcher_no_account">Войдите в свой аккаунт Proton, чтобы начать синхронизацию контактов.</string>
-    <string name="launcher_sign_in">Войти</string>
 
     <string name="chip_send_via_proton_mail">Отправить через Proton Mail</string>
     <string name="linked_import_source_device">Устройство</string>

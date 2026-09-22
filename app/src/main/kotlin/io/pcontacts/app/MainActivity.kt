@@ -16,18 +16,8 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -43,7 +33,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -60,11 +49,12 @@ import io.pcontacts.app.verification.HumanVerificationLauncher
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.SettingsScreen
+import io.pcontacts.feature.settings.SignInScreen
 
 /**
- * The one screen of the app: the sign-in prompt while there is no
- * Proton account, the Settings screen (status card on top) once there
- * is. Also owns first-run permission requests and the return from the
+ * The one screen of the app: the Settings shell reduced to its Account
+ * section while there is no Proton account, the full Settings screen
+ * (status card on top) once there is. Also owns first-run permission requests and the return from the
  * human-verification web flow.
  */
 class MainActivity : ComponentActivity() {
@@ -128,16 +118,11 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    Scaffold(
-                        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } },
-                        containerColor = MaterialTheme.colorScheme.background
-                    ) { innerPadding ->
-                        LauncherScreen(
-                            state = state,
-                            onSignIn = ::launchLogin,
-                            modifier = Modifier.padding(innerPadding)
-                        )
-                    }
+                    SignInScreen(
+                        loading = state is LauncherUiState.Loading,
+                        onSignIn = ::launchLogin,
+                        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } }
+                    )
                 }
 
                 if (showFallbackDialog) {
@@ -285,46 +270,6 @@ class MainActivity : ComponentActivity() {
 
     private fun launchLogin() {
         startActivity(Intent(this, LoginActivity::class.java))
-    }
-}
-
-/** What the app shows before there is an account; once signed in the Settings screen takes over. */
-@Composable
-internal fun LauncherScreen(
-    state: LauncherUiState,
-    onSignIn: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(PaddingValues(24.dp)),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineLarge
-        )
-        Spacer(Modifier.height(8.dp))
-
-        when (state) {
-            is LauncherUiState.Loading -> Text(
-                text = stringResource(R.string.launcher_loading),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            is LauncherUiState.NoAccount -> {
-                Text(
-                    text = stringResource(R.string.launcher_no_account),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(24.dp))
-                Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.launcher_sign_in))
-                }
-            }
-            is LauncherUiState.SignedIn -> Unit
-        }
     }
 }
 
