@@ -112,7 +112,8 @@ data class SettingsActions(
     val onOpenLinkedImport: () -> Unit = {},
     val onOpenContactsAccess: (ContactsAccessKind) -> Unit = {},
     val onOpenContactsStorage: (() -> Unit)? = null,
-    val onOpenDeGoogledRoms: () -> Unit = {}
+    val onOpenDeGoogledRoms: () -> Unit = {},
+    val onOpenDependencies: () -> Unit = {}
 )
 
 /**

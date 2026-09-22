@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 
@@ -52,11 +55,14 @@ internal fun ScreenTopBar(title: String, onBack: () -> Unit) {
  * The root screens' bar: the launcher icon, the app's name and, in
  * small type under it, the installed version — all read from the
  * package at runtime so the module carries no copy of any of them.
- * Public so the host can give the sign-in flow the same bar.
+ * With an [audit] indicator a coloured dot sits next to the version
+ * (ADR-0024: green no known CVE, amber assessed, red open) and the
+ * version row opens the Dependencies screen. Public so the host can give
+ * the sign-in flow the same bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppTopBar() {
+fun AppTopBar(audit: AuditIndicator? = null) {
     val context = LocalContext.current
     val brand = remember { Brand.of(context) }
     TopAppBar(
@@ -70,17 +76,38 @@ fun AppTopBar() {
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(brand.name)
-                    brand.version?.let { version ->
-                        Text(
-                            text = version,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    VersionRow(brand.version, audit)
                 }
             }
         }
     )
+}
+
+@Composable
+private fun VersionRow(version: String?, audit: AuditIndicator?) {
+    val description = audit?.let {
+        stringResource(R.string.dependencies_indicator_a11y, stringResource(it.status.labelRes()))
+    }
+    val rowModifier = if (audit == null) {
+        Modifier
+    } else {
+        Modifier
+            .clickable(onClick = audit.onOpen)
+            .semantics { contentDescription = description.orEmpty() }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = rowModifier) {
+        version?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        audit?.let {
+            Spacer(Modifier.width(6.dp))
+            StatusDot(it.status, size = 10.dp)
+        }
+    }
 }
 
 private class Brand(val icon: Bitmap, val name: String, val version: String?) {

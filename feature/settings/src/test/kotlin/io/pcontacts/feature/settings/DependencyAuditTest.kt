@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: 2026 pcontacts contributors
+
+package io.pcontacts.feature.settings
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class DependencyAuditTest {
+
+    private companion object {
+        const val NVD = "https://nvd.nist.gov/vuln/detail/"
+    }
+
+    private val clean = AuditedDependency(
+        "androidx.activity",
+        "activity",
+        "1.9.3",
+        listOf("Apache-2.0"),
+        emptyList()
+    )
+    private val assessed = AuditedDependency(
+        "androidx.sqlite",
+        "sqlite-android",
+        "2.5.1",
+        listOf("Apache-2.0"),
+        listOf(AuditCve("CVE-2015-5895", 10.0, "HIGH", NVD + "CVE-2015-5895", true, "false positive"))
+    )
+    private val open = AuditedDependency(
+        "com.example",
+        "lib",
+        "1.0",
+        emptyList(),
+        listOf(
+            AuditCve("CVE-2026-1", 7.5, "HIGH", NVD + "CVE-2026-1", false, null),
+            AuditCve("CVE-2026-2", 4.0, "MEDIUM", NVD + "CVE-2026-2", true, "n/a")
+        )
+    )
+
+    @Test fun status_is_the_worst_of_the_dependencies() {
+        assertEquals(AuditStatus.CLEAN, DependencyAudit("2026-09-22", null, listOf(clean)).status)
+        assertEquals(AuditStatus.ASSESSED, DependencyAudit("2026-09-22", null, listOf(clean, assessed)).status)
+        assertEquals(AuditStatus.OPEN, DependencyAudit("2026-09-22", null, listOf(assessed, open, clean)).status)
+    }
+
+    @Test fun one_open_cve_makes_the_dependency_open_whatever_else_is_suppressed() {
+        assertEquals(AuditStatus.OPEN, open.status)
+        assertEquals(AuditStatus.ASSESSED, assessed.status)
+        assertEquals(AuditStatus.CLEAN, clean.status)
+    }
+
+    @Test fun display_order_puts_open_first_then_assessed_then_the_rest_by_coordinate() {
+        val audit = DependencyAudit("2026-09-22", null, listOf(clean, assessed, open))
+        assertEquals(listOf(open, assessed, clean), audit.sortedForDisplay)
+    }
+}

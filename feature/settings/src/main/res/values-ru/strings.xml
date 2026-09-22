@@ -216,6 +216,20 @@
     <string name="rom_website">Официальный сайт</string>
     <string name="rom_website_a11y">Открыть сайт %1$s</string>
     <string name="rom_no_browser">На этом устройстве нет приложения для открытия веб-ссылок.</string>
+
+    <!-- Dependencies screen and the audit dot next to the version (ADR-0024) -->
+    <string name="dependencies_screen_title">Зависимости</string>
+    <string name="dependencies_status_clean">Известных уязвимостей нет</string>
+    <string name="dependencies_status_assessed">Известные CVE оценены как неприменимые</string>
+    <string name="dependencies_status_open">Открытая уязвимость в зависимости</string>
+    <string name="dependencies_checked_on">Проверено по данным NVD от %1$s.</string>
+    <string name="dependencies_intro">Этот список фиксируется при сборке приложения и отражает ту проверку; во время работы приложение ничего не запрашивает. Уязвимость, опубликованная позже, появится в следующей версии. Идентификаторы CVE открывают страницу NVD в браузере.</string>
+    <string name="dependencies_count">Артефактов в этой версии: %1$d</string>
+    <string name="dependencies_version_license">Версия %1$s · %2$s</string>
+    <string name="dependencies_license_unknown">лицензия не указана</string>
+    <string name="dependencies_cve_assessed">Оценена как неприменимая: %1$s</string>
+    <string name="dependencies_cve_open">Открыта — в этой версии ещё не исправлена</string>
+    <string name="dependencies_indicator_a11y">Проверка зависимостей: %1$s. Открывает список зависимостей.</string>
     <string name="rom_grapheneos_compat">По желанию — официальный Google Play, установленный как обычные изолированные приложения без привилегированного доступа к системе.</string>
     <string name="rom_grapheneos_focus">Сильное усиление безопасности и приватности.</string>
     <string name="rom_grapheneos_hardware">В основном поддерживаемые устройства Google Pixel.</string>

@@ -65,7 +65,9 @@ fun SettingsScreen(
     actions: SettingsActions,
     modifier: Modifier = Modifier,
     banner: @Composable () -> Unit = {},
-    snackbarHost: @Composable () -> Unit = {}
+    snackbarHost: @Composable () -> Unit = {},
+    /** Status of the shipped dependency audit (ADR-0024), shown next to the version. */
+    auditStatus: AuditStatus? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
@@ -75,7 +77,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { AppTopBar() },
+        topBar = { AppTopBar(auditStatus?.let { AuditIndicator(it, actions.onOpenDependencies) }) },
         snackbarHost = snackbarHost
     ) { padding ->
         Column(

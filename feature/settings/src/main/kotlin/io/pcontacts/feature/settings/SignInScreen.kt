@@ -37,6 +37,8 @@ private val SignInGreen = Color(0xFF2E9E5B)
  * the de-Googled ROM explanation, so the choice is informed before it
  * is made.
  */
+// One parameter per fact the host knows and the screen shows; there is no state to bundle them in.
+@Suppress("LongParameterList")
 @Composable
 fun SignInScreen(
     loading: Boolean,
@@ -46,11 +48,13 @@ fun SignInScreen(
     modifier: Modifier = Modifier,
     /** The account was signed out by the 2.0 secret-store upgrade; say so above the button. */
     storageUpgradeNotice: Boolean = false,
-    snackbarHost: @Composable () -> Unit = {}
+    snackbarHost: @Composable () -> Unit = {},
+    /** The shipped dependency audit's status (ADR-0024), shown next to the version. */
+    audit: AuditIndicator? = null
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { AppTopBar() },
+        topBar = { AppTopBar(audit) },
         snackbarHost = snackbarHost
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {

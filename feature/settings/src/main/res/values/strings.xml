@@ -190,6 +190,20 @@
     <string name="rom_website">Official website</string>
     <string name="rom_website_a11y">Open the %1$s website</string>
     <string name="rom_no_browser">No app on this device can open web links.</string>
+
+    <!-- Dependencies screen and the audit dot next to the version (ADR-0024) -->
+    <string name="dependencies_screen_title">Dependencies</string>
+    <string name="dependencies_status_clean">No known vulnerabilities</string>
+    <string name="dependencies_status_assessed">Known CVEs assessed as not applicable</string>
+    <string name="dependencies_status_open">Open vulnerability in a dependency</string>
+    <string name="dependencies_checked_on">Checked against the NVD data of %1$s.</string>
+    <string name="dependencies_intro">This list is fixed when the app is built and reflects that scan; the app never looks anything up while it runs. A vulnerability published later appears with the next release. CVE ids open the NVD page in your browser.</string>
+    <string name="dependencies_count">%1$d artifacts in this release</string>
+    <string name="dependencies_version_license">Version %1$s · %2$s</string>
+    <string name="dependencies_license_unknown">license not declared</string>
+    <string name="dependencies_cve_assessed">Assessed as not applicable: %1$s</string>
+    <string name="dependencies_cve_open">Open — not yet fixed in this release</string>
+    <string name="dependencies_indicator_a11y">Dependency check: %1$s. Opens the list of dependencies.</string>
     <string name="rom_grapheneos_compat">Optional official Google Play, installed as ordinary sandboxed apps without privileged system access.</string>
     <string name="rom_grapheneos_focus">Strong security and privacy hardening.</string>
     <string name="rom_grapheneos_hardware">Primarily supported Google Pixel devices.</string>
