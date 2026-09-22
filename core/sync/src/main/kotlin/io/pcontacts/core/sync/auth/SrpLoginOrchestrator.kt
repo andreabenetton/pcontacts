@@ -23,6 +23,7 @@ import io.pcontacts.core.proton.api.auth.TwoFactorRequest
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.proton.api.httpStatusCode
 import io.pcontacts.core.proton.api.users.ProtonUsersApi
+import kotlinx.coroutines.CancellationException
 import java.math.BigInteger
 import java.util.Base64
 
@@ -163,6 +164,8 @@ class SrpLoginOrchestrator(
             uid = uid,
             username = username
         )
+    } catch (e: CancellationException) {
+        throw e
     } catch (t: Throwable) {
         val code = t.httpStatusCode()
         logger.error(t) { "key-derivation step failed http=$code" }
@@ -227,6 +230,8 @@ class SrpLoginOrchestrator(
         // fresh IPs. Surface as HV; the UI launches the captcha then retries.
         logger.warn { "auth/info returned 9001 — human verification required" }
         Step.Abort(LoginResult.HumanVerificationRequired(verificationUrl = e.verificationUrl))
+    } catch (e: CancellationException) {
+        throw e
     } catch (t: Throwable) {
         // [V] HTTP 400/422 from auth/info indicate x-pm-appversion rejection
         // (custom client ID or version below the acceptance window). Distinct
@@ -282,6 +287,8 @@ class SrpLoginOrchestrator(
 
         return try {
             Step.Ok(srp.login(N = mod.n, serverEphemeralB = b, x = x))
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.error(t) { "srp client computation failed" }
             Step.Abort(LoginResult.Failed(reason = "srp_failed"))
@@ -314,6 +321,8 @@ class SrpLoginOrchestrator(
             // can open the captcha WebView (ADR-0019) and re-invoke login() after.
             logger.warn { "auth returned 9001 — human verification required" }
             return Step.Abort(LoginResult.HumanVerificationRequired(verificationUrl = e.verificationUrl))
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             val code = t.httpStatusCode()
             logger.error(t) { "auth call failed http=$code" }
@@ -322,6 +331,8 @@ class SrpLoginOrchestrator(
 
         val serverProof = try {
             Base64.getDecoder().decode(authResp.serverProof)
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.error(t) { "server proof base64 decode failed" }
             return Step.Abort(LoginResult.Failed(reason = "server_proof_decode_failed", uid = authResp.uid))
@@ -400,6 +411,8 @@ class SrpLoginOrchestrator(
                 uid = uid,
                 username = username
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             return classifyTwoFactorFailure(t, uid, username)
         }

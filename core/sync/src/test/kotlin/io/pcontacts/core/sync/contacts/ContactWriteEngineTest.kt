@@ -1124,6 +1124,28 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    @Test fun push_cancelled_mid_flight_leaves_the_row_retryable_and_propagates() = runTest {
+        val api = WriteFakeApi()
+        val gate = CompletableDeferred<Unit>()
+        api.onUpdate = { gate.await() }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val contacts = mapOf("ct-1" to sampleContact("ct-1"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", 1L)
+        val engine = newEngine(api, outbox, contactMap, contacts, serverContacts = contacts, bases = contacts)
+
+        val job = launch { engine.push() }
+        advanceUntilIdle()
+        job.cancel()
+        job.join()
+
+        assertTrue(job.isCancelled)
+        val row = outbox.entries.values.single()
+        assertFalse("a cancelled push is not a failure", row.quarantined)
+        assertEquals(0, row.attempts)
+    }
+
     // Test factory: all seams optional, so the parameter count is by design.
     @Suppress("LongParameterList")
     private suspend fun newEngine(

@@ -14,6 +14,7 @@ import io.pcontacts.core.storage.UserPreferences
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.dao.SyncStateDao
+import kotlinx.coroutines.CancellationException
 
 /**
  * Per plan §5 + §17 task 19. End-to-end logout in five steps:
@@ -66,6 +67,8 @@ class LogoutOrchestrator(
     private val logger: Logger = RedactingLogger(tag = "Logout", sink = NoOpSink)
 ) {
 
+    // Every extra throw rethrows a cancellation: a cancelled logout must not look like a finished one.
+    @Suppress("ThrowsCount")
     suspend fun logout(account: Account): LogoutResult {
         val errors = ArrayList<String>(5)
 
@@ -79,6 +82,8 @@ class LogoutOrchestrator(
         } else {
             try {
                 authApi.revoke()
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
                 logger.warn(t) { "server-side revoke failed; continuing with local wipe" }
                 errors += LOGOUT_ERR_REVOKE
@@ -88,6 +93,8 @@ class LogoutOrchestrator(
         // 2) Delete RawContacts.
         val contactsDeleted = try {
             deleteAllContactsFor(account)
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.error(t) { "delete RawContacts failed" }
             errors += LOGOUT_ERR_CONTACTS
@@ -101,6 +108,8 @@ class LogoutOrchestrator(
             outboxDao.deleteAll()
             syncStateDao.delete(account.name)
             userPreferences.clearSyncState()
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.error(t) { "clear Room mapping failed" }
             errors += LOGOUT_ERR_ROOM
@@ -110,6 +119,8 @@ class LogoutOrchestrator(
         //    Mandatory: on failure the account stays so the user can retry.
         try {
             secretStore.logout()
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.error(t) { "SecretStore.logout() failed; keeping the Android account so sign-out can be retried" }
             errors += LOGOUT_ERR_SECRETSTORE
@@ -126,6 +137,8 @@ class LogoutOrchestrator(
         //    reflects the signed-out state.
         val androidAccountRemoved = try {
             removeAndroidAccount(account)
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.error(t) { "AccountManager.removeAccountExplicitly failed" }
             errors += LOGOUT_ERR_ACCOUNT_MANAGER

@@ -22,6 +22,7 @@ import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.toList
 
 /**
@@ -101,6 +102,9 @@ class ContactDetailSyncEngine(
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
 
+    // One pass per sync run, in the order the steps must happen; the throws
+    // only rethrow cancellation and the 9001 gate (previously baselined).
+    @Suppress("ThrowsCount", "LongMethod", "CyclomaticComplexMethod")
     suspend fun sync(account: Account): SyncReport {
         logger.info { "contact-detail sync start account=${account.name}" }
 
@@ -115,6 +119,8 @@ class ContactDetailSyncEngine(
         } catch (e: HumanVerificationRequiredException) {
             // Don't degrade to "sync without groups" — abort the whole sync so
             // ProtonSyncAdapter shows the captcha notification.
+            throw e
+        } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
             logger.warn(t) { "labels fetch / reconcile failed; contacts will sync without groups" }
@@ -218,6 +224,8 @@ class ContactDetailSyncEngine(
                 // will hit the same gate. Abort so SyncAdapter notifies the
                 // user once instead of looping N times.
                 throw e
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
                 fetchFailures += 1
                 logger.error(t) { "contact skipped (fetch failed) idTag=${sourceId.hashCode()}" }
@@ -229,6 +237,8 @@ class ContactDetailSyncEngine(
             val (decrypted, baseRow) = try {
                 val d = processor.process(response.contact)
                 d to DecryptedContactToRow.convert(d)
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
                 fetchFailures += 1
                 logger.error(t) { "contact skipped (decrypt/parse failed) idTag=${sourceId.hashCode()}" }

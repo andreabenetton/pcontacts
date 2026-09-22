@@ -29,6 +29,7 @@ import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -202,6 +203,8 @@ class ContactWriteEngine(
             // solve captcha and the next push will succeed. Surface to the
             // SyncAdapter which fires the HV notification.
             throw e
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             handleFailure(entry, e)
         }
@@ -235,6 +238,8 @@ class ContactWriteEngine(
                 WriteReport(pushed = 1, updated = 1)
             }
         } catch (e: HumanVerificationRequiredException) {
+            throw e
+        } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             logger.warn { "pushUpdate: failed ${e.javaClass.simpleName}" }
@@ -319,6 +324,8 @@ class ContactWriteEngine(
             }
             WriteReport(pushed = 1, created = 1)
         } catch (e: HumanVerificationRequiredException) {
+            throw e
+        } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             handleFailure(entry, e)

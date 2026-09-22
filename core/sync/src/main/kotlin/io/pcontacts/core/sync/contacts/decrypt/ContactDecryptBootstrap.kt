@@ -20,6 +20,7 @@ import io.pcontacts.core.proton.api.users.UserKeyDto
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.storage.SecretStore
+import kotlinx.coroutines.CancellationException
 
 class DecryptUnavailableException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
@@ -167,6 +168,8 @@ object ContactDecryptBootstrap {
         logger: Logger
     ) = try {
         addressesApi.getAddresses().addresses
+    } catch (e: CancellationException) {
+        throw e
     } catch (t: Throwable) {
         logger.warn(t) { "address fetch failed: ${t.javaClass.simpleName}" }
         emptyList()
@@ -212,6 +215,8 @@ object ContactDecryptBootstrap {
         val pp = String(userKeyPasswordBytes, Charsets.UTF_8).toCharArray()
         return try {
             BouncyCastleKeyUnlock.unlock(ak.privateKey, pp)
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.warn(t) { "skipped address key ${ak.id}$SUFFIX_LEGACY: ${t.javaClass.simpleName}" }
             null
@@ -241,6 +246,8 @@ object ContactDecryptBootstrap {
                 decryptionKeys = userKeys.flatMap { it.allPrivateKeys },
                 verificationKeys = emptyList()
             ).plaintext
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.warn(t) { "skipped address key ${ak.id}: token decrypt failed (${t.javaClass.simpleName})" }
             return null
@@ -268,6 +275,8 @@ object ContactDecryptBootstrap {
         val tokenChars = String(tokenPlaintext, Charsets.US_ASCII).toCharArray()
         return try {
             BouncyCastleKeyUnlock.unlock(ak.privateKey, tokenChars)
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             logger.warn(t) { "skipped address key ${ak.id}: key unlock failed (${t.javaClass.simpleName})" }
             null
