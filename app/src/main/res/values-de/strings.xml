@@ -21,7 +21,7 @@
     <string name="notification_verification_text">Tippen Sie hier, um die Verifizierung abzuschließen, damit die Kontaktsynchronisierung fortgesetzt werden kann.</string>
     <string name="notification_reauth_title">Anmeldung erforderlich</string>
     <string name="notification_reauth_text">Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an, um die Kontaktsynchronisierung fortzusetzen.</string>
-    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 speichert Ihre Sitzung mit stärkerer, gerätegebundener Verschlüsselung. Melden Sie sich einmal erneut an, um die Kontaktsynchronisierung fortzusetzen.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 speichert Ihre Sitzung mit stärkerer, gerätegebundener Verschlüsselung. Melden Sie sich einmal erneut an; Ihre synchronisierten Kontakte werden von diesem Telefon entfernt und bei der ersten Synchronisierung vollständig neu geladen.</string>
     <string name="notification_vulnerability_title">Sicherheitshinweis</string>
     <string name="notification_vulnerability_text">Diese Version enthält eine Abhängigkeit mit einer bekannten offenen Schwachstelle. Tippen Sie, um zu sehen, welche und was betroffen ist.</string>
     <string name="notification_advisory_title">Neuer Sicherheitshinweis</string>

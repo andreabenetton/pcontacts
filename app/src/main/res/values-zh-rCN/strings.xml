@@ -21,7 +21,7 @@
     <string name="notification_verification_text">点按以完成验证，恢复联系人同步。</string>
     <string name="notification_reauth_title">需要登录</string>
     <string name="notification_reauth_text">会话已过期。请重新登录以恢复联系人同步。</string>
-    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 使用更安全、与设备绑定的加密方式保存您的会话。请重新登录一次以恢复联系人同步。</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 以更安全、与设备绑定的加密方式保存会话。请重新登录一次；已同步的联系人会从此手机移除，并在首次同步时完整重新下载。</string>
     <string name="notification_vulnerability_title">安全提示</string>
     <string name="notification_vulnerability_text">此版本包含一个存在已知未修复漏洞的依赖项。点按查看是哪一个以及影响范围。</string>
     <string name="notification_advisory_title">新的安全公告</string>

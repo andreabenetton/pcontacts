@@ -21,7 +21,7 @@
     <string name="notification_verification_text">Tocca per completare la verifica e riprendere la sincronizzazione dei contatti.</string>
     <string name="notification_reauth_title">Accesso richiesto</string>
     <string name="notification_reauth_text">La sessione è scaduta. Accedi di nuovo per riprendere la sincronizzazione dei contatti.</string>
-    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 conserva la sessione con una cifratura più robusta e legata al dispositivo. Accedi di nuovo una sola volta per riprendere la sincronizzazione dei contatti.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 conserva la sessione con una cifratura più robusta e legata al dispositivo. Accedi di nuovo una sola volta; i contatti sincronizzati vengono rimossi da questo telefono e scaricati di nuovo per intero alla prima sincronizzazione.</string>
     <string name="notification_vulnerability_title">Avviso di sicurezza</string>
     <string name="notification_vulnerability_text">Questa versione include una dipendenza con una vulnerabilità nota non corretta. Tocca per vedere quale e cosa riguarda.</string>
     <string name="notification_advisory_title">Nuovo avviso di sicurezza</string>

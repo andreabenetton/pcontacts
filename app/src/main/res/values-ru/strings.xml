@@ -21,7 +21,7 @@
     <string name="notification_verification_text">Нажмите, чтобы завершить проверку и возобновить синхронизацию контактов.</string>
     <string name="notification_reauth_title">Требуется вход</string>
     <string name="notification_reauth_text">Ваша сессия истекла. Войдите снова, чтобы возобновить синхронизацию контактов.</string>
-    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 хранит сессию с более надёжным шифрованием, привязанным к устройству. Войдите снова один раз, чтобы возобновить синхронизацию контактов.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 хранит сессию с более надёжным шифрованием, привязанным к устройству. Войдите снова один раз; синхронизированные контакты удаляются с этого телефона и полностью загружаются заново при первой синхронизации.</string>
     <string name="notification_vulnerability_title">Предупреждение безопасности</string>
     <string name="notification_vulnerability_text">В этой версии есть зависимость с известной неисправленной уязвимостью. Нажмите, чтобы узнать, какая и что она затрагивает.</string>
     <string name="notification_advisory_title">Новое предупреждение безопасности</string>
