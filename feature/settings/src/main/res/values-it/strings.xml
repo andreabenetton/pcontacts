@@ -204,6 +204,10 @@
     <string name="dependencies_assessed_group">%1$d CVE note valutate come non applicabili</string>
     <string name="dependencies_cve_open">Aperta — non ancora corretta in questa versione</string>
     <string name="dependencies_indicator_a11y">Controllo dipendenze: %1$s. Apre l\'elenco delle dipendenze.</string>
+    <string name="dependencies_chip_clean">Dipendenze OK</string>
+    <string name="dependencies_chip_assessed">Dipendenze: CVE valutate</string>
+    <string name="dependencies_chip_open">Dipendenze: vulnerabilità</string>
+    <string name="dependencies_false_positive_group">%1$d corrispondenze dello scanner per un altro prodotto (falso positivo)</string>
     <string name="rom_grapheneos_compat">Google Play ufficiale opzionale, installato come normali app in sandbox senza accesso privilegiato al sistema.</string>
     <string name="rom_grapheneos_focus">Forte irrobustimento di sicurezza e privacy.</string>
     <string name="rom_grapheneos_hardware">Principalmente i dispositivi Google Pixel supportati.</string>

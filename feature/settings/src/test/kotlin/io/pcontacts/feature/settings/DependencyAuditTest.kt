@@ -43,6 +43,12 @@ class DependencyAuditTest {
         assertEquals(AuditStatus.OPEN, DependencyAudit("2026-09-22", null, listOf(assessed, open, clean)).status)
     }
 
+    @Test fun a_scanner_false_positive_leaves_the_dependency_green() {
+        val mismatch = assessed.copy(cves = assessed.cves.map { it.copy(falsePositive = true) })
+        assertEquals(AuditStatus.CLEAN, mismatch.status)
+        assertEquals(AuditStatus.CLEAN, DependencyAudit("2026-09-22", null, listOf(clean, mismatch)).status)
+    }
+
     @Test fun one_open_cve_makes_the_dependency_open_whatever_else_is_suppressed() {
         assertEquals(AuditStatus.OPEN, open.status)
         assertEquals(AuditStatus.ASSESSED, assessed.status)

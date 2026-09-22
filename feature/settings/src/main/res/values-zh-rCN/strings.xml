@@ -191,6 +191,10 @@
     <string name="dependencies_assessed_group">%1$d 个已知 CVE 匹配项经评估不适用</string>
     <string name="dependencies_cve_open">未修复 — 本版本尚未修复</string>
     <string name="dependencies_indicator_a11y">依赖项检查：%1$s。打开依赖项列表。</string>
+    <string name="dependencies_chip_clean">依赖项正常</string>
+    <string name="dependencies_chip_assessed">依赖项：已评估的 CVE</string>
+    <string name="dependencies_chip_open">依赖项：存在漏洞</string>
+    <string name="dependencies_false_positive_group">%1$d 个扫描器匹配项属于其他产品（误报）</string>
     <string name="rom_grapheneos_compat">可选安装官方 Google Play，作为普通沙盒应用运行，没有系统特权。</string>
     <string name="rom_grapheneos_focus">强安全性和隐私加固。</string>
     <string name="rom_grapheneos_hardware">主要是受支持的 Google Pixel 设备。</string>

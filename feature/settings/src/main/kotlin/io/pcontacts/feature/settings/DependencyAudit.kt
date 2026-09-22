@@ -39,9 +39,10 @@ data class AuditedDependency(
 ) {
     val coordinate: String get() = "$group:$name:$version"
 
+    /** A scanner false positive is not a CVE of this artifact, so it does not colour it. */
     val status: AuditStatus = when {
         cves.any { !it.suppressed } -> AuditStatus.OPEN
-        cves.isNotEmpty() -> AuditStatus.ASSESSED
+        cves.any { it.suppressed && !it.falsePositive } -> AuditStatus.ASSESSED
         else -> AuditStatus.CLEAN
     }
 }
@@ -53,7 +54,9 @@ data class AuditCve(
     val url: String,
     /** Matched but assessed as not applicable; [reason] is the suppression note. */
     val suppressed: Boolean,
-    val reason: String?
+    val reason: String?,
+    /** The scanner matched a different product than this artifact (a CPE mismatch). */
+    val falsePositive: Boolean = false
 )
 
 /** Green, amber, red — in that order, so the ordinal is the severity. */
@@ -73,6 +76,13 @@ internal fun AuditStatus.labelRes(): Int = when (this) {
     AuditStatus.CLEAN -> R.string.dependencies_status_clean
     AuditStatus.ASSESSED -> R.string.dependencies_status_assessed
     AuditStatus.OPEN -> R.string.dependencies_status_open
+}
+
+/** The short label of the chip next to the version. */
+internal fun AuditStatus.chipRes(): Int = when (this) {
+    AuditStatus.CLEAN -> R.string.dependencies_chip_clean
+    AuditStatus.ASSESSED -> R.string.dependencies_chip_assessed
+    AuditStatus.OPEN -> R.string.dependencies_chip_open
 }
 
 private val AuditGreen = Color(0xFF2E9E5B)

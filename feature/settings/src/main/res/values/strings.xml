@@ -204,6 +204,10 @@
     <string name="dependencies_assessed_group">%1$d known CVE matches assessed as not applicable</string>
     <string name="dependencies_cve_open">Open — not yet fixed in this release</string>
     <string name="dependencies_indicator_a11y">Dependency check: %1$s. Opens the list of dependencies.</string>
+    <string name="dependencies_chip_clean">Dependencies OK</string>
+    <string name="dependencies_chip_assessed">Dependencies: assessed CVEs</string>
+    <string name="dependencies_chip_open">Dependencies: vulnerability</string>
+    <string name="dependencies_false_positive_group">%1$d scanner matches for a different product (false positive)</string>
     <string name="rom_grapheneos_compat">Optional official Google Play, installed as ordinary sandboxed apps without privileged system access.</string>
     <string name="rom_grapheneos_focus">Strong security and privacy hardening.</string>
     <string name="rom_grapheneos_hardware">Primarily supported Google Pixel devices.</string>

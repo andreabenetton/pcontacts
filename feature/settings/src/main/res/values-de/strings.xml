@@ -204,6 +204,10 @@
     <string name="dependencies_assessed_group">%1$d bekannte CVE-Treffer als nicht zutreffend bewertet</string>
     <string name="dependencies_cve_open">Offen — in dieser Version noch nicht behoben</string>
     <string name="dependencies_indicator_a11y">Abhängigkeitsprüfung: %1$s. Öffnet die Liste der Abhängigkeiten.</string>
+    <string name="dependencies_chip_clean">Abhängigkeiten OK</string>
+    <string name="dependencies_chip_assessed">Abhängigkeiten: bewertete CVEs</string>
+    <string name="dependencies_chip_open">Abhängigkeiten: Schwachstelle</string>
+    <string name="dependencies_false_positive_group">%1$d Scanner-Treffer für ein anderes Produkt (falsch positiv)</string>
     <string name="rom_grapheneos_compat">Optional offizielles Google Play, installiert als gewöhnliche Sandbox-Apps ohne privilegierten Systemzugriff.</string>
     <string name="rom_grapheneos_focus">Starke Härtung von Sicherheit und Privatsphäre.</string>
     <string name="rom_grapheneos_hardware">Vor allem unterstützte Google-Pixel-Geräte.</string>

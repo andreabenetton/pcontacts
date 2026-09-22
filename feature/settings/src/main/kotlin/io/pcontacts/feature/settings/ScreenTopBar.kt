@@ -8,12 +8,15 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -85,17 +89,7 @@ fun AppTopBar(audit: AuditIndicator? = null) {
 
 @Composable
 private fun VersionRow(version: String?, audit: AuditIndicator?) {
-    val description = audit?.let {
-        stringResource(R.string.dependencies_indicator_a11y, stringResource(it.status.labelRes()))
-    }
-    val rowModifier = if (audit == null) {
-        Modifier
-    } else {
-        Modifier
-            .clickable(onClick = audit.onOpen)
-            .semantics { contentDescription = description.orEmpty() }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = rowModifier) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         version?.let {
             Text(
                 text = it,
@@ -104,9 +98,29 @@ private fun VersionRow(version: String?, audit: AuditIndicator?) {
             )
         }
         audit?.let {
-            Spacer(Modifier.width(6.dp))
-            StatusDot(it.status, size = 10.dp)
+            Spacer(Modifier.width(8.dp))
+            AuditChip(it)
         }
+    }
+}
+
+/** "Dependencies OK" and the like: a small outlined pill with the status dot, opening the list. */
+@Composable
+private fun AuditChip(audit: AuditIndicator) {
+    val tint = audit.status.tint()
+    val description = stringResource(R.string.dependencies_indicator_a11y, stringResource(audit.status.labelRes()))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .border(1.dp, tint, RoundedCornerShape(50))
+            .clickable(onClick = audit.onOpen)
+            .semantics { contentDescription = description }
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    ) {
+        StatusDot(audit.status, size = 8.dp)
+        Spacer(Modifier.width(6.dp))
+        Text(text = stringResource(audit.status.chipRes()), style = MaterialTheme.typography.labelSmall, color = tint)
     }
 }
 

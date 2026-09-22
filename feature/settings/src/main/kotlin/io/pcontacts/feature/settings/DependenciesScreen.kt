@@ -137,8 +137,9 @@ private fun DependencyRow(dependency: AuditedDependency, open: (String) -> Unit)
             color = muted
         )
         dependency.cves.filter { !it.suppressed }.forEach { cve -> CveRow(cve, open) }
-        // Assessed matches share a reason per artifact (a CPE false positive lists dozens);
-        // one line with the count and the reason, the ids on demand.
+        // Suppressed matches share a reason per artifact (a CPE false positive lists dozens);
+        // one line with the count and the reason, the ids on demand. A false positive is not
+        // a CVE of this artifact and is shown in grey; an assessed real one in amber.
         dependency.cves.filter { it.suppressed }.groupBy { it.reason.orEmpty() }.forEach { (reason, cves) ->
             AssessedGroup(reason, cves, open)
         }
@@ -148,7 +149,12 @@ private fun DependencyRow(dependency: AuditedDependency, open: (String) -> Unit)
 @Composable
 private fun AssessedGroup(reason: String, cves: List<AuditCve>, open: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val label = stringResource(R.string.dependencies_assessed_group, cves.size)
+    val falsePositive = cves.all { it.falsePositive }
+    val label = stringResource(
+        if (falsePositive) R.string.dependencies_false_positive_group else R.string.dependencies_assessed_group,
+        cves.size
+    )
+    val tint = if (falsePositive) MaterialTheme.colorScheme.onSurfaceVariant else AuditStatus.ASSESSED.tint()
     Column(modifier = Modifier.padding(start = 14.dp, top = 4.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -160,13 +166,13 @@ private fun AssessedGroup(reason: String, cves: List<AuditCve>, open: (String) -
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = AuditStatus.ASSESSED.tint(),
+                color = tint,
                 modifier = Modifier.weight(1f)
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
-                tint = AuditStatus.ASSESSED.tint(),
+                tint = tint,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -183,6 +189,7 @@ private fun AssessedGroup(reason: String, cves: List<AuditCve>, open: (String) -
 @Composable
 private fun CveRow(cve: AuditCve, open: (String) -> Unit) {
     val tone = if (cve.suppressed) AuditStatus.ASSESSED else AuditStatus.OPEN
+    val scoreColor = if (cve.falsePositive) MaterialTheme.colorScheme.onSurfaceVariant else tone.tint()
     val score = listOfNotNull(cve.severity, cve.score?.toString()).joinToString(" ")
     Column(modifier = Modifier.padding(start = 14.dp, top = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -195,7 +202,7 @@ private fun CveRow(cve: AuditCve, open: (String) -> Unit) {
             )
             if (score.isNotEmpty()) {
                 Spacer(Modifier.width(8.dp))
-                Text(text = score, style = MaterialTheme.typography.bodySmall, color = tone.tint())
+                Text(text = score, style = MaterialTheme.typography.bodySmall, color = scoreColor)
             }
         }
         if (!cve.suppressed) {
