@@ -63,7 +63,12 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
         normalise()
     }
 
-    /** Signed card owns the UID and the emails; nothing else may carry a UID. */
+    /**
+     * Signed card owns the UID and the emails; nothing else may carry a
+     * UID. Every EMAIL there gets an `itemN` group when it has none —
+     * `[V]` Proton's client always groups them and `[A]` the server
+     * refuses an ungrouped one (Code 2001, seen live on 2026-09-22).
+     */
     private fun normalise() {
         for (card in cards) {
             if (card.type == CardType.SIGNED) continue
@@ -73,6 +78,7 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
                 signed.vcard.addEmail(email)
             }
         }
+        signed.vcard.emails.filter { it.group.isNullOrBlank() }.forEach { it.group = freshGroup() }
         if (signed.vcard.uid?.value.isNullOrBlank()) signed.vcard.uid = Uid(fallbackUid)
     }
 

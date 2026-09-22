@@ -68,6 +68,7 @@ class ContactSerializerTest {
         val cards = serializer.serialize(contact)
         val signed = Ezvcard.parse(cards[0].data).first()
         assertEquals(listOf("bob@proton.me"), signed.emails.map { it.value })
+        assertEquals("each email in its own group, as Proton requires", listOf("item1"), signed.emails.map { it.group })
         assertTrue(signed.telephoneNumbers.isEmpty())
     }
 

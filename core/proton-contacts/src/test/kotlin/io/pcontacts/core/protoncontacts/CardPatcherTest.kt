@@ -208,7 +208,9 @@ class CardPatcherTest {
             )
         )
 
-        assertEquals(listOf("legacy@example.com"), out.getValue(CardType.SIGNED).emails.map { it.value })
+        val movedEmail = out.getValue(CardType.SIGNED).emails.single()
+        assertEquals("legacy@example.com", movedEmail.value)
+        assertEquals("a moved email gets the group Proton requires", "item1", movedEmail.group)
         assertEquals("real", out.getValue(CardType.SIGNED).uid.value)
         val enc = out.getValue(CardType.ENCRYPTED_AND_SIGNED)
         assertNull(enc.uid)

@@ -110,9 +110,12 @@ class ContactSerializer(
         // derived from the contact id — deterministic, so repeated syncs of
         // the same contact don't churn its UID.
         vcard.uid = Uid(contact.protonUid?.takeIf { it.isNotBlank() } ?: fallbackUid(contact.protonContactId))
-        // [V] Proton keeps EMAIL in the signed card; [A] the server derives
-        // ContactEmails (autocomplete, `contacts/emails`) from it.
-        contact.emails.forEach { e -> vcard.addEmail(buildEmail(e)) }
+        // [V] Proton keeps EMAIL in the signed card, each in its own `itemN`
+        // group (the group is what its key properties attach to); [A] the
+        // server derives ContactEmails (`contacts/emails`) from it.
+        contact.emails.forEachIndexed { index, e ->
+            vcard.addEmail(buildEmail(e).apply { group = "item${index + 1}" })
+        }
 
         return vcard
     }
