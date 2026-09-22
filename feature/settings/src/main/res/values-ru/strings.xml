@@ -190,4 +190,5 @@
     </plurals>
     <string name="settings_sign_in">Войти</string>
     <string name="settings_sign_in_detail">Войдите в аккаунт Proton, чтобы начать синхронизацию контактов.</string>
+    <string name="settings_contacts_storage_unavailable">Недоступно в этой версии Android — выберите его в настройках приложения «Контакты».</string>
 </resources>

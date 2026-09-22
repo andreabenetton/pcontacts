@@ -164,4 +164,5 @@
     </plurals>
     <string name="settings_sign_in">Se connecter</string>
     <string name="settings_sign_in_detail">Connectez-vous avec votre compte Proton pour commencer à synchroniser vos contacts.</string>
+    <string name="settings_contacts_storage_unavailable">Indisponible sur cette version d\'Android : choisissez-le dans les paramètres de votre app Contacts.</string>
 </resources>

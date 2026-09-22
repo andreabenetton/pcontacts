@@ -151,4 +151,5 @@
     </plurals>
     <string name="settings_sign_in">登录</string>
     <string name="settings_sign_in_detail">使用您的 Proton 账户登录以开始同步联系人。</string>
+    <string name="settings_contacts_storage_unavailable">此 Android 版本不支持，请在通讯录应用的设置中选择。</string>
 </resources>

@@ -108,12 +108,8 @@ fun SettingsScreen(
             )
 
             SectionHeader(R.string.settings_section_contacts)
-            actions.onOpenContactsStorage?.let { open ->
-                OutlinedButton(onClick = open, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.settings_contacts_storage))
-                }
-                Spacer(Modifier.height(12.dp))
-            }
+            ContactsStorageButton(actions.onOpenContactsStorage)
+            Spacer(Modifier.height(12.dp))
             LinkedImportSection(enabled = !busy, onOpen = actions.onOpenLinkedImport)
 
             ContactsAccessSection(viewModel, actions)
@@ -130,6 +126,30 @@ fun SettingsScreen(
             }
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+/**
+ * Android 15+ opens the system "Contacts storage" screen; on older
+ * versions there is no such screen, so the button stays visible but
+ * disabled and says where the choice lives instead.
+ */
+@Composable
+private fun ContactsStorageButton(open: (() -> Unit)?) {
+    OutlinedButton(
+        enabled = open != null,
+        onClick = { open?.invoke() },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(stringResource(R.string.settings_contacts_storage))
+    }
+    if (open == null) {
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.settings_contacts_storage_unavailable),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
