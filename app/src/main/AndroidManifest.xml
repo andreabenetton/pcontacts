@@ -147,6 +147,18 @@
                 android:resource="@xml/contacts" />
         </service>
 
+        <!-- ADR-0009: a 1.x install is told to sign in again the moment the update lands.
+             Not exported: the system sends this broadcast as the system uid, which bypasses
+             the exported check. [A] Delivery verified on the test device (the system started
+             the process for this receiver on an adb install over the previous build). -->
+        <receiver
+            android:name=".account.PackageReplacedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

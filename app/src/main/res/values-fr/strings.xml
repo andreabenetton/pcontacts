@@ -15,6 +15,8 @@
     <string name="channel_status_description">Informations sur l\'état de la synchronisation</string>
     <string name="channel_action_required_name">Action requise</string>
     <string name="channel_action_required_description">Notifications lorsqu\'une connexion ou une vérification est requise pour la synchronisation</string>
+    <string name="channel_sign_in_required_name">Connexion requise</string>
+    <string name="channel_sign_in_required_description">Alertes lorsque vous devez vous reconnecter pour que la synchronisation des contacts continue</string>
     <string name="notification_verification_title">Vérification Proton requise</string>
     <string name="notification_verification_text">Appuyez pour terminer la vérification et reprendre la synchronisation des contacts.</string>
     <string name="notification_reauth_title">Connexion requise</string>

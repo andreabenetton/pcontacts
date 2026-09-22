@@ -15,6 +15,8 @@
     <string name="channel_status_description">Informationen zum Synchronisierungsstatus</string>
     <string name="channel_action_required_name">Aktion erforderlich</string>
     <string name="channel_action_required_description">Benachrichtigungen, wenn eine Anmeldung oder Verifizierung für die Synchronisierung erforderlich ist</string>
+    <string name="channel_sign_in_required_name">Anmeldung erforderlich</string>
+    <string name="channel_sign_in_required_description">Hinweise, wenn Sie sich erneut anmelden müssen, damit die Kontaktsynchronisierung weiterläuft</string>
     <string name="notification_verification_title">Proton-Verifizierung erforderlich</string>
     <string name="notification_verification_text">Tippen Sie hier, um die Verifizierung abzuschließen, damit die Kontaktsynchronisierung fortgesetzt werden kann.</string>
     <string name="notification_reauth_title">Anmeldung erforderlich</string>

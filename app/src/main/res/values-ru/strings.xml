@@ -15,6 +15,8 @@
     <string name="channel_status_description">Сведения о состоянии синхронизации</string>
     <string name="channel_action_required_name">Требуется действие</string>
     <string name="channel_action_required_description">Уведомления, когда для синхронизации требуется вход или проверка</string>
+    <string name="channel_sign_in_required_name">Требуется вход</string>
+    <string name="channel_sign_in_required_description">Оповещения, когда нужно войти снова, чтобы синхронизация контактов продолжилась</string>
     <string name="notification_verification_title">Требуется проверка Proton</string>
     <string name="notification_verification_text">Нажмите, чтобы завершить проверку и возобновить синхронизацию контактов.</string>
     <string name="notification_reauth_title">Требуется вход</string>

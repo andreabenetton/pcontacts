@@ -137,7 +137,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sync that runs before the app is opened posts the same explanation
   as a notification. Without Contacts access the sign-out waits for
   the permission instead of crashing at launch, and runs as soon as
-  it is granted.
+  it is granted. The "sign in again" notice is posted the moment the
+  update is installed, as a heads-up alert on its own high-importance
+  channel, so nobody has to discover it at the next sync; F-Droid's
+  "What's new" for this version leads with the same line.
 - **The sync-adapter and authenticator services are no longer
   exported**, and the sync binder is handed out only to the system's
   sync-adapter bind.

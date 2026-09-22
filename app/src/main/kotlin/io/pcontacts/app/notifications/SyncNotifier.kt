@@ -18,7 +18,12 @@ import io.pcontacts.app.R
 
 class SyncNotifier(private val context: Context) {
 
-    /** [storageUpgrade]: the sign-in is owed to the 2.0 secret-store upgrade, not an expired session. */
+    /**
+     * A sign-in is the one thing the user must do for sync to continue, so it goes out as a
+     * heads-up alert (high-importance channel), once: re-posts by later failed syncs refresh
+     * the notification silently. [storageUpgrade]: the sign-in is owed to the 2.0 secret-store
+     * upgrade, not an expired session.
+     */
     fun notifyReauthRequired(@Suppress("UNUSED_PARAMETER") account: Account, storageUpgrade: Boolean = false) {
         post(
             id = NOTIFICATION_ID_REAUTH,
@@ -27,7 +32,8 @@ class SyncNotifier(private val context: Context) {
                 R.string.notification_reauth_storage_upgrade_text
             } else {
                 R.string.notification_reauth_text
-            }
+            },
+            headsUp = true
         )
     }
 
@@ -60,7 +66,7 @@ class SyncNotifier(private val context: Context) {
         )
     }
 
-    private fun post(id: Int, title: Int, text: Int, intent: Intent? = null) {
+    private fun post(id: Int, title: Int, text: Int, intent: Intent? = null, headsUp: Boolean = false) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
@@ -74,11 +80,14 @@ class SyncNotifier(private val context: Context) {
             target,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(context, NotificationChannels.ACTION_REQUIRED)
+        val channel = if (headsUp) NotificationChannels.SIGN_IN_REQUIRED else NotificationChannels.ACTION_REQUIRED
+        val notification = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(title))
             .setContentText(context.getString(text))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(text)))
+            .setPriority(if (headsUp) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
+            .setOnlyAlertOnce(headsUp)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()

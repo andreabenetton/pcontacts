@@ -11,6 +11,8 @@
     <string name="channel_status_description">Non-actionable sync status information</string>
     <string name="channel_action_required_name">Action required</string>
     <string name="channel_action_required_description">Notifications when sign-in or verification is needed for sync</string>
+    <string name="channel_sign_in_required_name">Sign-in required</string>
+    <string name="channel_sign_in_required_description">Alerts when you must sign in again for contact sync to continue</string>
     <string name="notification_verification_title">Proton verification required</string>
     <string name="notification_verification_text">Tap to complete verification so contact sync can resume.</string>
     <string name="notification_reauth_title">Sign-in required</string>

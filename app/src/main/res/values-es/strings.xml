@@ -15,6 +15,8 @@
     <string name="channel_status_description">Información sobre el estado de la sincronización</string>
     <string name="channel_action_required_name">Acción necesaria</string>
     <string name="channel_action_required_description">Notificaciones cuando se necesita iniciar sesión o completar una verificación para sincronizar</string>
+    <string name="channel_sign_in_required_name">Inicio de sesión necesario</string>
+    <string name="channel_sign_in_required_description">Avisos cuando debes iniciar sesión de nuevo para que la sincronización de contactos continúe</string>
     <string name="notification_verification_title">Se requiere verificación de Proton</string>
     <string name="notification_verification_text">Toca para completar la verificación y reanudar la sincronización de contactos.</string>
     <string name="notification_reauth_title">Se requiere iniciar sesión</string>
