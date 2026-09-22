@@ -22,8 +22,10 @@ That needs a network request to a vulnerability database. ADR-0015 allows
 network traffic only to `*.proton.me`, forbids remote configuration and
 promises no telemetry. The request in question carries nothing private:
 the exact list of shipped artifacts and versions is public in this
-repository. What the request does reveal is the device's IP address, the
-fact that it runs pcontacts, and the time of the request.
+repository. What the request does reveal is the device's IP address and the time
+of the request; the artifact list itself lets the operator infer which
+app is asking. The owner frames this as a trade-off between privacy and
+security and leaves the decision to the user.
 
 ## Decision
 
@@ -87,8 +89,13 @@ Constraints that keep this the narrow exception it is:
   and CLAUDE.md are updated to say so. The threat model gains a row for
   the metadata this request reveals.
 - Google runs osv.dev. A user who turns the switch on accepts that Google
-  sees their address and the app's artifact list once a day; the switch
-  text says so. This is the whole reason the default is off.
+  sees their address once a day and can infer the app from the artifact
+  list; the switch text says so and names the trade-off. This is the
+  whole reason the default is off.
+- With the switch off the app shows no green, amber or red at all: the
+  chip next to the version is a plain link to the dependency list, and
+  the list carries no colours and no mute control. Colours are a claim
+  about the present, which only the runtime check can make.
 - The status dot can now turn red between releases. The Dependencies
   screen marks such entries as runtime advisories with their osv.dev link
   and shows when the last check ran.
