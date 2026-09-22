@@ -70,6 +70,8 @@
     <string name="conflict_dialog_prompt">Scegli quale versione mantenere:</string>
     <string name="conflict_use_local">Usa la versione del telefono</string>
     <string name="conflict_use_server">Usa la versione Proton</string>
+    <string name="conflict_detail_server_deleted">Eliminato su Proton dopo essere stato modificato su questo telefono.</string>
+    <string name="conflict_dialog_server_deleted">Questo contatto è stato eliminato su Proton dopo essere stato modificato su questo telefono. La versione del telefono lo ricrea su Proton; la versione Proton lo elimina anche qui.</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d app può leggere i tuoi contatti</item>

@@ -475,7 +475,9 @@ private fun ConflictRows(conflicts: List<ConflictInfo>, onResolve: (String, Conf
             color = MaterialTheme.colorScheme.error
         )
         Text(
-            text = stringResource(R.string.conflict_detail),
+            text = stringResource(
+                if (conflicts.any { it.serverDeleted }) R.string.conflict_detail_server_deleted else R.string.conflict_detail
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -829,7 +831,7 @@ private fun ConflictResolutionDialog(
                     text = conflict.displayName ?: stringResource(R.string.unverified_no_name),
                     style = MaterialTheme.typography.titleSmall
                 )
-                if (conflict.conflictFields != null) {
+                if (conflict.conflictFields != null && !conflict.serverDeleted) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.conflict_dialog_fields, conflict.conflictFields),
@@ -838,7 +840,9 @@ private fun ConflictResolutionDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(R.string.conflict_dialog_prompt),
+                    text = stringResource(
+                        if (conflict.serverDeleted) R.string.conflict_dialog_server_deleted else R.string.conflict_dialog_prompt
+                    ),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

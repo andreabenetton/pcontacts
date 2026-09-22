@@ -80,6 +80,8 @@
     <string name="conflict_dialog_prompt">Выберите, какую версию сохранить:</string>
     <string name="conflict_use_local">Использовать версию с телефона</string>
     <string name="conflict_use_server">Использовать версию Proton</string>
+    <string name="conflict_detail_server_deleted">Удалён в Proton после изменения на этом телефоне.</string>
+    <string name="conflict_dialog_server_deleted">Этот контакт был удалён в Proton после изменения на этом телефоне. Версия с телефона создаст его в Proton заново; версия Proton удалит его и здесь.</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d приложение может читать ваши контакты</item>

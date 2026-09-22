@@ -87,7 +87,9 @@ data class QuarantinedChange(
 data class ConflictInfo(
     val protonContactId: String,
     val displayName: String?,
-    val conflictFields: String?
+    val conflictFields: String?,
+    /** The Proton copy was deleted while the phone had a change to it (ADR-0017 §3C). */
+    val serverDeleted: Boolean = false
 )
 
 enum class ConflictResolution { USE_LOCAL, USE_SERVER }
