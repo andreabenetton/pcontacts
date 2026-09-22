@@ -36,6 +36,9 @@ import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
@@ -967,6 +970,160 @@ class ContactWriteEngineTest {
 
     // --- helpers ---
 
+    // --- one live row per contact (ADR-0017 §5 amendment) ---
+
+    @Test fun detectChanges_two_different_hash_updates_yield_one_row_with_the_newest_hash() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val rows = mutableMapOf(100L to sampleRow("ct-1", email = "v1@proton.me"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        val dirty = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false))
+        val engine = newEngine(outbox = outbox, contactMap = contactMap, dirtyContacts = dirty, contactRows = rows)
+
+        engine.detectChanges(testAccount)
+        rows[100L] = sampleRow("ct-1", email = "v2@proton.me")
+        engine.detectChanges(testAccount)
+
+        assertEquals(1, outbox.entries.size)
+        assertEquals(EmailSyncHash.compute(rows[100L]!!), outbox.findLive("ct-1")!!.payloadHash)
+    }
+
+    @Test fun detectChanges_update_after_a_pending_create_keeps_the_create() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val rows = mutableMapOf(500L to sampleRow("local-500", email = "v1@proton.me"))
+        val dirty = listOf(DirtyContact(500L, null, isDirty = true, isDeleted = false))
+        val engine = newEngine(outbox = outbox, dirtyContacts = dirty, contactRows = rows)
+
+        engine.detectChanges(testAccount)
+        rows[500L] = sampleRow("local-500", email = "v2@proton.me")
+        engine.detectChanges(testAccount)
+
+        val live = outbox.findLive("local-500")!!
+        assertEquals(1, outbox.entries.size)
+        assertEquals(OutboxEntity.OpType.CREATE, live.opType)
+        assertEquals(EmailSyncHash.compute(rows[500L]!!), live.payloadHash)
+    }
+
+    @Test fun detectChanges_delete_of_an_unpushed_create_drops_the_row_and_never_posts() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val rows = mutableMapOf(500L to sampleRow("local-500"))
+        val engine = newEngine(
+            api = api,
+            outbox = outbox,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = true, isDeleted = false)),
+            contactRows = rows
+        )
+        engine.detectChanges(testAccount)
+        assertEquals(1, outbox.entries.size)
+
+        val deleting = newEngine(
+            api = api,
+            outbox = outbox,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true)),
+            contactRows = rows
+        )
+        assertEquals(0, deleting.detectChanges(testAccount))
+        deleting.push()
+
+        assertTrue(outbox.entries.isEmpty())
+        assertNull(api.lastCreateRequest)
+    }
+
+    @Test fun detectChanges_delete_supersedes_a_pending_update() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val rows = mutableMapOf(100L to sampleRow("ct-1", email = "v2@proton.me"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows
+        ).detectChanges(testAccount)
+
+        newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = false, isDeleted = true)),
+            contactRows = rows,
+            clock = { 7_000L }
+        ).detectChanges(testAccount)
+
+        val live = outbox.findLive("ct-1")!!
+        assertEquals(1, outbox.entries.size)
+        assertEquals(OutboxEntity.OpType.DELETE, live.opType)
+        assertEquals("the grace period restarts at the delete", 7_000L, live.createdAt)
+    }
+
+    @Test fun push_two_legacy_create_rows_for_the_same_contact_post_once() = runTest {
+        val api = WriteFakeApi().apply {
+            createResponse = CreateContactsResponse(
+                code = 1000,
+                responses = listOf(
+                    CreateContactResponseItem(
+                        index = 0,
+                        response = CreateContactResponseBody(
+                            code = 1000,
+                            contact = ContactDto(id = "server-42", uid = "server-uid-42", cards = emptyList())
+                        )
+                    )
+                )
+            )
+        }
+        val gate = CompletableDeferred<Unit>()
+        var creates = 0
+        api.onCreate = {
+            creates++
+            gate.await()
+        }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("local-42", rawId = 42L))
+        // Two live rows as a pre-v3 database could hold them.
+        outbox.insert(legacyCreate("local-42", "h1", createdAt = 1L))
+        outbox.insert(legacyCreate("local-42", "h2", createdAt = 2L))
+        val engine = newEngine(api, outbox, contactMap, contacts = mapOf("local-42" to sampleContact("local-42")))
+
+        val job = launch { engine.push() }
+        advanceUntilIdle()
+        assertEquals("the second row must not POST while the first is in flight", 1, creates)
+        gate.complete(Unit)
+        job.join()
+
+        assertEquals(1, creates)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun push_different_contacts_still_run_concurrently() = runTest {
+        val api = WriteFakeApi()
+        val gate = CompletableDeferred<Unit>()
+        var inFlight = 0
+        var peak = 0
+        api.onUpdate = {
+            inFlight++
+            peak = maxOf(peak, inFlight)
+            gate.await()
+            inFlight--
+        }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val contacts = mapOf("ct-1" to sampleContact("ct-1"), "ct-2" to sampleContact("ct-2"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        contactMap.upsert(sampleMapping("ct-2", rawId = 200L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", 1L)
+        outbox.enqueue("ct-2", OutboxEntity.OpType.UPDATE, "h2", 2L)
+        val engine = newEngine(api, outbox, contactMap, contacts, serverContacts = contacts, bases = contacts)
+
+        val job = launch { engine.push() }
+        advanceUntilIdle()
+        gate.complete(Unit)
+        job.join()
+
+        assertEquals(2, peak)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
     // Test factory: all seams optional, so the parameter count is by design.
     @Suppress("LongParameterList")
     private suspend fun newEngine(
@@ -1003,6 +1160,13 @@ class ContactWriteEngineTest {
         )
     }
 
+    private fun legacyCreate(contactId: String, hash: String, createdAt: Long) = OutboxEntity(
+        protonContactId = contactId,
+        opType = OutboxEntity.OpType.CREATE,
+        payloadHash = hash,
+        createdAt = createdAt
+    )
+
     private fun sampleMapping(id: String, rawId: Long) = ContactMapEntity(
         protonContactId = id,
         protonUid = null,
@@ -1030,8 +1194,11 @@ private class WriteFakeApi : ProtonContactsApi {
     var lastDeleteRequest: BulkDeleteRequest? = null
     var createResponse = CreateContactsResponse(code = 1000)
 
-    /** Runs inside a successful PUT — the hook for "the contact changed during the push". */
-    var onUpdate: (() -> Unit)? = null
+    /** Runs inside a successful PUT — the hook for "the contact changed during the push" and for gating. */
+    var onUpdate: (suspend () -> Unit)? = null
+
+    /** Runs inside a successful POST, before the response — the hook for gating concurrent creates. */
+    var onCreate: (suspend () -> Unit)? = null
 
     override suspend fun listContactEmails(page: Int, pageSize: Int, emailFilter: String?, labelIdFilter: String?) =
         ContactEmailsPageResponse(code = 1000)
@@ -1043,6 +1210,7 @@ private class WriteFakeApi : ProtonContactsApi {
     override suspend fun createContacts(request: CreateContactsRequest): CreateContactsResponse {
         failWith?.let { throw it }
         lastCreateRequest = request
+        onCreate?.invoke()
         return createResponse
     }
 
