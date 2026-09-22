@@ -122,6 +122,17 @@ class LogoutOrchestratorTest {
         assertNull(session.uid())
     }
 
+    @Test fun without_a_session_the_revoke_is_skipped_and_the_local_wipe_still_succeeds() = runTest {
+        val api = FakeAuthApi()
+        session.clear()
+
+        val result = orchestrator(api, InMemorySecretStore()).logout(account)
+
+        assertEquals(0, api.revoked)
+        assertTrue(result.successful)
+        assertTrue(result.androidAccountRemoved)
+    }
+
     @Test fun logout_clears_the_accounts_sync_state_but_keeps_device_preferences() = runTest {
         orchestrator().logout(account)
 

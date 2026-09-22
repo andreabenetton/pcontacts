@@ -39,6 +39,18 @@ import kotlinx.coroutines.withContext
  */
 object AuthBootstrap {
 
+    /**
+     * Whether this install was just upgraded from 1.x: opening the secret
+     * store purges the old file (ADR-0009) and raises the flag, which the
+     * app then acts on by signing the stale account out and explaining the
+     * one-time re-login on the sign-in screen. Cheap: no Keystore access.
+     */
+    fun storageUpgradePending(context: Context): Boolean {
+        val appContext = context.applicationContext
+        EncryptedSecretStore.create(appContext)
+        return SharedPreferencesUserPreferences(appContext).secretsStorageUpgraded
+    }
+
     fun createLoginOrchestrator(
         context: Context,
         logSink: LogSink = NoOpSink

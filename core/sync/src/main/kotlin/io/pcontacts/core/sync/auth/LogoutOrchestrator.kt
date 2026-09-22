@@ -70,12 +70,19 @@ class LogoutOrchestrator(
         val errors = ArrayList<String>(5)
 
         // 1) Server-side revoke. Failure here is non-fatal — the user
-        //    expects to sign out even when offline.
-        try {
-            authApi.revoke()
-        } catch (t: Throwable) {
-            logger.warn(t) { "server-side revoke failed; continuing with local wipe" }
-            errors += LOGOUT_ERR_REVOKE
+        //    expects to sign out even when offline. Without a session
+        //    (the 1.x secret file was purged, ADR-0009) there is nothing
+        //    to revoke: the old session stays valid server-side until it
+        //    expires or the user revokes it in the Proton account settings.
+        if (session.uid() == null) {
+            logger.warn { "no session to revoke; the previous session expires on its own" }
+        } else {
+            try {
+                authApi.revoke()
+            } catch (t: Throwable) {
+                logger.warn(t) { "server-side revoke failed; continuing with local wipe" }
+                errors += LOGOUT_ERR_REVOKE
+            }
         }
 
         // 2) Delete RawContacts.
