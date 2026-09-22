@@ -1,6 +1,6 @@
 Version 2.0.0.
 
-Updating from 1.x? Sign in again once: the session is now kept with stronger, device-bound encryption and the old one cannot be carried over. The app says so on screen and in a notification.
+Updating from 1.x? Sign in again once (the session store changed). Synced contacts are removed and downloaded again in full on the first sync; unsent local edits are lost.
 
 * New single-screen layout with a sync status card and stepped sync interval.
 * Import details from other apps' contacts (WhatsApp, Telegram, local…) into Proton. One-way: other apps' data never changes.

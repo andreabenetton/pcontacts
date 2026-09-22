@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the version says whether any shipped dependency has a known CVE:
   green none, amber known matches assessed as not applicable (with the
   reason), red an open one. Tapping it opens a Dependencies screen
-  listing every artifact with version, license and CVEs linked to NVD.
+  listing every artifact with version, license and advisories linked to
+  osv.dev.
   The data is a snapshot committed at build time and verified by CI;
   the app looks nothing up while it runs, and a CVE published after the
   release shows up with the next one. A red snapshot is announced once
@@ -153,9 +154,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deprecated `androidx.security:security-crypto` (alpha) and Tink are
   gone. After updating from 1.x, sign in again once: the old session
   material cannot be carried over, so on first start the app signs the
-  account out by itself (synced contacts are removed from the phone
-  and return with the first sync; local edits not yet pushed at that
-  moment are lost) and the sign-in screen explains why. A background
+  account out by itself and the sign-in screen explains why. This is a
+  full resync: the synced contacts are removed from the phone and every
+  one of them is downloaded again on the first sync after sign-in;
+  local edits not yet pushed at that moment are lost, and stars,
+  ringtones or links set on those rows on the phone are not kept. A background
   sync that runs before the app is opened posts the same explanation
   as a notification. Without Contacts access the sign-out waits for
   the permission instead of crashing at launch, and runs as soon as

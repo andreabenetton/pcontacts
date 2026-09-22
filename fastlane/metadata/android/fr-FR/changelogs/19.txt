@@ -1,6 +1,6 @@
 Version 2.0.0.
 
-Mise à jour depuis 1.x ? Reconnectez-vous une seule fois : la session est désormais stockée avec un chiffrement plus robuste et lié à l'appareil ; l'ancienne ne peut pas être reprise. L'app le dit à l'écran et par notification.
+Mise à jour depuis 1.x ? Reconnectez-vous une seule fois. Les contacts synchronisés sont retirés puis retéléchargés en totalité à la première synchronisation ; les modifications locales non envoyées sont perdues.
 
 * Nouvel écran unique avec carte d'état et intervalle par paliers.
 * Importez des détails des contacts d'autres apps (WhatsApp, Telegram…) vers Proton ; leurs données ne changent pas.

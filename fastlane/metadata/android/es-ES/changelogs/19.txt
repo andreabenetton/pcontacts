@@ -1,6 +1,6 @@
 Versión 2.0.0.
 
-¿Actualizas desde 1.x? Inicia sesión de nuevo una vez: la sesión se guarda ahora con un cifrado más robusto y vinculado al dispositivo; la anterior no puede trasladarse. La app lo indica en pantalla y con una notificación.
+¿Actualizas desde 1.x? Inicia sesión de nuevo una vez. Los contactos sincronizados se eliminan y se vuelven a descargar por completo en la primera sincronización; los cambios locales no enviados se pierden.
 
 * Nueva pantalla única con tarjeta de estado e intervalo por pasos.
 * Importa detalles de contactos de otras apps (WhatsApp, Telegram…) a Proton; los datos ajenos no cambian.

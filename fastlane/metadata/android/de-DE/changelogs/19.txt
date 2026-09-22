@@ -1,6 +1,6 @@
 Version 2.0.0.
 
-Update von 1.x? Einmal erneut anmelden: Die Sitzung wird jetzt stärker und gerätegebunden verschlüsselt gespeichert; die alte kann nicht übernommen werden. Die App sagt es auf dem Bildschirm und per Benachrichtigung.
+Update von 1.x? Einmal erneut anmelden (neuer Sitzungsspeicher). Synchronisierte Kontakte werden entfernt und bei der ersten Synchronisierung vollständig neu geladen; nicht gesendete lokale Änderungen gehen verloren.
 
 * Neues Ein-Bildschirm-Layout mit Sync-Statuskarte und Intervallstufen.
 * Details aus Kontakten anderer Apps (WhatsApp, Telegram …) nach Proton importieren; fremde Daten bleiben unverändert.
