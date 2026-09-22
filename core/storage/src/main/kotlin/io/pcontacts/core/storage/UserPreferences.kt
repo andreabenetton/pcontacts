@@ -97,6 +97,13 @@ interface UserPreferences {
     var advisoryNotifiedIds: String
 
     /**
+     * Runtime advisories the user muted, as `coordinate|id` keys, comma-separated. The
+     * coordinate carries the artifact version, so a bump makes the key stale; stale keys
+     * are pruned on every check.
+     */
+    var advisoryMutedKeys: String
+
+    /**
      * Forgets everything that describes the signed-out account's syncs:
      * last success time, last error, failed-contact count and any
      * in-flight progress. Device preferences (interval, permission and

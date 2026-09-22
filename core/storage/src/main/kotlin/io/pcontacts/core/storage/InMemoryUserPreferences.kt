@@ -24,6 +24,7 @@ class InMemoryUserPreferences : UserPreferences {
     override var lastAdvisoryCheckAtMillis: Long = 0L
     override var advisoryResultJson: String? = null
     override var advisoryNotifiedIds: String = ""
+    override var advisoryMutedKeys: String = ""
 
     override fun clearSyncState() {
         lastSyncSuccessAtMillis = 0L

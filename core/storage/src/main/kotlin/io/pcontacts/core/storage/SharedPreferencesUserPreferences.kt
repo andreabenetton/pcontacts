@@ -90,6 +90,10 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getString(KEY_ADVISORY_NOTIFIED_IDS, "").orEmpty()
         set(value) { prefs.edit().putString(KEY_ADVISORY_NOTIFIED_IDS, value).apply() }
 
+    override var advisoryMutedKeys: String
+        get() = prefs.getString(KEY_ADVISORY_MUTED_KEYS, "").orEmpty()
+        set(value) { prefs.edit().putString(KEY_ADVISORY_MUTED_KEYS, value).apply() }
+
     override fun clearSyncState() {
         prefs.edit()
             .remove(KEY_LAST_SYNC_SUCCESS_AT)
@@ -119,5 +123,6 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_LAST_ADVISORY_CHECK_AT = "last_advisory_check_at"
         const val KEY_ADVISORY_RESULT = "advisory_result_json"
         const val KEY_ADVISORY_NOTIFIED_IDS = "advisory_notified_ids"
+        const val KEY_ADVISORY_MUTED_KEYS = "advisory_muted_keys"
     }
 }

@@ -68,6 +68,9 @@ class SharedPreferencesUserPreferencesTest {
         assertEquals("GHSA-1,GHSA-2", prefs().advisoryNotifiedIds)
         prefs().advisoryResultJson = null
         assertEquals(null, prefs().advisoryResultJson)
+        assertEquals("", prefs().advisoryMutedKeys)
+        prefs().advisoryMutedKeys = "a:b:1|GHSA-1"
+        assertEquals("a:b:1|GHSA-1", prefs().advisoryMutedKeys)
     }
 
     @Test
