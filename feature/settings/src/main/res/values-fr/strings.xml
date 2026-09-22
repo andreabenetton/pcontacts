@@ -197,7 +197,7 @@
     <string name="dependencies_status_assessed">CVE connues évaluées comme non applicables</string>
     <string name="dependencies_status_open">Vulnérabilité ouverte dans une dépendance</string>
     <string name="dependencies_checked_on">Vérifié avec les données NVD du %1$s.</string>
-    <string name="dependencies_intro">Cette liste est fixée à la compilation de l'app et reflète cette analyse ; l'app ne consulte rien pendant son exécution. Une vulnérabilité publiée ensuite apparaît avec la version suivante. Les identifiants CVE ouvrent la page NVD dans votre navigateur.</string>
+    <string name="dependencies_intro">Cette liste est fixée à la compilation de l\'app et reflète cette analyse ; l\'app ne consulte rien pendant son exécution. Une vulnérabilité publiée ensuite apparaît avec la version suivante. Les identifiants CVE ouvrent la page NVD dans votre navigateur.</string>
     <string name="dependencies_count">%1$d artefacts dans cette version</string>
     <string name="dependencies_version_license">Version %1$s · %2$s</string>
     <string name="dependencies_license_unknown">licence non déclarée</string>
