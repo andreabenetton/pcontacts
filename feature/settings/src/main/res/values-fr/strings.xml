@@ -211,7 +211,7 @@
     <string name="dependencies_intro_runtime">Cette liste vient de l\'analyse faite à la compilation de l\'app, plus un contrôle quotidien des mêmes artefacts auprès d\'osv.dev. Les identifiants ouvrent la page NVD ou osv.dev dans votre navigateur.</string>
     <string name="dependencies_cve_runtime">Signalée par osv.dev après cette version — pas encore évaluée</string>
     <string name="advisory_check_title">Contrôler les dépendances auprès d\'osv.dev</string>
-    <string name="advisory_check_detail">Désactivé par défaut. Une fois activé, la liste des artefacts et versions de cette version (publique dans le dépôt source) est envoyée une fois par jour à osv.dev, une base de vulnérabilités exploitée par Google, qui voit alors votre adresse IP et que vous utilisez pcontacts. Rien d\'autre n\'est envoyé, et la réponse ne change que ce que cette app affiche.</string>
+    <string name="advisory_check_detail">Désactivé par défaut. Une fois activé, la liste des artefacts et versions de cette version (publique dans le dépôt source) est envoyée une fois par jour à osv.dev, une base de vulnérabilités exploitée par Google, qui voit alors votre adresse IP et peut déduire des artefacts demandés quelle app interroge. Rien d\'autre n\'est envoyé, et la réponse ne change que ce que cette app affiche. C\'est un compromis entre confidentialité et sécurité ; la décision vous appartient.</string>
     <string name="advisory_check_now">Contrôler maintenant</string>
     <string name="advisory_check_open_list">Dépendances</string>
     <string name="advisory_check_running">Contrôle en cours…</string>

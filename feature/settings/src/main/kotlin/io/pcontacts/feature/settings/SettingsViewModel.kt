@@ -156,6 +156,13 @@ class SettingsViewModel(
         }
     }
 
+    /** Mutes and checks happen on the Dependencies screen too; the chip re-reads the state on resume. */
+    fun refreshAdvisoryState() {
+        scope.launch {
+            _advisoryState.value = withContext(workDispatcher) { orDefault(_advisoryState.value) { queryAdvisoryState() } }
+        }
+    }
+
     fun checkAdvisoriesNow() {
         if (_advisoryChecking.value) return
         _advisoryChecking.value = true

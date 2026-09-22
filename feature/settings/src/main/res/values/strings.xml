@@ -211,7 +211,7 @@
     <string name="dependencies_intro_runtime">This list comes from the scan made when the app was built, plus a daily check of these same artifacts against osv.dev. Ids open the NVD or osv.dev page in your browser.</string>
     <string name="dependencies_cve_runtime">Reported by osv.dev after this release — not yet assessed</string>
     <string name="advisory_check_title">Check dependencies against osv.dev</string>
-    <string name="advisory_check_detail">Off by default. When on, the list of this release\'s artifacts and versions (public in the source repository) is sent once a day to osv.dev, a vulnerability database run by Google, which then sees your IP address and that you use pcontacts. Nothing else is sent, and the answer only changes what this app shows.</string>
+    <string name="advisory_check_detail">Off by default. When on, the list of this release\'s artifacts and versions (public in the source repository) is sent once a day to osv.dev, a vulnerability database run by Google, which then sees your IP address and can infer from the artifacts asked about which app is asking. Nothing else is sent, and the answer only changes what this app shows. This is a trade-off between privacy and security; the decision is left to you.</string>
     <string name="advisory_check_now">Check now</string>
     <string name="advisory_check_open_list">Dependencies</string>
     <string name="advisory_check_running">Checking…</string>

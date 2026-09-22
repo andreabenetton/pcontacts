@@ -67,6 +67,8 @@ fun DependenciesScreen(
 ) {
     val merged = audit.withRuntime(runtime)
     val runtimeByKey = runtime.advisories.associateBy { it.key }
+    // Colours and the mute control belong to the runtime check; with it off the screen is a plain list.
+    val coloured = runtime.enabled
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val noBrowser = stringResource(R.string.rom_no_browser)
@@ -81,7 +83,7 @@ fun DependenciesScreen(
         LazyColumn(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
             item { AuditSummary(merged, runtime, checking, onCheckNow) }
             items(merged.sortedForDisplay, key = { it.coordinate }) { dependency ->
-                DependencyRow(dependency, open) { cve, muted ->
+                DependencyRow(dependency, open, coloured) { cve, muted ->
                     runtimeByKey["${dependency.coordinate}|${cve.id}"]?.let { onMute(it, muted) }
                 }
             }
@@ -99,16 +101,18 @@ private fun AuditSummary(
 ) {
     Column {
         Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            StatusDot(audit.status, size = 12.dp)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = stringResource(audit.status.labelRes()),
-                style = MaterialTheme.typography.titleSmall,
-                color = audit.status.tint()
-            )
+        if (runtime.enabled) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(audit.status, size = 12.dp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(audit.status.labelRes()),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = audit.status.tint()
+                )
+            }
+            Spacer(Modifier.height(4.dp))
         }
-        Spacer(Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.dependencies_checked_on, audit.nvdDataAsOf ?: audit.generatedAt),
             style = MaterialTheme.typography.bodySmall,
@@ -139,8 +143,13 @@ private fun AuditSummary(
 }
 
 @Composable
-private fun DependencyRow(dependency: AuditedDependency, open: (String) -> Unit, mute: (AuditCve, Boolean) -> Unit) {
-    val problem = dependency.status != AuditStatus.CLEAN
+private fun DependencyRow(
+    dependency: AuditedDependency,
+    open: (String) -> Unit,
+    coloured: Boolean,
+    mute: (AuditCve, Boolean) -> Unit
+) {
+    val problem = coloured && dependency.status != AuditStatus.CLEAN
     val titleColor = if (problem) dependency.status.tint() else MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
@@ -168,26 +177,26 @@ private fun DependencyRow(dependency: AuditedDependency, open: (String) -> Unit,
         )
         // Open entries and runtime advisories (muted or not) are listed one by one.
         dependency.cves.filter { !it.suppressed || it.runtime }.forEach { cve ->
-            CveRow(cve, open, mute = if (cve.runtime) ({ muted -> mute(cve, muted) }) else null)
+            CveRow(cve, open, coloured, mute = if (cve.runtime && coloured) ({ muted -> mute(cve, muted) }) else null)
         }
         // Suppressed matches share a reason per artifact (a CPE false positive lists dozens);
         // one line with the count and the reason, the ids on demand. A false positive is not
         // a CVE of this artifact and is shown in grey; an assessed real one in amber.
         dependency.cves.filter { it.suppressed && !it.runtime }.groupBy { it.reason.orEmpty() }.forEach { (reason, cves) ->
-            AssessedGroup(reason, cves, open)
+            AssessedGroup(reason, cves, open, coloured)
         }
     }
 }
 
 @Composable
-private fun AssessedGroup(reason: String, cves: List<AuditCve>, open: (String) -> Unit) {
+private fun AssessedGroup(reason: String, cves: List<AuditCve>, open: (String) -> Unit, coloured: Boolean) {
     var expanded by remember { mutableStateOf(false) }
     val falsePositive = cves.all { it.falsePositive }
     val label = stringResource(
         if (falsePositive) R.string.dependencies_false_positive_group else R.string.dependencies_assessed_group,
         cves.size
     )
-    val tint = if (falsePositive) MaterialTheme.colorScheme.onSurfaceVariant else AuditStatus.ASSESSED.tint()
+    val tint = if (falsePositive || !coloured) MaterialTheme.colorScheme.onSurfaceVariant else AuditStatus.ASSESSED.tint()
     Column(modifier = Modifier.padding(start = 14.dp, top = 4.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -214,15 +223,17 @@ private fun AssessedGroup(reason: String, cves: List<AuditCve>, open: (String) -
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        if (expanded) cves.forEach { cve -> CveRow(cve, open) }
+        if (expanded) cves.forEach { cve -> CveRow(cve, open, coloured) }
     }
 }
 
 /** One CVE: the id as a link, its score, its state, and for a runtime advisory the mute control. */
 @Composable
-private fun CveRow(cve: AuditCve, open: (String) -> Unit, mute: ((Boolean) -> Unit)? = null) {
+private fun CveRow(cve: AuditCve, open: (String) -> Unit, coloured: Boolean, mute: ((Boolean) -> Unit)? = null) {
     val tone = if (cve.suppressed) AuditStatus.ASSESSED else AuditStatus.OPEN
-    val scoreColor = if (cve.falsePositive) MaterialTheme.colorScheme.onSurfaceVariant else tone.tint()
+    val plain = MaterialTheme.colorScheme.onSurfaceVariant
+    val toneColor = if (coloured) tone.tint() else plain
+    val scoreColor = if (cve.falsePositive) plain else toneColor
     val score = listOfNotNull(cve.severity, cve.score?.toString()).joinToString(" ")
     Column(modifier = Modifier.padding(start = 14.dp, top = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -248,7 +259,7 @@ private fun CveRow(cve: AuditCve, open: (String) -> Unit, mute: ((Boolean) -> Un
                     }
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = tone.tint()
+                color = toneColor
             )
             cve.reason?.takeIf { cve.runtime }?.let { summary ->
                 Text(

@@ -104,11 +104,17 @@ private fun VersionRow(version: String?, audit: AuditIndicator?) {
     }
 }
 
-/** "Dependencies OK" and the like: a small outlined pill with the status dot, opening the list. */
+/**
+ * "Dependencies OK" and the like: a small outlined pill with the status dot, opening the list.
+ * Without a status (runtime check off) it is a plain "Dependencies" link in the muted colour.
+ */
 @Composable
 private fun AuditChip(audit: AuditIndicator) {
-    val tint = audit.status.tint()
-    val description = stringResource(R.string.dependencies_indicator_a11y, stringResource(audit.status.labelRes()))
+    val status = audit.status
+    val tint = status?.tint() ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val label = stringResource(status?.chipRes() ?: R.string.advisory_check_open_list)
+    val description = status?.let { stringResource(R.string.dependencies_indicator_a11y, stringResource(it.labelRes())) }
+        ?: label
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -118,9 +124,11 @@ private fun AuditChip(audit: AuditIndicator) {
             .semantics { contentDescription = description }
             .padding(horizontal = 8.dp, vertical = 2.dp)
     ) {
-        StatusDot(audit.status, size = 8.dp)
-        Spacer(Modifier.width(6.dp))
-        Text(text = stringResource(audit.status.chipRes()), style = MaterialTheme.typography.labelSmall, color = tint)
+        if (status != null) {
+            StatusDot(status, size = 8.dp)
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = tint)
     }
 }
 

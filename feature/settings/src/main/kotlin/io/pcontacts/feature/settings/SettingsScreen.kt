@@ -72,7 +72,10 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val advisoryState by viewModel.advisoryState.collectAsStateWithLifecycle()
-    val auditIndicator = audit?.let { AuditIndicator(it.withRuntime(advisoryState).status, actions.onOpenDependencies) }
+    val auditIndicator = audit?.let {
+        val status = if (advisoryState.enabled) it.withRuntime(advisoryState).status else null
+        AuditIndicator(status, actions.onOpenDependencies)
+    }
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
     val syncRunning by viewModel.syncRunning.collectAsStateWithLifecycle()
     val actionInFlight = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut

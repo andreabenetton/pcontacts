@@ -110,8 +110,11 @@ data class AdvisoryCheckState(
 /** Green, amber, red — in that order, so the ordinal is the severity. */
 enum class AuditStatus { CLEAN, ASSESSED, OPEN }
 
-/** What the app bar shows next to the version: the status dot and where a tap goes. */
-data class AuditIndicator(val status: AuditStatus, val onOpen: () -> Unit)
+/**
+ * What the app bar shows next to the version and where a tap goes. [status] is null while the
+ * runtime check is off: then the chip is a plain link to the list and carries no colour.
+ */
+data class AuditIndicator(val status: AuditStatus?, val onOpen: () -> Unit)
 
 /** Fixed, saturated colours: the theme's error tone is a pale pink in the dark theme and blends with the accents. */
 @Composable

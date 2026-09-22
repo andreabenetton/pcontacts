@@ -55,6 +55,25 @@ class SettingsViewModelAdvisoryTest {
         assertEquals(1, checks)
     }
 
+    @Test fun a_resume_re_reads_the_state_changed_on_another_screen() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var stored = AdvisoryCheckState.OFF
+        val vm = SettingsViewModel(
+            syncNow = { SettingsActionResult.Success() },
+            signOut = { SettingsActionResult.Success() },
+            queryAdvisoryState = { stored },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(AdvisoryCheckState.OFF, vm.advisoryState.value)
+
+        stored = found
+        vm.refreshAdvisoryState()
+        advanceUntilIdle()
+        assertEquals(found, vm.advisoryState.value)
+    }
+
     @Test fun a_failing_check_keeps_the_previous_state() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = SettingsViewModel(
