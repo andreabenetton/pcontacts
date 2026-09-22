@@ -2,7 +2,7 @@ Versione 2.0.0.
 
 Aggiorni da 1.x? Accedi di nuovo una sola volta. I contatti sincronizzati vengono rimossi e scaricati di nuovo per intero alla prima sincronizzazione; le modifiche locali non inviate sono perse.
 
-* Nuova schermata unica con scheda di stato e intervallo a scatti.
+* Nuova schermata unica con scheda di stato e intervallo a scatti (Off–24 h).
 * Importa dettagli dai contatti di altre app (WhatsApp, Telegram…) in Proton; i dati delle altre app non cambiano.
 * Vedi quali app leggono i tuoi contatti.
 * Guida «ROM Android senza Google».

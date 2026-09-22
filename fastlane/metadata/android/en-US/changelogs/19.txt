@@ -2,7 +2,7 @@ Version 2.0.0.
 
 Updating from 1.x? Sign in again once (the session store changed). Synced contacts are removed and downloaded again in full on the first sync; unsent local edits are lost.
 
-* New single-screen layout with a sync status card and stepped sync interval.
+* New single-screen layout with a sync status card and a stepped sync interval (Off to 24 h).
 * Import details from other apps' contacts (WhatsApp, Telegram, local…) into Proton. One-way: other apps' data never changes.
 * See which apps can read your contacts.
 * New "De-Googled Android ROMs" guide.

@@ -2,7 +2,7 @@ Versión 2.0.0.
 
 ¿Actualizas desde 1.x? Inicia sesión de nuevo una vez. Los contactos sincronizados se eliminan y se vuelven a descargar por completo en la primera sincronización; los cambios locales no enviados se pierden.
 
-* Nueva pantalla única con tarjeta de estado e intervalo por pasos.
+* Nueva pantalla única con tarjeta de estado e intervalo por pasos (Apagado a 24 h).
 * Importa detalles de contactos de otras apps (WhatsApp, Telegram…) a Proton; los datos ajenos no cambian.
 * Consulta qué apps leen tus contactos.
 * Guía «ROMs de Android sin Google».

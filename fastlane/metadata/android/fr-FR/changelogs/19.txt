@@ -2,7 +2,7 @@ Version 2.0.0.
 
 Mise à jour depuis 1.x ? Reconnectez-vous une seule fois. Les contacts synchronisés sont retirés puis retéléchargés en totalité à la première synchronisation ; les modifications locales non envoyées sont perdues.
 
-* Nouvel écran unique avec carte d'état et intervalle par paliers.
+* Nouvel écran unique avec carte d'état et intervalle par paliers (Off à 24 h).
 * Importez des détails des contacts d'autres apps (WhatsApp, Telegram…) vers Proton ; leurs données ne changent pas.
 * Quelles apps lisent vos contacts.
 * Guide « Android sans Google ».
