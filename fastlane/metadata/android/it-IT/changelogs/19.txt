@@ -1,0 +1,7 @@
+Versione 2.0.0.
+
+* Nuova schermata unica con scheda di stato della sincronizzazione, intervallo a scatti e stati chiari.
+* Importa dettagli dai contatti di altre app (WhatsApp, Telegram, locali…) in Proton, o crea la copia Proton. Solo in un verso: i dati delle altre app non cambiano.
+* Vedi quali app possono leggere i tuoi contatti, con scorciatoia alla pagina dei permessi.
+* Nuova guida «ROM Android senza Google».
+* Permessi dopo l'accesso; accesso rinnovato; versione visibile nell'app.

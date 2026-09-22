@@ -1,0 +1,7 @@
+Version 2.0.0.
+
+* Neues Ein-Bildschirm-Layout mit Sync-Statuskarte, stufenweisem Intervall und klaren Sync-Zuständen.
+* Details aus Kontakten anderer Apps (WhatsApp, Telegram, lokal …) nach Proton importieren oder die Proton-Kopie anlegen. Nur in eine Richtung: fremde Daten bleiben unverändert.
+* Sehen, welche Apps Ihre Kontakte lesen können, mit Link zur Berechtigungsseite.
+* Neue Anleitung „Google-freie Android-ROMs“.
+* Berechtigungen erst nach der Anmeldung; neue Anmeldung; Version sichtbar.

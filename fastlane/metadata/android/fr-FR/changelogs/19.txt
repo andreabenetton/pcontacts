@@ -1,0 +1,7 @@
+Version 2.0.0.
+
+* Nouvel écran unique avec carte d'état de synchronisation, intervalle par paliers et états clairs.
+* Importez des détails depuis les contacts d'autres apps (WhatsApp, Telegram, locaux…) vers Proton, ou créez la copie Proton. Sens unique : les données des autres apps ne changent pas.
+* Voyez quelles apps lisent vos contacts, avec un raccourci vers la page d'autorisation.
+* Nouveau guide « ROM Android sans Google ».
+* Autorisations après la connexion ; connexion revue.

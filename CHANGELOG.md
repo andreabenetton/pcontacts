@@ -10,6 +10,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-09-22
+
+### Added
+
+- **Import details from linked contacts** (ADR-0023). The app lists
+  every contact that exists only in other providers (WhatsApp,
+  Telegram, device-local, …) or whose Proton copy lacks details, with
+  the providers' icons. Each contact can be reviewed field by field and
+  the chosen details copied into the Proton copy — or a Proton copy
+  created when there is none. Search, filters and bulk import are
+  available; imported rows show "Syncing…" then "Added to Proton".
+  The flow is one-way: other apps' contacts are never modified.
+- **Contact-access transparency.** The Privacy section lists the
+  user-installed and the OS-installed apps that hold the Contacts
+  permission, with their icons, and opens the system page where the
+  permission can be revoked (with directions when Android only
+  exposes a page nearby).
+- **"De-Googled Android ROMs" screen** explaining the term and listing
+  GrapheneOS, CalyxOS, iodéOS, /e/OS, LineageOS for microG, LineageOS,
+  ShiftOS-L and Replicant with their approach to Google services and a
+  link to each official site (opened in the browser). Reached from the
+  OS-installed-apps notice and from the sign-in screen while the
+  Contacts permission has not been granted yet.
+- **Default account for new contacts** button opening the system
+  setting (disabled with an explanation where Android has no such
+  page).
+- The failed-changes dialog opens a contact in the system Contacts app
+  on tap. The installed version is shown under the app name.
+
+### Changed
+
+- **One root screen** replaces the launcher and Settings: an app bar
+  with the launcher icon and name, then Sync, Contacts, Privacy and
+  Account sections. Before sign-in the same shell shows only the
+  Account section with a green Sign in; Sign out is red and last.
+- **Sync status card** with a headline that reflects real state (up to
+  date, overdue, changes waiting, failures, not synced yet), live
+  progress "Syncing N of M…", the contact count and a relative
+  last-sync time (tap for the absolute time), and tappable rows for
+  unverified contacts, pending and failed changes, scheduled deletions
+  and conflicts. Sync now sits in the card.
+- Sync interval is a stepped slider (1 / 6 / 12 / 24 h).
+- One sync-state vocabulary (spinner / check / warning) on every
+  surface that reports a sync.
+- Permissions are requested after sign-in, so a first launch shows the
+  sign-in screen undisturbed; the first sync starts as soon as Contacts
+  access is granted, whether from the prompt or from system Settings.
+  Signing out resets the prompt so the next sign-in asks again.
+- Login and two-factor screens use the same shell and section style as
+  the app, with keyboard Next / Done actions; the two-factor prompt
+  names the Proton code.
+- Screen-reader labels for import checkboxes and the interval slider.
+- All new text is available in English, German, Spanish, French,
+  Italian, Russian and Simplified Chinese.
+
+### Fixed
+
+- The sync card no longer says "Last sync: In 0 minutes" right after a
+  sync completes.
+- The import list keeps its scroll position across the rescan that
+  follows an import.
+
 ## [1.7.2] - 2026-09-19
 
 ### Security
@@ -439,6 +501,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[2.0.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.0.0
 [1.7.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.2
 [1.7.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.1
 [1.7.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.0

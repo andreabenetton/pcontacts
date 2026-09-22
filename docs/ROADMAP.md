@@ -23,7 +23,8 @@
 - [ ] Multi-account support
 - [ ] FIDO2/WebAuthn 2FA
 - [ ] Encrypted offline cache (SQLCipher)
-- [ ] Compose UI polish
+- [x] Compose UI polish — v2.0.0: single-screen layout, sync status card,
+      linked-contact import, contact-access transparency, de-Googled ROM guide
 - [x] F-Droid submission — [fdroiddata MR !39186](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/39186)
       merged 2026-08-01; [live on f-droid.org](https://f-droid.org/packages/io.pcontacts.app/)
       since v1.3.4. New releases flow automatically from signed tags

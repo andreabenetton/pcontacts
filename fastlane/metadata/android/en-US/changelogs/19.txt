@@ -1,0 +1,7 @@
+Version 2.0.0.
+
+* New single-screen layout with a sync status card, stepped sync interval and clear sync states.
+* Import details from other apps' contacts (WhatsApp, Telegram, local…) into Proton, or create the Proton copy. One-way: other apps' data is never changed.
+* See which apps can read your contacts, with a shortcut to the system permission page.
+* New "De-Googled Android ROMs" guide.
+* Permissions asked after sign-in; restyled sign-in; version shown in the app.

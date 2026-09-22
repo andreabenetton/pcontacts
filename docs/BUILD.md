@@ -216,10 +216,11 @@ Follow this sequence exactly. Do not tag until the build is verified.
       repo — see [§F-Droid](#f-droid). Once the app is published,
       F-Droid's `checkupdates` bot picks up the new signed tag on its
       own (`UpdateCheckMode: Tags` + `AutoUpdateMode: Version`).
-- [ ] Create fastlane changelogs for the new `versionCode` in all
-      locales: `fastlane/metadata/android/{en-US,it-IT,de-DE}/changelogs/<versionCode>.txt`.
-- [ ] If new user-facing strings were added, verify Italian and German
-      translations have the same keys as the default `values/strings.xml`
+- [ ] Create fastlane changelogs for the new `versionCode` in every
+      locale directory under `fastlane/metadata/android/*/changelogs/<versionCode>.txt`
+      (currently en-US, de-DE, es-ES, fr-FR, it-IT, ru-RU, zh-CN; 500 characters max each).
+- [ ] If new user-facing strings were added, verify every locale's
+      `strings.xml` has the same keys as the default `values/strings.xml`
       in every module.
 
 ### 2. Run the full test suite
