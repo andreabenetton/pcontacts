@@ -37,7 +37,7 @@ For phase 9 (bidirectional sync) we set `supportsUploading="true"` and register 
 ## Consequences
 
 - We own three manifest service declarations and two XML descriptors.
-- The user can disable sync at any time from system settings; we honor that and stop initiating syncs (`ContentResolver.getSyncAutomatically()`).
+- The user can disable sync at any time from system settings; we honor that and stop initiating syncs (`ContentResolver.getSyncAutomatically()`). Amended 2026-09-22: only explicit user actions — "Sync now", sign-in, a linked-contact import — may carry `SYNC_EXTRAS_MANUAL` (which means `IGNORE_SETTINGS`); the periodic WorkManager fallback and the foreground refreshes never do, and they check the master and per-account switches before requesting (`SyncRequests.requestIfEnabled`).
 - Adding a Proton account from Settings → Accounts → Add Account works the same way Google/Microsoft/Nextcloud accounts do.
 - `CALLER_IS_SYNCADAPTER=true` query parameter is mandatory on all `RawContacts`/`Data` deletes — without it, Android writes tombstones and the next sync recreates duplicates. (See ADR-0010.)
 - Vendor battery optimizers may still suppress sync. README documents the workaround (whitelist the app). The WorkManager belt-and-suspenders catches most cases.

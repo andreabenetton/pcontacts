@@ -4,10 +4,7 @@
 package io.pcontacts.app.sync
 
 import android.accounts.AccountManager
-import android.content.ContentResolver
 import android.content.Context
-import android.os.Bundle
-import android.provider.ContactsContract
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
@@ -20,7 +17,10 @@ import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
  * pokes ContentResolver.requestSync.
  *
  * The actual sync work runs in `ProtonSyncAdapter.onPerformSync` —
- * this worker just kicks the sync framework.
+ * this worker just kicks the sync framework. It never sets
+ * `SYNC_EXTRAS_MANUAL` and it checks the master and per-account
+ * auto-sync switches first (ADR-0004): a timer is not the user, and
+ * "Sync off" in Android Settings must mean off.
  */
 class PeriodicSyncWorker(
     appContext: Context,
@@ -30,20 +30,9 @@ class PeriodicSyncWorker(
     override suspend fun doWork(): Result {
         val accounts = AccountManager.get(applicationContext)
             .getAccountsByType(PROTON_ACCOUNT_TYPE)
-        if (accounts.isEmpty()) {
-            // No account → nothing to sync. Don't retry; the work-request
-            // will fire again on its next cadence.
-            return Result.success()
-        }
-        val extras = Bundle().apply {
-            // EXPEDITED + MANUAL hints — we want the sync to run promptly
-            // when this worker fires.
-            putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
-            putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
-        }
-        accounts.forEach { account ->
-            ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
-        }
+        // No account, or sync switched off → nothing to do. Don't retry; the
+        // work-request fires again on its next cadence.
+        accounts.forEach(SyncRequests::requestIfEnabled)
         return Result.success()
     }
 

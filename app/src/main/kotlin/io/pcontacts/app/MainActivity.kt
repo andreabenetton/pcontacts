@@ -5,13 +5,11 @@ package io.pcontacts.app
 
 import android.Manifest
 import android.accounts.AccountManager
-import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.ContactsContract
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,6 +43,7 @@ import io.pcontacts.app.permissions.ContactsPermissionState
 import io.pcontacts.app.permissions.ContactsPermissionStatus
 import io.pcontacts.app.settings.DeGoogledRomsActivity
 import io.pcontacts.app.settings.SettingsHost
+import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
@@ -212,15 +211,12 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    /** A prompt sync after a grant or a verification return; the user's Android sync switch still wins. */
     private fun requestExpeditedSync() {
         val account = AccountManager.get(this)
             .getAccountsByType(PROTON_ACCOUNT_TYPE)
             .firstOrNull() ?: return
-        val extras = Bundle().apply {
-            putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
-            putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
-        }
-        ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
+        SyncRequests.requestIfEnabled(account)
     }
 
     private fun requestPermissionsOnce() {
