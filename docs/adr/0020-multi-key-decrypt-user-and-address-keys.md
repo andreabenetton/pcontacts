@@ -1,6 +1,6 @@
 # ADR-0020: Decrypt path tries all unlocked user + address keys
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-22 — Token signature verification is mandatory)
 - **Date:** 2026-05-29
 - **Deciders:** pcontacts maintainers
 - **Related:** ADR-0002 (native Kotlin crypto), ADR-0007 (client-side
@@ -71,8 +71,8 @@ continues with the remaining keys. A user key that fails to
 unlock remains fatal — it indicates a stale `keyPassword` and the
 user must re-log-in (`KEY_UNLOCK_FAILED`).
 
-Token signature verification is **deferred** (`[D]` for MVP). See
-Consequences.
+Token signature verification was **deferred** (`[D]` for MVP) until
+the amendment of 2026-09-22 below made it mandatory.
 
 ## Alternatives considered
 
@@ -151,3 +151,30 @@ Harder / new obligations:
   new path means this ADR needs a successor — either Token
   format drift, a third key class, or a key-transparency surface
   we haven't modeled.
+
+## Amendment (2026-09-22): Token signature verification is mandatory
+
+The deferral above understated the consequence: an unlocked address
+key was added to the set of **verification** keys, so a substituted
+Token would not only decrypt attacker-chosen ciphertext but also make
+cards signed by an attacker-controlled key read as `isVerified`.
+The `[D]` is closed. Rules:
+
+- For a modern address key (`Token != null`) the decrypted Token is
+  accepted only when `AddressKey.Signature` is present and verifies
+  as `SIGNED_AND_VALID` under the user's unlocked keys. `[V]`
+  WebClients `packages/shared/lib/keys/addressKeys.ts`
+  (`decryptAddressKeyToken` requires `SIGNED_AND_VALID`).
+- A key whose Token has no signature, an invalid one, or one made by
+  a key we do not hold is **skipped**: it enters neither the
+  decryption-key set nor the verification-key set, and the skip is
+  logged with the key id only. Sync continues on the remaining keys.
+- Legacy v1 keys (`Token == null`) are unchanged: they unlock with
+  the user's own `keyPassword`, which is the trust anchor itself.
+- `[U]` the signature is a text-mode signature over the Token
+  string; a verifier mismatch fails closed (skip), never open.
+
+Validation: `ContactDecryptBootstrapTest` covers a valid signature
+(key used), an invalid signature on a decryptable Token (key skipped,
+its cards not verified) and a missing signature (key skipped).
+

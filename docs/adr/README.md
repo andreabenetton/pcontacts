@@ -26,10 +26,10 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0014](0014-modulus-pinning.md) | SRP modulus pinning — verify each modulus against Proton's signing key | Accepted |
 | [0015](0015-no-telemetry-no-google-services.md) | No telemetry, no Google Services, no proprietary deps | Accepted |
 | [0016](0016-no-accountmanager-token-retrieval.md) | No AccountManager token retrieval — getAuthToken returns re-auth intent | Accepted |
-| [0017](0017-bidirectional-sync-scope-and-policies.md) | Bidirectional sync — scope and policies | Accepted |
-| [0018](0018-scope-expansion-bidirectional-sync.md) | Scope expansion — bidirectional sync (supersedes ADR-0006) | Accepted |
+| [0017](0017-bidirectional-sync-scope-and-policies.md) | Bidirectional sync — scope and policies | Accepted (amended 2026-09-22) |
+| [0018](0018-scope-expansion-bidirectional-sync.md) | Scope expansion — bidirectional sync (supersedes ADR-0006) | Accepted (amended 2026-09-22) |
 | [0019](0019-human-verification-webview-flow.md) | Human-verification (9001) handled via in-app WebView | Accepted |
-| [0020](0020-multi-key-decrypt-user-and-address-keys.md) | Decrypt path tries all unlocked user + address keys | Accepted |
+| [0020](0020-multi-key-decrypt-user-and-address-keys.md) | Decrypt path tries all unlocked user + address keys | Accepted (amended 2026-09-22) |
 | [0021](0021-send-via-proton-mail-chip.md) | "Send via Proton Mail" custom data row + intent contract | Accepted |
 | [0022](0022-contactsprovider-authoritative-self-healing.md) | ContactsProvider is authoritative — sync metadata self-heals | Accepted |
 | [0023](0023-one-way-contact-enrichment-into-proton.md) | One-way contact enrichment — pull linked accounts' fields into Proton | Accepted |

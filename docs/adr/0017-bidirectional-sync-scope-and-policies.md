@@ -5,7 +5,7 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted (amended 2026-09-22 — see *Amendment* at the end)
+- **Status:** Accepted (amended 2026-09-22 twice — see *Amendments* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
@@ -348,3 +348,61 @@ hard requirements; it only strengthens the decision.
   parallel.
 - The v2→v3 migration collapses pre-existing duplicate live rows to
   the newest one.
+
+## Amendment (2026-09-22, second review): write-back patches the fetched cards; photo and address identity
+
+A second review found that the §2 "initial" layout (Choice 2B) was
+still used for every update, so an unrelated local edit rebuilt both
+cards from the Android projection and erased every vCard property or
+parameter the projection cannot hold (CATEGORIES, BDAY, URL,
+NICKNAME, KEY / `x-pm-*`, EMAIL TYPE/PREF, unknown properties). It
+also found that the photo was not a merge input at all. This
+amendment promotes the §2 "promotion path" (Choice 2C) to a
+requirement and adds two identity rules. Nothing below permits less
+than before.
+
+### Card topology on update (§2) — Choice 2C is required
+
+- An update never rebuilds cards from scratch. The push fetches the
+  contact's current cards, decrypts them, and applies a **field-level
+  change set** — the difference between the canonical server state
+  and the merge result, per owned property (`FN`, `N`, `EMAIL`,
+  `TEL`, `ADR`, `ORG`, first `TITLE`, `NOTE`, `IMPP`, `PHOTO`) — onto
+  the decrypted cards. Every property the app does not own is written
+  back untouched, in the card it came from, with its parameters and
+  group. Removing an owned property also removes its group-mates
+  (`itemN.KEY`, `itemN.X-PM-*`), so no later property inherits them.
+- Cards keep the types they had. `UID` is never rebuilt on update.
+- A property new to the contact goes where Proton's own client puts
+  it: `[V]` WebClients `packages/shared/lib/contacts/constants.ts` —
+  `FN`, `UID`, `EMAIL` and the key fields in the SIGNED card,
+  `CATEGORIES` in the CLEAR_TEXT card, everything else
+  ENCRYPTED_AND_SIGNED. An `EMAIL` found in an encrypted card
+  (written by earlier pcontacts versions) is moved to the signed card
+  on the next update. `[A]` the server derives `ContactEmails` from
+  the signed card; validated live on the test account.
+- Choice 2B (build from scratch) remains only for **creates**, and a
+  created contact also places `EMAIL` in the signed card.
+- "Use phone version" (`FORCE_UPDATE`) is a change set too: local
+  versus the current server state, applied onto the fetched cards.
+
+### Photo identity (§3)
+
+The photo is a merge input. Because ContactsProvider re-encodes
+inline photos, the base records two hashes: the server photo's bytes
+and the local photo's bytes as read back after they were written.
+The server side changed when the server photo hash differs from the
+base; the local side changed when the current local bytes differ
+from the recorded local hash. Server-only change keeps the server
+photo (the carrier's `PHOTO` property is reused unchanged); local-only
+change pushes the local bytes; both changed to different photos is a
+conflict like any other field. Photo bytes are still never stored in
+the base (ADR-0018).
+
+### Address identity (§3)
+
+A postal address is identified by its full component tuple (PO box,
+extended address, street, locality, region, postal code, country).
+Types are not part of the identity: a changed `TYPE` is a
+modification of the same address, never a second address.
+

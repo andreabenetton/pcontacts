@@ -5,7 +5,7 @@
 
 # ADR-0018: Scope expansion — bidirectional sync (supersedes ADR-0006)
 
-- **Status:** Accepted (amended 2026-09-22 — the merge base is stored, sealed)
+- **Status:** Accepted (amended 2026-09-22 — the merge base is stored, sealed; photo identity added)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (superseded), ADR-0017 (policies), ADR-0009 (Keystore KEK)
@@ -119,7 +119,12 @@ asset. Amended 2026-09-22; the rules are:
   the row is written to Room, the same key and protection level as
   `keyPassword` (ADR-0009). Plaintext exists only on the heap during
   a push.
-- Photo bytes are never part of the stored base.
+- Photo bytes are never part of the stored base. The base does
+  record two SHA-256 digests (the server photo's bytes and the
+  local photo's bytes as written to the provider) so the photo can
+  be a merge input (ADR-0017 second amendment); a digest of a
+  photo reveals nothing about it. The envelope version is 2; a
+  version-1 blob reads as "no base".
 - The blob is wiped by the logout wipe of `contact_map`, and the
   KEK deletion at logout makes any residue in SQLite journal pages
   unreadable.
