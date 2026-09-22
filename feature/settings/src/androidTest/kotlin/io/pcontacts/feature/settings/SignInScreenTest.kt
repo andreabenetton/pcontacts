@@ -22,7 +22,6 @@ class SignInScreenTest {
         composeRule.setContent {
             SignInScreen(loading = false, onSignIn = { signedIn = true })
         }
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
         composeRule.onNodeWithText("Account").assertIsDisplayed()
         composeRule.onNodeWithText("Sign in").assertIsDisplayed().performClick()
         assertTrue(signedIn)

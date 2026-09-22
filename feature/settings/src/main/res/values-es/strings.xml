@@ -4,7 +4,6 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 <resources>
-    <string name="settings_title">Ajustes</string>
     <string name="settings_sync_now">Sincronizar ahora</string>
     <string name="settings_sign_out">Cerrar sesión</string>
     <string name="settings_signed_out">Sesión cerrada.</string>

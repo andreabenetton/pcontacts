@@ -4,7 +4,6 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 <resources>
-    <string name="settings_title">Настройки</string>
     <string name="settings_sync_now">Синхронизировать сейчас</string>
     <string name="settings_sign_out">Выйти</string>
     <string name="settings_signed_out">Выход выполнен.</string>

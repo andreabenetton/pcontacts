@@ -75,7 +75,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { ScreenTopBar(title = stringResource(R.string.settings_title), onBack = actions.onBack) },
+        topBar = { AppTopBar() },
         snackbarHost = snackbarHost
     ) { padding ->
         Column(

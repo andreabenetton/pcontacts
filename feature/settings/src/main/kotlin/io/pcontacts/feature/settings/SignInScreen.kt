@@ -40,7 +40,7 @@ fun SignInScreen(
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { ScreenTopBar(title = stringResource(R.string.settings_title), onBack = null) },
+        topBar = { AppTopBar() },
         snackbarHost = snackbarHost
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
