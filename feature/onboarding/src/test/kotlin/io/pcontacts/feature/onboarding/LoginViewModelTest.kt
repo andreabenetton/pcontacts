@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.onboarding
 
+import androidx.lifecycle.ViewModelStore
 import io.pcontacts.core.sync.auth.LoginResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -218,6 +219,21 @@ class LoginViewModelTest {
         advanceUntilIdle()
 
         assertEquals(LoginUiState.TwoFactorFailed("uid-2fa", "u", "verification_rejected"), vm.uiState.value)
+    }
+
+    @Test fun clearing_the_view_model_aborts_the_login_like_an_explicit_cancel() = runTest {
+        var aborted = 0
+        val vm = keyDerivationVm(retry = { LoginResult.Failed("unused") }, abort = { aborted++ })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+
+        // The screen is gone for good (system back): the store clears the model.
+        ViewModelStore().apply {
+            put("login", vm)
+            clear()
+        }
+
+        assertEquals(1, aborted)
     }
 
     private fun keyDerivationVm(
