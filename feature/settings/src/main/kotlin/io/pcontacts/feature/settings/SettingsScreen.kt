@@ -131,9 +131,18 @@ fun SettingsScreen(
  */
 @Composable
 private fun ContactsStorageButton(open: (() -> Unit)?) {
+    // Violet border while usable; Material's 12% disabled outline vanishes on the dark
+    // theme, so the unavailable state gets a grey border matching its 38% text instead.
+    val border = if (open == null) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
     OutlinedButton(
         enabled = open != null,
         onClick = { open?.invoke() },
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+        border = BorderStroke(1.dp, border),
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(stringResource(R.string.settings_contacts_storage))
