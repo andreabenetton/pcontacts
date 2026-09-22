@@ -10,9 +10,15 @@ import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
 import io.pcontacts.core.proton.api.contacts.ContactCardBundle
+import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import io.pcontacts.core.proton.api.contacts.CreateContactsRequest
+import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
+import io.pcontacts.core.protoncontacts.CardEncryptOp
+import io.pcontacts.core.protoncontacts.CardEncryptRequest
+import io.pcontacts.core.protoncontacts.CardType
 import io.pcontacts.core.protoncontacts.ContactDecrypter
+import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
@@ -22,6 +28,8 @@ import io.pcontacts.core.protoncontacts.DecryptedStructuredName
 import io.pcontacts.core.storage.InMemorySecretStore
 import io.pcontacts.core.sync.contacts.decrypt.OpenPgpCardCryptoOp
 import io.pcontacts.core.sync.contacts.encrypt.ContactEncryptBootstrap
+import io.pcontacts.core.sync.contacts.encrypt.OpenPgpCardEncryptOp
+import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -47,7 +55,14 @@ import java.util.UUID
  *   - POST contacts/v4/contacts (create) DTO shape
  *   - GET contacts/v4/contacts/{id} (fetch-back) DTO shape
  *   - Card decrypt + merge (round-trip fidelity)
+ *   - GET contacts/v4/contacts/emails lists the created address — `[A]`
+ *     the server derives ContactEmails from the signed card
+ *   - PUT contacts/v4/contacts/{id} with cards patched from the fetched
+ *     ones (ADR-0017 Choice 2C): the server accepts them and keeps the
+ *     properties the app does not model
  *   - PUT contacts/v4/contacts/delete (bulk delete) DTO shape
+ *
+ * A two-factor account needs `PCONTACTS_TOTP_CODE` (a fresh TOTP).
  */
 class LiveProtonWriteTest {
 
@@ -61,25 +76,35 @@ class LiveProtonWriteTest {
             .toCharArray()
 
         println("=== LiveProtonWriteTest ===")
-        val (apiFactory, serializer, processor) = loginAndBuildCrypto(username, password)
+        val crypto = loginAndBuildCrypto(username, password)
+        val apiFactory = crypto.apiFactory
+        val serializer = crypto.serializer
+        val processor = crypto.processor
+        val encryptOp = crypto.encryptOp
 
         val marker = UUID.randomUUID().toString().take(8)
         val testContact = buildTestContact(marker)
-        var createdId: String? = null
+        val created = mutableListOf<String>()
 
         try {
-            createdId = createOnServer(apiFactory, serializer, testContact, marker)
+            val createdId = createOnServer(apiFactory, serializer, testContact, marker)
+            created += createdId
             val decrypted = fetchAndDecrypt(apiFactory, processor, createdId)
             assertRoundTrip(testContact, decrypted, marker)
+            assertListedAmongContactEmails(apiFactory, "canary-$marker@example.com", createdId)
 
-            apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = listOf(createdId)))
+            val richId = createRichContact(apiFactory, encryptOp, marker)
+            created += richId
+            assertPatchedUpdateKeepsUnmodelledProperties(apiFactory, serializer, processor, richId, marker)
+
+            apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = created.toList()))
             println("  delete: OK")
-            createdId = null
+            created.clear()
         } finally {
-            if (createdId != null) {
-                println("  cleanup: deleting leftover contact $createdId")
+            if (created.isNotEmpty()) {
+                println("  cleanup: deleting leftover contacts ${created.size}")
                 runCatching {
-                    apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = listOf(createdId)))
+                    apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = created.toList()))
                 }
             }
             runCatching { apiFactory.auth.revoke() }
@@ -92,7 +117,8 @@ class LiveProtonWriteTest {
     private data class CryptoContext(
         val apiFactory: ProtonApiFactory,
         val serializer: ContactSerializer,
-        val processor: ContactProcessor
+        val processor: ContactProcessor,
+        val encryptOp: CardEncryptOp
     )
 
     private suspend fun loginAndBuildCrypto(username: String, password: CharArray): CryptoContext {
@@ -106,8 +132,14 @@ class LiveProtonWriteTest {
             secretStore = secretStore,
             session = session
         )
-        val result = orchestrator.login(username, password)
-        println("  login result: $result")
+        val first = orchestrator.login(username, password)
+        val totp = System.getenv("PCONTACTS_TOTP_CODE")
+        val result = if (first is LoginResult.TwoFactorRequired && !totp.isNullOrBlank()) {
+            orchestrator.submitTwoFactorCode(totp)
+        } else {
+            first
+        }
+        println("  login result: ${result.javaClass.simpleName}")
         // Mirror LiveProtonLoginTest's policy: the canary tests Proton-API
         // shape (DTOs, endpoints, x-pm-appversion window). A non-Success
         // outcome — HumanVerificationRequired, TwoFactorRequired, etc. —
@@ -133,8 +165,97 @@ class LiveProtonWriteTest {
         return CryptoContext(
             apiFactory = apiFactory,
             serializer = ContactEncryptBootstrap.createSerializer(openPgp, unlockedKey),
-            processor = ContactProcessor(ContactDecrypter(cryptoOp))
+            processor = ContactProcessor(ContactDecrypter(cryptoOp)),
+            encryptOp = OpenPgpCardEncryptOp.build(
+                openPgp = openPgp,
+                encryptionKeys = unlockedKey.encryptionPublicKeys.ifEmpty { listOf(unlockedKey.public) },
+                signingKey = unlockedKey.private
+            )
         )
+    }
+
+    /** `[A]` Proton indexes ContactEmails from the signed card, where the create now puts EMAIL. */
+    private suspend fun assertListedAmongContactEmails(
+        apiFactory: ProtonApiFactory,
+        email: String,
+        id: String
+    ) {
+        val page = apiFactory.contacts.listContactEmails(page = 0, pageSize = 100, emailFilter = email)
+        val hit = page.contactEmails.any { it.contactId == id && it.email.equals(email, ignoreCase = true) }
+        println("  contacts/emails lists the created address: $hit (${page.contactEmails.size} rows)")
+        assertTrue("ContactEmails must list the address from the signed card", hit)
+    }
+
+    /** A contact shaped like Proton's own: grouped EMAIL in the signed card, unmodelled properties in the other. */
+    private suspend fun createRichContact(
+        apiFactory: ProtonApiFactory,
+        encryptOp: CardEncryptOp,
+        marker: String
+    ): String {
+        val signedText = "BEGIN:VCARD\nVERSION:4.0\nFN:pcontacts Rich $marker\nUID:urn:uuid:${UUID.randomUUID()}\n" +
+            "item1.EMAIL;PREF=1:rich-$marker@example.com\nEND:VCARD"
+        val encryptedText = "BEGIN:VCARD\nVERSION:4.0\nN:Rich;pcontacts;;;\nTEL;TYPE=cell;PREF=1:+1-555-0101\n" +
+            "BDAY:19800101\nURL:https://example.invalid/$marker\nNICKNAME:Rich\n" +
+            "NOTE:pcontacts-canary-$marker — safe to delete\nEND:VCARD"
+        val signed = encryptOp(CardEncryptRequest.SignOnly(signedText))
+        val encrypted = encryptOp(CardEncryptRequest.EncryptAndSign(encryptedText))
+        val response = apiFactory.contacts.createContacts(
+            CreateContactsRequest(
+                contacts = listOf(
+                    ContactCardBundle(
+                        cards = listOf(
+                            ContactCardDto(
+                                type = CardType.SIGNED.wireValue,
+                                data = signed.data,
+                                signature = signed.signature
+                            ),
+                            ContactCardDto(
+                                type = CardType.ENCRYPTED_AND_SIGNED.wireValue,
+                                data = encrypted.data,
+                                signature = encrypted.signature
+                            )
+                        )
+                    )
+                )
+            )
+        )
+        val id = response.responses.firstOrNull()?.response?.contact?.id
+        assertNotNull("rich create must return the contact", id)
+        println("  rich create: OK (id=${id!!.take(8)}...)")
+        return id
+    }
+
+    /** ADR-0017 Choice 2C against the real server: a phone edit patched onto the fetched cards. */
+    private suspend fun assertPatchedUpdateKeepsUnmodelledProperties(
+        apiFactory: ProtonApiFactory,
+        serializer: ContactSerializer,
+        processor: ContactProcessor,
+        id: String,
+        marker: String
+    ) {
+        val server = fetchAndDecrypt(apiFactory, processor, id)
+        val serverCanonical = MergeBaseCodec.canonical(server)!!
+        val edited = serverCanonical.copy(
+            phones = listOf(DecryptedPhone("+1-555-0199", listOf("cell"), isPrimary = true))
+        )
+        val patch = ContactPatch.diff(serverCanonical, edited)
+        val cards = serializer.serialize(server.cards, patch, fallbackUid = "unused")
+        val update = apiFactory.contacts.updateContact(id, UpdateContactRequest(cards = cards))
+        println("  patched update: Code=${update.code}")
+
+        val after = fetchAndDecrypt(apiFactory, processor, id)
+        assertTrue("cards must verify after the patched update", after.verified)
+        assertEquals("phone changed", listOf("+1-555-0199"), after.phones.map { it.number })
+        assertEquals("uid kept", server.protonUid, after.protonUid)
+        val signedBack = after.cards.first { it.originalType == CardType.SIGNED }.plaintext
+        val encryptedBack = after.cards.first { it.originalType == CardType.ENCRYPTED_AND_SIGNED }.plaintext
+        assertTrue("grouped EMAIL kept", signedBack.contains("item1.EMAIL;PREF=1:rich-$marker@example.com"))
+        assertTrue("BDAY kept", encryptedBack.contains("BDAY:19800101"))
+        assertTrue("URL kept", encryptedBack.contains("URL:https://example.invalid/$marker"))
+        assertTrue("NICKNAME kept", encryptedBack.contains("NICKNAME:Rich"))
+        assertTrue("old phone gone", !encryptedBack.contains("+1-555-0101"))
+        assertListedAmongContactEmails(apiFactory, "rich-$marker@example.com", id)
+        println("  patched update keeps unmodelled properties: PASS")
     }
 
     private fun buildTestContact(marker: String) = DecryptedContact(
@@ -142,7 +263,7 @@ class LiveProtonWriteTest {
         protonUid = "urn:uuid:${UUID.randomUUID()}",
         fullName = "pcontacts Canary $marker",
         structuredName = DecryptedStructuredName(given = "Canary", family = "pcontacts $marker"),
-        emails = listOf(DecryptedEmail(address = "canary-$marker@test.invalid", types = listOf("home"))),
+        emails = listOf(DecryptedEmail(address = "canary-$marker@example.com", types = listOf("home"))),
         phones = listOf(DecryptedPhone(number = "+1-555-0100", types = listOf("cell"))),
         notes = listOf("pcontacts-canary-$marker — safe to delete"),
         verified = true,
@@ -162,8 +283,10 @@ class LiveProtonWriteTest {
         val createResponse = apiFactory.contacts.createContacts(
             CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards)))
         )
-        val serverContact = createResponse.responses.firstOrNull()?.response?.contact
-        assertNotNull("server must return the created contact", serverContact)
+        val item = createResponse.responses.firstOrNull()?.response
+        println("  create envelope Code=${createResponse.code} item Code=${item?.code}")
+        val serverContact = item?.contact
+        assertNotNull("server must return the created contact (item Code=${item?.code})", serverContact)
         val createdId = serverContact!!.id
         println("  create: OK (id=${createdId.take(8)}...) marker=$marker")
         return createdId
