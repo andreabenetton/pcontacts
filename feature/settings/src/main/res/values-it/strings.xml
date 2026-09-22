@@ -196,7 +196,7 @@
     <string name="dependencies_status_clean">Nessuna vulnerabilità nota</string>
     <string name="dependencies_status_assessed">CVE note valutate come non applicabili</string>
     <string name="dependencies_status_open">Vulnerabilità aperta in una dipendenza</string>
-    <string name="dependencies_checked_on">Verificato sui dati NVD del %1$s.</string>
+    <string name="dependencies_checked_on">Controllato su osv.dev alla compilazione di questa versione (%1$s).</string>
     <string name="dependencies_count">%1$d artefatti in questa versione</string>
     <string name="dependencies_version">Versione %1$s</string>
     <string name="dependencies_license_unknown">licenza non dichiarata</string>
@@ -207,7 +207,7 @@
     <string name="dependencies_chip_assessed">Dipendenze: CVE valutate</string>
     <string name="dependencies_chip_open">Dipendenze: vulnerabilità</string>
     <string name="dependencies_false_positive_group">%1$d corrispondenze dello scanner per un altro prodotto (falso positivo)</string>
-    <string name="dependencies_intro_snapshot">Questo elenco viene dalla scansione fatta alla compilazione dell\'app. Non cambia fino alla versione successiva; un controllo tra una versione e l\'altra si può attivare in Privacy. Gli identificativi CVE aprono la pagina NVD nel browser.</string>
+    <string name="dependencies_intro_snapshot">Questo elenco viene dal controllo fatto alla compilazione dell’app. Non cambia fino alla versione successiva; un controllo giornaliero si può attivare in Privacy. Gli identificativi aprono la pagina osv.dev nel browser.</string>
     <string name="dependencies_intro_runtime">Questi artefatti vengono controllati una volta al giorno su osv.dev. Gli identificativi aprono la pagina osv.dev nel browser.</string>
     <string name="dependencies_cve_runtime">Segnalata da osv.dev dopo questa versione — non ancora valutata</string>
     <string name="advisory_check_title">Controlla le dipendenze su osv.dev</string>

@@ -196,7 +196,7 @@
     <string name="dependencies_status_clean">Keine bekannten Schwachstellen</string>
     <string name="dependencies_status_assessed">Bekannte CVEs als nicht zutreffend bewertet</string>
     <string name="dependencies_status_open">Offene Schwachstelle in einer Abhängigkeit</string>
-    <string name="dependencies_checked_on">Geprüft gegen die NVD-Daten vom %1$s.</string>
+    <string name="dependencies_checked_on">Beim Bau dieser Version bei osv.dev geprüft (%1$s).</string>
     <string name="dependencies_count">%1$d Artefakte in dieser Version</string>
     <string name="dependencies_version">Version %1$s</string>
     <string name="dependencies_license_unknown">keine Lizenz angegeben</string>
@@ -207,7 +207,7 @@
     <string name="dependencies_chip_assessed">Abhängigkeiten: bewertete CVEs</string>
     <string name="dependencies_chip_open">Abhängigkeiten: Schwachstelle</string>
     <string name="dependencies_false_positive_group">%1$d Scanner-Treffer für ein anderes Produkt (falsch positiv)</string>
-    <string name="dependencies_intro_snapshot">Diese Liste stammt aus dem Scan beim Bau der App. Sie ändert sich erst mit der nächsten Version; eine Prüfung zwischen Versionen lässt sich unter Datenschutz einschalten. CVE-Kennungen öffnen die NVD-Seite in Ihrem Browser.</string>
+    <string name="dependencies_intro_snapshot">Diese Liste stammt aus der Prüfung beim Bau der App. Sie ändert sich erst mit der nächsten Version; eine tägliche Prüfung lässt sich unter Datenschutz einschalten. Kennungen öffnen die osv.dev-Seite in Ihrem Browser.</string>
     <string name="dependencies_intro_runtime">Diese Artefakte werden einmal täglich bei osv.dev geprüft. Kennungen öffnen die osv.dev-Seite in Ihrem Browser.</string>
     <string name="dependencies_cve_runtime">Von osv.dev nach dieser Version gemeldet — noch nicht bewertet</string>
     <string name="advisory_check_title">Abhängigkeiten bei osv.dev prüfen</string>

@@ -12,9 +12,9 @@ import androidx.compose.ui.graphics.Color
  * taken. Nothing here is looked up at runtime.
  */
 data class DependencyAudit(
-    /** Date the snapshot was generated, ISO-8601 day. */
+    /** When the snapshot was generated, ISO-8601. */
     val generatedAt: String,
-    /** Timestamp of the NVD data the scan used, when the report carried one. */
+    /** Timestamp of the scanner's data when the snapshot carries one; null for an osv.dev snapshot. */
     val nvdDataAsOf: String?,
     val dependencies: List<AuditedDependency>
 ) {

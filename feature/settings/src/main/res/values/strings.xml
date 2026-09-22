@@ -196,7 +196,7 @@
     <string name="dependencies_status_clean">No known vulnerabilities</string>
     <string name="dependencies_status_assessed">Known CVEs assessed as not applicable</string>
     <string name="dependencies_status_open">Open vulnerability in a dependency</string>
-    <string name="dependencies_checked_on">Checked against the NVD data of %1$s.</string>
+    <string name="dependencies_checked_on">Checked against osv.dev when this version was built (%1$s).</string>
     <string name="dependencies_count">%1$d artifacts in this release</string>
     <string name="dependencies_version">Version %1$s</string>
     <string name="dependencies_license_unknown">license not declared</string>
@@ -207,7 +207,7 @@
     <string name="dependencies_chip_assessed">Dependencies: assessed CVEs</string>
     <string name="dependencies_chip_open">Dependencies: vulnerability</string>
     <string name="dependencies_false_positive_group">%1$d scanner matches for a different product (false positive)</string>
-    <string name="dependencies_intro_snapshot">This list comes from the scan made when the app was built. It does not change until the next release; a check between releases can be turned on under Privacy. CVE ids open the NVD page in your browser.</string>
+    <string name="dependencies_intro_snapshot">This list comes from the check made when the app was built. It does not change until the next release; a daily check can be turned on under Privacy. Ids open the osv.dev page in your browser.</string>
     <string name="dependencies_intro_runtime">These artifacts are checked once a day against osv.dev. Ids open the osv.dev page in your browser.</string>
     <string name="dependencies_cve_runtime">Reported by osv.dev after this release — not yet assessed</string>
     <string name="advisory_check_title">Check dependencies against osv.dev</string>

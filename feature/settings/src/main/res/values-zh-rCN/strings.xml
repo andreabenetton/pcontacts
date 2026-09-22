@@ -183,7 +183,7 @@
     <string name="dependencies_status_clean">没有已知漏洞</string>
     <string name="dependencies_status_assessed">已知 CVE 经评估不适用</string>
     <string name="dependencies_status_open">某个依赖项存在未修复的漏洞</string>
-    <string name="dependencies_checked_on">已对照 %1$s 的 NVD 数据检查。</string>
+    <string name="dependencies_checked_on">构建此版本时已在 osv.dev 上检查（%1$s）。</string>
     <string name="dependencies_count">本版本包含 %1$d 个构件</string>
     <string name="dependencies_version">版本 %1$s</string>
     <string name="dependencies_license_unknown">未声明许可证</string>
@@ -194,7 +194,7 @@
     <string name="dependencies_chip_assessed">依赖项：已评估的 CVE</string>
     <string name="dependencies_chip_open">依赖项：存在漏洞</string>
     <string name="dependencies_false_positive_group">%1$d 个扫描器匹配项属于其他产品（误报）</string>
-    <string name="dependencies_intro_snapshot">此列表来自构建应用时的扫描。在下一个版本之前不会更改；可在“隐私”中开启版本之间的检查。点按 CVE 编号可在浏览器中打开 NVD 页面。</string>
+    <string name="dependencies_intro_snapshot">此列表来自构建应用时的检查。在下一个版本之前不会更改；可在“隐私”中开启每日检查。点按编号可在浏览器中打开 osv.dev 页面。</string>
     <string name="dependencies_intro_runtime">这些构件每天在 osv.dev 上检查一次。点按编号可在浏览器中打开 osv.dev 页面。</string>
     <string name="dependencies_cve_runtime">由 osv.dev 在本版本发布后报告 — 尚未评估</string>
     <string name="advisory_check_title">在 osv.dev 上检查依赖项</string>

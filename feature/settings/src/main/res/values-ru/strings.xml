@@ -222,7 +222,7 @@
     <string name="dependencies_status_clean">Известных уязвимостей нет</string>
     <string name="dependencies_status_assessed">Известные CVE оценены как неприменимые</string>
     <string name="dependencies_status_open">Открытая уязвимость в зависимости</string>
-    <string name="dependencies_checked_on">Проверено по данным NVD от %1$s.</string>
+    <string name="dependencies_checked_on">Проверено на osv.dev при сборке этой версии (%1$s).</string>
     <string name="dependencies_count">Артефактов в этой версии: %1$d</string>
     <string name="dependencies_version">Версия %1$s</string>
     <string name="dependencies_license_unknown">лицензия не указана</string>
@@ -233,7 +233,7 @@
     <string name="dependencies_chip_assessed">Зависимости: оценённые CVE</string>
     <string name="dependencies_chip_open">Зависимости: уязвимость</string>
     <string name="dependencies_false_positive_group">Совпадений сканера с другим продуктом (ложное срабатывание): %1$d</string>
-    <string name="dependencies_intro_snapshot">Этот список получен при проверке во время сборки приложения. Он не меняется до следующей версии; проверку между версиями можно включить в разделе «Конфиденциальность». Идентификаторы CVE открывают страницу NVD в браузере.</string>
+    <string name="dependencies_intro_snapshot">Этот список получен при проверке во время сборки приложения. Он не меняется до следующей версии; ежедневную проверку можно включить в разделе «Конфиденциальность». Идентификаторы открывают страницу osv.dev в браузере.</string>
     <string name="dependencies_intro_runtime">Эти артефакты раз в день проверяются на osv.dev. Идентификаторы открывают страницу osv.dev в браузере.</string>
     <string name="dependencies_cve_runtime">Сообщено osv.dev после выпуска этой версии — ещё не оценено</string>
     <string name="advisory_check_title">Проверять зависимости на osv.dev</string>
