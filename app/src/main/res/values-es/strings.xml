@@ -7,6 +7,7 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Contactos de Proton</string>
     <string name="launcher_sync_failed_reauth">La sincronización falló — inicia sesión de nuevo.</string>
+    <string name="launcher_sync_failed_reauth_storage_upgrade">Inicia sesión de nuevo una vez — la versión 2.0 guarda tu sesión en un almacén cifrado más robusto y vinculado al dispositivo, y la anterior no se pudo conservar. Toca Cerrar sesión y vuelve a iniciar sesión.</string>
     <string name="launcher_sync_failed_verification">La sincronización falló — se requiere verificación en el sitio web de Proton.</string>
     <string name="launcher_sync_failed_app_version">La sincronización falló — actualiza pcontacts.</string>
     <string name="launcher_sync_failed_network">La sincronización falló — comprueba tu conexión y vuelve a intentarlo.</string>
@@ -19,6 +20,7 @@
     <string name="notification_verification_text">Toca para completar la verificación y reanudar la sincronización de contactos.</string>
     <string name="notification_reauth_title">Se requiere iniciar sesión</string>
     <string name="notification_reauth_text">Tu sesión ha caducado. Inicia sesión de nuevo para reanudar la sincronización de contactos.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 guarda tu sesión con un cifrado más robusto y vinculado al dispositivo. Inicia sesión de nuevo una vez para reanudar la sincronización de contactos.</string>
     <string name="notification_sync_failure_title">Falló la sincronización de contactos</string>
     <string name="notification_sync_failure_text">La sincronización ha fallado repetidamente. Abre la app para comprobar tu conexión y volver a intentarlo.</string>
     <string name="notification_permission_denied">Las notificaciones están desactivadas. La sincronización sigue funcionando, pero no verás avisos cuando se necesite una acción.</string>

@@ -7,6 +7,7 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Contacts Proton</string>
     <string name="launcher_sync_failed_reauth">Échec de la synchronisation — veuillez vous reconnecter.</string>
+    <string name="launcher_sync_failed_reauth_storage_upgrade">Reconnectez-vous une seule fois — la version 2.0 conserve votre session dans un stockage chiffré plus robuste et lié à l\'appareil, et l\'ancienne n\'a pas pu être reprise. Touchez Se déconnecter, puis reconnectez-vous.</string>
     <string name="launcher_sync_failed_verification">Échec de la synchronisation — vérification requise sur le site web de Proton.</string>
     <string name="launcher_sync_failed_app_version">Échec de la synchronisation — veuillez mettre à jour pcontacts.</string>
     <string name="launcher_sync_failed_network">Échec de la synchronisation — vérifiez votre connexion et réessayez.</string>
@@ -19,6 +20,7 @@
     <string name="notification_verification_text">Appuyez pour terminer la vérification et reprendre la synchronisation des contacts.</string>
     <string name="notification_reauth_title">Connexion requise</string>
     <string name="notification_reauth_text">Votre session a expiré. Reconnectez-vous pour reprendre la synchronisation des contacts.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 protège votre session avec un chiffrement plus robuste et lié à l\'appareil. Reconnectez-vous une seule fois pour reprendre la synchronisation des contacts.</string>
     <string name="notification_sync_failure_title">Échec de la synchronisation des contacts</string>
     <string name="notification_sync_failure_text">La synchronisation a échoué à plusieurs reprises. Ouvrez l\'app pour vérifier votre connexion et réessayer.</string>
     <string name="notification_permission_denied">Les notifications sont désactivées. La synchronisation fonctionne toujours, mais vous ne verrez pas d\'alertes lorsqu\'une action est requise.</string>

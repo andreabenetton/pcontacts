@@ -99,8 +99,12 @@ class ProtonSyncAdapter(
         } catch (e: DecryptUnavailableException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
-            userPreferences.lastSyncErrorCode = SyncErrorCodes.REAUTH
-            notifier.notifyReauthRequired(account)
+            // A 1.x install whose secret file was just purged is asked to sign in
+            // again because of the storage upgrade, not an expired session.
+            val storageUpgrade = userPreferences.secretsStorageUpgraded
+            userPreferences.lastSyncErrorCode =
+                if (storageUpgrade) SyncErrorCodes.REAUTH_STORAGE_UPGRADE else SyncErrorCodes.REAUTH
+            notifier.notifyReauthRequired(account, storageUpgrade)
         } catch (e: HumanVerificationRequiredException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync paused — human verification required (Code 9001)" }
@@ -141,5 +145,6 @@ class ProtonSyncAdapter(
         userPreferences.lastSyncSuccessAtMillis = System.currentTimeMillis()
         userPreferences.lastSyncErrorCode = null
         userPreferences.lastSyncFailedContacts = failedContacts
+        userPreferences.secretsStorageUpgraded = false
     }
 }

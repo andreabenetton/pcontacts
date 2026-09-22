@@ -3,6 +3,7 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">PContacts</string>
     <string name="launcher_sync_failed_reauth">Last sync failed — please sign in again.</string>
+    <string name="launcher_sync_failed_reauth_storage_upgrade">Sign in again once — version 2.0 keeps your session in a stronger, device-bound encrypted store, and the old one could not be carried over. Tap Sign out, then sign in.</string>
     <string name="launcher_sync_failed_verification">Last sync failed — verification needed on the Proton website.</string>
     <string name="launcher_sync_failed_app_version">Last sync failed — please update pcontacts.</string>
     <string name="launcher_sync_failed_network">Last sync failed — check your connection and try again.</string>
@@ -15,6 +16,7 @@
     <string name="notification_verification_text">Tap to complete verification so contact sync can resume.</string>
     <string name="notification_reauth_title">Sign-in required</string>
     <string name="notification_reauth_text">Your session has expired. Sign in again to resume contact sync.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 stores your session with stronger, device-bound encryption. Sign in again once to resume contact sync.</string>
     <string name="notification_sync_failure_title">Contact sync failed</string>
     <string name="notification_sync_failure_text">Sync has failed repeatedly. Open the app to check your connection and retry.</string>
     <string name="notification_permission_denied">Notifications are disabled. Sync still works, but you won\'t see alerts when action is needed.</string>

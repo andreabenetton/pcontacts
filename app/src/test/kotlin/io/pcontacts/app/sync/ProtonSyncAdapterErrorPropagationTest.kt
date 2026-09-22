@@ -107,11 +107,31 @@ class ProtonSyncAdapterErrorPropagationTest {
 
     @Test
     fun decryptUnavailable_is_caught_as_auth_exception() {
-        val adapter = adapter { _, _, _ -> throw DecryptUnavailableException("no key") }
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> throw DecryptUnavailableException("no key") }
         val syncResult = SyncResult()
         adapter.onPerformSync(account, extras, authority, provider, syncResult)
         assertEquals(1L, syncResult.stats.numAuthExceptions)
         assertEquals(0L, syncResult.stats.numIoExceptions)
+        assertEquals("reauth", prefs.lastSyncErrorCode)
+    }
+
+    @Test
+    fun decryptUnavailable_after_the_storage_upgrade_records_the_upgrade_code() {
+        val prefs = InMemoryUserPreferences().apply { secretsStorageUpgraded = true }
+        val adapter = adapter(prefs) { _, _, _ -> throw DecryptUnavailableException("no key") }
+        adapter.onPerformSync(account, extras, authority, provider, SyncResult())
+        assertEquals("reauth_storage_upgrade", prefs.lastSyncErrorCode)
+        assertTrue("the flag stays until the user has signed in again", prefs.secretsStorageUpgraded)
+    }
+
+    @Test
+    fun successful_sync_clears_the_storage_upgrade_flag() {
+        val prefs = InMemoryUserPreferences().apply { secretsStorageUpgraded = true }
+        val adapter = adapter(prefs) { _, _, _ -> WriteReport.EMPTY to SyncReport(0, 0, 0, 0, 0) }
+        adapter.onPerformSync(account, extras, authority, provider, SyncResult())
+        assertEquals(false, prefs.secretsStorageUpgraded)
+        assertNull(prefs.lastSyncErrorCode)
     }
 
     @Test

@@ -7,6 +7,7 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Контакты Proton</string>
     <string name="launcher_sync_failed_reauth">Синхронизация не удалась — войдите снова.</string>
+    <string name="launcher_sync_failed_reauth_storage_upgrade">Войдите снова один раз — версия 2.0 хранит сессию в более надёжном хранилище, зашифрованном и привязанном к устройству, и прежнюю сессию перенести не удалось. Нажмите «Выйти», затем войдите.</string>
     <string name="launcher_sync_failed_verification">Синхронизация не удалась — требуется проверка на сайте Proton.</string>
     <string name="launcher_sync_failed_app_version">Синхронизация не удалась — обновите pcontacts.</string>
     <string name="launcher_sync_failed_network">Синхронизация не удалась — проверьте подключение и повторите попытку.</string>
@@ -19,6 +20,7 @@
     <string name="notification_verification_text">Нажмите, чтобы завершить проверку и возобновить синхронизацию контактов.</string>
     <string name="notification_reauth_title">Требуется вход</string>
     <string name="notification_reauth_text">Ваша сессия истекла. Войдите снова, чтобы возобновить синхронизацию контактов.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 хранит сессию с более надёжным шифрованием, привязанным к устройству. Войдите снова один раз, чтобы возобновить синхронизацию контактов.</string>
     <string name="notification_sync_failure_title">Синхронизация контактов не удалась</string>
     <string name="notification_sync_failure_text">Синхронизация неоднократно завершалась ошибкой. Откройте приложение, проверьте подключение и повторите попытку.</string>
     <string name="notification_permission_denied">Уведомления отключены. Синхронизация продолжает работать, но вы не увидите оповещений, когда потребуется действие.</string>

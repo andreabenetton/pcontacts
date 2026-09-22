@@ -7,6 +7,7 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Proton Kontakte</string>
     <string name="launcher_sync_failed_reauth">Synchronisierung fehlgeschlagen — bitte erneut anmelden.</string>
+    <string name="launcher_sync_failed_reauth_storage_upgrade">Bitte einmal erneut anmelden — Version 2.0 bewahrt Ihre Sitzung in einem stärker verschlüsselten, gerätegebundenen Speicher auf, und die alte konnte nicht übernommen werden. Tippen Sie auf Abmelden und melden Sie sich dann an.</string>
     <string name="launcher_sync_failed_verification">Synchronisierung fehlgeschlagen — Verifizierung auf der Proton-Website erforderlich.</string>
     <string name="launcher_sync_failed_app_version">Synchronisierung fehlgeschlagen — bitte pcontacts aktualisieren.</string>
     <string name="launcher_sync_failed_network">Synchronisierung fehlgeschlagen — Verbindung prüfen und erneut versuchen.</string>
@@ -19,6 +20,7 @@
     <string name="notification_verification_text">Tippen Sie hier, um die Verifizierung abzuschließen, damit die Kontaktsynchronisierung fortgesetzt werden kann.</string>
     <string name="notification_reauth_title">Anmeldung erforderlich</string>
     <string name="notification_reauth_text">Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an, um die Kontaktsynchronisierung fortzusetzen.</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 speichert Ihre Sitzung mit stärkerer, gerätegebundener Verschlüsselung. Melden Sie sich einmal erneut an, um die Kontaktsynchronisierung fortzusetzen.</string>
     <string name="notification_sync_failure_title">Kontaktsynchronisierung fehlgeschlagen</string>
     <string name="notification_sync_failure_text">Die Synchronisierung ist wiederholt fehlgeschlagen. Öffnen Sie die App, um Ihre Verbindung zu prüfen und es erneut zu versuchen.</string>
     <string name="notification_permission_denied">Benachrichtigungen sind deaktiviert. Die Synchronisierung funktioniert weiterhin, aber Sie erhalten keine Hinweise, wenn eine Aktion erforderlich ist.</string>

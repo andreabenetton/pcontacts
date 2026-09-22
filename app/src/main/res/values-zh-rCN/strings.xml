@@ -7,6 +7,7 @@
     <string name="app_name">pcontacts</string>
     <string name="account_label">Proton 联系人</string>
     <string name="launcher_sync_failed_reauth">上次同步失败，请重新登录。</string>
+    <string name="launcher_sync_failed_reauth_storage_upgrade">请重新登录一次——2.0 版本将您的会话保存在更安全、与设备绑定的加密存储中，旧会话无法迁移。请点按“退出登录”，然后重新登录。</string>
     <string name="launcher_sync_failed_verification">上次同步失败，需要在 Proton 网站上完成验证。</string>
     <string name="launcher_sync_failed_app_version">上次同步失败，请更新 pcontacts。</string>
     <string name="launcher_sync_failed_network">上次同步失败，请检查网络连接后重试。</string>
@@ -19,6 +20,7 @@
     <string name="notification_verification_text">点按以完成验证，恢复联系人同步。</string>
     <string name="notification_reauth_title">需要登录</string>
     <string name="notification_reauth_text">会话已过期。请重新登录以恢复联系人同步。</string>
+    <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 使用更安全、与设备绑定的加密方式保存您的会话。请重新登录一次以恢复联系人同步。</string>
     <string name="notification_sync_failure_title">联系人同步失败</string>
     <string name="notification_sync_failure_text">同步多次失败。请打开应用检查网络连接并重试。</string>
     <string name="notification_permission_denied">通知已停用。同步仍会正常进行，但在需要操作时您不会收到提醒。</string>

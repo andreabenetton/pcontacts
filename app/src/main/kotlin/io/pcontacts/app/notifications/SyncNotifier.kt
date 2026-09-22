@@ -18,11 +18,16 @@ import io.pcontacts.app.R
 
 class SyncNotifier(private val context: Context) {
 
-    fun notifyReauthRequired(@Suppress("UNUSED_PARAMETER") account: Account) {
+    /** [storageUpgrade]: the sign-in is owed to the 2.0 secret-store upgrade, not an expired session. */
+    fun notifyReauthRequired(@Suppress("UNUSED_PARAMETER") account: Account, storageUpgrade: Boolean = false) {
         post(
             id = NOTIFICATION_ID_REAUTH,
             title = R.string.notification_reauth_title,
-            text = R.string.notification_reauth_text
+            text = if (storageUpgrade) {
+                R.string.notification_reauth_storage_upgrade_text
+            } else {
+                R.string.notification_reauth_text
+            }
         )
     }
 
