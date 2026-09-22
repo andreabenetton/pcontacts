@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -19,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -82,11 +80,12 @@ private fun ProgressDialog(messageRes: Int) {
         onDismissRequest = {},
         title = { Text(stringResource(R.string.linked_import_dialog_title)) },
         text = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator()
-                Spacer(Modifier.padding(horizontal = 8.dp))
-                Text(stringResource(messageRes))
-            }
+            SyncIndicator(
+                tone = SyncTone.RUNNING,
+                text = stringResource(messageRes),
+                style = MaterialTheme.typography.bodyMedium,
+                glyphSize = 20.dp
+            )
         },
         confirmButton = {}
     )

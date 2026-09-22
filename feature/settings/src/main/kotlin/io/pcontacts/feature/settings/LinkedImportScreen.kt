@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -67,6 +66,7 @@ fun LinkedImportScreen(
     val query by listViewModel.query.collectAsStateWithLifecycle()
     val selected by listViewModel.selected.collectAsStateWithLifecycle()
     val imported by listViewModel.imported.collectAsStateWithLifecycle()
+    val syncing by listViewModel.syncing.collectAsStateWithLifecycle()
     val bulk by listViewModel.bulk.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val visible = (state as? LinkedImportListState.Ready)?.rows?.filteredBy(filter, query).orEmpty()
@@ -104,6 +104,7 @@ fun LinkedImportScreen(
                     rows = visible,
                     selected = selected,
                     imported = imported,
+                    syncing = syncing,
                     onToggle = listViewModel::toggleSelected,
                     onOpen = importViewModel::start
                 )
@@ -193,6 +194,7 @@ private fun ContactList(
     rows: List<LinkedContactRow>,
     selected: Set<Long>,
     imported: Set<Long>,
+    syncing: Set<Long>,
     onToggle: (Long) -> Unit,
     onOpen: (Long) -> Unit
 ) {
@@ -211,6 +213,7 @@ private fun ContactList(
                 row = row,
                 checked = row.contactId in selected,
                 done = done,
+                syncing = row.contactId in syncing,
                 onToggle = { onToggle(row.contactId) },
                 onClick = { if (!done) onOpen(row.contactId) }
             )
@@ -224,6 +227,7 @@ private fun ContactRowItem(
     row: LinkedContactRow,
     checked: Boolean,
     done: Boolean,
+    syncing: Boolean,
     onToggle: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -249,29 +253,22 @@ private fun ContactRowItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            RowBadge(row, done)
+            RowBadge(row, done, syncing)
         }
     }
 }
 
-/** "Not in Proton" / "N new details" before an import, "Added to Proton" with a check after one. */
+/**
+ * "Not in Proton" / "N new details" before an import; "Syncing…" while
+ * the requested sync runs; "Added to Proton" with a check once it did.
+ */
 @Composable
-private fun RowBadge(row: LinkedContactRow, done: Boolean) {
+private fun RowBadge(row: LinkedContactRow, done: Boolean, syncing: Boolean) {
     if (done) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = stringResource(R.string.linked_import_row_added),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+        SyncIndicator(
+            tone = if (syncing) SyncTone.RUNNING else SyncTone.OK,
+            text = stringResource(if (syncing) R.string.linked_import_row_syncing else R.string.linked_import_row_added)
+        )
         return
     }
     Text(
@@ -310,7 +307,12 @@ private fun BulkProgressDialog(state: BulkImportState.Running) {
         title = { Text(stringResource(R.string.linked_import_dialog_title)) },
         text = {
             Column {
-                Text(stringResource(R.string.linked_import_bulk_progress, state.done, state.total))
+                SyncIndicator(
+                    tone = SyncTone.RUNNING,
+                    text = stringResource(R.string.linked_import_bulk_progress, state.done, state.total),
+                    style = MaterialTheme.typography.bodyMedium,
+                    glyphSize = 20.dp
+                )
                 Spacer(Modifier.height(12.dp))
                 LinearProgressIndicator(
                     progress = { if (state.total == 0) 0f else state.done.toFloat() / state.total },

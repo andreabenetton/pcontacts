@@ -82,6 +82,10 @@ class LinkedImportListViewModel(
     private val _imported = MutableStateFlow<Set<Long>>(emptySet())
     val imported: StateFlow<Set<Long>> = _imported.asStateFlow()
 
+    /** The subset of [imported] whose requested sync has not finished yet ("Syncing…" until it does). */
+    private val _syncing = MutableStateFlow<Set<Long>>(emptySet())
+    val syncing: StateFlow<Set<Long>> = _syncing.asStateFlow()
+
     init {
         rescan()
     }
@@ -89,6 +93,7 @@ class LinkedImportListViewModel(
     fun rescan() {
         _state.value = LinkedImportListState.Scanning
         _imported.value = emptySet()
+        _syncing.value = emptySet()
         scope.launch {
             _state.value = try {
                 LinkedImportListState.Ready(withContext(workDispatcher) { scan() })
@@ -108,7 +113,17 @@ class LinkedImportListViewModel(
 
     fun markImported(contactId: Long) {
         _imported.value = _imported.value + contactId
+        _syncing.value = _syncing.value + contactId
         _selected.value = _selected.value - contactId
+    }
+
+    /**
+     * Fed by the host's sync-status observer. The import requested a
+     * sync, so the next running→idle transition means it went through;
+     * every row still marked syncing is then simply "added".
+     */
+    fun updateSyncRunning(running: Boolean) {
+        if (!running) _syncing.value = emptySet()
     }
 
     fun toggleSelected(contactId: Long) {

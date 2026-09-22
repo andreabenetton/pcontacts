@@ -36,6 +36,16 @@ data class LastSyncSummary(
     val failedContacts: Int = 0
 )
 
+/**
+ * The one vocabulary for sync state across the app: a spinner means a
+ * sync is running, a check means it went through, a warning means
+ * something needs attention, an info mark is neutral. Every surface
+ * that reports on a sync — the status card, an imported row, the bulk
+ * progress — draws it through [SyncIndicator], so the glyph always
+ * means the same thing wherever it appears.
+ */
+enum class SyncTone { RUNNING, OK, WARN, INFO }
+
 /** The pull in flight: contacts processed so far out of the server total. */
 data class SyncProgress(val done: Int, val total: Int)
 

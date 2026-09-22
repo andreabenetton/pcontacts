@@ -166,4 +166,5 @@
     <string name="settings_sign_in_detail">Sign in with your Proton account to start syncing contacts.</string>
     <string name="settings_contacts_storage_unavailable">Not available on this Android version — choose it in your Contacts app\'s settings instead.</string>
     <string name="linked_import_row_added">Added to Proton</string>
+    <string name="linked_import_row_syncing">Syncing…</string>
 </resources>

@@ -19,18 +19,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -48,8 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -166,9 +158,7 @@ internal fun SectionHeader(titleRes: Int) {
 
 // ---- Sync status card ----
 
-private class Tone(val icon: ImageVector, val tint: Color, val inProgress: Boolean)
-
-private class Headline(val text: String, val tone: Tone)
+private class Headline(val text: String, val tone: SyncTone)
 
 /** Everything the headline is decided from; `now` ticks so relative times and overdue stay live. */
 private class SyncFacts(
@@ -188,11 +178,10 @@ private class SyncFacts(
 @Composable
 private fun headline(facts: SyncFacts): Headline {
     val state = facts.state
-    val scheme = MaterialTheme.colorScheme
-    val ok = Tone(Icons.Default.Check, scheme.primary, inProgress = false)
-    val warn = Tone(Icons.Default.Warning, scheme.error, inProgress = false)
-    val running = Tone(Icons.Default.Refresh, scheme.primary, inProgress = true)
-    val info = Tone(Icons.Default.Info, scheme.onSurfaceVariant, inProgress = false)
+    val ok = SyncTone.OK
+    val warn = SyncTone.WARN
+    val running = SyncTone.RUNNING
+    val info = SyncTone.INFO
     when (state) {
         SettingsUiState.SigningOut -> return Headline(stringResource(R.string.settings_signing_out), running)
         SettingsUiState.SignedOut -> return Headline(stringResource(R.string.settings_signed_out), ok)
@@ -275,13 +264,12 @@ private fun SyncStatusCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = headline.tone.icon, contentDescription = null, tint = headline.tone.tint)
-                Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
+                    SyncIndicator(
+                        tone = headline.tone,
                         text = headline.text,
                         style = MaterialTheme.typography.titleMedium,
-                        color = headline.tone.tint
+                        glyphSize = 24.dp
                     )
                     lastSync?.let { LastSyncLine(it, now, stats?.totalContacts) }
                 }
@@ -290,7 +278,7 @@ private fun SyncStatusCard(
                     Text(stringResource(R.string.settings_sync_now))
                 }
             }
-            if (headline.tone.inProgress) {
+            if (headline.tone == SyncTone.RUNNING) {
                 Spacer(Modifier.height(12.dp))
                 val p = progress
                 if (p != null && p.total > 0) {
