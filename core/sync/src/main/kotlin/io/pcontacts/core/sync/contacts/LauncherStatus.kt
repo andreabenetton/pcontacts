@@ -6,7 +6,10 @@ package io.pcontacts.core.sync.contacts
 data class LauncherStatus(
     val totalContacts: Int,
     val unverifiedContacts: Int,
+    /** The last converged run (nothing failed, pending, conflicted or quarantined), or null. */
     val lastSyncedAtMillis: Long?,
+    /** The last run that completed at all, or null. */
+    val lastRunAtMillis: Long? = null,
     val pendingChanges: Int = 0,
     val quarantinedChanges: Int = 0,
     /** True when the most recent sync attempt failed (see [lastSyncErrorCode]). */

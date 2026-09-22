@@ -139,6 +139,7 @@ object SyncBootstrap {
             totalContacts = contactDao.countLive(),
             unverifiedContacts = contactDao.countUnverified(),
             lastSyncedAtMillis = effectiveLastSync.takeIf { it > 0L },
+            lastRunAtMillis = maxOf(prefs.lastSyncRunAtMillis, effectiveLastSync).takeIf { it > 0L },
             pendingChanges = outboxDao.countPending(),
             quarantinedChanges = outboxDao.countQuarantined(),
             lastSyncFailed = prefs.lastSyncErrorCode != null,
