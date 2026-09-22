@@ -186,9 +186,9 @@
     <string name="dependencies_checked_on">已对照 %1$s 的 NVD 数据检查。</string>
     <string name="dependencies_intro">此列表在构建应用时确定并反映当时的扫描结果；应用运行时不会查询任何内容。之后公布的漏洞会随下一个版本显示。点按 CVE 编号可在浏览器中打开 NVD 页面。</string>
     <string name="dependencies_count">本版本包含 %1$d 个构件</string>
-    <string name="dependencies_version_license">版本 %1$s · %2$s</string>
+    <string name="dependencies_version">版本 %1$s</string>
     <string name="dependencies_license_unknown">未声明许可证</string>
-    <string name="dependencies_cve_assessed">经评估不适用：%1$s</string>
+    <string name="dependencies_assessed_group">%1$d 个已知 CVE 匹配项经评估不适用</string>
     <string name="dependencies_cve_open">未修复 — 本版本尚未修复</string>
     <string name="dependencies_indicator_a11y">依赖项检查：%1$s。打开依赖项列表。</string>
     <string name="rom_grapheneos_compat">可选安装官方 Google Play，作为普通沙盒应用运行，没有系统特权。</string>

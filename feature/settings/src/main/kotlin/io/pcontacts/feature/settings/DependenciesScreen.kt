@@ -17,18 +17,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -103,6 +112,7 @@ private fun AuditSummary(audit: DependencyAudit) {
 private fun DependencyRow(dependency: AuditedDependency, open: (String) -> Unit) {
     val problem = dependency.status != AuditStatus.CLEAN
     val titleColor = if (problem) dependency.status.tint() else MaterialTheme.colorScheme.onSurface
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (problem) {
@@ -117,18 +127,59 @@ private fun DependencyRow(dependency: AuditedDependency, open: (String) -> Unit)
             )
         }
         Text(
-            text = stringResource(
-                R.string.dependencies_version_license,
-                dependency.version,
-                dependency.licenses.joinToString().ifEmpty { stringResource(R.string.dependencies_license_unknown) }
-            ),
+            text = stringResource(R.string.dependencies_version, dependency.version),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = muted
         )
-        dependency.cves.forEach { cve -> CveRow(cve, open) }
+        Text(
+            text = dependency.licenses.joinToString().ifEmpty { stringResource(R.string.dependencies_license_unknown) },
+            style = MaterialTheme.typography.bodySmall,
+            color = muted
+        )
+        dependency.cves.filter { !it.suppressed }.forEach { cve -> CveRow(cve, open) }
+        // Assessed matches share a reason per artifact (a CPE false positive lists dozens);
+        // one line with the count and the reason, the ids on demand.
+        dependency.cves.filter { it.suppressed }.groupBy { it.reason.orEmpty() }.forEach { (reason, cves) ->
+            AssessedGroup(reason, cves, open)
+        }
     }
 }
 
+@Composable
+private fun AssessedGroup(reason: String, cves: List<AuditCve>, open: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = stringResource(R.string.dependencies_assessed_group, cves.size)
+    Column(modifier = Modifier.padding(start = 14.dp, top = 4.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .semantics { contentDescription = label }
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = AuditStatus.ASSESSED.tint(),
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = AuditStatus.ASSESSED.tint(),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Text(
+            text = reason,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (expanded) cves.forEach { cve -> CveRow(cve, open) }
+    }
+}
+
+/** One CVE: the id as a link, its score, and for an open one the fact that it is open. */
 @Composable
 private fun CveRow(cve: AuditCve, open: (String) -> Unit) {
     val tone = if (cve.suppressed) AuditStatus.ASSESSED else AuditStatus.OPEN
@@ -147,15 +198,13 @@ private fun CveRow(cve: AuditCve, open: (String) -> Unit) {
                 Text(text = score, style = MaterialTheme.typography.bodySmall, color = tone.tint())
             }
         }
-        Text(
-            text = if (cve.suppressed) {
-                stringResource(R.string.dependencies_cve_assessed, cve.reason.orEmpty())
-            } else {
-                stringResource(R.string.dependencies_cve_open)
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = if (cve.suppressed) MaterialTheme.colorScheme.onSurfaceVariant else tone.tint()
-        )
+        if (!cve.suppressed) {
+            Text(
+                text = stringResource(R.string.dependencies_cve_open),
+                style = MaterialTheme.typography.bodySmall,
+                color = tone.tint()
+            )
+        }
     }
 }
 

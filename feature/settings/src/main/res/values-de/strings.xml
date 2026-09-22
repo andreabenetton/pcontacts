@@ -199,9 +199,9 @@
     <string name="dependencies_checked_on">Geprüft gegen die NVD-Daten vom %1$s.</string>
     <string name="dependencies_intro">Diese Liste wird beim Bau der App festgelegt und gibt diesen Scan wieder; die App fragt zur Laufzeit nichts ab. Eine später veröffentlichte Schwachstelle erscheint mit der nächsten Version. CVE-Kennungen öffnen die NVD-Seite in Ihrem Browser.</string>
     <string name="dependencies_count">%1$d Artefakte in dieser Version</string>
-    <string name="dependencies_version_license">Version %1$s · %2$s</string>
+    <string name="dependencies_version">Version %1$s</string>
     <string name="dependencies_license_unknown">keine Lizenz angegeben</string>
-    <string name="dependencies_cve_assessed">Als nicht zutreffend bewertet: %1$s</string>
+    <string name="dependencies_assessed_group">%1$d bekannte CVE-Treffer als nicht zutreffend bewertet</string>
     <string name="dependencies_cve_open">Offen — in dieser Version noch nicht behoben</string>
     <string name="dependencies_indicator_a11y">Abhängigkeitsprüfung: %1$s. Öffnet die Liste der Abhängigkeiten.</string>
     <string name="rom_grapheneos_compat">Optional offizielles Google Play, installiert als gewöhnliche Sandbox-Apps ohne privilegierten Systemzugriff.</string>
