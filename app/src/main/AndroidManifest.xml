@@ -112,12 +112,15 @@
             </intent-filter>
         </activity>
 
-        <!-- ADR-0004: AccountAuthenticator surface. The android:exported="true"
-             is required for AccountManager to bind across processes; the
-             intent-filter restricts who can use the binding. -->
+        <!-- ADR-0004: AccountAuthenticator surface. Not exported: the system's
+             AccountManagerService binds authenticators as the system uid, which
+             is exempt from the exported check, and no other caller has any
+             business here. [A] Verified on the test devices; if a platform
+             refuses the bind, the fallback is exported="true" guarded by
+             android:permission="android.permission.ACCOUNT_MANAGER" (signature). -->
         <service
             android:name=".account.ProtonAuthenticatorService"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>
@@ -126,11 +129,13 @@
                 android:resource="@xml/authenticator" />
         </service>
 
-        <!-- ADR-0004: SyncAdapter surface for ContactsContract.AUTHORITY.
-             android:exported="true" is required for the sync framework to bind. -->
+        <!-- ADR-0004: SyncAdapter surface for ContactsContract.AUTHORITY. Not
+             exported, as the platform's sync-adapter guide declares it [V]: the
+             SyncManager binds as the system uid; a third-party app must not be
+             able to obtain the adapter binder. onBind also checks the action. -->
         <service
             android:name=".sync.ProtonSyncService"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.content.SyncAdapter" />
             </intent-filter>

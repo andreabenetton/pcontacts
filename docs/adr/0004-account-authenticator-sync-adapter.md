@@ -36,7 +36,7 @@ For phase 9 (bidirectional sync) we set `supportsUploading="true"` and register 
 
 ## Consequences
 
-- We own three manifest service declarations and two XML descriptors.
+- We own three manifest service declarations and two XML descriptors. Amended 2026-09-22: the sync-adapter and authenticator services are `android:exported="false"` (the system binds them as the system uid, which is exempt from the check) and `ProtonSyncService.onBind` hands out the binder only for the `android.content.SyncAdapter` action; `verifyManifestInvariants` fails the build otherwise.
 - The user can disable sync at any time from system settings; we honor that and stop initiating syncs (`ContentResolver.getSyncAutomatically()`). Amended 2026-09-22: only explicit user actions — "Sync now", sign-in, a linked-contact import — may carry `SYNC_EXTRAS_MANUAL` (which means `IGNORE_SETTINGS`); the periodic WorkManager fallback and the foreground refreshes never do, and they check the master and per-account switches before requesting (`SyncRequests.requestIfEnabled`).
 - Adding a Proton account from Settings → Accounts → Add Account works the same way Google/Microsoft/Nextcloud accounts do.
 - `CALLER_IS_SYNCADAPTER=true` query parameter is mandatory on all `RawContacts`/`Data` deletes — without it, Android writes tombstones and the next sync recreates duplicates. (See ADR-0010.)

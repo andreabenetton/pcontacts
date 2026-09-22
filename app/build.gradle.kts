@@ -243,6 +243,28 @@ tasks.register("verifyManifestInvariants") {
     doLast {
         val violations = mutableListOf<String>()
 
+        // ADR-0004 (amended): neither the sync-adapter nor the authenticator service
+        // may be exported; the system binds them as the system uid regardless.
+        val internalServices = listOf(
+            "io.pcontacts.app.sync.ProtonSyncService",
+            "io.pcontacts.app.account.ProtonAuthenticatorService"
+        )
+        fun checkServicesNotExported(variant: String, file: java.io.File) {
+            val text = file.readText()
+            for (service in internalServices) {
+                val block = Regex("""<service\b[^>]*android:name="${Regex.escape(service)}"[^>]*>""")
+                    .find(text)?.value
+                if (block == null) {
+                    violations += "$variant: <service> $service not found in merged manifest"
+                    continue
+                }
+                val exported = Regex("""android:exported\s*=\s*"([^"]*)"""").find(block)?.groupValues?.get(1)
+                if (exported != "false") {
+                    violations += "$variant: $service must be android:exported=\"false\", got \"$exported\""
+                }
+            }
+        }
+
         fun parseApplicationAttrs(file: java.io.File): Map<String, String?> {
             val text = file.readText()
             val appBlock = Regex("""<application\b[^>]*>""", RegexOption.DOT_MATCHES_ALL)
@@ -261,6 +283,7 @@ tasks.register("verifyManifestInvariants") {
             "build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml"
         )
         if (debugManifest.exists()) {
+            checkServicesNotExported("debug", debugManifest)
             val attrs = parseApplicationAttrs(debugManifest)
             if (attrs["allowBackup"] != "false") {
                 violations += "debug: android:allowBackup must be \"false\", got \"${attrs["allowBackup"]}\""
@@ -278,6 +301,7 @@ tasks.register("verifyManifestInvariants") {
             "build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml"
         )
         if (releaseManifest.exists()) {
+            checkServicesNotExported("release", releaseManifest)
             val attrs = parseApplicationAttrs(releaseManifest)
             if (attrs["allowBackup"] != "false") {
                 violations += "release: android:allowBackup must be \"false\", got \"${attrs["allowBackup"]}\""

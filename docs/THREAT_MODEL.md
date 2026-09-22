@@ -194,6 +194,7 @@ write-side artefacts are ContactsContract rows owned by us
 | E2 | The `RefreshingAuthenticator` is tricked into refreshing a token for a different account (multi-account confusion). | Single-account MVP. AuthInterceptor + RefreshingAuthenticator both read from the same `InMemorySession`; no cross-account state. | Acceptable for MVP; revisit when multi-account ships. |
 | E3 | A 9001 response loops forever, consuming network + battery. | Bounded retries (FibonacciBackoffInterceptor cap 5); 9001 thrown immediately to the caller without retry. | Low. |
 | E4 | A rogue `AccountAuthenticator` issues a fake access token + tricks the SyncAdapter into syncing the wrong account. | The SyncAdapter reads its account from the system, not from a user-supplied source. | Low. |
+| E5 | Another app binds `ProtonSyncService` or `ProtonAuthenticatorService` and drives a sync or an authenticator call under our uid. | Both services are `android:exported="false"` (the system binds them as the system uid, which is exempt); `ProtonSyncService.onBind` hands out the binder only for the `android.content.SyncAdapter` action. Asserted by `verifyManifestInvariants` on every build and by `ProtonSyncServiceTest`. | Low. |
 
 ---
 

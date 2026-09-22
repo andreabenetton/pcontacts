@@ -23,5 +23,12 @@ class ProtonSyncService : Service() {
         syncAdapter = ProtonSyncAdapter(applicationContext)
     }
 
-    override fun onBind(intent: Intent): IBinder? = syncAdapter.syncAdapterBinder
+    /** The binder goes only to a caller asking for the sync adapter — the system's bind carries this action. */
+    override fun onBind(intent: Intent): IBinder? =
+        if (intent.action == SYNC_ADAPTER_ACTION) syncAdapter.syncAdapterBinder else null
+
+    private companion object {
+        // No public SDK constant; the same literal as the manifest's intent-filter.
+        const val SYNC_ADAPTER_ACTION = "android.content.SyncAdapter"
+    }
 }
