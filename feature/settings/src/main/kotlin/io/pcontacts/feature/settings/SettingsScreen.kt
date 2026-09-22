@@ -908,19 +908,20 @@ private fun AdvisoryCheckSection(viewModel: SettingsViewModel, actions: Settings
 
 @Composable
 internal fun AdvisoryCheckStatusLine(state: AdvisoryCheckState, checking: Boolean) {
+    val open = state.advisories.count { !it.muted }
+    val muted = state.advisories.size - open
+    val ago = DateUtils.getRelativeTimeSpanString(state.lastCheckedAtMillis).toString()
     val text = when {
         checking -> stringResource(R.string.advisory_check_running)
         state.lastCheckedAtMillis == 0L -> stringResource(R.string.advisory_check_never)
-        state.advisories.isEmpty() -> stringResource(
-            R.string.advisory_check_clean,
-            DateUtils.getRelativeTimeSpanString(state.lastCheckedAtMillis).toString()
-        )
-        else -> stringResource(
-            R.string.advisory_check_found,
-            state.advisories.size,
-            DateUtils.getRelativeTimeSpanString(state.lastCheckedAtMillis).toString()
-        )
+        state.advisories.isEmpty() -> stringResource(R.string.advisory_check_clean, ago)
+        open == 0 -> stringResource(R.string.advisory_check_muted_only, muted, ago)
+        else -> stringResource(R.string.advisory_check_found, open, ago)
     }
-    val tint = if (state.advisories.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else AuditStatus.OPEN.tint()
+    val tint = when {
+        open > 0 -> AuditStatus.OPEN.tint()
+        muted > 0 -> AuditStatus.ASSESSED.tint()
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Text(text = text, style = MaterialTheme.typography.bodySmall, color = tint)
 }

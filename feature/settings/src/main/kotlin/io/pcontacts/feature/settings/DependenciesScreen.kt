@@ -102,6 +102,7 @@ private fun AuditSummary(
     Column {
         Spacer(Modifier.height(12.dp))
         if (runtime.enabled) {
+            // The runtime check speaks first: the headline is its verdict, then when it last ran.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusDot(audit.status, size = 12.dp)
                 Spacer(Modifier.width(8.dp))
@@ -112,25 +113,22 @@ private fun AuditSummary(
                 )
             }
             Spacer(Modifier.height(4.dp))
-        }
-        Text(
-            text = stringResource(R.string.dependencies_checked_on, audit.nvdDataAsOf ?: audit.generatedAt),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(
-                if (runtime.enabled) R.string.dependencies_intro_runtime else R.string.dependencies_intro_snapshot
-            ),
-            style = MaterialTheme.typography.bodySmall
-        )
-        if (runtime.enabled) {
-            Spacer(Modifier.height(4.dp))
             AdvisoryCheckStatusLine(runtime, checking)
             TextButton(onClick = onCheckNow, enabled = !checking) {
                 Text(stringResource(R.string.advisory_check_now))
             }
+            Text(text = stringResource(R.string.dependencies_intro_runtime), style = MaterialTheme.typography.bodySmall)
+        } else {
+            Text(
+                text = stringResource(R.string.dependencies_checked_on, audit.nvdDataAsOf ?: audit.generatedAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.dependencies_intro_snapshot),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
         Spacer(Modifier.height(4.dp))
         Text(

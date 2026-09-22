@@ -68,7 +68,13 @@ class DependencyAuditTest {
         val cve = merged.dependencies.single { it.coordinate == clean.coordinate }.cves.single()
         assertEquals(AuditCve("GHSA-x", null, "HIGH", url, suppressed = false, reason = "s", runtime = true), cve)
         assertEquals(setOf("CVE-2015-5895"), DependencyAudit("2026-09-22", null, listOf(clean, assessed)).knownIds)
+        // While the check is on, the build-time entries no longer count: the assessed artifact reads clean.
+        assertEquals(AuditStatus.CLEAN, merged.dependencies.single { it.coordinate == assessed.coordinate }.status)
         assertEquals(listOf(clean.coordinate, assessed.coordinate), merged.sortedForDisplay.map { it.coordinate })
+        assertEquals(
+            DependencyAudit("2026-09-22", null, listOf(clean, assessed)),
+            DependencyAudit("2026-09-22", null, listOf(clean, assessed)).withRuntime(AdvisoryCheckState.OFF)
+        )
     }
 
     @Test fun a_muted_runtime_advisory_counts_as_assessed() {

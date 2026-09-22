@@ -208,7 +208,7 @@
     <string name="dependencies_chip_open">Dependencias: vulnerabilidad</string>
     <string name="dependencies_false_positive_group">%1$d coincidencias del escáner con otro producto (falso positivo)</string>
     <string name="dependencies_intro_snapshot">Esta lista procede del análisis hecho al compilar la app. No cambia hasta la siguiente versión; una comprobación entre versiones se puede activar en Privacidad. Los identificadores CVE abren la página de NVD en tu navegador.</string>
-    <string name="dependencies_intro_runtime">Esta lista procede del análisis hecho al compilar la app, más una comprobación diaria de los mismos artefactos en osv.dev. Los identificadores abren la página de NVD u osv.dev en tu navegador.</string>
+    <string name="dependencies_intro_runtime">Estos artefactos se comprueban una vez al día en osv.dev. Los identificadores abren la página de osv.dev en tu navegador.</string>
     <string name="dependencies_cve_runtime">Notificada por osv.dev tras esta versión — aún sin evaluar</string>
     <string name="advisory_check_title">Comprobar dependencias en osv.dev</string>
     <string name="advisory_check_detail">Desactivado por defecto. Si se activa, la lista de artefactos y versiones de esta versión (pública en el repositorio de código) se envía una vez al día a osv.dev, una base de datos de vulnerabilidades gestionada por Google, que entonces ve tu dirección IP y puede deducir de los artefactos consultados qué app pregunta. No se envía nada más, y la respuesta solo cambia lo que muestra esta app. Es un equilibrio entre privacidad y seguridad; la decisión es tuya.</string>
@@ -218,6 +218,7 @@
     <string name="advisory_check_never">Aún no comprobado.</string>
     <string name="advisory_check_clean">Nada nuevo notificado · última comprobación %1$s</string>
     <string name="advisory_check_found">%1$d avisos nuevos · última comprobación %2$s</string>
+    <string name="advisory_check_muted_only">%1$d avisos, todos silenciados por ti · última comprobación %2$s</string>
     <string name="dependencies_mute">Silenciar</string>
     <string name="dependencies_unmute">Reactivar</string>
     <string name="dependencies_cve_muted">Silenciada por ti — cuenta como evaluada hasta que el artefacto cambie de versión</string>

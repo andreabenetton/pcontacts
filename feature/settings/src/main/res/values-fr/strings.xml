@@ -208,7 +208,7 @@
     <string name="dependencies_chip_open">Dépendances : vulnérabilité</string>
     <string name="dependencies_false_positive_group">%1$d correspondances du scanner pour un autre produit (faux positif)</string>
     <string name="dependencies_intro_snapshot">Cette liste vient de l\'analyse faite à la compilation de l\'app. Elle ne change pas avant la version suivante ; un contrôle entre deux versions peut être activé dans Confidentialité. Les identifiants CVE ouvrent la page NVD dans votre navigateur.</string>
-    <string name="dependencies_intro_runtime">Cette liste vient de l\'analyse faite à la compilation de l\'app, plus un contrôle quotidien des mêmes artefacts auprès d\'osv.dev. Les identifiants ouvrent la page NVD ou osv.dev dans votre navigateur.</string>
+    <string name="dependencies_intro_runtime">Ces artefacts sont contrôlés une fois par jour auprès d’osv.dev. Les identifiants ouvrent la page osv.dev dans votre navigateur.</string>
     <string name="dependencies_cve_runtime">Signalée par osv.dev après cette version — pas encore évaluée</string>
     <string name="advisory_check_title">Contrôler les dépendances auprès d\'osv.dev</string>
     <string name="advisory_check_detail">Désactivé par défaut. Une fois activé, la liste des artefacts et versions de cette version (publique dans le dépôt source) est envoyée une fois par jour à osv.dev, une base de vulnérabilités exploitée par Google, qui voit alors votre adresse IP et peut déduire des artefacts demandés quelle app interroge. Rien d\'autre n\'est envoyé, et la réponse ne change que ce que cette app affiche. C\'est un compromis entre confidentialité et sécurité ; la décision vous appartient.</string>
@@ -218,6 +218,7 @@
     <string name="advisory_check_never">Pas encore contrôlé.</string>
     <string name="advisory_check_clean">Rien de nouveau signalé · dernier contrôle %1$s</string>
     <string name="advisory_check_found">%1$d nouveaux avis · dernier contrôle %2$s</string>
+    <string name="advisory_check_muted_only">%1$d avis, tous ignorés par vous · dernier contrôle %2$s</string>
     <string name="dependencies_mute">Ignorer</string>
     <string name="dependencies_unmute">Ne plus ignorer</string>
     <string name="dependencies_cve_muted">Ignorée par vous — comptée comme évaluée tant que l’artefact ne change pas de version</string>

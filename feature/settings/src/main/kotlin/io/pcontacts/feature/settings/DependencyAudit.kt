@@ -32,18 +32,28 @@ data class DependencyAudit(
     val knownIds: Set<String> get() = dependencies.flatMap { d -> d.cves.map { it.id } }.toSet()
 
     /**
-     * The snapshot plus what the opt-in runtime check found (ADR-0025): each advisory becomes an
-     * open entry of its artifact, so the dot, the order and the screen treat it like any open CVE.
+     * What the screens show (ADR-0025): while the runtime check is on, the build-time scan no
+     * longer matters — every artifact carries only what osv.dev reported (an unmuted advisory is
+     * open, a muted one assessed); while it is off, the snapshot as built.
      */
     fun withRuntime(runtime: AdvisoryCheckState): DependencyAudit {
-        if (runtime.advisories.isEmpty()) return this
+        if (!runtime.enabled) return this
         val byCoordinate = runtime.advisories.groupBy { it.coordinate }
         return copy(
             dependencies = dependencies.map { d ->
-                val extra = byCoordinate[d.coordinate].orEmpty().map { a ->
-                    AuditCve(a.id, null, a.severity, a.url, suppressed = a.muted, reason = a.summary, runtime = true)
-                }
-                if (extra.isEmpty()) d else d.copy(cves = d.cves + extra)
+                d.copy(
+                    cves = byCoordinate[d.coordinate].orEmpty().map { a ->
+                        AuditCve(
+                            id = a.id,
+                            score = null,
+                            severity = a.severity,
+                            url = a.url,
+                            suppressed = a.muted,
+                            reason = a.summary,
+                            runtime = true
+                        )
+                    }
+                )
             }
         )
     }

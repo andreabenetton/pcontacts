@@ -208,7 +208,7 @@
     <string name="dependencies_chip_open">Dependencies: vulnerability</string>
     <string name="dependencies_false_positive_group">%1$d scanner matches for a different product (false positive)</string>
     <string name="dependencies_intro_snapshot">This list comes from the scan made when the app was built. It does not change until the next release; a check between releases can be turned on under Privacy. CVE ids open the NVD page in your browser.</string>
-    <string name="dependencies_intro_runtime">This list comes from the scan made when the app was built, plus a daily check of these same artifacts against osv.dev. Ids open the NVD or osv.dev page in your browser.</string>
+    <string name="dependencies_intro_runtime">These artifacts are checked once a day against osv.dev. Ids open the osv.dev page in your browser.</string>
     <string name="dependencies_cve_runtime">Reported by osv.dev after this release — not yet assessed</string>
     <string name="advisory_check_title">Check dependencies against osv.dev</string>
     <string name="advisory_check_detail">Off by default. When on, the list of this release\'s artifacts and versions (public in the source repository) is sent once a day to osv.dev, a vulnerability database run by Google, which then sees your IP address and can infer from the artifacts asked about which app is asking. Nothing else is sent, and the answer only changes what this app shows. This is a trade-off between privacy and security; the decision is left to you.</string>
@@ -218,6 +218,7 @@
     <string name="advisory_check_never">Not checked yet.</string>
     <string name="advisory_check_clean">Nothing new reported · last check %1$s</string>
     <string name="advisory_check_found">%1$d new advisories · last check %2$s</string>
+    <string name="advisory_check_muted_only">%1$d advisories, all muted by you · last check %2$s</string>
     <string name="dependencies_mute">Mute</string>
     <string name="dependencies_unmute">Unmute</string>
     <string name="dependencies_cve_muted">Muted by you — counts as assessed until the artifact changes version</string>

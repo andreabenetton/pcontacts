@@ -208,7 +208,7 @@
     <string name="dependencies_chip_open">Abhängigkeiten: Schwachstelle</string>
     <string name="dependencies_false_positive_group">%1$d Scanner-Treffer für ein anderes Produkt (falsch positiv)</string>
     <string name="dependencies_intro_snapshot">Diese Liste stammt aus dem Scan beim Bau der App. Sie ändert sich erst mit der nächsten Version; eine Prüfung zwischen Versionen lässt sich unter Datenschutz einschalten. CVE-Kennungen öffnen die NVD-Seite in Ihrem Browser.</string>
-    <string name="dependencies_intro_runtime">Diese Liste stammt aus dem Scan beim Bau der App, ergänzt um eine tägliche Prüfung derselben Artefakte bei osv.dev. Kennungen öffnen die NVD- oder osv.dev-Seite in Ihrem Browser.</string>
+    <string name="dependencies_intro_runtime">Diese Artefakte werden einmal täglich bei osv.dev geprüft. Kennungen öffnen die osv.dev-Seite in Ihrem Browser.</string>
     <string name="dependencies_cve_runtime">Von osv.dev nach dieser Version gemeldet — noch nicht bewertet</string>
     <string name="advisory_check_title">Abhängigkeiten bei osv.dev prüfen</string>
     <string name="advisory_check_detail">Standardmäßig aus. Wenn an, wird die Liste der Artefakte und Versionen dieser Version (im Quellcode öffentlich) einmal täglich an osv.dev gesendet, eine von Google betriebene Schwachstellendatenbank, die dann Ihre IP-Adresse sieht und aus den angefragten Artefakten ableiten kann, welche App anfragt. Mehr wird nicht gesendet, und die Antwort ändert nur, was diese App anzeigt. Das ist eine Abwägung zwischen Datenschutz und Sicherheit; die Entscheidung liegt bei Ihnen.</string>
@@ -218,6 +218,7 @@
     <string name="advisory_check_never">Noch nicht geprüft.</string>
     <string name="advisory_check_clean">Nichts Neues gemeldet · letzte Prüfung %1$s</string>
     <string name="advisory_check_found">%1$d neue Hinweise · letzte Prüfung %2$s</string>
+    <string name="advisory_check_muted_only">%1$d Hinweise, alle von Ihnen stummgeschaltet · letzte Prüfung %2$s</string>
     <string name="dependencies_mute">Stummschalten</string>
     <string name="dependencies_unmute">Stummschaltung aufheben</string>
     <string name="dependencies_cve_muted">Von Ihnen stummgeschaltet — gilt als bewertet, bis das Artefakt die Version wechselt</string>

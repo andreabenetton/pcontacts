@@ -195,7 +195,7 @@
     <string name="dependencies_chip_open">依赖项：存在漏洞</string>
     <string name="dependencies_false_positive_group">%1$d 个扫描器匹配项属于其他产品（误报）</string>
     <string name="dependencies_intro_snapshot">此列表来自构建应用时的扫描。在下一个版本之前不会更改；可在“隐私”中开启版本之间的检查。点按 CVE 编号可在浏览器中打开 NVD 页面。</string>
-    <string name="dependencies_intro_runtime">此列表来自构建应用时的扫描，并每天对同一批构件在 osv.dev 上进行检查。点按编号可在浏览器中打开 NVD 或 osv.dev 页面。</string>
+    <string name="dependencies_intro_runtime">这些构件每天在 osv.dev 上检查一次。点按编号可在浏览器中打开 osv.dev 页面。</string>
     <string name="dependencies_cve_runtime">由 osv.dev 在本版本发布后报告 — 尚未评估</string>
     <string name="advisory_check_title">在 osv.dev 上检查依赖项</string>
     <string name="advisory_check_detail">默认关闭。开启后，本版本的构件和版本列表（在源码仓库中公开）每天发送一次到 osv.dev（由 Google 运营的漏洞数据库），它会因此看到您的 IP 地址，并可从所询问的构件推断出是哪个应用在询问。不会发送其他内容，返回结果只影响此应用显示的内容。这是隐私与安全之间的取舍，决定权在您。</string>
@@ -205,6 +205,7 @@
     <string name="advisory_check_never">尚未检查。</string>
     <string name="advisory_check_clean">未报告新内容 · 上次检查 %1$s</string>
     <string name="advisory_check_found">%1$d 条新公告 · 上次检查 %2$s</string>
+    <string name="advisory_check_muted_only">%1$d 条公告，均已被您静音 · 上次检查 %2$s</string>
     <string name="dependencies_mute">静音</string>
     <string name="dependencies_unmute">取消静音</string>
     <string name="dependencies_cve_muted">已被您静音 — 在该构件更换版本之前视为已评估</string>

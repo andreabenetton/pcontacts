@@ -208,7 +208,7 @@
     <string name="dependencies_chip_open">Dipendenze: vulnerabilità</string>
     <string name="dependencies_false_positive_group">%1$d corrispondenze dello scanner per un altro prodotto (falso positivo)</string>
     <string name="dependencies_intro_snapshot">Questo elenco viene dalla scansione fatta alla compilazione dell\'app. Non cambia fino alla versione successiva; un controllo tra una versione e l\'altra si può attivare in Privacy. Gli identificativi CVE aprono la pagina NVD nel browser.</string>
-    <string name="dependencies_intro_runtime">Questo elenco viene dalla scansione fatta alla compilazione dell\'app, più un controllo giornaliero degli stessi artefatti su osv.dev. Gli identificativi aprono la pagina NVD o osv.dev nel browser.</string>
+    <string name="dependencies_intro_runtime">Questi artefatti vengono controllati una volta al giorno su osv.dev. Gli identificativi aprono la pagina osv.dev nel browser.</string>
     <string name="dependencies_cve_runtime">Segnalata da osv.dev dopo questa versione — non ancora valutata</string>
     <string name="advisory_check_title">Controlla le dipendenze su osv.dev</string>
     <string name="advisory_check_detail">Disattivato per impostazione predefinita. Se attivo, l\'elenco degli artefatti e delle versioni di questa release (pubblico nel repository dei sorgenti) viene inviato una volta al giorno a osv.dev, un database di vulnerabilità gestito da Google, che così vede il tuo indirizzo IP e può dedurre dagli artefatti richiesti quale app sta chiedendo. Non viene inviato altro, e la risposta cambia solo ciò che questa app mostra. È un compromesso tra privacy e sicurezza; la decisione è lasciata a te.</string>
@@ -218,6 +218,7 @@
     <string name="advisory_check_never">Non ancora controllato.</string>
     <string name="advisory_check_clean">Nessuna novità segnalata · ultimo controllo %1$s</string>
     <string name="advisory_check_found">%1$d nuovi avvisi · ultimo controllo %2$s</string>
+    <string name="advisory_check_muted_only">%1$d avvisi, tutti silenziati da te · ultimo controllo %2$s</string>
     <string name="dependencies_mute">Silenzia</string>
     <string name="dependencies_unmute">Riattiva</string>
     <string name="dependencies_cve_muted">Silenziata da te — conta come valutata finché l’artefatto non cambia versione</string>
