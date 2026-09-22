@@ -55,7 +55,9 @@ fun TwoFactorScreen(
 
     var code by remember { mutableStateOf("") }
     // Input stays locked while the verification WebView is up, as while a code is in flight.
-    val submitting = state is LoginUiState.TwoFactorSubmitting || state is LoginUiState.TwoFactorHumanVerificationRequired
+    val submitting = state is LoginUiState.TwoFactorSubmitting ||
+        state is LoginUiState.TwoFactorHumanVerificationRequired ||
+        state is LoginUiState.KeyDerivationHumanVerificationRequired
     val canSubmit = !submitting && code.length >= 6
     val submit = {
         val pending = code
@@ -105,6 +107,10 @@ fun TwoFactorScreen(
             is LoginUiState.TwoFactorSubmitting ->
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             is LoginUiState.TwoFactorHumanVerificationRequired -> {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LaunchedEffect(s.verificationUrl) { onHumanVerificationRequired(s.verificationUrl) }
+            }
+            is LoginUiState.KeyDerivationHumanVerificationRequired -> {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 LaunchedEffect(s.verificationUrl) { onHumanVerificationRequired(s.verificationUrl) }
             }

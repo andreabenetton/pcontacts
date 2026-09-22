@@ -56,5 +56,17 @@ sealed interface LoginUiState {
         val verificationUrl: String?
     ) : LoginUiState
 
+    /**
+     * The demand raised after `/auth/2fa` accepted the code, on the
+     * key-derivation calls. The code is spent; on RESULT_OK
+     * `retryAfterVerification()` resumes key derivation on the kept
+     * session — it never asks for another code.
+     */
+    data class KeyDerivationHumanVerificationRequired(
+        val uid: String,
+        val username: String,
+        val verificationUrl: String?
+    ) : LoginUiState
+
     data class Failed(val reason: String) : LoginUiState
 }

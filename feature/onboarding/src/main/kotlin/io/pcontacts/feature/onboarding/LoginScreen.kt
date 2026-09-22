@@ -152,6 +152,7 @@ private fun LoginStatusView(
         // recomposition — render nothing.
         is LoginUiState.TwoFactorSubmitting,
         is LoginUiState.TwoFactorHumanVerificationRequired,
+        is LoginUiState.KeyDerivationHumanVerificationRequired,
         is LoginUiState.TwoFactorFailed -> Unit
         is LoginUiState.Failed -> Text(
             text = friendlyError(state.reason),

@@ -220,6 +220,76 @@ class LoginViewModelTest {
         assertEquals(LoginUiState.TwoFactorFailed("uid-2fa", "u", "verification_rejected"), vm.uiState.value)
     }
 
+    private fun keyDerivationVm(
+        retry: suspend () -> LoginResult,
+        abort: () -> Unit = {}
+    ) = LoginViewModel(
+        attemptLogin = { _, _ -> LoginResult.TwoFactorRequired("uid-kd", "u") },
+        submitTotp = {
+            LoginResult.HumanVerificationRequired("url", "uid-kd", "u", stage = LoginResult.HvStage.KEY_DERIVATION)
+        },
+        retryKeyDerivation = retry,
+        abortLogin = abort,
+        workDispatcher = testDispatcher
+    )
+
+    @Test fun a_9001_after_the_accepted_code_surfaces_the_key_derivation_state() = runTest {
+        val vm = keyDerivationVm(retry = { error("not yet") })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+
+        vm.submitTwoFactor("123456")
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.KeyDerivationHumanVerificationRequired("uid-kd", "u", "url"), vm.uiState.value)
+    }
+
+    @Test fun retry_after_verification_in_the_key_derivation_stage_resumes_without_a_new_code() = runTest {
+        var retries = 0
+        val vm = keyDerivationVm(
+            retry = {
+                retries += 1
+                LoginResult.Success("uid-kd", "u")
+            }
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("123456")
+        advanceUntilIdle()
+
+        vm.retryAfterVerification()
+        assertEquals(LoginUiState.TwoFactorSubmitting("uid-kd", "u"), vm.uiState.value)
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.Success("uid-kd", "u"), vm.uiState.value)
+        assertEquals(1, retries)
+    }
+
+    @Test fun a_rejected_key_derivation_retry_lands_on_the_code_screen_as_a_failure() = runTest {
+        val vm = keyDerivationVm(retry = { LoginResult.Failed("verification_rejected", "uid-kd", "u") })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("123456")
+        advanceUntilIdle()
+
+        vm.retryAfterVerification()
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.TwoFactorFailed("uid-kd", "u", "verification_rejected"), vm.uiState.value)
+    }
+
+    @Test fun reset_tells_the_orchestrator_to_abort() = runTest {
+        var aborted = 0
+        val vm = keyDerivationVm(retry = { error("unused") }, abort = { aborted += 1 })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+
+        vm.reset()
+
+        assertEquals(1, aborted)
+        assertEquals(LoginUiState.Idle, vm.uiState.value)
+    }
+
     @Test fun reset_from_the_two_factor_verification_state_returns_to_idle_and_clears_the_flag() = runTest {
         val vm = twoFactorVm({ LoginResult.HumanVerificationRequired("u", "uid-2fa", "u") })
         vm.login("u", "p".toCharArray())
