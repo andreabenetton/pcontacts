@@ -109,10 +109,12 @@ the first tag of a release:
 | `RELEASE_KEY_ALIAS` | Key alias (e.g. `pcontacts`) |
 | `RELEASE_KEY_PASSWORD` | Key password |
 
-### Repository rulesets (owner-side, once)
+### Repository rulesets (applied 2026-09-22)
 
 `master` and the `v*` tags are what F-Droid and the release workflow
-trust, so GitHub should refuse what CI would refuse:
+trust, so GitHub refuses what CI would refuse. Two rulesets exist
+(Settings → Rules → Rulesets); the repository admin role bypasses both,
+so the owner's direct pushes and tags keep working:
 
 - **Branch ruleset on `master`**: require the `build` workflow's status
   checks (unit tests, lint, the three emulator legs, release build,
