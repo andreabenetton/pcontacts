@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,13 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /** Entry button on the Settings screen: the host opens [LinkedImportScreen]. */
 @Composable
 internal fun LinkedImportSection(enabled: Boolean, onOpen: () -> Unit) {
-    OutlinedButton(
-        enabled = enabled,
-        onClick = onOpen,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(stringResource(R.string.linked_import_button))
-    }
+    ActionButton(enabled = enabled, onClick = onOpen, textRes = R.string.linked_import_button)
     Spacer(Modifier.height(4.dp))
     Text(
         text = stringResource(R.string.linked_import_hint),
