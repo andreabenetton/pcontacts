@@ -44,6 +44,8 @@ fun SignInScreen(
     onSignIn: () -> Unit,
     onOpenDeGoogledRoms: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The account was signed out by the 2.0 secret-store upgrade; say so above the button. */
+    storageUpgradeNotice: Boolean = false,
     snackbarHost: @Composable () -> Unit = {}
 ) {
     Scaffold(
@@ -57,6 +59,14 @@ fun SignInScreen(
                 text = stringResource(R.string.settings_sign_in_detail),
                 style = MaterialTheme.typography.bodyMedium
             )
+            if (storageUpgradeNotice) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.sign_in_storage_upgrade_notice),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
             Spacer(Modifier.height(16.dp))
             OutlinedButton(
                 enabled = !loading,

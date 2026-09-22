@@ -32,6 +32,22 @@ class SignInScreenTest {
         composeRule.onNodeWithText("Sign in").assertIsDisplayed().performClick()
         assertTrue(signedIn)
         composeRule.onNodeWithText("de-Googled ROM", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("You were signed out", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun after_the_storage_upgrade_the_screen_explains_the_sign_out() {
+        composeRule.setContent {
+            SignInScreen(
+                loading = false,
+                contactsPermissionGranted = true,
+                onSignIn = {},
+                onOpenDeGoogledRoms = {},
+                storageUpgradeNotice = true
+            )
+        }
+        composeRule.onNodeWithText("You were signed out", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Sign in").assertIsDisplayed()
     }
 
     @Test

@@ -165,6 +165,7 @@
     </plurals>
     <string name="settings_sign_in">Accedi</string>
     <string name="settings_sign_in_detail">Accedi con il tuo account Proton per iniziare a sincronizzare i contatti.</string>
+    <string name="sign_in_storage_upgrade_notice">Sei stato disconnesso perché la versione 2.0 conserva la sessione in un archivio cifrato più robusto e legato al dispositivo, e quella precedente non è stata trasferibile. Accedi di nuovo una sola volta — contatti e impostazioni restano.</string>
     <string name="settings_contacts_storage_unavailable">Non disponibile in questa versione di Android: scegli l\'account nelle impostazioni dell\'app Contatti.</string>
     <string name="linked_import_row_added">Aggiunto a Proton</string>
     <string name="linked_import_select_a11y">Seleziona %1$s</string>
