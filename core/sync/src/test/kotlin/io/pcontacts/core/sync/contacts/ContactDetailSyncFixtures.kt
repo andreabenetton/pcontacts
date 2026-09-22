@@ -65,6 +65,7 @@ internal fun newEngine(
     saveMergeBase: suspend (String, DecryptedContact) -> Unit = { id, c ->
         dao.setMergeBase(id, DecryptedContactJson.encode(c))
     },
+    readLocalPhotoHash: suspend (Long) -> String? = { null },
     onProgress: (Int, Int) -> Unit = { _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
@@ -83,6 +84,7 @@ internal fun newEngine(
         applyIntents = { acct, intents -> applier.apply(acct, intents) },
         onProgress = onProgress,
         saveMergeBase = saveMergeBase,
+        readLocalPhotoHash = readLocalPhotoHash,
         clock = { 1_700_000_000L }
     )
 }

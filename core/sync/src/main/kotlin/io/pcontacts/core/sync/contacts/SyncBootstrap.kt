@@ -24,6 +24,7 @@ import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
+import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.KeystoreMergeBaseStore
 import io.pcontacts.core.storage.MergeBaseStore
@@ -221,6 +222,7 @@ object SyncBootstrap {
         val metadataPager = ContactsMetadataPager(api = apis.contacts)
         val db = DatabaseFactory.create(appContext)
         val reader = RawContactReader(provider)
+        val dataReader = RawContactDataReader(provider)
         val applier = BatchApplier(provider)
         val groupsWriter = LocalGroupsWriter(provider)
         val mergeBases = KeystoreMergeBaseStore(db.contactMapDao())
@@ -237,7 +239,8 @@ object SyncBootstrap {
                 withContext(Dispatchers.IO) { groupsWriter.reconcile(account, labels) }
             },
             onProgress = progressSink(context),
-            saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) }
+            saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
+            readLocalPhotoHash = localPhotoHashReader(dataReader)
         )
     }
 
@@ -318,6 +321,7 @@ object SyncBootstrap {
             },
             onProgress = progressSink(context),
             saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
+            readLocalPhotoHash = localPhotoHashReader(RawContactDataReader(provider)),
             // Same production logger as the write engine — the pull path was
             // previously wired to NoOpSink, so read-path failures (fetch /
             // decrypt / parse) were invisible in production logs.
@@ -393,4 +397,9 @@ private fun progressSink(context: Context): (Int, Int) -> Unit {
         prefs.syncProgressDone = done
         prefs.syncProgressTotal = total
     }
+}
+
+/** The digest of the photo the provider holds for a RawContact, or null when it has none. */
+private fun localPhotoHashReader(dataReader: RawContactDataReader): suspend (Long) -> String? = { rawContactId ->
+    withContext(Dispatchers.IO) { dataReader.read(rawContactId, "")?.photo?.data?.let(PhotoHash::of) }
 }

@@ -14,12 +14,15 @@ import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
 import io.pcontacts.core.proton.api.contacts.ContactCardBundle
+import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import io.pcontacts.core.proton.api.contacts.CreateContactsRequest
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.InMemoryMergeBaseStore
 import io.pcontacts.core.storage.MergeBaseStore
 import io.pcontacts.core.storage.db.dao.ContactMapDao
@@ -223,18 +226,22 @@ class ContactWriteEngine(
         val local = RowToDecryptedContact.convert(row, id, mapping.protonUid)
 
         return try {
-            val payload = if (entry.opType == OutboxEntity.OpType.FORCE_UPDATE) local else mergeForPush(entry, local)
-            if (payload == null) {
+            val outcome = resolvePayload(entry, mapping, local)
+            if (outcome == null) {
                 WriteReport(conflicted = 1)
             } else {
-                val cards = serializer.serialize(payload)
-                contactsApi.updateContact(id, UpdateContactRequest(cards = cards))
+                val (payload, cards) = outcome
+                if (cards == null) {
+                    logger.info { "push: nothing left to change on the server idTag=${id.hashCode()}" }
+                } else {
+                    contactsApi.updateContact(id, UpdateContactRequest(cards = cards))
+                }
                 // [A] Proton stores exactly the cards it accepted, so the payload is the
                 // server state until the next pull re-captures it. Column updates only:
                 // an upsert here would overwrite the sealed base.
-                MergeBaseCodec.save(mergeBases, id, payload)
+                val after = completeEntry(entry, mapping.androidRawContactId, pushedHash)
+                MergeBaseCodec.save(mergeBases, id, payload, localPhotoHash = after?.photo?.data?.let(PhotoHash::of))
                 contactMapDao.markClean(id, clock())
-                completeEntry(entry, mapping.androidRawContactId, pushedHash)
                 WriteReport(pushed = 1, updated = 1)
             }
         } catch (e: HumanVerificationRequiredException) {
@@ -248,15 +255,46 @@ class ContactWriteEngine(
     }
 
     /**
-     * The three-way merge, or null when the contact is now a conflict:
-     * the mapping carries the reason and the outbox row is gone, so the
-     * user's decision (ConflictResolver) is what happens next.
+     * What to push: the merged contact and the cards to PUT — the
+     * server's current cards with the change set applied (ADR-0017 §2,
+     * Choice 2C), or null cards when the merge left nothing to change.
+     * Null altogether when the contact became a conflict: the mapping
+     * carries the reason and the outbox row is gone, so the user's
+     * decision (ConflictResolver) is what happens next.
      */
-    private suspend fun mergeForPush(entry: OutboxEntity, local: DecryptedContact): DecryptedContact? {
+    private suspend fun resolvePayload(
+        entry: OutboxEntity,
+        mapping: ContactMapEntity,
+        local: DecryptedContact
+    ): Pair<DecryptedContact, List<ContactCardDto>?>? {
         val id = entry.protonContactId
-        val base = MergeBaseCodec.load(mergeBases, id) ?: return markConflict(entry, "no merge base")
-        val server = fetchServerContact(id)?.let(MergeBaseCodec::canonical)
-            ?: return markConflict(entry, "server state unavailable")
+        val server = fetchServerContact(id) ?: return markConflict(entry, "server state unavailable")
+        val serverCanonical = MergeBaseCodec.canonical(server) ?: return markConflict(entry, "server state unavailable")
+        val merged = if (entry.opType == OutboxEntity.OpType.FORCE_UPDATE) {
+            local
+        } else {
+            mergeForPush(entry, serverCanonical, local) ?: return null
+        }
+        val patch = ContactPatch.diff(serverCanonical, merged)
+        val cards = when {
+            patch.isEmpty -> null
+            // A server contact always has cards; a fixture without them gets the create layout.
+            server.cards.isEmpty() -> serializer.serialize(merged)
+            else -> serializer.serialize(
+                server.cards,
+                patch,
+                mapping.protonUid?.takeIf { it.isNotBlank() } ?: ContactSerializer.fallbackUid(id)
+            )
+        }
+        return merged to cards
+    }
+
+    private suspend fun mergeForPush(
+        entry: OutboxEntity,
+        server: DecryptedContact,
+        local: DecryptedContact
+    ): DecryptedContact? {
+        val base = MergeBaseCodec.load(mergeBases, entry.protonContactId) ?: return markConflict(entry, "no merge base")
         return when (val result = ThreeWayMerger.merge(ThreeWayMerger.MergeInput(base, server, local))) {
             is ThreeWayMerger.MergeResult.AutoMerged -> result.merged
             is ThreeWayMerger.MergeResult.Conflicted ->
@@ -264,7 +302,7 @@ class ContactWriteEngine(
         }
     }
 
-    private suspend fun markConflict(entry: OutboxEntity, reason: String): DecryptedContact? {
+    private suspend fun markConflict(entry: OutboxEntity, reason: String): Nothing? {
         contactMapDao.markConflict(entry.protonContactId, "conflict: $reason")
         outboxDao.deleteIfUnchanged(entry.id, entry.opType, entry.payloadHash)
         logger.warn { "pushUpdate: conflict ($reason) idTag=${entry.protonContactId.hashCode()}" }
@@ -274,14 +312,17 @@ class ContactWriteEngine(
     /**
      * ADR-0017 §5: the row is done only if it still describes what was
      * pushed; if the contact changed meanwhile, the new state is queued.
+     * Returns the row as it is now (its photo digest goes into the base).
      */
-    private suspend fun completeEntry(entry: OutboxEntity, rawContactId: Long, pushedHash: String) {
+    private suspend fun completeEntry(entry: OutboxEntity, rawContactId: Long, pushedHash: String): ContactRow? {
         outboxDao.deleteIfUnchanged(entry.id, entry.opType, entry.payloadHash)
-        val nowHash = readContactRow(rawContactId, entry.protonContactId)?.let(EmailSyncHash::compute)
+        val now = readContactRow(rawContactId, entry.protonContactId)
+        val nowHash = now?.let(EmailSyncHash::compute)
         if (nowHash != null && nowHash != pushedHash) {
             logger.info { "push: contact changed during push, re-queued idTag=${entry.protonContactId.hashCode()}" }
             outboxDao.enqueue(entry.protonContactId, OutboxEntity.OpType.UPDATE, nowHash, clock())
         }
+        return now
     }
 
     private suspend fun pushCreate(entry: OutboxEntity, account: Account?): WriteReport {
@@ -313,12 +354,18 @@ class ContactWriteEngine(
                     )
                 )
             }
-            if (serverContact != null) {
-                MergeBaseCodec.save(mergeBases, serverContact.id, contact)
-                if (account != null) writeSourceId(account, rawContactId, serverContact.id)
-            }
+            if (serverContact != null && account != null) writeSourceId(account, rawContactId, serverContact.id)
             outboxDao.deleteByContact(localId)
-            val nowHash = readContactRow(rawContactId, localId)?.let(EmailSyncHash::compute)
+            val nowRow = readContactRow(rawContactId, localId)
+            if (serverContact != null) {
+                MergeBaseCodec.save(
+                    mergeBases,
+                    serverContact.id,
+                    contact,
+                    localPhotoHash = nowRow?.photo?.data?.let(PhotoHash::of)
+                )
+            }
+            val nowHash = nowRow?.let(EmailSyncHash::compute)
             if (serverContact != null && nowHash != null && nowHash != pushedHash) {
                 outboxDao.enqueue(serverContact.id, OutboxEntity.OpType.UPDATE, nowHash, clock())
             }

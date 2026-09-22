@@ -12,6 +12,7 @@ import io.pcontacts.core.protoncontacts.CardCryptoOutcome
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.DecryptedContactJson
+import io.pcontacts.core.protoncontacts.PhotoHash
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -175,6 +176,31 @@ class ContactDetailSyncEngineTest {
         val base = DecryptedContactJson.decode(dao.snapshot()["c1"]!!.lastKnownServerPayload!!)!!
         assertEquals("Alice", base.fullName)
         assertEquals(listOf("alice@proton.me"), base.emails.map { it.address })
+    }
+
+    @Test fun pull_records_both_photo_digests_in_the_base() = runTest {
+        val bytes = byteArrayOf(9, 8, 7)
+        val b64 = java.util.Base64.getEncoder().encodeToString(bytes)
+        val vcard = "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nEMAIL:alice@proton.me\n" +
+            "PHOTO;MEDIATYPE=image/jpeg:data:image/jpeg;base64,$b64\nEND:VCARD"
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L))),
+            contacts = mapOf("c1" to contact("c1", 100L, vcard))
+        )
+        val dao = DetailFakeContactMapDao()
+        val engine = newEngine(
+            api,
+            dao,
+            DetailFakeApplier(base = 1L),
+            readLocalPhotoHash = { "local-digest-$it" }
+        )
+
+        engine.sync(account)
+
+        val base = DecryptedContactJson.decode(dao.snapshot()["c1"]!!.lastKnownServerPayload!!)!!
+        assertEquals(PhotoHash.of(bytes), base.serverPhotoHash)
+        assertEquals("local-digest-1", base.localPhotoHash)
+        assertNull(base.photo)
     }
 
     @Test fun pull_captures_the_merge_base_on_the_hash_equal_path_too() = runTest {

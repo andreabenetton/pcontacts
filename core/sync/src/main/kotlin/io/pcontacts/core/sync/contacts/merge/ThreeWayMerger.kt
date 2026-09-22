@@ -3,13 +3,10 @@
 
 package io.pcontacts.core.sync.contacts.merge
 
-import io.pcontacts.core.protoncontacts.DecryptedAddress
+import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.DecryptedContact
-import io.pcontacts.core.protoncontacts.DecryptedEmail
-import io.pcontacts.core.protoncontacts.DecryptedIm
-import io.pcontacts.core.protoncontacts.DecryptedOrganization
-import io.pcontacts.core.protoncontacts.DecryptedPhone
-import io.pcontacts.core.protoncontacts.DecryptedStructuredName
+import io.pcontacts.core.protoncontacts.DecryptedPhoto
+import io.pcontacts.core.protoncontacts.PhotoHash
 
 /**
  * Per-field three-way merge with user escalation on same-field
@@ -30,7 +27,15 @@ import io.pcontacts.core.protoncontacts.DecryptedStructuredName
  *
  * Multi-value fields (emails, phones, addresses, imAccounts) use
  * set-based merge: disjoint additions auto-merge; disjoint removals
- * auto-merge; contradicting changes to the same entry conflict.
+ * auto-merge; contradicting changes to the same entry conflict. An
+ * address is identified by its full component tuple; a changed TYPE is
+ * a modification, never a second address (ADR-0017 second amendment).
+ *
+ * The photo merges through digests: the server side changed when the
+ * server photo's digest differs from the base's `serverPhotoHash`, the
+ * local side when the local bytes' digest differs from the base's
+ * `localPhotoHash` (the provider re-encodes photos, so the two digests
+ * of one photo never agree with each other — only with themselves).
  */
 object ThreeWayMerger {
 
@@ -71,8 +76,11 @@ object ThreeWayMerger {
         )
 
         val addresses = mergeSet(
-            "addresses", input.base.addresses, input.server.addresses, input.local.addresses,
-            { listOfNotNull(it.street, it.locality, it.postalCode).joinToString("|") },
+            "addresses",
+            input.base.addresses,
+            input.server.addresses,
+            input.local.addresses,
+            { ContactPatch.addressKey(it) },
             conflicts
         )
 
@@ -90,6 +98,8 @@ object ThreeWayMerger {
             { "${it.handle}|${it.protocol}" }, conflicts
         )
 
+        val photo = mergePhoto(input, conflicts)
+
         val merged = input.local.copy(
             fullName = fullName,
             structuredName = structuredName,
@@ -99,15 +109,34 @@ object ThreeWayMerger {
             organization = organization,
             notes = notes ?: emptyList(),
             imAccounts = imAccounts,
+            photo = photo,
+            serverPhotoHash = photo?.let { PhotoHash.of(it.data) },
             verified = input.server.verified,
             cardCount = input.server.cardCount,
-            unverifiedCardCount = input.server.unverifiedCardCount
+            unverifiedCardCount = input.server.unverifiedCardCount,
+            cards = input.server.cards
         )
 
         return if (conflicts.isEmpty()) {
             MergeResult.AutoMerged(merged)
         } else {
             MergeResult.Conflicted(merged, conflicts)
+        }
+    }
+
+    private fun mergePhoto(input: MergeInput, conflicts: MutableList<FieldConflict>): DecryptedPhoto? {
+        val serverHash = input.server.serverPhotoHash ?: input.server.photo?.let { PhotoHash.of(it.data) }
+        val localHash = input.local.photo?.let { PhotoHash.of(it.data) }
+        val serverChanged = serverHash != input.base.serverPhotoHash
+        val localChanged = localHash != input.base.localPhotoHash
+        return when {
+            !localChanged -> input.server.photo
+            !serverChanged -> input.local.photo
+            serverHash == localHash -> input.server.photo
+            else -> {
+                conflicts += FieldConflict("photo", serverHash, localHash)
+                input.local.photo
+            }
         }
     }
 

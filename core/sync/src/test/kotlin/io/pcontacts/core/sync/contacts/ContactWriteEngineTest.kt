@@ -24,12 +24,20 @@ import io.pcontacts.core.proton.api.contacts.GetContactResponse
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.contacts.UpdateContactResponse
+import io.pcontacts.core.protoncontacts.CardCryptoOutcome
+import io.pcontacts.core.protoncontacts.CardCryptoRequest
 import io.pcontacts.core.protoncontacts.CardEncryptOp
 import io.pcontacts.core.protoncontacts.CardEncryptOutcome
 import io.pcontacts.core.protoncontacts.CardEncryptRequest
+import io.pcontacts.core.protoncontacts.CardType
+import io.pcontacts.core.protoncontacts.ContactDecrypter
+import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.protoncontacts.DecryptedContactJson
 import io.pcontacts.core.protoncontacts.DecryptedEmail
+import io.pcontacts.core.protoncontacts.DecryptedPhoto
+import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.InMemoryMergeBaseStore
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
@@ -65,6 +73,10 @@ class ContactWriteEngineTest {
     }
 
     private val serializer = ContactSerializer(encryptOp = passThrough)
+
+    /** The user changed something on the phone, so the push has a change to carry. */
+    private fun Map<String, DecryptedContact>.locallyEdited() =
+        mapValues { it.value.copy(notes = listOf("local edit")) }
 
     private fun sampleContact(id: String) = DecryptedContact(
         protonContactId = id,
@@ -102,7 +114,7 @@ class ContactWriteEngineTest {
             api,
             outbox,
             contactMap,
-            contacts,
+            contacts.locallyEdited(),
             serverContacts = contacts,
             bases = contacts,
             mergeBases = bases
@@ -153,7 +165,14 @@ class ContactWriteEngineTest {
             createdAt = 1_000_000L
         ))
 
-        val engine = newEngine(api, outbox, contactMap, contacts, serverContacts = contacts, bases = contacts)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts
+        )
         val report = engine.push()
 
         assertEquals(1, report.pushed)
@@ -239,7 +258,7 @@ class ContactWriteEngineTest {
             api,
             outbox,
             contactMap,
-            contacts,
+            contacts.locallyEdited(),
             serverContacts = contacts,
             bases = contacts,
             clock = { 2_000_000_000L }
@@ -267,7 +286,14 @@ class ContactWriteEngineTest {
             createdAt = 1_000_000L
         ))
 
-        val engine = newEngine(api, outbox, contactMap, contacts, serverContacts = contacts, bases = contacts)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts
+        )
         val report = engine.push()
 
         assertEquals(0, report.failed)
@@ -389,7 +415,14 @@ class ContactWriteEngineTest {
             createdAt = 1_000_000L
         ))
 
-        val engine = newEngine(api, outbox, contactMap, contacts, serverContacts = contacts, bases = contacts)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts
+        )
         val report = engine.push()
 
         assertEquals(1, report.failed)
@@ -726,6 +759,7 @@ class ContactWriteEngineTest {
         )
         contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
         outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "hash-v2", 1_000_000L)
+        val bases = InMemoryMergeBaseStore()
 
         val engine = newEngine(
             api,
@@ -733,14 +767,17 @@ class ContactWriteEngineTest {
             contactMap,
             contacts = mapOf("ct-1" to twoEmails),
             serverContacts = mapOf("ct-1" to sampleContact("ct-1")), // the server dropped old@
-            bases = mapOf("ct-1" to twoEmails)
+            bases = mapOf("ct-1" to twoEmails),
+            mergeBases = bases
         )
         val report = engine.push()
 
         assertEquals(1, report.pushed)
         assertEquals(0, report.conflicted)
-        assertFalse(api.lastUpdateRequest!!.cards.any { it.data.contains("old@proton.me") })
-        assertTrue(api.lastUpdateRequest!!.cards.any { it.data.contains("alice@proton.me") })
+        // The merge accepts the deletion; the server already has that state, so no PUT is needed.
+        assertNull(api.lastUpdateRequest)
+        val base = DecryptedContactJson.decode(bases.load("ct-1")!!)!!
+        assertEquals(listOf("alice@proton.me"), base.emails.map { it.address })
     }
 
     @Test fun push_update_with_base_local_only_deletion_auto_merges() = runTest {
@@ -827,7 +864,13 @@ class ContactWriteEngineTest {
         contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
         outbox.enqueue("ct-1", OutboxEntity.OpType.FORCE_UPDATE, "", 1_000_000L)
 
-        val engine = newEngine(api, outbox, contactMap, contacts = mapOf("ct-1" to sampleContact("ct-1")))
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1").copy(notes = listOf("phone"))),
+            serverContacts = mapOf("ct-1" to sampleContact("ct-1"))
+        )
         val report = engine.push()
 
         assertEquals(1, report.pushed)
@@ -850,8 +893,8 @@ class ContactWriteEngineTest {
             outbox,
             contactMap,
             contactRows = rows,
-            serverContacts = mapOf("ct-1" to sampleContact("ct-1")),
-            bases = mapOf("ct-1" to sampleContact("ct-1"))
+            serverContacts = mapOf("ct-1" to sampleContact("ct-1").copy(notes = listOf("base"))),
+            bases = mapOf("ct-1" to sampleContact("ct-1").copy(notes = listOf("base")))
         )
         val report = engine.push()
 
@@ -1113,7 +1156,14 @@ class ContactWriteEngineTest {
         contactMap.upsert(sampleMapping("ct-2", rawId = 200L))
         outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", 1L)
         outbox.enqueue("ct-2", OutboxEntity.OpType.UPDATE, "h2", 2L)
-        val engine = newEngine(api, outbox, contactMap, contacts, serverContacts = contacts, bases = contacts)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts
+        )
 
         val job = launch { engine.push() }
         advanceUntilIdle()
@@ -1122,6 +1172,164 @@ class ContactWriteEngineTest {
 
         assertEquals(2, peak)
         assertTrue(outbox.entries.isEmpty())
+    }
+
+    // ---- ADR-0017 §2 Choice 2C: an update patches the server's cards ----
+
+    /** Decrypts nothing: the "server" cards are plaintext vCards tagged with their real types. */
+    private val carrierProcessor = ContactProcessor(
+        ContactDecrypter(
+            cryptoOp = { request ->
+                when (request) {
+                    is CardCryptoRequest.VerifyOnly -> CardCryptoOutcome(request.data, verified = true)
+                    is CardCryptoRequest.DecryptAndVerify -> CardCryptoOutcome(request.armored, verified = true)
+                    is CardCryptoRequest.DecryptOnly -> CardCryptoOutcome(request.armored, verified = false)
+                }
+            }
+        )
+    )
+
+    private fun richServerContact(
+        id: String = "ct-1",
+        note: String = "old",
+        photoBase64: String? = null
+    ): DecryptedContact {
+        val signed = "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nUID:uid-1\nitem1.EMAIL;PREF=1:alice@proton.me\n" +
+            "item1.KEY:data:application/pgp-keys;base64,AAAA\nEND:VCARD"
+        val photoLine = photoBase64?.let { "PHOTO;MEDIATYPE=image/jpeg:data:image/jpeg;base64,$it\n" }.orEmpty()
+        val encrypted = "BEGIN:VCARD\nVERSION:4.0\nTEL;TYPE=cell:+15550001\nBDAY:19800101\nCATEGORIES:Friends\n" +
+            "NOTE:$note\n${photoLine}END:VCARD"
+        return carrierProcessor.process(
+            ContactDto(
+                id = id,
+                uid = "uid-1",
+                cards = listOf(
+                    ContactCardDto(type = CardType.SIGNED.wireValue, data = signed, signature = "s"),
+                    ContactCardDto(type = CardType.ENCRYPTED_AND_SIGNED.wireValue, data = encrypted, signature = "s")
+                )
+            )
+        )
+    }
+
+    private fun UpdateContactRequest.card(type: CardType) = cards.single { it.type == type.wireValue }.data
+
+    @Test fun push_update_patches_the_server_cards_and_keeps_unowned_properties() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val server = richServerContact(note = "old")
+        val local = MergeBaseCodec.canonical(server)!!.copy(notes = listOf("new"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to local),
+            serverContacts = mapOf("ct-1" to server),
+            bases = mapOf("ct-1" to server)
+        )
+
+        val report = engine.push()
+
+        assertEquals(1, report.updated)
+        val request = api.lastUpdateRequest!!
+        assertEquals(2, request.cards.size)
+        val signed = request.card(CardType.SIGNED)
+        assertTrue(signed.contains("UID:uid-1"))
+        assertTrue(signed.contains("item1.EMAIL;PREF=1:alice@proton.me"))
+        assertTrue(signed.contains("item1.KEY:"))
+        val encrypted = request.card(CardType.ENCRYPTED_AND_SIGNED)
+        assertTrue(encrypted.contains("BDAY:19800101"))
+        assertTrue(encrypted.contains("CATEGORIES:Friends"))
+        assertTrue(encrypted.contains("TEL;TYPE=cell:+15550001"))
+        assertTrue(encrypted.contains("NOTE:new"))
+        assertFalse(encrypted.contains("NOTE:old"))
+    }
+
+    @Test fun push_update_with_nothing_left_to_change_completes_without_a_PUT() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val server = richServerContact()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val bases = InMemoryMergeBaseStore()
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to MergeBaseCodec.canonical(server)!!),
+            serverContacts = mapOf("ct-1" to server),
+            bases = mapOf("ct-1" to server),
+            mergeBases = bases
+        )
+
+        val report = engine.push()
+
+        assertEquals(1, report.updated)
+        assertNull(api.lastUpdateRequest)
+        assertTrue(outbox.entries.isEmpty())
+        assertEquals(ContactMapEntity.Status.CLEAN, contactMap.findByProtonId("ct-1")!!.syncStatus)
+        assertNotNull(bases.load("ct-1"))
+    }
+
+    @Test fun push_force_update_still_patches_the_server_cards() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val server = richServerContact(note = "server")
+        val local = MergeBaseCodec.canonical(server)!!.copy(notes = listOf("phone"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.FORCE_UPDATE, "", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to local),
+            serverContacts = mapOf("ct-1" to server)
+        )
+
+        engine.push()
+
+        val encrypted = api.lastUpdateRequest!!.card(CardType.ENCRYPTED_AND_SIGNED)
+        assertTrue(encrypted.contains("NOTE:phone"))
+        assertTrue(encrypted.contains("BDAY:19800101"))
+        assertTrue(encrypted.contains("CATEGORIES:Friends"))
+    }
+
+    @Test fun push_update_keeps_a_newer_server_photo_through_an_unrelated_local_edit() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val photoA = byteArrayOf(1, 1, 1)
+        val localA = byteArrayOf(1, 1, 2) // the provider's re-encoding of A
+        val photoB = byteArrayOf(2, 2, 2)
+        val b64 = java.util.Base64.getEncoder()
+        val serverWithB = richServerContact(photoBase64 = b64.encodeToString(photoB))
+        val base = richServerContact(photoBase64 = b64.encodeToString(photoA))
+            .copy(localPhotoHash = PhotoHash.of(localA))
+        val local = MergeBaseCodec.canonical(base)!!.copy(
+            notes = listOf("edited"),
+            photo = DecryptedPhoto(localA)
+        )
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to local),
+            serverContacts = mapOf("ct-1" to serverWithB),
+            bases = mapOf("ct-1" to base)
+        )
+
+        val report = engine.push()
+
+        assertEquals(0, report.conflicted)
+        val encrypted = api.lastUpdateRequest!!.card(CardType.ENCRYPTED_AND_SIGNED)
+        assertTrue(encrypted.contains(b64.encodeToString(photoB)))
+        assertTrue(encrypted.contains("NOTE:edited"))
     }
 
     @Test fun push_cancelled_mid_flight_leaves_the_row_retryable_and_propagates() = runTest {
@@ -1133,7 +1341,14 @@ class ContactWriteEngineTest {
         val contacts = mapOf("ct-1" to sampleContact("ct-1"))
         contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
         outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", 1L)
-        val engine = newEngine(api, outbox, contactMap, contacts, serverContacts = contacts, bases = contacts)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts
+        )
 
         val job = launch { engine.push() }
         advanceUntilIdle()
@@ -1173,7 +1388,8 @@ class ContactWriteEngineTest {
             readDirtyContacts = { dirtyContacts },
             // A row by raw id, or — for the push tests — the contact keyed by source id, projected to its row.
             readContactRow = { rawId, sourceId ->
-                contactRows[rawId] ?: contacts[sourceId]?.let { DecryptedContactToRow.convert(it)?.copy(sourceId = sourceId) }
+                contactRows[rawId]
+                    ?: contacts[sourceId]?.let { DecryptedContactToRow.convert(it)?.copy(sourceId = sourceId) }
             },
             clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
             writeSourceId = { _, rawId, sourceId -> writtenSourceIds?.add(rawId to sourceId) },

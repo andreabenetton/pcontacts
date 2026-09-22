@@ -98,6 +98,13 @@ class ContactDetailSyncEngine(
      * Called after the mapping row is upserted, never before.
      */
     private val saveMergeBase: suspend (protonContactId: String, DecryptedContact) -> Unit = { _, _ -> },
+    /**
+     * Digest of the photo bytes the provider holds for the RawContact,
+     * read back after a write: the provider re-encodes inline photos, so
+     * only this digest can tell a later local photo change apart from
+     * the re-encoding (ADR-0017 second amendment).
+     */
+    private val readLocalPhotoHash: suspend (rawContactId: Long) -> String? = { null },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
@@ -280,7 +287,7 @@ class ContactDetailSyncEngine(
                         lastSyncedAt = now
                     )
                 )
-                saveMergeBase(sourceId, decrypted)
+                saveMergeBase(sourceId, decrypted.copy(localPhotoHash = readLocalPhotoHash(liveRawId)))
                 continue
             }
 
@@ -339,7 +346,7 @@ class ContactDetailSyncEngine(
                     lastSyncedAt = now
                 )
             )
-            saveMergeBase(row.sourceId, meta.decrypted)
+            saveMergeBase(row.sourceId, meta.decrypted.copy(localPhotoHash = readLocalPhotoHash(rawId)))
         }
         for (intent in intents.filterIsInstance<RawContactOpIntent.DeleteContact>()) {
             contactMapDao.deleteByProtonId(intent.sourceId)
