@@ -45,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -244,13 +246,18 @@ private fun ContactRowItem(
             .clickable(onClick = onClick)
             .padding(vertical = 8.dp)
     ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() }, enabled = !done)
+        val name = row.name ?: stringResource(R.string.unverified_no_name)
+        // The checkbox is its own accessibility node; naming it keeps "Select Alice" apart from the row.
+        val selectLabel = stringResource(R.string.linked_import_select_a11y, name)
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { onToggle() },
+            enabled = !done,
+            modifier = Modifier.semantics { contentDescription = selectLabel }
+        )
         Spacer(Modifier.width(4.dp))
         Column {
-            Text(
-                text = row.name ?: stringResource(R.string.unverified_no_name),
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Text(text = name, style = MaterialTheme.typography.bodyLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SourceIcons(row.sourceIcons)
                 Text(

@@ -45,6 +45,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -614,17 +617,16 @@ private fun SyncIntervalSelector(
 ) {
     val options = SyncInterval.entries
     val hours = selected.hours.toInt()
+    val label = stringResource(R.string.settings_sync_interval)
+    val every = pluralStringResource(R.plurals.sync_interval_every, hours, hours)
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = stringResource(R.string.settings_sync_interval),
+                text = label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = pluralStringResource(R.plurals.sync_interval_every, hours, hours),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text(text = every, style = MaterialTheme.typography.bodyMedium)
         }
         Slider(
             value = options.indexOf(selected).toFloat(),
@@ -632,7 +634,11 @@ private fun SyncIntervalSelector(
             valueRange = 0f..(options.size - 1).toFloat(),
             steps = options.size - 2,
             enabled = enabled,
-            modifier = Modifier.fillMaxWidth()
+            // Screen readers announce the cadence ("Every 6 hours") instead of a percentage.
+            modifier = Modifier.fillMaxWidth().semantics {
+                contentDescription = label
+                stateDescription = every
+            }
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             options.forEach { option ->

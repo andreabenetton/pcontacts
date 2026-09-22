@@ -166,5 +166,6 @@
     <string name="settings_sign_in_detail">Accedi con il tuo account Proton per iniziare a sincronizzare i contatti.</string>
     <string name="settings_contacts_storage_unavailable">Non disponibile in questa versione di Android: scegli l\'account nelle impostazioni dell\'app Contatti.</string>
     <string name="linked_import_row_added">Aggiunto a Proton</string>
+    <string name="linked_import_select_a11y">Seleziona %1$s</string>
     <string name="linked_import_row_syncing">Sincronizzazione…</string>
 </resources>
