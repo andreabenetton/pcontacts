@@ -3,6 +3,9 @@
 
 package io.pcontacts.core.protoncontacts
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+
 /**
  * Merged, decrypted contact — the input the ContactsContract writer
  * eventually consumes (task 18). Intentionally a thin Kotlin model
@@ -28,7 +31,13 @@ package io.pcontacts.core.protoncontacts
  * Groups (CATEGORIES + Proton LabelIDs → GroupMembership) are
  * handled by LocalGroupsWriter and ContactDetailSyncEngine via the
  * labels-listing API and GroupMap lifecycle plumbing.
+ *
+ * Serializable so the sync engine can persist the last-known server
+ * state as a merge base (ADR-0017 §3, sealed under the Keystore KEK
+ * per ADR-0018). The photo never enters that blob: it is not a merge
+ * input and would multiply the ciphertext size.
  */
+@Serializable
 data class DecryptedContact(
     val protonContactId: String,
     val protonUid: String?,
@@ -40,7 +49,7 @@ data class DecryptedContact(
     val organization: DecryptedOrganization? = null,
     val notes: List<String> = emptyList(),
     val imAccounts: List<DecryptedIm> = emptyList(),
-    val photo: DecryptedPhoto? = null,
+    @Transient val photo: DecryptedPhoto? = null,
     val verified: Boolean,
     val cardCount: Int,
     val unverifiedCardCount: Int
@@ -72,6 +81,7 @@ data class DecryptedContact(
  * (ContactsContract surfaces only one MIDDLE_NAME / PREFIX /
  * SUFFIX column per StructuredName Data row).
  */
+@Serializable
 data class DecryptedStructuredName(
     val given: String? = null,
     val family: String? = null,
@@ -80,6 +90,7 @@ data class DecryptedStructuredName(
     val suffixes: List<String> = emptyList()
 )
 
+@Serializable
 data class DecryptedEmail(
     val address: String,
     val types: List<String> = emptyList(),
@@ -91,6 +102,7 @@ data class DecryptedEmail(
  * ("home", "work", "cell", "fax", ...) — the writer maps these to
  * Android's Phone.TYPE_* constants via PhoneTypeMapper.
  */
+@Serializable
 data class DecryptedPhone(
     val number: String,
     val types: List<String> = emptyList(),
@@ -105,6 +117,7 @@ data class DecryptedPhone(
  * for ext, STREET, CITY, REGION, POSTCODE, COUNTRY); we keep all
  * seven on the model so the writer's projection is lossless.
  */
+@Serializable
 data class DecryptedAddress(
     val poBox: String? = null,
     val extendedAddress: String? = null,
@@ -123,6 +136,7 @@ data class DecryptedAddress(
  * Only the first TITLE is surfaced; multi-role contacts are rare
  * enough that the additional rows aren't worth a list column.
  */
+@Serializable
 data class DecryptedOrganization(
     val company: String? = null,
     val department: String? = null,
@@ -140,6 +154,7 @@ data class DecryptedOrganization(
  * a CUSTOM tier for everything else — the writer's ImProtocolMapper
  * handles the matrix.
  */
+@Serializable
 data class DecryptedIm(
     val handle: String,
     val protocol: String? = null,

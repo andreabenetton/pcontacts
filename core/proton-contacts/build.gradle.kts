@@ -3,6 +3,8 @@
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    // ADR-0017 §3 amendment: the merge base is persisted as versioned JSON of the decrypted model.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 java {
@@ -37,6 +39,7 @@ dependencies {
     api(project(":core:proton-api"))
 
     implementation(project(":core:logging"))
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
 }
