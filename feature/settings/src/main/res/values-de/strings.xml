@@ -165,7 +165,7 @@
     </plurals>
     <string name="settings_sign_in">Anmelden</string>
     <string name="settings_sign_in_detail">Melde dich mit deinem Proton-Konto an, um Kontakte zu synchronisieren.</string>
-    <string name="sign_in_storage_upgrade_notice">Sie wurden abgemeldet, weil Version 2.0 Ihre Sitzung in einem stärker verschlüsselten, gerätegebundenen Speicher aufbewahrt und die bisherige nicht übernommen werden konnte. Melden Sie sich einmal erneut an — Ihre Kontakte und Einstellungen bleiben erhalten.</string>
+    <string name="sign_in_storage_upgrade_notice">Sie wurden abgemeldet, weil Version 2.0 Ihre Sitzung in einem stärker verschlüsselten, gerätegebundenen Speicher aufbewahrt und die bisherige nicht übernommen werden konnte. Melden Sie sich einmal erneut an — Ihre Kontakte kommen mit der ersten Synchronisierung zurück, Ihre Einstellungen bleiben erhalten.</string>
     <string name="settings_contacts_storage_unavailable">Auf dieser Android-Version nicht verfügbar — wähle es stattdessen in den Einstellungen deiner Kontakte-App.</string>
     <string name="linked_import_row_added">Zu Proton hinzugefügt</string>
     <string name="linked_import_select_a11y">%1$s auswählen</string>

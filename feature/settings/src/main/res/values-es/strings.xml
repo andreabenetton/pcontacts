@@ -165,7 +165,7 @@
     </plurals>
     <string name="settings_sign_in">Iniciar sesión</string>
     <string name="settings_sign_in_detail">Inicia sesión con tu cuenta de Proton para empezar a sincronizar contactos.</string>
-    <string name="sign_in_storage_upgrade_notice">Se cerró tu sesión porque la versión 2.0 guarda la sesión en un almacén cifrado más robusto y vinculado al dispositivo, y la anterior no se pudo conservar. Inicia sesión de nuevo una vez — tus contactos y ajustes se mantienen.</string>
+    <string name="sign_in_storage_upgrade_notice">Se cerró tu sesión porque la versión 2.0 guarda la sesión en un almacén cifrado más robusto y vinculado al dispositivo, y la anterior no se pudo conservar. Inicia sesión de nuevo una vez — tus contactos vuelven con la primera sincronización y tus ajustes se mantienen.</string>
     <string name="settings_contacts_storage_unavailable">No disponible en esta versión de Android: elígela en los ajustes de tu app de Contactos.</string>
     <string name="linked_import_row_added">Añadido a Proton</string>
     <string name="linked_import_select_a11y">Seleccionar %1$s</string>

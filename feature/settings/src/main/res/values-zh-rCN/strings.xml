@@ -152,7 +152,7 @@
     </plurals>
     <string name="settings_sign_in">登录</string>
     <string name="settings_sign_in_detail">使用您的 Proton 账户登录以开始同步联系人。</string>
-    <string name="sign_in_storage_upgrade_notice">您已被退出登录：2.0 版本将会话保存在更安全、与设备绑定的加密存储中，旧会话无法迁移。请重新登录一次——您的联系人和设置都会保留。</string>
+    <string name="sign_in_storage_upgrade_notice">您已被退出登录：2.0 版本将会话保存在更安全、与设备绑定的加密存储中，旧会话无法迁移。请重新登录一次——联系人会在首次同步后恢复，您的设置将保留。</string>
     <string name="settings_contacts_storage_unavailable">此 Android 版本不支持，请在通讯录应用的设置中选择。</string>
     <string name="linked_import_row_added">已添加到 Proton</string>
     <string name="linked_import_select_a11y">选择 %1$s</string>
