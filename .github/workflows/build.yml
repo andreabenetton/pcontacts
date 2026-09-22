@@ -155,6 +155,7 @@ jobs:
             ./gradlew --no-daemon --stacktrace
             :core:contacts-writer:connectedDebugAndroidTest
             :feature:onboarding:connectedDebugAndroidTest
+            :feature:settings:connectedDebugAndroidTest
 
       - name: Upload instrumented test reports on failure
         if: failure()
