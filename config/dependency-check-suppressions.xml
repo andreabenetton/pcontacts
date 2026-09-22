@@ -41,25 +41,25 @@
     <!--
       CVE-2024-7254 — protobuf-java recursion DoS on untrusted input.
       The hit is on a *shaded* protobuf-javalite 3.21.8 inside the
-      `inspector.jar` packed in androidx.work:work-runtime-2.9.1.aar.
+      `inspector.jar` packed in androidx.work:work-runtime-2.11.2.aar.
       That inspector.jar is loaded only by Android Studio's WorkManager
       Inspector during debugging — it is never reached at production
       runtime. We also never parse attacker-supplied protobuf bytes; the
       only protobuf payloads in the app are WorkManager's own internal
       Room-backed state.
 
-      Suppress by sha1 of the shaded inspector jar (work-runtime 2.9.1)
+      Suppress by the exact aar version of the shaded inspector jar (work-runtime 2.11.2)
       so a future androidx.work bump invalidates the suppression and
       forces re-evaluation. Also re-evaluate: 2027-06-01.
     -->
     <suppress>
         <notes><![CDATA[
-            Shaded protobuf-javalite inside work-runtime-2.9.1's
+            Shaded protobuf-javalite inside work-runtime-2.11.2's
             debug-only inspector.jar; not reachable at production runtime
             and we never parse untrusted protobuf. Re-evaluate 2027-06-01
             or whenever work-runtime is bumped.
         ]]></notes>
-        <filePath regex="true">.*work-runtime-2\.9\.1\.aar.*inspector\.jar.*</filePath>
+        <filePath regex="true">.*work-runtime-2\.11\.2\.aar.*inspector\.jar.*</filePath>
         <cve>CVE-2024-7254</cve>
     </suppress>
 
