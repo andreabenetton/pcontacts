@@ -53,6 +53,24 @@ class SharedPreferencesUserPreferencesTest {
     }
 
     @Test
+    fun advisory_check_is_off_by_default_and_its_state_round_trips() {
+        assertEquals(false, prefs().advisoryCheckEnabled)
+        assertEquals(0L, prefs().lastAdvisoryCheckAtMillis)
+        assertEquals(null, prefs().advisoryResultJson)
+        assertEquals("", prefs().advisoryNotifiedIds)
+        prefs().advisoryCheckEnabled = true
+        prefs().lastAdvisoryCheckAtMillis = 5L
+        prefs().advisoryResultJson = "{}"
+        prefs().advisoryNotifiedIds = "GHSA-1,GHSA-2"
+        assertEquals(true, prefs().advisoryCheckEnabled)
+        assertEquals(5L, prefs().lastAdvisoryCheckAtMillis)
+        assertEquals("{}", prefs().advisoryResultJson)
+        assertEquals("GHSA-1,GHSA-2", prefs().advisoryNotifiedIds)
+        prefs().advisoryResultJson = null
+        assertEquals(null, prefs().advisoryResultJson)
+    }
+
+    @Test
     fun vulnerabilityNoticeVersionCode_defaults_zero_and_round_trips() {
         assertEquals(0, prefs().vulnerabilityNoticeVersionCode)
         prefs().vulnerabilityNoticeVersionCode = 19

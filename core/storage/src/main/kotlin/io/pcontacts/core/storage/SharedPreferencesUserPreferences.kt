@@ -70,6 +70,26 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getInt(KEY_VULNERABILITY_NOTICE_VERSION_CODE, 0)
         set(value) { prefs.edit().putInt(KEY_VULNERABILITY_NOTICE_VERSION_CODE, value).apply() }
 
+    override var advisoryCheckEnabled: Boolean
+        get() = prefs.getBoolean(KEY_ADVISORY_CHECK_ENABLED, false)
+        set(value) { prefs.edit().putBoolean(KEY_ADVISORY_CHECK_ENABLED, value).apply() }
+
+    override var lastAdvisoryCheckAtMillis: Long
+        get() = prefs.getLong(KEY_LAST_ADVISORY_CHECK_AT, 0L)
+        set(value) { prefs.edit().putLong(KEY_LAST_ADVISORY_CHECK_AT, value).apply() }
+
+    override var advisoryResultJson: String?
+        get() = prefs.getString(KEY_ADVISORY_RESULT, null)
+        set(value) {
+            prefs.edit().apply {
+                if (value == null) remove(KEY_ADVISORY_RESULT) else putString(KEY_ADVISORY_RESULT, value)
+            }.apply()
+        }
+
+    override var advisoryNotifiedIds: String
+        get() = prefs.getString(KEY_ADVISORY_NOTIFIED_IDS, "").orEmpty()
+        set(value) { prefs.edit().putString(KEY_ADVISORY_NOTIFIED_IDS, value).apply() }
+
     override fun clearSyncState() {
         prefs.edit()
             .remove(KEY_LAST_SYNC_SUCCESS_AT)
@@ -95,5 +115,9 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED = "system_contacts_notice_dismissed"
         const val KEY_SECRETS_STORAGE_UPGRADED = "secrets_storage_upgraded"
         const val KEY_VULNERABILITY_NOTICE_VERSION_CODE = "vulnerability_notice_version_code"
+        const val KEY_ADVISORY_CHECK_ENABLED = "advisory_check_enabled"
+        const val KEY_LAST_ADVISORY_CHECK_AT = "last_advisory_check_at"
+        const val KEY_ADVISORY_RESULT = "advisory_result_json"
+        const val KEY_ADVISORY_NOTIFIED_IDS = "advisory_notified_ids"
     }
 }

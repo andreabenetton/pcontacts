@@ -20,6 +20,10 @@ class InMemoryUserPreferences : UserPreferences {
     override var systemContactsNoticeDismissed: Boolean = false
     override var secretsStorageUpgraded: Boolean = false
     override var vulnerabilityNoticeVersionCode: Int = 0
+    override var advisoryCheckEnabled: Boolean = false
+    override var lastAdvisoryCheckAtMillis: Long = 0L
+    override var advisoryResultJson: String? = null
+    override var advisoryNotifiedIds: String = ""
 
     override fun clearSyncState() {
         lastSyncSuccessAtMillis = 0L

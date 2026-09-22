@@ -84,6 +84,18 @@ interface UserPreferences {
      */
     var vulnerabilityNoticeVersionCode: Int
 
+    /** ADR-0025: the opt-in runtime advisory check against osv.dev. Off by default. */
+    var advisoryCheckEnabled: Boolean
+
+    /** When the last runtime advisory check completed; 0 when never. */
+    var lastAdvisoryCheckAtMillis: Long
+
+    /** The last runtime result, as the JSON `:core:advisories` writes; null when none. Public data. */
+    var advisoryResultJson: String?
+
+    /** Advisory ids already announced by a notification, comma-separated. */
+    var advisoryNotifiedIds: String
+
     /**
      * Forgets everything that describes the signed-out account's syncs:
      * last success time, last error, failed-contact count and any
