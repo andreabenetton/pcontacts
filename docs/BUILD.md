@@ -10,11 +10,6 @@
 - JDK 17 (Temurin recommended)
 - Android SDK with platform 34
 - Gradle 8.10+ (the wrapper handles this)
-- Only for running OWASP Dependency-Check locally (optional; the audit
-  snapshot of ADR-0024 does not need it): a free NVD API key pasted into
-  the gitignored `.env` at the repo root as `NVD_API_KEY=...`. The first
-  run mirrors the whole NVD (30 to 90 minutes). CI has its own key in the
-  `NVD_API_KEY` secret.
 
 ## Debug build
 
@@ -156,9 +151,8 @@ fails when the classpath and the snapshot differ (a bump without a
 regenerated snapshot); the CI scan job runs it with `-PauditLive=true`,
 which asks osv.dev again and fails on an open advisory the snapshot does
 not list, and then compares the Dependency-Check report as a second
-opinion. OWASP Dependency-Check itself keeps running weekly in CI with its
-own NVD mirror and key; locally it is optional (`NVD_API_KEY` in `.env`)
-and never needed for the snapshot.
+opinion. OWASP Dependency-Check runs in CI only (weekly and on push, with
+the `NVD_API_KEY` secret); nothing local depends on it.
 
 ### Runtime advisory check (ADR-0025)
 
