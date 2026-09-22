@@ -22,7 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The data is a snapshot committed at build time and verified by CI;
   the app looks nothing up while it runs, and a CVE published after the
   release shows up with the next one. A red snapshot is announced once
-  per version by a notification.
+  per version by a notification. A scanner false positive (a CPE match
+  for a different product) is listed but leaves the artifact green.
+- **Optional runtime advisory check** (ADR-0025), off by default. A
+  switch in Privacy says in plain words what leaves the device: the
+  list of this version's artifacts, sent once a day to osv.dev, which
+  then sees the device's address. New advisories turn the chip red,
+  appear on the Dependencies screen with their osv.dev link and are
+  announced once; a "Check now" runs it on demand. An advisory can be
+  muted, which counts as assessed (amber) until the artifact changes
+  version. Nothing else in the app depends on the answer.
 - **Import details from linked contacts** (ADR-0023). The app lists
   every contact that exists only in other providers (WhatsApp,
   Telegram, device-local, …) or whose Proton copy lacks details, with

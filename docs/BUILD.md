@@ -162,6 +162,15 @@ CVE the snapshot does not list. A red status therefore only ships if the
 owner regenerates the snapshot with an open CVE and releases anyway; the
 app then posts one notification per version pointing at the screen.
 
+### Runtime advisory check (ADR-0025)
+
+Independent of the snapshot, the user can turn on a daily check of the
+same artifact list against osv.dev under Privacy. It is off by default,
+lives in `:core:advisories` behind its own host guard, and its findings
+are merged into the same chip and screen; a muted advisory counts as
+assessed until the artifact changes version. Nothing in the release
+process changes because of it.
+
 ## Reproducible builds
 
 ADR-0003 requires that two clean builds from the same commit produce

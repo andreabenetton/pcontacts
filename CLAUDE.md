@@ -65,7 +65,7 @@ These are the load-bearing invariants. Every one corresponds to an ADR; read the
 ### No telemetry, no Google Services (ADR-0015)
 - No `com.google.android.gms`, no `com.google.firebase`, no analytics SDK, no remote configuration, no kill-switch.
 - The release build's dependency-license report task fails if a disallowed group, artifact, or license appears in the resolved graph.
-- `OkHttpClient` is constructed only in `:core:proton-api`; its DNS resolver rejects hosts not matching `*.proton.me`.
+- `OkHttpClient` is constructed only in `:core:proton-api` (DNS resolver rejects hosts not matching `*.proton.me`) and in `:core:advisories` (resolver allows `api.osv.dev` only; used solely by the opt-in runtime advisory check of ADR-0025, off by default).
 - Custom Android Lint rule `pcontacts.SensitiveLog` fails the build on any `android.util.Log`, `println`, or `System.out.*` call inside `:core:*` or `:feature:*`. Use `:core:logging`'s `Logger` interface instead — the production implementation strips sensitive fields.
 
 ### Module boundaries (ADR-0011)
@@ -225,7 +225,8 @@ Do not introduce:
 - a call to `GET contacts/v4/contacts/export`
 - a JS engine, embedded interpreter, WebView for protocol work
 - a Google Play Services or Firebase dependency
-- a network call to a host not matching `*.proton.me` from `:core:proton-api`
+- a network call to a host not matching `*.proton.me` from `:core:proton-api`, or to any host but `api.osv.dev` from `:core:advisories`
+- a network call from `:core:advisories` while the user's advisory-check switch is off
 - a new SRP modulus path that doesn't verify the pinned signature
 - a Proton API claim without a `[V]`/`[U]`/`[A]`/`[D]` marker
 - a runtime fetch of a pinned key, certificate, or fingerprint
