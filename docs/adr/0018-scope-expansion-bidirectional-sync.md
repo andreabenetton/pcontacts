@@ -5,10 +5,10 @@
 
 # ADR-0018: Scope expansion — bidirectional sync (supersedes ADR-0006)
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-22 — the merge base is stored, sealed)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
-- **Related:** ADR-0006 (superseded), ADR-0017 (policies)
+- **Related:** ADR-0006 (superseded), ADR-0017 (policies), ADR-0009 (Keystore KEK)
 
 ## Context
 
@@ -95,30 +95,34 @@ locked in ADR-0017.
 ### Schema migration
 
 Room gains an `outbox` table and `contact_map` gains
-`last_known_server_payload_hash`. A `MigrationTestHelper` test is
-required for each migration.
+`last_known_server_payload_hash` (v2), then
+`last_known_server_payload` (v3, amendment of 2026-09-22). A
+`MigrationTestHelper` test is required for each migration.
 
-### At-rest sensitivity of the outbox
+### At-rest sensitivity of the outbox and the merge base
 
 The outbox stores operation type, Proton contact ID, payload hash,
 attempt count, and error metadata. It does **not** store decrypted
-contact content. If the three-way merge implementation requires
-storing the last-known server payload for diff purposes (Choice 3B
-in ADR-0017), that payload is decrypted vCard content and becomes a
-new at-rest sensitive blob. In that case:
+contact content.
 
-- The payload column MUST be encrypted under the Keystore AEAD KEK
-  (`pcontacts.kekv1`) before writing to Room, matching the
-  protection level of `keyPassword` in `EncryptedSharedPreferences`
-  (ADR-0009).
-- Alternatively, the payload is stored as an encrypted blob in a
-  separate file in `noBackupFilesDir`, keyed by contact ID.
-- The threat model (§2 asset inventory) is updated to reflect this
-  new asset.
+The three-way merge (ADR-0017 §3) **does** store the last-known
+server state per contact — `contact_map.last_known_server_payload`
+— and that is decrypted contact content, a new at-rest sensitive
+asset. Amended 2026-09-22; the rules are:
 
-If the implementation avoids storing the full payload — e.g. by
-re-fetching server cards on demand for three-way diff — no new
-at-rest sensitive blob exists and the protection is moot.
+- The column holds only ciphertext: the canonical field set is
+  sealed under the Keystore AEAD KEK (`pcontacts.kekv1`) **before**
+  the row is written to Room, the same key and protection level as
+  `keyPassword` (ADR-0009). Plaintext exists only on the heap during
+  a push.
+- Photo bytes are never part of the stored base.
+- The blob is wiped by the logout wipe of `contact_map`, and the
+  KEK deletion at logout makes any residue in SQLite journal pages
+  unreadable.
+- An unreadable blob (KEK rotated or absent, truncated data) reads
+  as "no base", which ADR-0017 turns into a user-visible conflict —
+  never into a merge against an empty base.
+- The threat model (§2 asset inventory) lists the asset.
 
 ### Signing-key lifetime
 

@@ -5,10 +5,10 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-22 — see *Amendment* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
-- **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning)
+- **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
 
 ## Context
 
@@ -288,3 +288,63 @@ inline. The major structural alternatives were:
 - **Card topology:** on the 2C promotion, verify round-trip fidelity
   by comparing pre-edit and post-edit card layouts fetched from the
   server.
+
+## Amendment (2026-09-22): persisted encrypted merge base; one live outbox row per contact
+
+An external review of v2.0.0 found that the shipped implementation
+did not satisfy §3 and §5 above. This amendment restates both as
+hard requirements; it only strengthens the decision.
+
+### Merge base (§1, §3)
+
+- The three-way merge input `last-known-server-state` **is
+  persisted** as `contact_map.last_known_server_payload`: the
+  row-canonical field set the merger compares (names, emails,
+  phones, addresses, organization, notes, IM accounts — never the
+  photo), serialised as versioned JSON and **sealed under the
+  Keystore AEAD KEK (`pcontacts.kekv1`) before the row is written**
+  (ADR-0018). It is opened only on the heap during a push.
+- A hash is not a merge base. `last_known_server_payload_hash` is
+  no longer written; the column is kept only because SQLite on
+  API 26 cannot drop it.
+- The base is captured after every applied pull (the server state
+  we just wrote locally) and after every acknowledged push (the
+  payload Proton accepted `[A]`; the next pull re-captures the real
+  state).
+- **A missing or unreadable base never degrades the merge.** The
+  engine must not substitute an empty contact, must not fall back
+  to local-wins, and must not push. It marks the mapping
+  `CONFLICT` with the reason (`no merge base`, `server state
+  unavailable`), removes the outbox row, and lets the user resolve
+  it through the existing conflict UI. A failed server fetch is a
+  transport failure (backoff or quarantine), not a merge input.
+- Base, server and local must pass through the same
+  `ContactRow` projection before they are compared, so a field the
+  projection cannot represent never reads as a change.
+- Resolving a conflict is a real operation: "use phone version"
+  enqueues a `FORCE_UPDATE` (push local as-is, then re-capture the
+  base); "use Proton version" drops the live outbox row and forces
+  the next pull to rewrite the local row.
+
+### Outbox (§5)
+
+- The outbox holds **exactly one live (non-quarantined) row per
+  logical contact**. Enqueueing coalesces in place, atomically:
+  `DELETE` over an unpushed `CREATE` drops the row (Proton never saw
+  the contact); `DELETE` over anything else turns the row into a
+  `DELETE` and restarts the grace period; any edit over a pending
+  `DELETE` cancels the delete; an edit over a pending `CREATE` stays
+  a `CREATE` with the new hash; the same operation with the same
+  hash leaves the row (and its backoff) untouched; anything else
+  replaces the hash and resets the attempt counter.
+- `payload_hash` is the hash of the local row at the time it was
+  last enqueued. It is a dedup key at enqueue time and an
+  optimistic-concurrency token when the push completes: the row is
+  removed only if it still carries the hash that was pushed;
+  otherwise it stays live with the newer hash (this is the §5 race
+  rule, now implemented by re-reading the row after the push).
+- The push engine never drains two rows for the same contact in
+  one run; rows are grouped per contact and only groups run in
+  parallel.
+- The v2→v3 migration collapses pre-existing duplicate live rows to
+  the newest one.
