@@ -103,4 +103,63 @@ class ContactDetailSyncEngineIntegrityTest {
         assertEquals(listOf("name only now"), update.row.notes)
         assertEquals(200L, dao.snapshot()["c1"]!!.modifyTime)
     }
+
+    @Test fun a_batch_failing_after_a_committed_delete_leaves_no_orphan_mapping_and_the_next_sync_converges() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(
+                metaPage(meta("a", 100L), meta("b", 100L)),
+                metaPage(meta("b", 100L)), // the server dropped "a"
+                metaPage(meta("b", 100L))
+            ),
+            contacts = mapOf("a" to contact("a", 100L, aliceVCard), "b" to contact("b", 100L, aliceVCard)),
+            repeatContacts = true
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+        engine.sync(account)
+        assertEquals(setOf("a", "b"), dao.snapshot().keys)
+
+        // Chunk 1 deleted "a"; a later chunk blew up before the mappings were reconciled.
+        applier.throwAfterApply = IllegalStateException("chunk 2 failed")
+        val failed = runCatching { engine.sync(account) }
+        assertEquals(true, failed.isFailure)
+        assertEquals(emptyList<Long>(), applier.rawIdsFor("a"))
+        assertEquals("the deleted row's mapping goes with it", setOf("b"), dao.snapshot().keys)
+
+        // Even if that cleanup had not run, the next sync drops a mapping with no row on either side.
+        dao.upsert(dao.snapshot().getValue("b").copy(protonContactId = "ghost", androidRawContactId = 99L))
+        applier.throwAfterApply = null
+        engine.sync(account)
+        assertEquals(setOf("b"), dao.snapshot().keys)
+    }
+
+    @Test fun a_queued_create_or_live_outbox_row_keeps_its_mapping() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("b", 100L))),
+            contacts = mapOf("b" to contact("b", 100L, aliceVCard))
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        dao.upsert(mapping("local-42", rawId = 42L))
+        dao.upsert(mapping("queued", rawId = 43L))
+        val engine = newEngine(api, dao, applier, hasLiveOutboxRow = { it == "queued" })
+
+        engine.sync(account)
+
+        assertEquals(setOf("local-42", "queued", "b"), dao.snapshot().keys)
+    }
+
+    private fun mapping(id: String, rawId: Long) = io.pcontacts.core.storage.db.entity.ContactMapEntity(
+        protonContactId = id,
+        protonUid = null,
+        androidRawContactId = rawId,
+        modifyTime = 0L,
+        contentHash = "",
+        isVerified = true,
+        deleted = false,
+        syncStatus = io.pcontacts.core.storage.db.entity.ContactMapEntity.Status.CLEAN,
+        lastError = null,
+        lastSyncedAt = 0L
+    )
 }

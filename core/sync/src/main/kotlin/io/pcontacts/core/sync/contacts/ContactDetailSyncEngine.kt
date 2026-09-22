@@ -78,6 +78,8 @@ class ContactDetailSyncEngine(
      * exercise deletion simple.
      */
     private val hasPendingDelete: suspend (protonContactId: String) -> Boolean = { false },
+    /** True while any non-quarantined outbox row exists for the contact; such a mapping is never an orphan. */
+    private val hasLiveOutboxRow: suspend (protonContactId: String) -> Boolean = { false },
     /**
      * Reconciles ContactsContract.Groups rows for `account` against the
      * server-side label set; returns `Map<proton label id, local Groups._ID>`.
@@ -159,6 +161,20 @@ class ContactDetailSyncEngine(
         val existingState = readExisting(account)
         val storedMappings: Map<String, ContactMapEntity> = contactMapDao.listLive()
             .associateBy { it.protonContactId }
+
+        // 2a. Orphans (ADR-0022): a mapping whose contact is on neither
+        //     side any more — typically left by a batch that failed after
+        //     an earlier chunk deleted the row — is sync metadata for
+        //     nothing. A queued change (a local-<id> create, any live
+        //     outbox row) keeps its mapping.
+        val orphans = storedMappings.keys.filter { id ->
+            id !in serverSourceIds && id !in existingState.rowsBySourceId &&
+                !id.startsWith(LOCAL_ID_PREFIX) && !hasLiveOutboxRow(id)
+        }
+        if (orphans.isNotEmpty()) {
+            logger.warn { "dropping ${orphans.size} orphan mapping(s)" }
+            contactMapDao.deleteByProtonIds(orphans)
+        }
 
         // 2b. Canonical SOURCE_ID → _ID view + duplicate reconciliation.
         //     Several rows sharing one SOURCE_ID under our account is an
@@ -337,8 +353,17 @@ class ContactDetailSyncEngine(
             )
         }
 
-        // 5. Apply ops.
-        val applyResult = applyIntents(account, intents)
+        // 5. Apply ops. A chunked batch that fails leaves the earlier
+        //    chunks committed; the mappings of contacts those chunks
+        //    deleted are dropped here so they do not outlive their rows.
+        val applyResult = try {
+            applyIntents(account, intents)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (t: Throwable) {
+            dropMappingsOfDeletedRows(account, intents)
+            throw t
+        }
 
         // 6. Reconcile mapping rows.
         val freshExisting = readExisting(account).canonicalIds()
@@ -402,6 +427,14 @@ class ContactDetailSyncEngine(
                 "idTag=${stored.protonContactId.hashCode()}"
         }
         return stored.copy(androidRawContactId = liveRawId)
+    }
+
+    private suspend fun dropMappingsOfDeletedRows(account: Account, intents: List<RawContactOpIntent>) {
+        val present = readExisting(account).rowsBySourceId.keys
+        val gone = intents.filterIsInstance<RawContactOpIntent.DeleteContact>()
+            .map { it.sourceId }
+            .filter { it !in present }
+        if (gone.isNotEmpty()) contactMapDao.deleteByProtonIds(gone)
     }
 
     private data class PerContactMeta(

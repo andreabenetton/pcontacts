@@ -64,6 +64,7 @@ internal fun newEngine(
     dao: DetailFakeContactMapDao,
     applier: DetailFakeApplier,
     hasPendingDelete: suspend (String) -> Boolean = { false },
+    hasLiveOutboxRow: suspend (String) -> Boolean = { false },
     /** Like production, the base lands in the mapping row's column (unsealed here). */
     saveMergeBase: suspend (String, DecryptedContact) -> Unit = { id, c ->
         dao.setMergeBase(id, DecryptedContactJson.encode(c))
@@ -87,6 +88,7 @@ internal fun newEngine(
         contactMapDao = dao,
         readExisting = { _ -> applier.knownState() },
         hasPendingDelete = hasPendingDelete,
+        hasLiveOutboxRow = hasLiveOutboxRow,
         applyIntents = { acct, intents -> applier.apply(acct, intents) },
         reconcileGroups = reconcileGroups,
         readGroupRowIds = readGroupRowIds,
@@ -224,6 +226,9 @@ internal class DetailFakeApplier(base: Long) {
     var lastIntents: List<RawContactOpIntent> = emptyList()
         private set
 
+    /** Thrown after the intents were applied: a later chunk failing while earlier ones are committed. */
+    var throwAfterApply: Throwable? = null
+
     fun knownState(): ExistingRawContacts =
         ExistingRawContacts(rows.mapValues { (_, list) -> list.toList() })
 
@@ -254,6 +259,7 @@ internal class DetailFakeApplier(base: Long) {
                 rows.entries.removeAll { it.value.isEmpty() }
             }
         }
+        throwAfterApply?.let { throw it }
         return ApplyResult(
             insertedContacts = intents.count { it is RawContactOpIntent.CreateContact },
             updatedContacts = intents.count { it is RawContactOpIntent.UpdateContact },
