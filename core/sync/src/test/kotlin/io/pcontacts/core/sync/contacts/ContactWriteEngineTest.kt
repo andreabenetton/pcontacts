@@ -13,6 +13,7 @@ import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import io.pcontacts.core.proton.api.contacts.ContactDto
 import io.pcontacts.core.proton.api.contacts.ContactEmailDto
 import io.pcontacts.core.proton.api.contacts.ContactEmailsPageResponse
+import io.pcontacts.core.proton.api.contacts.ContactMetadataDto
 import io.pcontacts.core.proton.api.contacts.ContactsPageResponse
 import io.pcontacts.core.proton.api.contacts.CreateContactResponseBody
 import io.pcontacts.core.proton.api.contacts.CreateContactResponseItem
@@ -57,6 +58,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
+import java.io.IOException
 
 // Covers the write engine's many outbox paths (create/update/delete,
 // merge, quarantine, backoff) in one place; large by subject, not by drift.
@@ -1174,6 +1176,106 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    // ---- Proton item codes and the lost-response create (M4, A12) ----
+
+    /** A create queued for RawContact 200: the local id carries the raw id, as the write engine mints it. */
+    private suspend fun queuedCreate(outbox: WriteFakeOutboxDao, contactMap: WriteFakeContactMapDao) {
+        contactMap.upsert(sampleMapping("local-200", rawId = 200L))
+        outbox.insert(legacyCreate("local-200", "hash-new", 1_000_000L))
+    }
+
+    @Test fun push_create_whose_response_was_lost_recovers_the_contact_by_uid() = runTest {
+        val uid = ContactSerializer.fallbackUid("local-200")
+        val api = WriteFakeApi().apply {
+            createFailsAfterCommit = IOException("connection reset")
+            listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = uid))
+        }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        queuedCreate(outbox, contactMap)
+        val written = mutableListOf<Pair<Long, String>>()
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to sampleContact("local-200")),
+            writtenSourceIds = written
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.created)
+        assertEquals(0, report.failed)
+        assertNull(contactMap.findByProtonId("local-200"))
+        assertEquals(uid, contactMap.findByProtonId("srv-9")!!.protonUid)
+        assertEquals(listOf(200L to "srv-9"), written)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun push_create_refused_by_item_code_is_quarantined_with_the_code_unless_the_uid_exists() = runTest {
+        val refused = CreateContactsResponse(
+            code = 1001,
+            responses = listOf(CreateContactResponseItem(0, CreateContactResponseBody(code = 2001)))
+        )
+        val api = WriteFakeApi().apply { createResponse = refused }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        queuedCreate(outbox, contactMap)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to sampleContact("local-200"))
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.quarantined)
+        val row = outbox.entries.values.single()
+        assertTrue(row.quarantined)
+        assertEquals("Proton code 2001", row.lastError)
+
+        // The same refusal with the contact already present under our UID is a success.
+        api.listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = ContactSerializer.fallbackUid("local-2")))
+        contactMap.upsert(sampleMapping("local-2", rawId = 201L))
+        outbox.insert(legacyCreate("local-2", "hash-new", 1_000_000L))
+        val engine2 = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-2" to sampleContact("local-2"))
+        )
+        assertEquals(1, engine2.push(testAccount).created)
+        assertNotNull(contactMap.findByProtonId("srv-9"))
+    }
+
+    @Test fun push_delete_refused_by_item_code_is_quarantined_with_the_code() = runTest {
+        val api = WriteFakeApi().apply { deleteItemCode = 2501 }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "ct-1",
+                opType = OutboxEntity.OpType.DELETE,
+                payloadHash = "",
+                createdAt = 1L
+            )
+        )
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            clock = { 1L + ContactWriteEngine.GRACE_PERIOD_MS + 1 }
+        )
+
+        val report = engine.push()
+
+        assertEquals(1, report.quarantined)
+        assertEquals("Proton code 2501", outbox.entries.values.single().lastError)
+        assertNotNull("the mapping stays until Proton accepts the delete", contactMap.findByProtonId("ct-1"))
+    }
+
     // ---- ADR-0017 §2 Choice 2C: an update patches the server's cards ----
 
     /** Decrypts nothing: the "server" cards are plaintext vCards tagged with their real types. */
@@ -1432,6 +1534,15 @@ private class WriteFakeApi : ProtonContactsApi {
     var lastDeleteRequest: BulkDeleteRequest? = null
     var createResponse = CreateContactsResponse(code = 1000)
 
+    /** What `listContacts` returns — the UID lookup after a lost or refused create reads it. */
+    var listedContacts: List<ContactMetadataDto> = emptyList()
+
+    /** Thrown by `createContacts` after the request "reached" Proton (the response was lost). */
+    var createFailsAfterCommit: Exception? = null
+
+    /** The per-item Code `deleteContacts` answers with. */
+    var deleteItemCode: Int = 1000
+
     /** Runs inside a successful PUT — the hook for "the contact changed during the push" and for gating. */
     var onUpdate: (suspend () -> Unit)? = null
 
@@ -1443,12 +1554,13 @@ private class WriteFakeApi : ProtonContactsApi {
     override suspend fun getContact(id: String) =
         error("not used in write engine tests")
     override suspend fun listContacts(page: Int, pageSize: Int, labelIdFilter: String?) =
-        ContactsPageResponse(code = 1000)
+        ContactsPageResponse(code = 1000, contacts = listedContacts, total = listedContacts.size)
 
     override suspend fun createContacts(request: CreateContactsRequest): CreateContactsResponse {
         failWith?.let { throw it }
         lastCreateRequest = request
         onCreate?.invoke()
+        createFailsAfterCommit?.let { throw it }
         return createResponse
     }
 
@@ -1464,8 +1576,8 @@ private class WriteFakeApi : ProtonContactsApi {
         failWith?.let { throw it }
         lastDeleteRequest = request
         return BulkDeleteResponse(
-            code = 1000,
-            responses = request.ids.map { DeleteResponseItem(it, DeleteResponseBody(code = 1000)) }
+            code = 1001,
+            responses = request.ids.map { DeleteResponseItem(it, DeleteResponseBody(code = deleteItemCode)) }
         )
     }
 }

@@ -13,12 +13,17 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
+import io.pcontacts.core.proton.api.contacts.BulkDeleteResponse
 import io.pcontacts.core.proton.api.contacts.ContactCardBundle
 import io.pcontacts.core.proton.api.contacts.ContactCardDto
+import io.pcontacts.core.proton.api.contacts.ContactDto
+import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.contacts.CreateContactsRequest
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.proton.api.http.ProtonApiException
+import io.pcontacts.core.proton.api.http.ProtonCodeInterceptor
 import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
@@ -36,6 +41,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import retrofit2.HttpException
@@ -197,7 +203,8 @@ class ContactWriteEngine(
             return WriteReport(skippedGrace = 1)
         }
         return try {
-            contactsApi.deleteContacts(BulkDeleteRequest(ids = listOf(entry.protonContactId)))
+            val response = contactsApi.deleteContacts(BulkDeleteRequest(ids = listOf(entry.protonContactId)))
+            requireItemAccepted(response, entry.protonContactId)
             contactMapDao.deleteByProtonId(entry.protonContactId)
             outboxDao.deleteById(entry.id)
             WriteReport(pushed = 1, deleted = 1)
@@ -338,10 +345,7 @@ class ContactWriteEngine(
         val contact = RowToDecryptedContact.convert(row, localId, null)
         return try {
             val cards = serializer.serialize(contact)
-            val response = contactsApi.createContacts(
-                CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards)))
-            )
-            val serverContact = response.responses.firstOrNull()?.response?.contact
+            val serverContact = createOnServer(cards, ContactSerializer.fallbackUid(localId))
             val existing = contactMapDao.findByProtonId(localId)
             if (existing != null && serverContact != null) {
                 contactMapDao.deleteByProtonId(localId)
@@ -379,6 +383,44 @@ class ContactWriteEngine(
         }
     }
 
+    /** `[V]` the batch envelope is 1001 with one Code per item; anything but 1000 is a refusal. */
+    private fun requireItemAccepted(response: BulkDeleteResponse, id: String) {
+        val itemCode = response.responses.firstOrNull { it.id == id }?.response?.code ?: return
+        if (itemCode != ProtonCodeInterceptor.SUCCESS_CODE) throw ProtonApiException(itemCode, null)
+    }
+
+    /**
+     * POSTs the cards and returns the created contact. A create is not
+     * idempotent by request, but it is by UID: the serializer mints a
+     * deterministic UID per local id, so when the response is lost (an
+     * [IOException] after Proton may have committed) or the item is
+     * refused (`[U]` the duplicate-UID code is not pinned; recovery is
+     * keyed on the UID, not the code), the contact is looked up by that
+     * UID before the attempt counts as failed.
+     */
+    private suspend fun createOnServer(cards: List<ContactCardDto>, uid: String): ContactDto? {
+        val response = try {
+            contactsApi.createContacts(CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards))))
+        } catch (e: IOException) {
+            return findByUid(uid) ?: throw e
+        }
+        val item = response.responses.firstOrNull()?.response ?: return null
+        if (item.code == ProtonCodeInterceptor.SUCCESS_CODE) return item.contact
+        logger.warn { "create refused with Code:${item.code}; looking the contact up by UID" }
+        return findByUid(uid) ?: throw ProtonApiException(item.code, null)
+    }
+
+    /** The server contact carrying [uid], or null; a failed lookup is not a failure of the create. */
+    private suspend fun findByUid(uid: String): ContactDto? = try {
+        ContactsMetadataPager(contactsApi).metadata().firstOrNull { it.uid == uid }
+            ?.let { ContactDto(id = it.id, uid = it.uid) }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (t: Throwable) {
+        logger.warn { "UID lookup after a create failed: ${t.javaClass.simpleName}" }
+        null
+    }
+
     private suspend fun handleFailure(entry: OutboxEntity, e: Exception): WriteReport {
         val httpCode = (e as? HttpException)?.code()
         val isTransient = e is IOException || httpCode == 429 || (httpCode != null && httpCode >= 500)
@@ -387,6 +429,7 @@ class ContactWriteEngine(
         // 400" users saw), and e.message can carry contact content.
         val reason = when {
             httpCode != null -> "HTTP $httpCode"
+            e is ProtonApiException -> "Proton code ${e.protonCode}"
             e is IOException -> "network error"
             else -> "internal error"
         }
