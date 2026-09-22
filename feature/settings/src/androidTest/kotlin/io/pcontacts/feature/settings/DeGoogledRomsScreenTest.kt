@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -27,7 +28,8 @@ class DeGoogledRomsScreenTest {
         }
         composeRule.onNodeWithText("De-Googled Android ROMs").assertIsDisplayed()
         composeRule.onNodeWithText("GrapheneOS").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Open the GrapheneOS website").performClick()
+        // On a short display the first card's button is composed but below the fold: bring it in first.
+        composeRule.onNodeWithContentDescription("Open the GrapheneOS website").performScrollTo().performClick()
         assertEquals(listOf("https://grapheneos.org/"), opened)
 
         DE_GOOGLED_ROMS.forEach { rom ->
@@ -41,7 +43,7 @@ class DeGoogledRomsScreenTest {
         composeRule.setContent {
             DeGoogledRomsScreen(onOpenWebsite = { false }, onBack = {})
         }
-        composeRule.onNodeWithContentDescription("Open the GrapheneOS website").performClick()
+        composeRule.onNodeWithContentDescription("Open the GrapheneOS website").performScrollTo().performClick()
         composeRule.onNodeWithText("No app on this device can open web links.").assertIsDisplayed()
     }
 
