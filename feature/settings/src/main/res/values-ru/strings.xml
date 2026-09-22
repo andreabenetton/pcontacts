@@ -171,6 +171,8 @@
     <string name="linked_import_bulk_progress">Импорт %1$d из %2$d…</string>
     <string name="linked_import_bulk_done">Создано в Proton: %1$d, дополнено данными: %2$d, с ошибкой: %3$d. Они будут отправлены в Proton при следующей синхронизации.</string>
     <string name="sync_state_overdue">Синхронизация просрочена</string>
+    <string name="sync_state_attention">Некоторые изменения не удались</string>
+    <string name="sync_state_pending">Изменения ожидают синхронизации</string>
     <plurals name="sync_interval_every">
         <item quantity="one">Каждый %d час</item>
         <item quantity="few">Каждые %d часа</item>

@@ -149,6 +149,8 @@
     <string name="linked_import_bulk_progress">Importiere %1$d von %2$d…</string>
     <string name="linked_import_bulk_done">%1$d in Proton angelegt, %2$d um Details ergänzt, %3$d fehlgeschlagen. Sie werden bei der nächsten Synchronisierung an Proton gesendet.</string>
     <string name="sync_state_overdue">Synchronisierung überfällig</string>
+    <string name="sync_state_attention">Einige Änderungen sind fehlgeschlagen</string>
+    <string name="sync_state_pending">Änderungen warten auf die Synchronisierung</string>
     <plurals name="sync_interval_every">
         <item quantity="one">Alle %d Stunde</item>
         <item quantity="other">Alle %d Stunden</item>

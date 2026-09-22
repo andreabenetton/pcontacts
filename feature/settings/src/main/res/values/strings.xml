@@ -149,6 +149,8 @@
     <string name="linked_import_bulk_progress">Importing %1$d of %2$d…</string>
     <string name="linked_import_bulk_done">%1$d created in Proton, %2$d given new details, %3$d failed. They will be sent to Proton on the next sync.</string>
     <string name="sync_state_overdue">Sync overdue</string>
+    <string name="sync_state_attention">Some changes failed</string>
+    <string name="sync_state_pending">Changes waiting to sync</string>
     <plurals name="sync_interval_every">
         <item quantity="one">Every %d hour</item>
         <item quantity="other">Every %d hours</item>

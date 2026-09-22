@@ -4,6 +4,7 @@
 package io.pcontacts.feature.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -54,7 +55,7 @@ class SettingsScreenTest {
         composeRule.setContent {
             SettingsScreen(vm, SettingsActions(onSignedOut = {}))
         }
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithText("Sync interval").assertIsDisplayed()
         composeRule.onNodeWithText("Sync now").assertIsDisplayed()
         composeRule.onNodeWithText("Sign out").assertIsDisplayed()
     }
@@ -76,7 +77,13 @@ class SettingsScreenTest {
         gate.complete(SettingsActionResult.Success("Sync requested"))
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Sync requested").assertIsDisplayed()
+        // The request went through: the card reports the run the framework is about to start,
+        // and the button stays disabled until the sync observer reports it finished.
+        composeRule.onNodeWithText("Sync in progress…").assertIsDisplayed()
+        composeRule.onNodeWithText("Sync now").assertIsNotEnabled()
+        vm.updateSyncRunning(false)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Sync now").assertIsEnabled()
     }
 
     @Test

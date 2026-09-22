@@ -213,16 +213,14 @@ private fun headline(facts: SyncFacts): Headline {
             tone = running
         )
         SyncHealth.FAILED -> Headline(failureText(state, lastSync), warn)
-        SyncHealth.ATTENTION -> Headline(plural(R.plurals.outbox_quarantined, outbox.quarantined), warn)
-        SyncHealth.PENDING -> Headline(plural(R.plurals.outbox_pending, outbox.pending), info)
+        // The counts live on the tappable status rows below; the headline only names the state.
+        SyncHealth.ATTENTION -> Headline(stringResource(R.string.sync_state_attention), warn)
+        SyncHealth.PENDING -> Headline(stringResource(R.string.sync_state_pending), info)
         SyncHealth.NEVER -> Headline(stringResource(R.string.sync_state_never), info)
         SyncHealth.OVERDUE -> Headline(stringResource(R.string.sync_state_overdue), warn)
         SyncHealth.UP_TO_DATE -> Headline(stringResource(R.string.sync_state_ok), ok)
     }
 }
-
-@Composable
-private fun plural(id: Int, count: Int): String = pluralStringResource(id, count, count)
 
 @Composable
 private fun failureText(state: SettingsUiState, lastSync: LastSyncSummary?): String =
