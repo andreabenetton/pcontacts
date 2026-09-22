@@ -77,6 +77,8 @@ class MainActivity : ComponentActivity() {
         val prefs = SharedPreferencesUserPreferences(this)
         prefs.contactsPermissionRequested = true
         contactsPermissionStatus = ContactsPermissionState.check(this, true)
+        // The sync requested at sign-in could not write without Contacts access; run it now.
+        if (contactsPermissionStatus == ContactsPermissionStatus.GRANTED) requestExpeditedSync()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -169,9 +171,13 @@ class MainActivity : ComponentActivity() {
         // sign-in screen undisturbed, and the prompts follow the return from LoginActivity. The
         // prefs flags inside make repeated resumes a no-op.
         if (hasProtonAccount()) requestPermissionsOnce()
+        val hadContactsAccess = contactsPermissionStatus == ContactsPermissionStatus.GRANTED
         contactsPermissionStatus = ContactsPermissionState.check(
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
+        // Access granted while we were away (the system Settings page): sync as soon as we can.
+        val gainedContactsAccess = !hadContactsAccess && contactsPermissionStatus == ContactsPermissionStatus.GRANTED
+        if (gainedContactsAccess && hasProtonAccount()) requestExpeditedSync()
         settingsHost.onResume()
 
         if (pendingVerificationReturn) {
