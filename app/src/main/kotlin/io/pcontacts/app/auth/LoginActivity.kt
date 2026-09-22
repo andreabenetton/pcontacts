@@ -51,17 +51,20 @@ class LoginActivity : ComponentActivity() {
     private val viewModel: LoginViewModel by viewModels {
         LoginViewModel.Factory(
             attemptLogin = orchestrator::login,
-            submitTotp = orchestrator::submitTwoFactorCode
+            submitTotp = orchestrator::submitTwoFactorCode,
+            retryKeyDerivation = orchestrator::retryKeyDerivation,
+            abortLogin = orchestrator::abort
         )
     }
     private var response: AccountAuthenticatorResponse? = null
 
     // Receives the result of the HV WebView Activity. RESULT_OK means
     // the JS bridge wrote a verification token to SecretStore; the view
-    // model then re-runs /auth (credentials phase) or returns to the TOTP
-    // screen for a fresh code (2FA phase), both now carrying the HV
-    // headers. Anything else (back-button, ESC) means the user gave up —
-    // reset the VM to Idle instead of looping into the captcha screen.
+    // model then re-runs /auth (credentials phase), returns to the TOTP
+    // screen for a fresh code (2FA phase) or resumes key derivation on
+    // the kept session (after the code was accepted), all now carrying
+    // the HV headers. Anything else (back-button, ESC) means the user
+    // gave up — reset the VM to Idle instead of looping into the captcha.
     private val humanVerificationLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
@@ -84,6 +87,7 @@ class LoginActivity : ComponentActivity() {
                         is LoginUiState.TwoFactorRequired,
                         is LoginUiState.TwoFactorSubmitting,
                         is LoginUiState.TwoFactorHumanVerificationRequired,
+                        is LoginUiState.KeyDerivationHumanVerificationRequired,
                         is LoginUiState.TwoFactorFailed -> TwoFactorScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },

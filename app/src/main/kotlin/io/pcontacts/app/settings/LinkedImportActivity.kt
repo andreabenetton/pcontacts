@@ -28,7 +28,11 @@ class LinkedImportActivity : ComponentActivity() {
 
     private val bridge by lazy { LinkedImportBridge(applicationContext, ::currentAccount) }
     private val listViewModel by lazy {
-        LinkedImportListViewModel(scan = bridge::scan, importMany = bridge::importMany)
+        LinkedImportListViewModel(
+            scan = bridge::scan,
+            importMany = bridge::importMany,
+            queryImportStatus = bridge::importStatus
+        )
     }
     private val importViewModel by lazy {
         LinkedImportViewModel(

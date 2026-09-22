@@ -16,10 +16,13 @@ import android.os.Bundle
 import android.provider.ContactsContract
 import androidx.core.graphics.drawable.toBitmap
 import io.pcontacts.app.R
-import io.pcontacts.core.contactswriter.LinkedContactCandidates
 import io.pcontacts.core.contactswriter.LinkedField
+import io.pcontacts.core.contactswriter.key
+import io.pcontacts.core.contactswriter.reachesContact
+import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.sync.contacts.LinkedContactsBootstrap
 import io.pcontacts.feature.settings.BulkResult
+import io.pcontacts.feature.settings.ImportStatus
 import io.pcontacts.feature.settings.LinkedContactRow
 import io.pcontacts.feature.settings.LinkedFieldKind
 import io.pcontacts.feature.settings.LinkedImportCandidate
@@ -29,15 +32,17 @@ import io.pcontacts.feature.settings.LinkedImportPreview
  * `:app` side of the linked-contact import (ADR-0023): resolves the
  * picked Contact, turns the core candidates into display rows for the
  * dialog, and replays the user's selection through
- * [LinkedContactsBootstrap]. The candidate list lives here only between
- * preview and import — never persisted, never logged.
+ * [LinkedContactsBootstrap]. Nothing is cached between preview and
+ * import (ADR-0023): the candidates are re-read at confirmation and
+ * the selection is matched by field identity, so a re-aggregation in
+ * between cannot import the wrong field.
  */
 class LinkedImportBridge(
     private val context: Context,
     private val account: () -> Account?
 ) {
-    private var loaded: LinkedContactCandidates? = null
     private var loadedContactId: Long = 0L
+    private var loadedProtonRawContactId: Long? = null
 
     /** Launcher icons per provider account type, loaded once per bridge; null where there is no app (device-local). */
     private val iconCache = HashMap<String?, Bitmap?>()
@@ -87,6 +92,8 @@ class LinkedImportBridge(
         val fields = candidates.candidates.map { it.field }
         if (fields.isEmpty()) return WholeImport.FAILED
         val protonRawContactId = candidates.protonRawContactId
+        // A new Proton contact is created only from something that reaches the person (ADR-0023).
+        if (protonRawContactId == null && fields.none { it.reachesContact }) return WholeImport.FAILED
         return try {
             if (protonRawContactId == null) {
                 LinkedContactsBootstrap.createContact(context, account, contactId, candidates.name, fields)
@@ -95,9 +102,6 @@ class LinkedImportBridge(
                 LinkedContactsBootstrap.importFields(context, account, protonRawContactId, fields)
                 WholeImport.ENRICHED
             }
-        } catch (_: IllegalArgumentException) {
-            // ContactRow's guard: nothing reachable to create a contact from.
-            WholeImport.FAILED
         } catch (_: android.os.RemoteException) {
             WholeImport.FAILED
         }
@@ -106,14 +110,14 @@ class LinkedImportBridge(
     suspend fun loadPreview(contactId: Long): LinkedImportPreview? {
         val account = account() ?: return null
         val candidates = LinkedContactsBootstrap.loadCandidates(context, account, contactId) ?: return null
-        loaded = candidates
         loadedContactId = contactId
+        loadedProtonRawContactId = candidates.protonRawContactId
         return LinkedImportPreview(
             contactName = contactName(contactId),
             createsNewContact = candidates.protonRawContactId == null,
-            candidates = candidates.candidates.mapIndexed { idx, candidate ->
+            candidates = candidates.candidates.map { candidate ->
                 LinkedImportCandidate(
-                    id = idx,
+                    id = candidate.field.key,
                     kind = LinkedImportFormat.kind(candidate.field),
                     value = LinkedImportFormat.value(candidate.field),
                     source = candidate.sourceAccountTypes.map(::sourceLabel).distinct().joinToString(", "),
@@ -126,20 +130,40 @@ class LinkedImportBridge(
     /**
      * Writes the chosen fields onto the Proton copy — or creates the
      * copy when there is none — and asks for a sync so they reach
-     * Proton promptly.
+     * Proton promptly. The candidates are re-read now; false means the
+     * contact changed since the preview (a chosen field is gone, or the
+     * Proton copy is not the one previewed) and the user should look again.
      */
-    suspend fun import(ids: List<Int>) {
-        val account = account() ?: return
-        val candidates = loaded ?: return
-        val fields = ids.map { candidates.candidates[it].field }
+    suspend fun import(keys: List<String>): Boolean {
+        val account = account() ?: return true
+        val candidates = LinkedContactsBootstrap.loadCandidates(context, account, loadedContactId) ?: return false
+        if (candidates.protonRawContactId != loadedProtonRawContactId) return false
+        val byKey = candidates.candidates.associateBy { it.field.key }
+        val fields = keys.map { key -> byKey[key]?.field ?: return false }
         val protonRawContactId = candidates.protonRawContactId
         if (protonRawContactId == null) {
             LinkedContactsBootstrap.createContact(context, account, loadedContactId, candidates.name, fields)
         } else {
             LinkedContactsBootstrap.importFields(context, account, protonRawContactId, fields)
         }
-        loaded = null
         requestSync(account)
+        return true
+    }
+
+    /**
+     * Where the imported contact's change to Proton stands, from the
+     * outbox and the mapping of its Proton RawContact: a live outbox row
+     * is queued, a quarantined one failed, a clean mapping under a server
+     * id is synced. Null when nothing is known yet.
+     */
+    suspend fun importStatus(contactId: Long): ImportStatus? {
+        val account = account() ?: return null
+        val rawId = LinkedContactsBootstrap.loadCandidates(context, account, contactId)?.protonRawContactId
+            ?: return null
+        val db = DatabaseFactory.create(context)
+        val mapping = db.contactMapDao().findByRawContactId(rawId) ?: return null
+        val rows = db.outboxDao().findByContact(mapping.protonContactId)
+        return ImportStatusMapper.status(mapping, rows)
     }
 
     private fun requestSync(account: Account) {

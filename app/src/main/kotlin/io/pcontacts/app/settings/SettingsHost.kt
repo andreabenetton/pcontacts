@@ -129,6 +129,7 @@ class SettingsHost(
         }
         return LastSyncSummary(
             syncedAtMillis = status.lastSyncedAtMillis,
+            lastRunAtMillis = status.lastRunAtMillis,
             failureMessage = failureMessage,
             failedContacts = status.failedContacts
         )
@@ -276,8 +277,11 @@ class SettingsHost(
             )
         }
 
+    /** Undoes a local deletion (ADR-0022): the row comes back, and a sync settles the rest. */
     private suspend fun cancelPendingDelete(protonContactId: String) {
-        db.outboxDao().deleteByContact(protonContactId)
+        val account = currentAccount() ?: return
+        SyncBootstrap.cancelPendingDelete(activity, account, protonContactId)
+        performSyncNow()
     }
 
     private suspend fun resolveConflict(protonContactId: String, resolution: ConflictResolution) {

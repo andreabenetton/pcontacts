@@ -188,6 +188,8 @@ class MainActivity : ComponentActivity() {
         )
         // Access granted while we were away (the system Settings page): sync as soon as we can.
         val gainedContactsAccess = !hadContactsAccess && contactsPermissionStatus == ContactsPermissionStatus.GRANTED
+        // The upgrade sign-out needs Contacts access; if it was skipped for lack of it, now is the time.
+        if (gainedContactsAccess) signOutAfterStorageUpgradeIfNeeded()
         if (gainedContactsAccess && hasProtonAccount()) requestExpeditedSync()
         settingsHost.onResume()
 
@@ -297,6 +299,7 @@ class MainActivity : ComponentActivity() {
      * the account then stays and the sync card reports the re-auth instead.
      */
     private fun signOutAfterStorageUpgradeIfNeeded() {
+        if (upgradeSignOutRunning) return
         val account = AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull() ?: return
         if (!AuthBootstrap.storageUpgradePending(this)) return
         storageUpgradeNotice = true

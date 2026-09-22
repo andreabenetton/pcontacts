@@ -186,8 +186,23 @@ class ProtonSyncAdapterErrorPropagationTest {
         assertEquals(1L, syncResult.stats.numDeletes)
         assertEquals(0L, syncResult.stats.numIoExceptions)
         assertEquals(0L, syncResult.stats.numAuthExceptions)
-        // A successful sync stamps the success time and clears any prior error.
+        // A converged sync stamps both the run and the success time and clears any prior error.
         assertTrue(prefs.lastSyncSuccessAtMillis > 0L)
+        assertTrue(prefs.lastSyncRunAtMillis > 0L)
+        assertNull(prefs.lastSyncErrorCode)
+    }
+
+    @Test fun a_run_that_left_contacts_behind_stamps_the_run_but_not_the_success() {
+        val wr = WriteReport.EMPTY.copy(failed = 1)
+        val rr = SyncReport(totalServer = 5, inserted = 0, updated = 0, deleted = 0, unchanged = 4, failed = 1)
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> wr to rr }
+
+        adapter.onPerformSync(account, extras, authority, provider, SyncResult())
+
+        assertTrue(prefs.lastSyncRunAtMillis > 0L)
+        assertEquals(0L, prefs.lastSyncSuccessAtMillis)
+        assertEquals(1, prefs.lastSyncFailedContacts)
         assertNull(prefs.lastSyncErrorCode)
     }
 }

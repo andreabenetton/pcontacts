@@ -23,6 +23,7 @@ import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.core.sync.contacts.SyncReport
 import io.pcontacts.core.sync.contacts.WriteReport
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
 
@@ -95,7 +96,10 @@ class ProtonSyncAdapter(
                     "updated=${readReport.updated} deleted=${readReport.deleted} " +
                     "unchanged=${readReport.unchanged} failed=${readReport.failed}"
             }
-            recordSuccess(readReport.failed)
+            recordRun(writeReport, readReport)
+        } catch (e: CancellationException) {
+            // A cancelled run (the framework's onSyncCanceled) is neither a failure nor a run.
+            throw e
         } catch (e: DecryptUnavailableException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
@@ -140,9 +144,18 @@ class ProtonSyncAdapter(
         }
     }
 
-    private fun recordSuccess(failedContacts: Int) {
-        userPreferences.lastSyncSuccessAtMillis = System.currentTimeMillis()
+    /**
+     * Every completed run stamps [UserPreferences.lastSyncRunAtMillis];
+     * only a converged one — nothing failed, conflicted or quarantined
+     * on either side — stamps [UserPreferences.lastSyncSuccessAtMillis].
+     */
+    private fun recordRun(writeReport: WriteReport, readReport: SyncReport) {
+        val now = System.currentTimeMillis()
+        userPreferences.lastSyncRunAtMillis = now
         userPreferences.lastSyncErrorCode = null
-        userPreferences.lastSyncFailedContacts = failedContacts
+        userPreferences.lastSyncFailedContacts = readReport.failed
+        val converged = readReport.failed == 0 && writeReport.failed == 0 &&
+            writeReport.conflicted == 0 && writeReport.quarantined == 0
+        if (converged) userPreferences.lastSyncSuccessAtMillis = now
     }
 }
