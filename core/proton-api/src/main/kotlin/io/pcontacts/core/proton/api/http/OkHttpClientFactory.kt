@@ -69,6 +69,9 @@ object OkHttpClientFactory {
             // App-version rejection (5003/5004) — must run after 9001
             // so the more-specific human-verification is caught first.
             .addInterceptor(AppVersionRejectionInterceptor())
+            // Any other non-success Code inside a 2xx — after the two
+            // specific ones so they keep their exceptions.
+            .addInterceptor(ProtonCodeInterceptor())
             .dns(ProtonHostDnsGuard())
             .certificatePinner(ProtonCertificatePins.buildPinner())
             .connectTimeout(15, TimeUnit.SECONDS)
