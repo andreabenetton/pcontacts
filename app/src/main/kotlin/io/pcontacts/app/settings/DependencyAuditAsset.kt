@@ -49,7 +49,8 @@ object DependencyAuditAsset {
         severity = o.stringOrNull("severity"),
         url = o.getString("url"),
         suppressed = o.getBoolean("suppressed"),
-        reason = o.stringOrNull("reason")
+        reason = o.stringOrNull("reason"),
+        falsePositive = o.optBoolean("falsePositive", false)
     )
 
     /** `optString` would turn a JSON null into the text "null"; the snapshot uses null for "none". */

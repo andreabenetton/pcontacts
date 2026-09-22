@@ -26,7 +26,7 @@ class DependencyAuditAssetTest {
                {"group":"a","name":"clean","version":"1","licenses":["Apache-2.0"],"cves":[]},
                {"group":"b","name":"assessed","version":"2","licenses":[],"cves":[
                  {"id":"CVE-1","score":9.8,"severity":"CRITICAL","url":"https://nvd.nist.gov/vuln/detail/CVE-1",
-                  "suppressed":true,"reason":"false positive"}]},
+                  "suppressed":true,"falsePositive":false,"reason":"assessed"}]},
                {"group":"c","name":"open","version":"3","licenses":["MIT"],"cves":[
                  {"id":"CVE-2","score":null,"severity":null,"url":"https://nvd.nist.gov/vuln/detail/CVE-2",
                   "suppressed":false,"reason":null}]}
@@ -38,7 +38,8 @@ class DependencyAuditAssetTest {
         assertEquals(listOf("c:open:3", "b:assessed:2", "a:clean:1"), audit.sortedForDisplay.map { it.coordinate })
         val assessed = audit.dependencies.single { it.name == "assessed" }.cves.single()
         assertEquals(9.8, assessed.score!!, 0.0)
-        assertEquals("false positive", assessed.reason)
+        assertEquals("assessed", assessed.reason)
+        assertEquals(false, assessed.falsePositive)
         val open = audit.dependencies.single { it.name == "open" }.cves.single()
         assertNull(open.score)
         assertNull(open.reason)
@@ -50,6 +51,8 @@ class DependencyAuditAssetTest {
         assertTrue("missing ${file.absolutePath}", file.exists())
         val audit = DependencyAuditAsset.parse(file.readText())
         assertTrue(audit.dependencies.isNotEmpty())
+        // The SQLite CPE mismatch is tagged as a false positive and leaves those artifacts green.
+        assertTrue(audit.dependencies.filter { it.group == "androidx.sqlite" }.all { it.status == AuditStatus.CLEAN })
         assertTrue(audit.dependencies.all { it.group.isNotEmpty() && it.version.isNotEmpty() })
     }
 }
