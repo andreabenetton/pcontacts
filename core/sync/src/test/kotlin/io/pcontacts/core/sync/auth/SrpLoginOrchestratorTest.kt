@@ -265,6 +265,40 @@ class SrpLoginOrchestratorTest {
         assertNull((result as LoginResult.HumanVerificationRequired).verificationUrl)
     }
 
+    @Test fun submitTwoFactorCode_after_9001_retries_on_the_same_session_with_a_fresh_code() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-hv", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        repeat(2) { server.takeRequest() }   // /info, /auth
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"Code":9001,"Error":"Human verification required",""" +
+                        """"Details":{"HumanVerificationToken":"t","HumanVerificationMethods":["captcha"]}}"""
+                )
+        )
+        assertTrue(orchestrator.submitTwoFactorCode("123456") is LoginResult.HumanVerificationRequired)
+        server.takeRequest()    // the refused /auth/2fa
+
+        // [U] Proton accepting /auth/2fa on the same session once the captcha is
+        // solved is unvalidated live; the contract the UI relies on is that the
+        // orchestrator keeps the session and submits the fresh code with its headers.
+        server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
+        enqueueUserResponse(primaryKeyId = "kp-2fa-h")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-2fa-h", saltB64 = SAMPLE_SALT_B64)
+
+        val second = orchestrator.submitTwoFactorCode("654321")
+
+        assertEquals(LoginResult.Success(uid = "uid-2fa-hv", username = "u"), second)
+        val recorded = server.takeRequest()
+        assertEquals("/core/v4/auth/2fa", recorded.path)
+        assertEquals("uid-2fa-hv", recorded.getHeader("x-pm-uid"))
+        assertTrue(recorded.body.readUtf8().contains("\"TwoFactorCode\":\"654321\""))
+    }
+
     @Test fun submitTwoFactorCode_success_returns_Success_and_carries_session_headers() = runTest {
         // Bootstrap: full SRP login → TwoFactorRequired persists session.
         enqueueInfoResponse()

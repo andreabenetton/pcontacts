@@ -19,15 +19,17 @@ sealed interface LoginResult {
     data class TwoFactorRequired(override val uid: String, override val username: String) : LoginResult
 
     /**
-     * Proton returned Code:9001 on `/auth`. The user must complete a
-     * captcha (or recovery-email/SMS challenge) before SRP can succeed.
-     * After verification, the caller re-invokes `login(...)` with the
-     * same credentials; the next `/auth` carries the
-     * `x-pm-human-verification-token` headers and is expected to pass.
+     * Proton returned Code:9001 on `/auth/info`, `/auth`, `/auth/2fa` or
+     * a key-derivation call. The user solves the captcha in the in-app
+     * WebView (ADR-0019); the token it stores makes every following
+     * request carry the `x-pm-human-verification-token{,-type}` headers.
+     * The caller then re-invokes `login(...)` (credentials phase) or
+     * `submitTwoFactorCode(...)` with a fresh code (2FA phase — the SRP
+     * session is kept).
      *
      * [verificationUrl] is null when the 9001 body did not include the
-     * captcha Details block — UI falls back to a "verify on the web"
-     * dialog instead of opening a Custom Tab.
+     * captcha Details block — the UI falls back to a "verify on the web"
+     * dialog instead of opening the WebView.
      */
     data class HumanVerificationRequired(
         val verificationUrl: String?,

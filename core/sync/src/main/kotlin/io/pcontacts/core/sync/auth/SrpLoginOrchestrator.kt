@@ -311,7 +311,7 @@ class SrpLoginOrchestrator(
             // retries the same `/auth` with the `x-pm-human-verification-token*`
             // headers; on success the response carries `TwoFactor:1` and the
             // 2FA prompt follows). We surface the requirement so the Login UI
-            // can launch the captcha Custom Tab and re-invoke login() after.
+            // can open the captcha WebView (ADR-0019) and re-invoke login() after.
             logger.warn { "auth returned 9001 — human verification required" }
             return Step.Abort(LoginResult.HumanVerificationRequired(verificationUrl = e.verificationUrl))
         } catch (t: Throwable) {
