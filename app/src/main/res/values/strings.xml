@@ -18,6 +18,8 @@
     <string name="notification_reauth_title">Sign-in required</string>
     <string name="notification_reauth_text">Your session has expired. Sign in again to resume contact sync.</string>
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 stores your session with stronger, device-bound encryption. Sign in again once to resume contact sync.</string>
+    <string name="notification_vulnerability_title">Security notice</string>
+    <string name="notification_vulnerability_text">This version ships a dependency with a known open vulnerability. Tap to see which one and what it affects.</string>
     <string name="notification_sync_failure_title">Contact sync failed</string>
     <string name="notification_sync_failure_text">Sync has failed repeatedly. Open the app to check your connection and retry.</string>
     <string name="notification_permission_denied">Notifications are disabled. Sync still works, but you won\'t see alerts when action is needed.</string>

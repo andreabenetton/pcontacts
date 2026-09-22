@@ -97,7 +97,8 @@ class SettingsHost(
         onOpenLinkedImport = { activity.startActivity(Intent(activity, LinkedImportActivity::class.java)) },
         onOpenContactsAccess = { kind -> activity.startActivity(ContactsAccessActivity.intent(activity, kind)) },
         onOpenContactsStorage = contactsStorageAction(),
-        onOpenDeGoogledRoms = { activity.startActivity(Intent(activity, DeGoogledRomsActivity::class.java)) }
+        onOpenDeGoogledRoms = { activity.startActivity(Intent(activity, DeGoogledRomsActivity::class.java)) },
+        onOpenDependencies = { activity.startActivity(Intent(activity, DependenciesActivity::class.java)) }
     )
 
     fun onResume() = syncRunningMonitor.start()

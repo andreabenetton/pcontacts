@@ -86,6 +86,12 @@
             android:exported="false"
             android:theme="@style/Theme.Pcontacts" />
 
+        <!-- ADR-0024: the shipped dependency audit; CVE pages open in the user's browser via ACTION_VIEW. -->
+        <activity
+            android:name=".settings.DependenciesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pcontacts" />
+
         <!-- What "de-Googled ROM" means; project sites open in the user's browser via ACTION_VIEW. -->
         <activity
             android:name=".settings.DeGoogledRomsActivity"

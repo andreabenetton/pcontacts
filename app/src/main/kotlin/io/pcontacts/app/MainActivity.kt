@@ -42,10 +42,13 @@ import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.auth.LoginActivity
 import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.app.notifications.SyncNotifier
+import io.pcontacts.app.notifications.VulnerabilityNotice
 import io.pcontacts.app.permissions.ContactsPermissionBanner
 import io.pcontacts.app.permissions.ContactsPermissionState
 import io.pcontacts.app.permissions.ContactsPermissionStatus
 import io.pcontacts.app.settings.DeGoogledRomsActivity
+import io.pcontacts.app.settings.DependenciesActivity
+import io.pcontacts.app.settings.DependencyAuditAsset
 import io.pcontacts.app.settings.SettingsHost
 import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.app.ui.PcontactsTheme
@@ -54,6 +57,7 @@ import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.feature.settings.AuditIndicator
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SignInScreen
 import kotlinx.coroutines.launch
@@ -106,6 +110,9 @@ class MainActivity : ComponentActivity() {
             this, SharedPreferencesUserPreferences(this).contactsPermissionRequested
         )
         signOutAfterStorageUpgradeIfNeeded()
+        VulnerabilityNotice.postIfOpen(this)
+        val auditStatus = DependencyAuditAsset.load(this).status
+        val openDependencies = { startActivity(Intent(this, DependenciesActivity::class.java)) }
 
         setContent {
             PcontactsTheme {
@@ -129,7 +136,8 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.padding(top = 16.dp)
                                 )
                             }
-                        }
+                        },
+                        auditStatus = auditStatus
                     )
                 } else {
                     SignInScreen(
@@ -138,7 +146,8 @@ class MainActivity : ComponentActivity() {
                         onSignIn = ::launchLogin,
                         onOpenDeGoogledRoms = { startActivity(Intent(this, DeGoogledRomsActivity::class.java)) },
                         storageUpgradeNotice = storageUpgradeNotice,
-                        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } }
+                        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } },
+                        audit = AuditIndicator(auditStatus, openDependencies)
                     )
                 }
 

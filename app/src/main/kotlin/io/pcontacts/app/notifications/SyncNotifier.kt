@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.pcontacts.app.MainActivity
 import io.pcontacts.app.R
+import io.pcontacts.app.settings.DependenciesActivity
 
 class SyncNotifier(private val context: Context) {
 
@@ -52,6 +53,18 @@ class SyncNotifier(private val context: Context) {
             title = R.string.notification_verification_title,
             text = R.string.notification_verification_text,
             intent = intent
+        )
+    }
+
+    /** The shipped dependency audit lists an open CVE (ADR-0024); tapping opens the Dependencies screen. */
+    fun notifyOpenVulnerability() {
+        post(
+            id = NOTIFICATION_ID_VULNERABILITY,
+            title = R.string.notification_vulnerability_title,
+            text = R.string.notification_vulnerability_text,
+            intent = Intent(context, DependenciesActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
         )
     }
 
@@ -105,5 +118,6 @@ class SyncNotifier(private val context: Context) {
         private const val NOTIFICATION_ID_REAUTH = 9002
         private const val NOTIFICATION_ID_VERIFICATION = 9001
         private const val NOTIFICATION_ID_FAILURE = 9003
+        private const val NOTIFICATION_ID_VULNERABILITY = 9004
     }
 }
