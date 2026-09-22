@@ -314,9 +314,10 @@ private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?) {
             R.string.settings_last_sync,
             DateUtils.formatDateTime(context, syncedAt, ABSOLUTE_FLAGS)
         )
+        // [now] ticks every 30 s, so a sync that just finished can be ahead of it; never say "In 0 minutes".
         else -> stringResource(
             R.string.settings_last_sync,
-            DateUtils.getRelativeTimeSpanString(syncedAt, now, DateUtils.MINUTE_IN_MILLIS)
+            DateUtils.getRelativeTimeSpanString(syncedAt, maxOf(now, syncedAt), DateUtils.MINUTE_IN_MILLIS)
         )
     }
     val text = if (contacts != null) {
