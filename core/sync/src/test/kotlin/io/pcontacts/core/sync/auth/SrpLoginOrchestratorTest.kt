@@ -299,6 +299,115 @@ class SrpLoginOrchestratorTest {
         assertTrue(recorded.body.readUtf8().contains("\"TwoFactorCode\":\"654321\""))
     }
 
+    private fun enqueue9001() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(422)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"Code":9001,"Error":"Human verification required",""" +
+                        """"Details":{"HumanVerificationToken":"t","HumanVerificationMethods":["captcha"]}}"""
+                )
+        )
+    }
+
+    /** SRP login into a 2FA session, `/auth/2fa` accepted; the next call is `/users`. */
+    private suspend fun orchestratorPastTwoFactor(): SrpLoginOrchestrator {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-kd", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        repeat(2) { server.takeRequest() }
+        server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["self","full"]}"""))
+        return orchestrator
+    }
+
+    @Test fun a_9001_after_the_code_was_accepted_is_resumed_by_retrying_key_derivation_not_a_new_code() = runTest {
+        val orchestrator = orchestratorPastTwoFactor()
+        enqueue9001() // /users refuses
+
+        val interrupted = orchestrator.submitTwoFactorCode("123456")
+
+        assertTrue(
+            "expected HumanVerificationRequired, was $interrupted",
+            interrupted is LoginResult.HumanVerificationRequired
+        )
+        assertEquals(LoginResult.HvStage.KEY_DERIVATION, (interrupted as LoginResult.HumanVerificationRequired).stage)
+        assertNull("nothing derived yet", secretStore.keyPassword())
+        repeat(2) { server.takeRequest() } // /auth/2fa, the refused /users
+
+        enqueueUserResponse(primaryKeyId = "kp-kd")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-kd", saltB64 = SAMPLE_SALT_B64)
+        val resumed = orchestrator.retryKeyDerivation()
+
+        assertEquals(LoginResult.Success(uid = "uid-2fa-kd", username = "u"), resumed)
+        assertNotNull("keyPassword derived from the retained stash", secretStore.keyPassword())
+        assertEquals("/core/v4/users", server.takeRequest().path)
+        // The stash is gone: a further retry has nothing to work with.
+        assertEquals("unexpected_state", (orchestrator.retryKeyDerivation() as LoginResult.Failed).reason)
+    }
+
+    @Test fun a_second_9001_on_key_derivation_after_verification_fails_closed() = runTest {
+        val orchestrator = orchestratorPastTwoFactor()
+        enqueue9001()
+        orchestrator.submitTwoFactorCode("123456")
+        repeat(2) { server.takeRequest() }
+        enqueue9001()
+
+        val result = orchestrator.retryKeyDerivation()
+
+        assertEquals("verification_rejected", (result as LoginResult.Failed).reason)
+        assertNull(secretStore.keyPassword())
+    }
+
+    @Test fun the_2fa_and_credentials_stages_are_reported_as_such() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-stage", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        repeat(2) { server.takeRequest() }
+        enqueue9001() // /auth/2fa refuses
+        val twoFactor = orchestrator.submitTwoFactorCode("123456") as LoginResult.HumanVerificationRequired
+        assertEquals(LoginResult.HvStage.TWO_FACTOR, twoFactor.stage)
+
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-nokd", twoFactor = 0)
+        enqueue9001() // /users refuses on a no-2FA login: the caller re-runs login
+        val credentials = newOrchestrator().login("v", "p".toCharArray()) as LoginResult.HumanVerificationRequired
+        assertEquals(LoginResult.HvStage.CREDENTIALS, credentials.stage)
+    }
+
+    @Test fun abort_during_two_factor_zeroes_the_stash_and_wipes_the_half_session() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-abort", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        assertNotNull(secretStore.accessToken())
+
+        orchestrator.abort()
+
+        assertNull(secretStore.uid())
+        assertNull(secretStore.accessToken())
+        assertNull(secretStore.refreshToken())
+        assertNull(session.uid())
+        assertEquals("no_session", (orchestrator.submitTwoFactorCode("123456") as LoginResult.Failed).reason)
+    }
+
+    @Test fun abort_after_a_completed_login_keeps_the_persisted_session() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-done", twoFactor = 0)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+
+        orchestrator.abort()
+
+        assertEquals("uid-done", secretStore.uid())
+        assertNotNull(secretStore.accessToken())
+        assertNotNull(secretStore.keyPassword())
+    }
+
     @Test fun submitTwoFactorCode_success_returns_Success_and_carries_session_headers() = runTest {
         // Bootstrap: full SRP login → TwoFactorRequired persists session.
         enqueueInfoResponse()

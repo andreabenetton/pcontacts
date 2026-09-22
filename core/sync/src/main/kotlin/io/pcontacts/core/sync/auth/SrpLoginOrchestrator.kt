@@ -89,6 +89,9 @@ class SrpLoginOrchestrator(
      */
     @Volatile private var pendingTwoFactorPassword: CharArray? = null
 
+    /** True once keyPassword is persisted: [abort] then keeps the persisted session. */
+    @Volatile private var completed = false
+
     private sealed interface Step<out T> {
         data class Ok<T>(val value: T) : Step<T>
 
@@ -117,6 +120,7 @@ class SrpLoginOrchestrator(
     private suspend fun loginInternal(username: String, password: CharArray): LoginResult {
         logger.info { "login: getInfo user=<redacted>" }
         lastUsername = username
+        completed = false
         clearPendingTwoFactorPassword()   // drop any stash from a prior attempt
 
         val info = fetchInfo(username).orReturn { return it }
@@ -125,8 +129,7 @@ class SrpLoginOrchestrator(
         val authResp = submitAuthAndVerifyProof(username, info, proof, mod.padLen).orReturn { return it }
 
         secretStore.setUid(authResp.uid)
-        secretStore.setAccessToken(authResp.accessToken)
-        secretStore.setRefreshToken(authResp.refreshToken)
+        secretStore.setTokens(authResp.accessToken, authResp.refreshToken)
         session.update(uid = authResp.uid, accessToken = authResp.accessToken)
 
         // [V] TwoFactor bit semantics from packages/shared/lib/authentication/twoFactor.ts.
@@ -139,8 +142,9 @@ class SrpLoginOrchestrator(
             return LoginResult.TwoFactorRequired(uid = authResp.uid, username = username)
         }
 
-        // No 2FA — access token already carries scope=full; derive now.
-        return finishKeyDerivation(password, authResp.uid, username)
+        // No 2FA — access token already carries scope=full; derive now. A 9001
+        // here is resumed by re-running login: the caller still holds the password.
+        return finishKeyDerivation(password, authResp.uid, username, LoginResult.HvStage.CREDENTIALS)
     }
 
     /**
@@ -153,16 +157,19 @@ class SrpLoginOrchestrator(
     private suspend fun finishKeyDerivation(
         password: CharArray,
         uid: String,
-        username: String
+        username: String,
+        stage: LoginResult.HvStage
     ): LoginResult = try {
         deriveAndPersistKeyPassword(password)
+        completed = true
         LoginResult.Success(uid = uid, username = username)
     } catch (e: HumanVerificationRequiredException) {
         logger.warn { "key-derivation step returned 9001 — human verification required" }
         LoginResult.HumanVerificationRequired(
             verificationUrl = e.verificationUrl,
             uid = uid,
-            username = username
+            username = username,
+            stage = stage
         )
     } catch (e: CancellationException) {
         throw e
@@ -170,8 +177,7 @@ class SrpLoginOrchestrator(
         val code = t.httpStatusCode()
         logger.error(t) { "key-derivation step failed http=$code" }
         secretStore.setUid(null)
-        secretStore.setAccessToken(null)
-        secretStore.setRefreshToken(null)
+        secretStore.setTokens(null, null)
         session.update(uid = null, accessToken = null)
         LoginResult.Failed(
             reason = "key_derivation_failed",
@@ -183,6 +189,49 @@ class SrpLoginOrchestrator(
     private fun clearPendingTwoFactorPassword() {
         pendingTwoFactorPassword?.fill('\u0000')
         pendingTwoFactorPassword = null
+    }
+
+    /**
+     * The user left the flow before it finished (cancelled the code
+     * screen, closed the activity): the stashed password is zeroed at
+     * once and the half-established session — `/auth` already persisted
+     * tokens — is wiped from the store and the session object. After a
+     * completed login this is a no-op for the persisted tokens.
+     */
+    fun abort() {
+        clearPendingTwoFactorPassword()
+        if (!completed) {
+            secretStore.setUid(null)
+            secretStore.setTokens(null, null)
+        }
+        session.clear()
+        completed = false
+    }
+
+    /**
+     * Resumes a login that a 9001 interrupted after `/auth/2fa` had
+     * accepted the code (`HvStage.KEY_DERIVATION`): the stashed password
+     * is used once more for `/users` + `/keys/salts`, then zeroed. `[U]`
+     * Proton honouring the verification token on those calls for the
+     * same session is unvalidated live; a second 9001 fails closed.
+     */
+    suspend fun retryKeyDerivation(): LoginResult {
+        val uid = session.uid()
+        val username = lastUsername ?: ""
+        if (uid.isNullOrBlank()) return LoginResult.Failed(reason = "no_session")
+        val pending = pendingTwoFactorPassword
+            ?: return LoginResult.Failed(reason = "unexpected_state", uid = uid, username = username)
+        val result = try {
+            finishKeyDerivation(pending, uid, username, LoginResult.HvStage.KEY_DERIVATION)
+        } finally {
+            clearPendingTwoFactorPassword()
+        }
+        return if (result is LoginResult.HumanVerificationRequired) {
+            logger.warn { "key derivation returned 9001 again after verification — failing closed" }
+            LoginResult.Failed(reason = "verification_rejected", uid = uid, username = username)
+        } else {
+            result
+        }
     }
 
     /**
@@ -409,7 +458,8 @@ class SrpLoginOrchestrator(
             return LoginResult.HumanVerificationRequired(
                 verificationUrl = e.verificationUrl,
                 uid = uid,
-                username = username
+                username = username,
+                stage = LoginResult.HvStage.TWO_FACTOR
             )
         } catch (e: CancellationException) {
             throw e
@@ -427,16 +477,15 @@ class SrpLoginOrchestrator(
         // to scope=full, so /users and /keys/salts are now reachable. Finish
         // the keyPassword derivation deferred by loginInternal.
         val pending = pendingTwoFactorPassword
-        pendingTwoFactorPassword = null
         if (pending == null) {
             logger.warn { "submitTwoFactorCode success but no stashed password — login flow corrupted" }
             return LoginResult.Failed(reason = "unexpected_state", uid = uid, username = username)
         }
-        return try {
-            finishKeyDerivation(pending, uid, username)
-        } finally {
-            pending.fill(Char(0))
-        }
+        // The code is accepted: a 9001 from here on belongs to key derivation.
+        // The stash survives exactly that outcome, for retryKeyDerivation().
+        val result = finishKeyDerivation(pending, uid, username, LoginResult.HvStage.KEY_DERIVATION)
+        if (result !is LoginResult.HumanVerificationRequired) clearPendingTwoFactorPassword()
+        return result
     }
 
     /**

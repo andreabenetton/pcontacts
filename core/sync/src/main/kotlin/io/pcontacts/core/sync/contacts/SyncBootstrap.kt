@@ -203,10 +203,7 @@ object SyncBootstrap {
         val refreshConfig = ProtonApiFactory.RefreshConfig(
             mutableSession = session,
             getRefreshToken = { secretStore.refreshToken() },
-            onTokensRefreshed = { accessToken, refreshToken ->
-                secretStore.setAccessToken(accessToken)
-                secretStore.setRefreshToken(refreshToken)
-            }
+            onTokensRefreshed = { accessToken, refreshToken -> secretStore.setTokens(accessToken, refreshToken) }
         )
         val apis = ProtonApiFactory(
             config = ProtonApiConfig(),
@@ -274,10 +271,7 @@ object SyncBootstrap {
         val refreshConfig = ProtonApiFactory.RefreshConfig(
             mutableSession = session,
             getRefreshToken = { secretStore.refreshToken() },
-            onTokensRefreshed = { accessToken, refreshToken ->
-                secretStore.setAccessToken(accessToken)
-                secretStore.setRefreshToken(refreshToken)
-            }
+            onTokensRefreshed = { accessToken, refreshToken -> secretStore.setTokens(accessToken, refreshToken) }
         )
         val apis = ProtonApiFactory(
             config = ProtonApiConfig(),
