@@ -297,7 +297,7 @@ private fun SyncStatusCard(
  */
 @Composable
 private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?) {
-    val syncedAt = info.syncedAtMillis
+    val syncedAt = info.lastRunAtMillis ?: info.syncedAtMillis
     var absolute by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val syncText = when {

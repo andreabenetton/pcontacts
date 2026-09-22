@@ -69,8 +69,8 @@ fun LinkedImportScreen(
     val filter by listViewModel.filter.collectAsStateWithLifecycle()
     val query by listViewModel.query.collectAsStateWithLifecycle()
     val selected by listViewModel.selected.collectAsStateWithLifecycle()
-    val imported by listViewModel.imported.collectAsStateWithLifecycle()
-    val syncing by listViewModel.syncing.collectAsStateWithLifecycle()
+    val statuses by listViewModel.statuses.collectAsStateWithLifecycle()
+    val imported = statuses.keys
     val bulk by listViewModel.bulk.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // Hoisted so the scroll position outlives the rescan that follows every import.
@@ -110,8 +110,7 @@ fun LinkedImportScreen(
                     rows = visible,
                     listState = listState,
                     selected = selected,
-                    imported = imported,
-                    syncing = syncing,
+                    statuses = statuses,
                     onToggle = listViewModel::toggleSelected,
                     onOpen = importViewModel::start
                 )
@@ -201,8 +200,7 @@ private fun ContactList(
     rows: List<LinkedContactRow>,
     listState: LazyListState,
     selected: Set<Long>,
-    imported: Set<Long>,
-    syncing: Set<Long>,
+    statuses: Map<Long, ImportStatus>,
     onToggle: (Long) -> Unit,
     onOpen: (Long) -> Unit
 ) {
@@ -216,14 +214,13 @@ private fun ContactList(
     }
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
         items(rows, key = { it.contactId }) { row ->
-            val done = row.contactId in imported
+            val status = statuses[row.contactId]
             ContactRowItem(
                 row = row,
                 checked = row.contactId in selected,
-                done = done,
-                syncing = row.contactId in syncing,
+                status = status,
                 onToggle = { onToggle(row.contactId) },
-                onClick = { if (!done) onOpen(row.contactId) }
+                onClick = { if (status == null) onOpen(row.contactId) }
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
@@ -234,11 +231,11 @@ private fun ContactList(
 private fun ContactRowItem(
     row: LinkedContactRow,
     checked: Boolean,
-    done: Boolean,
-    syncing: Boolean,
+    status: ImportStatus?,
     onToggle: () -> Unit,
     onClick: () -> Unit
 ) {
+    val done = status != null
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -266,22 +263,26 @@ private fun ContactRowItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            RowBadge(row, done, syncing)
+            RowBadge(row, status)
         }
     }
 }
 
 /**
- * "Not in Proton" / "N new details" before an import; "Syncing…" while
- * the requested sync runs; "Added to Proton" with a check once it did.
+ * "Not in Proton" / "N new details" before an import; afterwards where
+ * the change stands: waiting, syncing, added (once the server accepted
+ * it) or failed (a quarantined change, listed in Settings).
  */
 @Composable
-private fun RowBadge(row: LinkedContactRow, done: Boolean, syncing: Boolean) {
-    if (done) {
-        SyncIndicator(
-            tone = if (syncing) SyncTone.RUNNING else SyncTone.OK,
-            text = stringResource(if (syncing) R.string.linked_import_row_syncing else R.string.linked_import_row_added)
-        )
+private fun RowBadge(row: LinkedContactRow, status: ImportStatus?) {
+    if (status != null) {
+        val (tone, textRes) = when (status) {
+            ImportStatus.QUEUED -> SyncTone.INFO to R.string.linked_import_row_queued
+            ImportStatus.SYNCING -> SyncTone.RUNNING to R.string.linked_import_row_syncing
+            ImportStatus.SYNCED -> SyncTone.OK to R.string.linked_import_row_added
+            ImportStatus.FAILED -> SyncTone.WARN to R.string.linked_import_row_failed
+        }
+        SyncIndicator(tone = tone, text = stringResource(textRes))
         return
     }
     Text(

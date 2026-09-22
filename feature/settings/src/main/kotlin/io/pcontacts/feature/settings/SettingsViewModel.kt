@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.settings
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -122,19 +123,26 @@ class SettingsViewModel(
 
     private suspend fun refreshSyncStatus() {
         withContext(workDispatcher) {
-            _lastSync.value = try { queryLastSync() } catch (_: Exception) { null }
-            _verificationStats.value = try { queryVerificationStats() } catch (_: Exception) { null }
-            _unverifiedContacts.value = try { queryUnverifiedContacts() } catch (_: Exception) { emptyList() }
-            _outboxStats.value = try { queryOutboxStats() } catch (_: Exception) { OutboxStats(0, 0) }
-            _pendingDeletes.value = try { queryPendingDeletes() } catch (_: Exception) { emptyList() }
-            _conflicts.value = try { queryConflicts() } catch (_: Exception) { emptyList() }
-            _quarantinedChanges.value =
-                try { queryQuarantinedChanges() } catch (_: Exception) { emptyList() }
-            _contactsAccessApps.value = try { queryContactsAccessApps() } catch (_: Exception) { emptyList() }
-            _systemContactsAccessApps.value =
-                try { querySystemContactsAccessApps() } catch (_: Exception) { emptyList() }
-            _systemNoticeDismissed.value = try { querySystemNoticeDismissed() } catch (_: Exception) { false }
+            _lastSync.value = orDefault(null) { queryLastSync() }
+            _verificationStats.value = orDefault(null) { queryVerificationStats() }
+            _unverifiedContacts.value = orDefault(emptyList()) { queryUnverifiedContacts() }
+            _outboxStats.value = orDefault(OutboxStats(0, 0)) { queryOutboxStats() }
+            _pendingDeletes.value = orDefault(emptyList()) { queryPendingDeletes() }
+            _conflicts.value = orDefault(emptyList()) { queryConflicts() }
+            _quarantinedChanges.value = orDefault(emptyList()) { queryQuarantinedChanges() }
+            _contactsAccessApps.value = orDefault(emptyList()) { queryContactsAccessApps() }
+            _systemContactsAccessApps.value = orDefault(emptyList()) { querySystemContactsAccessApps() }
+            _systemNoticeDismissed.value = orDefault(false) { querySystemNoticeDismissed() }
         }
+    }
+
+    /** A failing query shows its default; a cancelled one stops the refresh, as it should. */
+    private suspend fun <T> orDefault(default: T, query: suspend () -> T): T = try {
+        query()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        default
     }
 
     /** "Got it" on the OS-apps notice: remembered, so the banner shrinks to a link from now on. */
@@ -149,11 +157,7 @@ class SettingsViewModel(
         if (running && source != null && progressJob == null) {
             progressJob = scope.launch {
                 while (isActive) {
-                    _syncProgress.value = try {
-                        withContext(workDispatcher) { source() }
-                    } catch (_: Exception) {
-                        null
-                    }
+                    _syncProgress.value = orDefault(null) { withContext(workDispatcher) { source() } }
                     delay(PROGRESS_POLL_MILLIS)
                 }
             }

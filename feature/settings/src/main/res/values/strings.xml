@@ -170,6 +170,9 @@
     <string name="linked_import_row_added">Added to Proton</string>
     <string name="linked_import_select_a11y">Select %1$s</string>
     <string name="linked_import_row_syncing">Syncing…</string>
+    <string name="linked_import_row_queued">Waiting to sync</string>
+    <string name="linked_import_row_failed">Not added — see the failed changes in Settings</string>
+    <string name="linked_import_changed">This contact changed in the meantime. The details were reloaded; check them again.</string>
 
     <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
     <string name="de_googled_rom_link">de-Googled ROM</string>

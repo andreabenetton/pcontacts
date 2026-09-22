@@ -157,6 +157,9 @@
     <string name="linked_import_row_added">已添加到 Proton</string>
     <string name="linked_import_select_a11y">选择 %1$s</string>
     <string name="linked_import_row_syncing">正在同步…</string>
+    <string name="linked_import_row_queued">等待同步</string>
+    <string name="linked_import_row_failed">未添加——请在设置中查看失败的更改</string>
+    <string name="linked_import_changed">此联系人在此期间已更改。详细信息已重新加载，请再次核对。</string>
 
     <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
     <string name="de_googled_rom_link">去 Google 化的 ROM</string>

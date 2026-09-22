@@ -86,7 +86,7 @@ private fun ProgressDialog(messageRes: Int) {
 @Composable
 private fun ReviewDialog(
     review: LinkedImportState.Review,
-    onToggle: (Int) -> Unit,
+    onToggle: (String) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -104,6 +104,14 @@ private fun ReviewDialog(
                 } else {
                     val detailRes = if (creates) R.string.linked_import_create_detail else R.string.linked_import_review_detail
                     Text(text = stringResource(detailRes, name), style = MaterialTheme.typography.bodySmall)
+                    if (review.changed) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.linked_import_changed),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                     Spacer(Modifier.height(12.dp))
                     review.preview.candidates.forEach { candidate ->
                         CandidateRow(

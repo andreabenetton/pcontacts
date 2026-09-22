@@ -196,6 +196,9 @@
     <string name="linked_import_row_added">Добавлено в Proton</string>
     <string name="linked_import_select_a11y">Выбрать %1$s</string>
     <string name="linked_import_row_syncing">Синхронизация…</string>
+    <string name="linked_import_row_queued">Ожидает синхронизации</string>
+    <string name="linked_import_row_failed">Не добавлено — см. неудавшиеся изменения в настройках</string>
+    <string name="linked_import_changed">Этот контакт тем временем изменился. Данные перезагружены; проверьте их снова.</string>
 
     <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
     <string name="de_googled_rom_link">ROM без Google</string>

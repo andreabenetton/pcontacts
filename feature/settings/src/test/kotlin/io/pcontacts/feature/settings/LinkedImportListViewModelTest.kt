@@ -90,23 +90,44 @@ class LinkedImportListViewModelTest {
         assertEquals(BulkImportState.Idle, vm.bulk.value)
     }
 
-    @Test fun marking_a_row_imported_unselects_it_and_a_rescan_forgets_it() = runTest {
+    @Test fun an_imported_row_is_added_only_when_the_outbox_says_so_and_a_rescan_forgets_it() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val vm = LinkedImportListViewModel(scan = { rows }, scope = TestScope(dispatcher), workDispatcher = dispatcher)
+        val answers = mutableMapOf(1L to ImportStatus.SYNCED, 2L to ImportStatus.FAILED)
+        val vm = LinkedImportListViewModel(
+            scan = { rows },
+            queryImportStatus = { answers[it] },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
         advanceUntilIdle()
         vm.toggleSelected(1L)
         vm.markImported(1L)
-        assertEquals(setOf(1L), vm.imported.value)
-        assertEquals(setOf(1L), vm.syncing.value)
+        vm.markImported(2L)
+        assertEquals(mapOf(1L to ImportStatus.QUEUED, 2L to ImportStatus.QUEUED), vm.statuses.value)
         assertEquals(emptySet<Long>(), vm.selected.value)
+
         vm.updateSyncRunning(true)
-        assertEquals(setOf(1L), vm.syncing.value)
+        assertEquals(mapOf(1L to ImportStatus.SYNCING, 2L to ImportStatus.SYNCING), vm.statuses.value)
+
         vm.updateSyncRunning(false)
-        assertEquals(emptySet<Long>(), vm.syncing.value)
-        assertEquals(setOf(1L), vm.imported.value)
+        advanceUntilIdle()
+        assertEquals(mapOf(1L to ImportStatus.SYNCED, 2L to ImportStatus.FAILED), vm.statuses.value)
+
         vm.rescan()
         advanceUntilIdle()
-        assertEquals(emptySet<Long>(), vm.imported.value)
+        assertEquals(emptyMap<Long, ImportStatus>(), vm.statuses.value)
+    }
+
+    @Test fun a_finished_run_with_nothing_known_keeps_the_row_queued_never_added() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = LinkedImportListViewModel(scan = { rows }, scope = TestScope(dispatcher), workDispatcher = dispatcher)
+        advanceUntilIdle()
+        vm.markImported(1L)
+
+        vm.updateSyncRunning(false)
+        advanceUntilIdle()
+
+        assertEquals(mapOf(1L to ImportStatus.QUEUED), vm.statuses.value)
     }
 
     @Test fun a_failing_scan_surfaces_the_exception_class_only() = runTest {

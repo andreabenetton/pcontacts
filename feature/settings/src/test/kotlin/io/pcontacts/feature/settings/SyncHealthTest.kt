@@ -26,6 +26,7 @@ class SyncHealthTest {
         assertEquals(SyncHealth.FAILED, health(failed = true))
         assertEquals(SyncHealth.FAILED, health(lastSync = LastSyncSummary(now - hour, failureMessage = "offline")))
         assertEquals(SyncHealth.ATTENTION, health(outbox = OutboxStats(pending = 0, quarantined = 1)))
+        assertEquals(SyncHealth.ATTENTION, health(lastSync = LastSyncSummary(now - hour, failedContacts = 2)))
         assertEquals(SyncHealth.PENDING, health(outbox = OutboxStats(pending = 3, quarantined = 0)))
         assertEquals(SyncHealth.NEVER, health(lastSync = null))
         assertEquals(SyncHealth.NEVER, health(lastSync = LastSyncSummary(syncedAtMillis = null)))

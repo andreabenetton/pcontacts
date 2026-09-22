@@ -33,7 +33,9 @@ sealed interface SettingsUiState {
 data class LastSyncSummary(
     val syncedAtMillis: Long?,
     val failureMessage: String? = null,
-    val failedContacts: Int = 0
+    val failedContacts: Int = 0,
+    /** When the last run finished, converged or not; [syncedAtMillis] is the last converged one. */
+    val lastRunAtMillis: Long? = null
 )
 
 /**

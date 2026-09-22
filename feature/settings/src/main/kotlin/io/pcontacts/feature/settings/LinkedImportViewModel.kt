@@ -4,6 +4,7 @@
 package io.pcontacts.feature.settings
 
 import android.graphics.Bitmap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,12 +27,15 @@ private val CONTACT_KINDS = setOf(
 )
 
 /**
- * One importable detail. `id` is the position the app assigned when it
- * built the preview and is what [LinkedImportViewModel] hands back on
- * confirm; `value` and `source` are pre-formatted upstream (in `:app`).
+ * One importable detail. `id` is the field's stable identity (kind and
+ * normalised value, assigned in `:app` from `LinkedField.key`) and is
+ * what [LinkedImportViewModel] hands back on confirm — the candidates
+ * are re-read at that moment, so a position would point at the wrong
+ * field after a re-aggregation; `value` and `source` are pre-formatted
+ * upstream.
  */
 data class LinkedImportCandidate(
-    val id: Int,
+    val id: String,
     val kind: LinkedFieldKind,
     val value: String,
     val source: String?,
@@ -52,7 +56,12 @@ sealed interface LinkedImportState {
     /** The picked contact no longer exists. */
     data object NotFound : LinkedImportState
 
-    data class Review(val preview: LinkedImportPreview, val selected: Set<Int>) : LinkedImportState {
+    /** [changed]: the contact was re-aggregated between preview and confirm; the list is fresh, review again. */
+    data class Review(
+        val preview: LinkedImportPreview,
+        val selected: Set<String>,
+        val changed: Boolean = false
+    ) : LinkedImportState {
         /** A selection that reaches the contact somehow; a note-only new contact is not one. */
         val canConfirm: Boolean
             get() {
@@ -71,12 +80,14 @@ sealed interface LinkedImportState {
  * Drives the linked-contact import dialog (ADR-0023). Same shape as
  * [SettingsViewModel]: plain class, function-type seams, injectable
  * scope and dispatcher. `loadPreview` returns null when the contact no
- * longer exists; `importCandidates` receives the selected ids and,
- * for a preview that creates a new contact, creates it.
+ * longer exists; `importCandidates` receives the selected field keys
+ * and, for a preview that creates a new contact, creates it. It
+ * answers false when the contact changed meanwhile and a selected
+ * field is gone: the preview is reloaded for another look.
  */
 class LinkedImportViewModel(
     private val loadPreview: suspend (Long) -> LinkedImportPreview?,
-    private val importCandidates: suspend (List<Int>) -> Unit,
+    private val importCandidates: suspend (List<String>) -> Boolean,
     private val scope: CoroutineScope = MainScope(),
     private val workDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
@@ -88,22 +99,25 @@ class LinkedImportViewModel(
     fun start(contactId: Long) {
         this.contactId = contactId
         _state.value = LinkedImportState.Loading
-        scope.launch {
-            val preview = try {
-                withContext(workDispatcher) { loadPreview(contactId) }
-            } catch (e: Exception) {
-                _state.value = LinkedImportState.Failed(e.javaClass.simpleName)
-                return@launch
-            }
-            _state.value = if (preview == null) {
-                LinkedImportState.NotFound
-            } else {
-                LinkedImportState.Review(preview, preview.candidates.map { it.id }.toSet())
-            }
+        scope.launch { _state.value = load(changed = false) }
+    }
+
+    private suspend fun load(changed: Boolean): LinkedImportState {
+        val preview = try {
+            withContext(workDispatcher) { loadPreview(contactId) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return LinkedImportState.Failed(e.javaClass.simpleName)
+        }
+        return if (preview == null) {
+            LinkedImportState.NotFound
+        } else {
+            LinkedImportState.Review(preview, preview.candidates.map { it.id }.toSet(), changed)
         }
     }
 
-    fun toggle(id: Int) {
+    fun toggle(id: String) {
         val review = _state.value as? LinkedImportState.Review ?: return
         val selected = if (id in review.selected) review.selected - id else review.selected + id
         _state.value = review.copy(selected = selected)
@@ -115,8 +129,14 @@ class LinkedImportViewModel(
         _state.value = LinkedImportState.Importing
         scope.launch {
             _state.value = try {
-                withContext(workDispatcher) { importCandidates(review.selected.sorted()) }
-                LinkedImportState.Imported(review.selected.size, review.preview.createsNewContact, contactId)
+                val done = withContext(workDispatcher) { importCandidates(review.selected.sorted()) }
+                if (done) {
+                    LinkedImportState.Imported(review.selected.size, review.preview.createsNewContact, contactId)
+                } else {
+                    load(changed = true)
+                }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 LinkedImportState.Failed(e.javaClass.simpleName)
             }

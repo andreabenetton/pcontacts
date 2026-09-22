@@ -11,8 +11,9 @@ enum class SyncHealth { RUNNING, FAILED, ATTENTION, PENDING, NEVER, OVERDUE, UP_
 /**
  * Decides the headline from observable facts, so "Up to date" is a
  * claim with conditions: nothing running or failed, no change failed
- * permanently, nothing waiting in the outbox, and the last successful
- * run not older than [OVERDUE_FACTOR] times the chosen interval.
+ * permanently, no contact left behind by the last run, nothing waiting
+ * in the outbox, and the last converged run not older than
+ * [OVERDUE_FACTOR] times the chosen interval.
  */
 fun syncHealth(
     running: Boolean,
@@ -26,7 +27,7 @@ fun syncHealth(
     return when {
         running -> SyncHealth.RUNNING
         failed || lastSync?.failureMessage != null -> SyncHealth.FAILED
-        outbox.quarantined > 0 -> SyncHealth.ATTENTION
+        outbox.quarantined > 0 || (lastSync?.failedContacts ?: 0) > 0 -> SyncHealth.ATTENTION
         outbox.pending > 0 -> SyncHealth.PENDING
         syncedAt == null -> SyncHealth.NEVER
         nowMillis - syncedAt > OVERDUE_FACTOR * TimeUnit.HOURS.toMillis(intervalHours) -> SyncHealth.OVERDUE

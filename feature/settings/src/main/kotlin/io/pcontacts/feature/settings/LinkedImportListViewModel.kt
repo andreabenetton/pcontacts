@@ -4,6 +4,7 @@
 package io.pcontacts.feature.settings
 
 import android.graphics.Bitmap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,9 +58,14 @@ sealed interface BulkImportState {
 /** Imports the given contacts whole, reporting how many are done so far; returns the tally. */
 typealias BulkImporter = suspend (List<Long>, (Int) -> Unit) -> BulkResult
 
+/** Where an imported contact's change to Proton stands, read from the outbox and the mapping. */
+enum class ImportStatus { QUEUED, SYNCING, SYNCED, FAILED }
+
 class LinkedImportListViewModel(
     private val scan: suspend () -> List<LinkedContactRow>,
     private val importMany: BulkImporter = { ids, _ -> BulkResult(0, 0, ids.size) },
+    /** The contact's real status after a sync run; null when nothing is known yet (it stays queued). */
+    private val queryImportStatus: suspend (contactId: Long) -> ImportStatus? = { null },
     private val scope: CoroutineScope = MainScope(),
     private val workDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
@@ -78,13 +84,14 @@ class LinkedImportListViewModel(
     private val _bulk = MutableStateFlow<BulkImportState>(BulkImportState.Idle)
     val bulk: StateFlow<BulkImportState> = _bulk.asStateFlow()
 
-    /** Contacts imported one by one since the last scan; their rows say so instead of vanishing. */
-    private val _imported = MutableStateFlow<Set<Long>>(emptySet())
-    val imported: StateFlow<Set<Long>> = _imported.asStateFlow()
-
-    /** The subset of [imported] whose requested sync has not finished yet ("Syncing…" until it does). */
-    private val _syncing = MutableStateFlow<Set<Long>>(emptySet())
-    val syncing: StateFlow<Set<Long>> = _syncing.asStateFlow()
+    /**
+     * Contacts imported one by one since the last scan, with where their
+     * change stands; their rows say so instead of vanishing. "Added to
+     * Proton" is claimed only once the outbox and the mapping say the
+     * server accepted it — a sync run finishing proves nothing by itself.
+     */
+    private val _statuses = MutableStateFlow<Map<Long, ImportStatus>>(emptyMap())
+    val statuses: StateFlow<Map<Long, ImportStatus>> = _statuses.asStateFlow()
 
     init {
         rescan()
@@ -92,11 +99,12 @@ class LinkedImportListViewModel(
 
     fun rescan() {
         _state.value = LinkedImportListState.Scanning
-        _imported.value = emptySet()
-        _syncing.value = emptySet()
+        _statuses.value = emptyMap()
         scope.launch {
             _state.value = try {
                 LinkedImportListState.Ready(withContext(workDispatcher) { scan() })
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 LinkedImportListState.Failed(e.javaClass.simpleName)
             }
@@ -112,18 +120,28 @@ class LinkedImportListViewModel(
     }
 
     fun markImported(contactId: Long) {
-        _imported.value = _imported.value + contactId
-        _syncing.value = _syncing.value + contactId
+        _statuses.value = _statuses.value + (contactId to ImportStatus.QUEUED)
         _selected.value = _selected.value - contactId
     }
 
     /**
-     * Fed by the host's sync-status observer. The import requested a
-     * sync, so the next running→idle transition means it went through;
-     * every row still marked syncing is then simply "added".
+     * Fed by the host's sync-status observer. While a run is in flight
+     * the queued rows say so; once it ends each of them is asked what
+     * actually happened (queued again, synced, or failed).
      */
     fun updateSyncRunning(running: Boolean) {
-        if (!running) _syncing.value = emptySet()
+        val open = _statuses.value.filterValues { it == ImportStatus.QUEUED || it == ImportStatus.SYNCING }.keys
+        if (open.isEmpty()) return
+        if (running) {
+            _statuses.value = _statuses.value + open.associateWith { ImportStatus.SYNCING }
+            return
+        }
+        scope.launch {
+            val resolved = withContext(workDispatcher) {
+                open.associateWith { id -> queryImportStatus(id) ?: ImportStatus.QUEUED }
+            }
+            _statuses.value = _statuses.value + resolved
+        }
     }
 
     fun toggleSelected(contactId: Long) {
@@ -148,6 +166,8 @@ class LinkedImportListViewModel(
                 withContext(workDispatcher) {
                     importMany(ids) { done -> _bulk.value = BulkImportState.Running(done, ids.size) }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 BulkResult(created = 0, enriched = 0, failed = ids.size)
             }
