@@ -117,7 +117,9 @@ data class SettingsActions(
     val onOpenDeGoogledRoms: () -> Unit = {},
     val onOpenDependencies: () -> Unit = {},
     /** The source repository, opened in the browser from the GitHub mark in the app bar. */
-    val onOpenRepository: () -> Unit = {}
+    val onOpenRepository: () -> Unit = {},
+    /** Android's sync settings page, for the phone-wide "Auto-sync data" switch the app does not flip itself. */
+    val onOpenSyncSettings: () -> Unit = {}
 )
 
 /**

@@ -6,7 +6,7 @@ package io.pcontacts.feature.settings
 import java.util.concurrent.TimeUnit
 
 /** What the status card's headline says about the sync, most urgent first. */
-enum class SyncHealth { RUNNING, FAILED, ATTENTION, PENDING, NEVER, OVERDUE, UP_TO_DATE }
+enum class SyncHealth { RUNNING, OFF, FAILED, ATTENTION, PENDING, NEVER, OVERDUE, UP_TO_DATE }
 
 /**
  * Decides the headline from observable facts, so "Up to date" is a
@@ -21,11 +21,14 @@ fun syncHealth(
     lastSync: LastSyncSummary?,
     outbox: OutboxStats,
     intervalHours: Long,
-    nowMillis: Long
+    nowMillis: Long,
+    /** Both of Android's sync switches on; off means no automatic run is expected, so nothing is overdue. */
+    syncEnabled: Boolean = true
 ): SyncHealth {
     val syncedAt = lastSync?.syncedAtMillis
     return when {
         running -> SyncHealth.RUNNING
+        !syncEnabled -> SyncHealth.OFF
         failed || lastSync?.failureMessage != null -> SyncHealth.FAILED
         outbox.quarantined > 0 || (lastSync?.failedContacts ?: 0) > 0 -> SyncHealth.ATTENTION
         outbox.pending > 0 -> SyncHealth.PENDING

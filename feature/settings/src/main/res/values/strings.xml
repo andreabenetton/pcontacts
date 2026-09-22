@@ -158,6 +158,10 @@
         <item quantity="other">Every %d hours</item>
     </plurals>
     <string name="sync_interval_hours_short">%dh</string>
+    <string name="sync_interval_off">Off</string>
+    <string name="sync_state_off">Automatic sync is off</string>
+    <string name="sync_master_off">Auto-sync is off for the whole phone in Android Settings, so nothing syncs on its own; only "Sync now" works.</string>
+    <string name="sync_open_settings">Open sync settings</string>
     <string name="sync_state_progress">Syncing %1$d of %2$d…</string>
     <string name="contacts_access_got_it">Got it</string>
     <string name="contacts_access_view_list">View list</string>

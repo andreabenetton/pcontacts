@@ -17,8 +17,9 @@ class SyncHealthTest {
         failed: Boolean = false,
         lastSync: LastSyncSummary? = LastSyncSummary(syncedAtMillis = now - hour),
         outbox: OutboxStats = quiet,
-        intervalHours: Long = 12
-    ) = syncHealth(running, failed, lastSync, outbox, intervalHours, now)
+        intervalHours: Long = 12,
+        syncEnabled: Boolean = true
+    ) = syncHealth(running, failed, lastSync, outbox, intervalHours, now, syncEnabled)
 
     @Test fun up_to_date_only_when_nothing_is_running_failed_pending_or_stale() {
         assertEquals(SyncHealth.UP_TO_DATE, health())
@@ -30,6 +31,11 @@ class SyncHealthTest {
         assertEquals(SyncHealth.PENDING, health(outbox = OutboxStats(pending = 3, quarantined = 0)))
         assertEquals(SyncHealth.NEVER, health(lastSync = null))
         assertEquals(SyncHealth.NEVER, health(lastSync = LastSyncSummary(syncedAtMillis = null)))
+    }
+
+    @Test fun sync_switched_off_is_its_own_state_and_never_overdue() {
+        assertEquals(SyncHealth.OFF, health(lastSync = LastSyncSummary(now - 100 * hour), syncEnabled = false))
+        assertEquals(SyncHealth.RUNNING, health(running = true, lastSync = null, syncEnabled = false))
     }
 
     @Test fun overdue_after_twice_the_interval() {

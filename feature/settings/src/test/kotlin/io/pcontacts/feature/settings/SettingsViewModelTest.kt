@@ -284,6 +284,49 @@ class SettingsViewModelTest {
         assertEquals(1L, captured)
     }
 
+    @Test fun off_position_switches_the_account_off_and_keeps_the_stored_cadence() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val switched = mutableListOf<Boolean>()
+        var cadence: Long? = null
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            onSyncIntervalChanged = { cadence = it },
+            setSyncEnabled = { switched += it },
+            initialSyncIntervalHours = 6,
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.setSyncInterval(SyncInterval.OFF)
+        assertEquals(listOf(false), switched)
+        assertFalse(vm.syncSwitch.value.accountOn)
+        assertEquals(SyncInterval.SIX_HOURS, vm.syncInterval.value)
+        assertEquals(null, cadence)
+
+        vm.setSyncInterval(SyncInterval.ONE_HOUR)
+        assertEquals(listOf(false, true), switched)
+        assertTrue(vm.syncSwitch.value.accountOn)
+        assertEquals(1L, cadence)
+    }
+
+    @Test fun sync_switch_is_read_on_init_and_on_refresh() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var system = SyncSwitchState(accountOn = false, masterOn = true)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            querySyncSwitch = { system },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        assertEquals(SyncSwitchState(accountOn = false, masterOn = true), vm.syncSwitch.value)
+        system = SyncSwitchState(accountOn = true, masterOn = false)
+        vm.refreshSyncSwitch()
+        advanceUntilIdle()
+        assertEquals(system, vm.syncSwitch.value)
+    }
+
     @Test fun outbox_stats_loaded_on_init() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val vm = SettingsViewModel(

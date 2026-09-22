@@ -33,7 +33,8 @@ import kotlinx.coroutines.withContext
  * `signOut` runs the full LogoutOrchestrator chain; returns true on
  * success (every step finished without error), false otherwise.
  */
-@Suppress("LongParameterList") // many injectable seams by design; see class kdoc
+// Many injectable seams and one public method per screen action by design; see class kdoc.
+@Suppress("LongParameterList", "TooManyFunctions")
 class SettingsViewModel(
     private val syncNow: suspend () -> SettingsActionResult,
     private val signOut: suspend () -> SettingsActionResult,
@@ -52,6 +53,9 @@ class SettingsViewModel(
     private val queryContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val querySystemContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
     private val onSyncIntervalChanged: (Long) -> Unit = {},
+    /** Android's sync switches for the account (ADR-0004): read on refresh, the per-account one set by the slider. */
+    private val querySyncSwitch: suspend () -> SyncSwitchState = { SyncSwitchState.ON },
+    private val setSyncEnabled: (Boolean) -> Unit = {},
     /** Where the in-flight "N of total" comes from; null (the default) means there is nothing to poll. */
     private val querySyncProgress: (suspend () -> SyncProgress?)? = null,
     private val querySystemNoticeDismissed: suspend () -> Boolean = { false },
@@ -106,6 +110,9 @@ class SettingsViewModel(
     private val _syncInterval = MutableStateFlow(SyncInterval.fromHours(initialSyncIntervalHours))
     val syncInterval: StateFlow<SyncInterval> = _syncInterval.asStateFlow()
 
+    private val _syncSwitch = MutableStateFlow(SyncSwitchState.ON)
+    val syncSwitch: StateFlow<SyncSwitchState> = _syncSwitch.asStateFlow()
+
     /** Polled every [PROGRESS_POLL_MILLIS] while a sync runs; null when idle or unknown. */
     private val _syncProgress = MutableStateFlow<SyncProgress?>(null)
     val syncProgress: StateFlow<SyncProgress?> = _syncProgress.asStateFlow()
@@ -126,9 +133,27 @@ class SettingsViewModel(
         scope.launch { refreshSyncStatus() }
     }
 
+    /**
+     * The slider: Off switches the account's Android sync off and keeps the stored cadence for
+     * later; any cadence switches it back on and becomes the stored one.
+     */
     fun setSyncInterval(interval: SyncInterval) {
+        if (interval == SyncInterval.OFF) {
+            _syncSwitch.value = _syncSwitch.value.copy(accountOn = false)
+            setSyncEnabled(false)
+            return
+        }
         _syncInterval.value = interval
+        _syncSwitch.value = _syncSwitch.value.copy(accountOn = true)
+        setSyncEnabled(true)
         onSyncIntervalChanged(interval.hours)
+    }
+
+    /** The switches can be flipped in Android Settings; re-read them whenever the screen comes back. */
+    fun refreshSyncSwitch() {
+        scope.launch {
+            _syncSwitch.value = withContext(workDispatcher) { orDefault(_syncSwitch.value) { querySyncSwitch() } }
+        }
     }
 
     private suspend fun refreshSyncStatus() {
@@ -144,6 +169,7 @@ class SettingsViewModel(
             _systemContactsAccessApps.value = orDefault(emptyList()) { querySystemContactsAccessApps() }
             _systemNoticeDismissed.value = orDefault(false) { querySystemNoticeDismissed() }
             _advisoryState.value = orDefault(AdvisoryCheckState.OFF) { queryAdvisoryState() }
+            _syncSwitch.value = orDefault(SyncSwitchState.ON) { querySyncSwitch() }
         }
     }
 

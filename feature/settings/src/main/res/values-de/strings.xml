@@ -158,6 +158,10 @@
         <item quantity="other">Alle %d Stunden</item>
     </plurals>
     <string name="sync_interval_hours_short">%d Std.</string>
+    <string name="sync_interval_off">Aus</string>
+    <string name="sync_state_off">Automatische Synchronisierung ist aus</string>
+    <string name="sync_master_off">Die automatische Synchronisierung ist in den Android-Einstellungen für das ganze Telefon aus; von allein wird nichts synchronisiert, nur „Jetzt synchronisieren“ funktioniert.</string>
+    <string name="sync_open_settings">Synchronisierungseinstellungen öffnen</string>
     <string name="sync_state_progress">Synchronisiere %1$d von %2$d…</string>
     <string name="contacts_access_got_it">Verstanden</string>
     <string name="contacts_access_view_list">Liste anzeigen</string>

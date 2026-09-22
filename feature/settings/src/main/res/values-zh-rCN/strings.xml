@@ -146,6 +146,10 @@
         <item quantity="other">每 %d 小时</item>
     </plurals>
     <string name="sync_interval_hours_short">%d 小时</string>
+    <string name="sync_interval_off">关闭</string>
+    <string name="sync_state_off">自动同步已关闭</string>
+    <string name="sync_master_off">Android 设置中已关闭整部手机的自动同步：不会自动同步任何内容，只有“立即同步”可用。</string>
+    <string name="sync_open_settings">打开同步设置</string>
     <string name="sync_state_progress">正在同步第 %1$d 个，共 %2$d 个…</string>
     <string name="contacts_access_got_it">知道了</string>
     <string name="contacts_access_view_list">查看列表</string>

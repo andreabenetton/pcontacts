@@ -158,6 +158,10 @@
         <item quantity="other">Ogni %d ore</item>
     </plurals>
     <string name="sync_interval_hours_short">%d h</string>
+    <string name="sync_interval_off">Off</string>
+    <string name="sync_state_off">Sincronizzazione automatica disattivata</string>
+    <string name="sync_master_off">La sincronizzazione automatica è disattivata per tutto il telefono nelle impostazioni Android: niente si sincronizza da solo, funziona solo «Sincronizza ora».</string>
+    <string name="sync_open_settings">Apri impostazioni di sincronizzazione</string>
     <string name="sync_state_progress">Sincronizzazione di %1$d su %2$d…</string>
     <string name="contacts_access_got_it">Ho capito</string>
     <string name="contacts_access_view_list">Vedi elenco</string>

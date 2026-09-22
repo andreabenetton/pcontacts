@@ -82,6 +82,7 @@ fun SettingsScreen(
         AuditIndicator(status, actions.onOpenDependencies)
     }
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
+    val syncSwitch by viewModel.syncSwitch.collectAsStateWithLifecycle()
     val syncRunning by viewModel.syncRunning.collectAsStateWithLifecycle()
     val actionInFlight = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
     val busy = actionInFlight || syncRunning
@@ -110,10 +111,11 @@ fun SettingsScreen(
             )
             Spacer(Modifier.height(12.dp))
             SyncIntervalSelector(
-                selected = syncInterval,
+                selected = if (syncSwitch.accountOn) syncInterval else SyncInterval.OFF,
                 onSelected = viewModel::setSyncInterval,
                 enabled = !busy
             )
+            if (!syncSwitch.masterOn) MasterSyncOffNotice(actions.onOpenSyncSettings)
 
             SectionHeader(R.string.settings_section_contacts)
             ContactsStorageButton(actions.onOpenContactsStorage)
@@ -180,7 +182,8 @@ private class SyncFacts(
     val outbox: OutboxStats,
     val intervalHours: Long,
     val progress: SyncProgress?,
-    val now: Long
+    val now: Long,
+    val syncEnabled: Boolean
 )
 
 /**
@@ -207,7 +210,8 @@ private fun headline(facts: SyncFacts): Headline {
         lastSync = facts.lastSync,
         outbox = facts.outbox,
         intervalHours = facts.intervalHours,
-        nowMillis = facts.now
+        nowMillis = facts.now,
+        syncEnabled = facts.syncEnabled
     )
     val outbox = facts.outbox
     val lastSync = facts.lastSync
@@ -224,6 +228,7 @@ private fun headline(facts: SyncFacts): Headline {
         SyncHealth.FAILED -> Headline(failureText(state, lastSync), warn)
         // The counts live on the tappable status rows below; the headline only names the state.
         SyncHealth.ATTENTION -> Headline(stringResource(R.string.sync_state_attention), warn)
+        SyncHealth.OFF -> Headline(stringResource(R.string.sync_state_off), info)
         SyncHealth.PENDING -> Headline(stringResource(R.string.sync_state_pending), info)
         SyncHealth.NEVER -> Headline(stringResource(R.string.sync_state_never), info)
         SyncHealth.OVERDUE -> Headline(stringResource(R.string.sync_state_overdue), warn)
@@ -265,7 +270,19 @@ private fun SyncStatusCard(
             now = System.currentTimeMillis()
         }
     }
-    val headline = headline(SyncFacts(state, syncRunning, lastSync, outbox, interval.hours, progress, now))
+    val syncSwitch by viewModel.syncSwitch.collectAsStateWithLifecycle()
+    val headline = headline(
+        SyncFacts(
+            state,
+            syncRunning,
+            lastSync,
+            outbox,
+            interval.hours,
+            progress,
+            now,
+            syncEnabled = syncSwitch.accountOn && syncSwitch.masterOn
+        )
+    )
     if (state is SettingsUiState.SignedOut) LaunchedEffect(Unit) { onSignedOut() }
 
     Card(
@@ -632,7 +649,11 @@ private fun SyncIntervalSelector(
     val options = SyncInterval.entries
     val hours = selected.hours.toInt()
     val label = stringResource(R.string.settings_sync_interval)
-    val every = pluralStringResource(R.plurals.sync_interval_every, hours, hours)
+    val every = if (selected == SyncInterval.OFF) {
+        stringResource(R.string.sync_interval_off)
+    } else {
+        pluralStringResource(R.plurals.sync_interval_every, hours, hours)
+    }
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
@@ -657,7 +678,11 @@ private fun SyncIntervalSelector(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             options.forEach { option ->
                 Text(
-                    text = stringResource(R.string.sync_interval_hours_short, option.hours),
+                    text = if (option == SyncInterval.OFF) {
+                        stringResource(R.string.sync_interval_off)
+                    } else {
+                        stringResource(R.string.sync_interval_hours_short, option.hours)
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -966,5 +991,19 @@ private fun ContributeSection() {
                 }
                 .semantics { contentDescription = "support_btc_address" }
         )
+    }
+}
+
+/** Android's phone-wide "Auto-sync data" switch is off: only "Sync now" works until it is turned on in Settings. */
+@Composable
+private fun MasterSyncOffNotice(onOpenSyncSettings: () -> Unit) {
+    Spacer(Modifier.height(8.dp))
+    Text(
+        text = stringResource(R.string.sync_master_off),
+        style = MaterialTheme.typography.bodySmall,
+        color = SyncTone.WARN.tint()
+    )
+    TextButton(onClick = onOpenSyncSettings) {
+        Text(stringResource(R.string.sync_open_settings))
     }
 }
