@@ -52,4 +52,3 @@
 
 - [ ] Multi-account support
 - [ ] FIDO2/WebAuthn 2FA
-- [ ] Encrypted offline cache (SQLCipher)

@@ -72,9 +72,13 @@ locked in ADR-0017.
 - Group write-back (deferred to phase 9.5, per ADR-0017 §8).
 - Live `ContentObserver` — changes are detected at sync time,
   not in real time.
-- Encrypted offline cache (SQLCipher). The mapping DB remains
-  plaintext; it still holds no decrypted contact content. The
-  outbox holds hashes, not payloads (see Consequences).
+- Encrypted offline cache (SQLCipher) — **dropped 2026-09-22**, not
+  deferred: it would be an app-private copy of decrypted contacts,
+  which ADR-0002's "no app-private plaintext copy" statement rules
+  out, and the app has no contact-browsing UI that would need it.
+  The mapping DB remains plaintext; it still holds no decrypted
+  contact content. The outbox holds hashes, not payloads (see
+  Consequences).
 
 ## Alternatives considered
 
