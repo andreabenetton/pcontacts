@@ -141,7 +141,13 @@ Harder / new obligations:
 - Activity adds 1 declared component to the manifest; intent
   surface area grows accordingly. `exported="true"` is required
   for Contacts apps to dispatch; the intent-filter scopes the
-  exposure to the custom MIMETYPE only.
+  exposure to the custom MIMETYPE only. Amended 2026-09-22: an
+  intent-filter does not bind the caller, so the activity validates
+  the URI itself — a `content://com.android.contacts/data/<id>` row
+  whose provider-reported type is our MIME type and whose RawContact
+  belongs to the pcontacts account — builds the `mailto:` with
+  `Uri.fromParts`, and finishes quietly on anything else. It never
+  reads a foreign row under its own `READ_CONTACTS`.
 
 ## Validation
 
