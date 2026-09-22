@@ -41,7 +41,7 @@ internal fun SignInButton(textRes: Int, enabled: Boolean, onClick: () -> Unit) {
         enabled = enabled,
         onClick = onClick,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = SignInGreen),
-        border = BorderStroke(1.dp, if (enabled) SignInGreen else MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(2.dp, if (enabled) SignInGreen else MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(stringResource(textRes))
