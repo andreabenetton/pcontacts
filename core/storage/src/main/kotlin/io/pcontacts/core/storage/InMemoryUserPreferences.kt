@@ -19,6 +19,7 @@ class InMemoryUserPreferences : UserPreferences {
     override var syncProgressTotal: Int = 0
     override var systemContactsNoticeDismissed: Boolean = false
     override var secretsStorageUpgraded: Boolean = false
+    override var vulnerabilityNoticeVersionCode: Int = 0
 
     override fun clearSyncState() {
         lastSyncSuccessAtMillis = 0L

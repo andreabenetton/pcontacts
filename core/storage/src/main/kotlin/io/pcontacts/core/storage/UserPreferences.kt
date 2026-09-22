@@ -79,6 +79,12 @@ interface UserPreferences {
     var secretsStorageUpgraded: Boolean
 
     /**
+     * The versionCode whose open-vulnerability notice (ADR-0024) has been
+     * posted; 0 when none. One notification per shipped version, not per start.
+     */
+    var vulnerabilityNoticeVersionCode: Int
+
+    /**
      * Forgets everything that describes the signed-out account's syncs:
      * last success time, last error, failed-contact count and any
      * in-flight progress. Device preferences (interval, permission and

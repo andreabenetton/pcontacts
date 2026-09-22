@@ -53,6 +53,13 @@ class SharedPreferencesUserPreferencesTest {
     }
 
     @Test
+    fun vulnerabilityNoticeVersionCode_defaults_zero_and_round_trips() {
+        assertEquals(0, prefs().vulnerabilityNoticeVersionCode)
+        prefs().vulnerabilityNoticeVersionCode = 19
+        assertEquals(19, prefs().vulnerabilityNoticeVersionCode)
+    }
+
+    @Test
     fun systemContactsNoticeDismissed_defaults_false_and_round_trips() {
         assertEquals(false, prefs().systemContactsNoticeDismissed)
         prefs().systemContactsNoticeDismissed = true

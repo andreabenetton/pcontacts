@@ -66,6 +66,10 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getBoolean(KEY_SECRETS_STORAGE_UPGRADED, false)
         set(value) { prefs.edit().putBoolean(KEY_SECRETS_STORAGE_UPGRADED, value).commit() }
 
+    override var vulnerabilityNoticeVersionCode: Int
+        get() = prefs.getInt(KEY_VULNERABILITY_NOTICE_VERSION_CODE, 0)
+        set(value) { prefs.edit().putInt(KEY_VULNERABILITY_NOTICE_VERSION_CODE, value).apply() }
+
     override fun clearSyncState() {
         prefs.edit()
             .remove(KEY_LAST_SYNC_SUCCESS_AT)
@@ -90,5 +94,6 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_SYNC_PROGRESS_TOTAL = "sync_progress_total"
         const val KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED = "system_contacts_notice_dismissed"
         const val KEY_SECRETS_STORAGE_UPGRADED = "secrets_storage_upgraded"
+        const val KEY_VULNERABILITY_NOTICE_VERSION_CODE = "vulnerability_notice_version_code"
     }
 }
