@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -69,6 +71,8 @@ fun LinkedImportScreen(
     val syncing by listViewModel.syncing.collectAsStateWithLifecycle()
     val bulk by listViewModel.bulk.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    // Hoisted so the scroll position outlives the rescan that follows every import.
+    val listState = rememberLazyListState()
     val visible = (state as? LinkedImportListState.Ready)?.rows?.filteredBy(filter, query).orEmpty()
 
     ImportOutcomes(importViewModel, listViewModel, snackbarHostState)
@@ -102,6 +106,7 @@ fun LinkedImportScreen(
                 )
                 is LinkedImportListState.Ready -> ContactList(
                     rows = visible,
+                    listState = listState,
                     selected = selected,
                     imported = imported,
                     syncing = syncing,
@@ -192,6 +197,7 @@ private fun ScanningIndicator() {
 @Composable
 private fun ContactList(
     rows: List<LinkedContactRow>,
+    listState: LazyListState,
     selected: Set<Long>,
     imported: Set<Long>,
     syncing: Set<Long>,
@@ -206,7 +212,7 @@ private fun ContactList(
         )
         return
     }
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
         items(rows, key = { it.contactId }) { row ->
             val done = row.contactId in imported
             ContactRowItem(
