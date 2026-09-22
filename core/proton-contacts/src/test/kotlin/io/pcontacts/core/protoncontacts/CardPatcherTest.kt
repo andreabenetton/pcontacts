@@ -5,6 +5,7 @@ package io.pcontacts.core.protoncontacts
 
 import ezvcard.Ezvcard
 import ezvcard.VCard
+import ezvcard.VCardVersion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -216,6 +217,46 @@ class CardPatcherTest {
         assertNull(enc.uid)
         assertTrue(enc.emails.isEmpty())
         assertEquals("+1", enc.telephoneNumbers[0].text)
+    }
+
+    @Test fun a_server_made_clear_text_carrier_is_rebuilt_into_the_cards_proton_accepts() {
+        // What an auto-saved contact looks like: one CLEAR_TEXT card, no signature anywhere.
+        val autoSaved = """
+            BEGIN:VCARD
+            VERSION:4.0
+            FN:auto@example.com
+            UID:proton-auto
+            item1.EMAIL;PREF=1:auto@example.com
+            CATEGORIES:Auto
+            END:VCARD
+        """.trimIndent()
+        val out = rendered(
+            ContactPatch(
+                fullName = ContactPatch.Change("Auto Saved"),
+                structuredName = ContactPatch.Change(DecryptedStructuredName(given = "Auto", family = "Saved"))
+            ),
+            listOf(DecryptedCard(CardType.CLEAR_TEXT, autoSaved, verified = true))
+        )
+
+        val signed = out.getValue(CardType.SIGNED)
+        assertEquals("a card made here is 4.0, as Proton requires", VCardVersion.V4_0, signed.version)
+        assertEquals(VCardVersion.V4_0, out.getValue(CardType.ENCRYPTED_AND_SIGNED).version)
+        assertEquals("PREF survives as PREF, not as a 3.0 TYPE=pref", 1, signed.emails.single().pref)
+        assertEquals("Auto Saved", signed.formattedName.value)
+        assertEquals("the server's UID is kept, not minted anew", "proton-auto", signed.uid.value)
+        assertEquals("auto@example.com", signed.emails.single().value)
+        assertEquals("item1", signed.emails.single().group)
+        val clear = out.getValue(CardType.CLEAR_TEXT)
+        assertNull(clear.formattedName)
+        assertTrue(clear.emails.isEmpty())
+        assertEquals(listOf("Auto"), clear.categories.values)
+        assertEquals("Saved", out.getValue(CardType.ENCRYPTED_AND_SIGNED).structuredName.family)
+    }
+
+    @Test fun shape_names_types_groups_and_parameters_but_no_values() {
+        val shape = CardShape.of(CardType.SIGNED, signedCard)
+        assertTrue(shape, shape.startsWith("SIGNED[") && shape.contains("item1.EMAIL;PREF") && shape.contains("UID"))
+        assertTrue("no value leaks", !shape.contains("alice") && !shape.contains("proton-web-uid"))
     }
 
     @Test fun a_vcard_3_carrier_keeps_its_version_only_properties() {

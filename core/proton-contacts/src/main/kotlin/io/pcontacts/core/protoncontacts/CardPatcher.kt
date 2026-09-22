@@ -10,13 +10,16 @@ import ezvcard.parameter.AddressType
 import ezvcard.parameter.ImageType
 import ezvcard.parameter.TelephoneType
 import ezvcard.property.Address
+import ezvcard.property.Categories
 import ezvcard.property.Email
 import ezvcard.property.FormattedName
 import ezvcard.property.Impp
+import ezvcard.property.Key
 import ezvcard.property.Note
 import ezvcard.property.Organization
 import ezvcard.property.Photo
 import ezvcard.property.ProductId
+import ezvcard.property.RawProperty
 import ezvcard.property.StructuredName
 import ezvcard.property.Telephone
 import ezvcard.property.Title
@@ -35,10 +38,17 @@ import java.net.URI
  * Placement of new properties follows Proton's own client: `[V]`
  * WebClients `packages/shared/lib/contacts/constants.ts` keeps `FN`,
  * `UID`, `EMAIL` and the key fields in the SIGNED card and everything
- * else in the ENCRYPTED_AND_SIGNED card. An `EMAIL` found in an
- * encrypted card (written by earlier pcontacts versions) is moved to
- * the signed card. `UID` is never rebuilt; a stray one in a non-signed
- * card is dropped, as the merger drops it on read.
+ * else in the ENCRYPTED_AND_SIGNED card, with only `CATEGORIES` in the
+ * CLEAR_TEXT card. A carrier that breaks those rules is rebuilt to them
+ * before the patch: an `EMAIL` in an encrypted card (written by earlier
+ * pcontacts versions) moves to the signed card, and a contact Proton
+ * created by itself — auto-saved from a sent mail — arrives as one
+ * CLEAR_TEXT card holding `FN`, `UID` and `EMAIL`, which `[A]` the
+ * server refuses to take back in that card (Code 2001, seen live on
+ * 2026-09-22): its `FN`, `UID`, `EMAIL` and key fields move to the signed
+ * card and anything else to the encrypted one. `UID` is never minted
+ * anew while a card carries one; a second one is dropped, as the merger
+ * drops it on read.
  */
 internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid: String) {
 
@@ -52,35 +62,51 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
         Card(type, parsed)
     }.toMutableList()
 
+    // A card made here is vCard 4.0 like everything Proton's client writes; ez-vcard's
+    // default is 3.0, which turns PREF=1 into TYPE=pref and which Proton refuses (Code 2001).
     private val signed: Card
-        get() = cards.firstOrNull { it.type == CardType.SIGNED } ?: Card(CardType.SIGNED, VCard()).also { cards += it }
+        get() = cards.firstOrNull { it.type == CardType.SIGNED }
+            ?: Card(CardType.SIGNED, VCard(VCardVersion.V4_0)).also { cards += it }
 
     private val encrypted: Card
         get() = cards.firstOrNull { it.type == CardType.ENCRYPTED_AND_SIGNED }
-            ?: Card(CardType.ENCRYPTED_AND_SIGNED, VCard()).also { cards += it }
+            ?: Card(CardType.ENCRYPTED_AND_SIGNED, VCard(VCardVersion.V4_0)).also { cards += it }
 
     init {
         normalise()
     }
 
     /**
-     * Signed card owns the UID and the emails; nothing else may carry a
-     * UID. Every EMAIL there gets an `itemN` group when it has none —
-     * `[V]` Proton's client always groups them and `[A]` the server
-     * refuses an ungrouped one (Code 2001, seen live on 2026-09-22).
+     * Signed card owns `FN`, `UID`, the emails and the key fields; the
+     * clear card owns nothing but `CATEGORIES`. Every EMAIL in the signed
+     * card gets an `itemN` group when it has none — `[V]` Proton's client
+     * always groups them and `[A]` the server refuses an ungrouped one
+     * (Code 2001, seen live on 2026-09-22).
      */
     private fun normalise() {
-        for (card in cards) {
+        // The signed and encrypted cards may be created on the way; walk a snapshot.
+        for (card in cards.toList()) {
             if (card.type == CardType.SIGNED) continue
-            card.vcard.getProperties(Uid::class.java).toList().forEach { card.vcard.removeProperty(it) }
-            card.vcard.emails.toList().forEach { email ->
-                card.vcard.removeProperty(email)
-                signed.vcard.addEmail(email)
+            card.vcard.properties.filter { it.belongsToSignedCard() }.forEach { p ->
+                card.vcard.removeProperty(p)
+                val taken = (p is Uid && signed.vcard.uid != null) || (p is FormattedName && signed.vcard.formattedName != null)
+                if (!taken) signed.vcard.addProperty(p)
+            }
+            if (card.type == CardType.CLEAR_TEXT) {
+                card.vcard.properties.filter { it !is Categories && it !is ProductId }.forEach { p ->
+                    card.vcard.removeProperty(p)
+                    encrypted.vcard.addProperty(p)
+                }
             }
         }
         signed.vcard.emails.filter { it.group.isNullOrBlank() }.forEach { it.group = freshGroup() }
         if (signed.vcard.uid?.value.isNullOrBlank()) signed.vcard.uid = Uid(fallbackUid)
     }
+
+    /** `[V]` constants.ts SIGNED_FIELDS: fn, uid, email and the per-email key fields (`KEY`, `X-PM-*`). */
+    private fun VCardProperty.belongsToSignedCard(): Boolean =
+        this is FormattedName || this is Uid || this is Email || this is Key ||
+            (this is RawProperty && propertyName.startsWith("X-PM-", ignoreCase = true))
 
     fun apply(patch: ContactPatch) {
         patch.fullName?.let { applyFullName(it.to) }

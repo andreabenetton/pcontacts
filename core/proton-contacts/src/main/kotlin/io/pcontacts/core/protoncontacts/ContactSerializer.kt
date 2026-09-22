@@ -50,6 +50,15 @@ class ContactSerializer(
     private val logger: Logger = RedactingLogger(tag = "ContactSerialize", sink = NoOpSink)
 ) {
 
+    /** What an update sends, as card types and property names only (see [CardShape]): the carrier, then the result. */
+    fun shape(carrier: List<DecryptedCard>, patch: ContactPatch, fallbackUid: String): String {
+        val patcher = CardPatcher(carrier, fallbackUid)
+        patcher.apply(patch)
+        val before = carrier.joinToString(" ") { CardShape.of(it.originalType, it.plaintext) }
+        val after = patcher.render().joinToString(" ") { (type, text) -> CardShape.of(type, text) }
+        return "$before -> $after"
+    }
+
     /** Update: the carrier's cards with [patch] applied; a CLEAR_TEXT card is passed through unsigned. */
     fun serialize(carrier: List<DecryptedCard>, patch: ContactPatch, fallbackUid: String): List<ContactCardDto> {
         val patcher = CardPatcher(carrier, fallbackUid)
