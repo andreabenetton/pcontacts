@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.GroupMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
+import io.pcontacts.core.storage.db.dao.OutboxEnqueue
 import io.pcontacts.core.storage.db.dao.SyncStateDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.GroupMapEntity
@@ -26,11 +27,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Round-trip validation for the v1 schema. Runs under Robolectric so we
- * don't need an emulator — the trade-off is that we don't exercise
- * MigrationTestHelper here (there are no migrations yet). The schema
- * JSON ksp emits under `:core:storage/schemas/` is the future input for
- * MigrationTestHelper-driven tests once v2 ships.
+ * Round-trip validation of the current schema against an in-memory
+ * database. Runs under Robolectric so we don't need an emulator.
+ * Migrations are covered separately by `MigrationTest`
+ * (MigrationTestHelper over the JSON dumps in `:core:storage/schemas/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], manifest = Config.NONE)
@@ -241,6 +241,170 @@ class PcontactsDatabaseTest {
         contactMapDao.upsert(row)
         val read = contactMapDao.findByProtonId("ct-1")
         assertEquals("abc123", read!!.lastKnownServerPayloadHash)
+    }
+
+    // --- contact_map: merge base and push-path updates (v3) ---
+
+    @Test fun contact_map_merge_base_defaults_to_null_and_round_trips_bytes() = runTest {
+        contactMapDao.upsert(sampleContact(id = "ct-1", rawId = 100L))
+        assertNull(contactMapDao.mergeBase("ct-1"))
+
+        contactMapDao.setMergeBase("ct-1", byteArrayOf(1, 2, 3))
+
+        assertTrue(byteArrayOf(1, 2, 3).contentEquals(contactMapDao.mergeBase("ct-1")))
+        assertTrue(byteArrayOf(1, 2, 3).contentEquals(contactMapDao.findByProtonId("ct-1")!!.lastKnownServerPayload))
+    }
+
+    @Test fun contact_map_set_merge_base_on_unknown_contact_is_a_noop() = runTest {
+        contactMapDao.setMergeBase("ct-missing", byteArrayOf(1))
+        assertNull(contactMapDao.findByProtonId("ct-missing"))
+    }
+
+    @Test fun contact_map_mark_clean_resets_status_error_and_stamps_time() = runTest {
+        contactMapDao.upsert(
+            sampleContact(id = "ct-1", rawId = 100L)
+                .copy(syncStatus = ContactMapEntity.Status.CONFLICT, lastError = "conflict: fullName")
+        )
+
+        contactMapDao.markClean("ct-1", now = 1_800_000_000L)
+
+        val read = contactMapDao.findByProtonId("ct-1")!!
+        assertEquals(ContactMapEntity.Status.CLEAN, read.syncStatus)
+        assertNull(read.lastError)
+        assertEquals(1_800_000_000L, read.lastSyncedAt)
+    }
+
+    @Test fun contact_map_mark_conflict_sets_status_and_reason_and_keeps_merge_base() = runTest {
+        contactMapDao.upsert(sampleContact(id = "ct-1", rawId = 100L))
+        contactMapDao.setMergeBase("ct-1", byteArrayOf(9))
+
+        contactMapDao.markConflict("ct-1", "conflict: no merge base")
+
+        val read = contactMapDao.findByProtonId("ct-1")!!
+        assertEquals(ContactMapEntity.Status.CONFLICT, read.syncStatus)
+        assertEquals("conflict: no merge base", read.lastError)
+        assertTrue(byteArrayOf(9).contentEquals(read.lastKnownServerPayload))
+    }
+
+    @Test fun contact_map_force_refetch_zeroes_modify_time_and_hash() = runTest {
+        contactMapDao.upsert(sampleContact(id = "ct-1", rawId = 100L, hash = "v1"))
+
+        contactMapDao.forceRefetch("ct-1")
+
+        val read = contactMapDao.findByProtonId("ct-1")!!
+        assertEquals(0L, read.modifyTime)
+        assertEquals("", read.contentHash)
+    }
+
+    // --- outbox: one live row per contact (v3) ---
+
+    @Test fun outbox_enqueue_inserts_when_no_live_row() = runTest {
+        val result = outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+
+        assertEquals(OutboxEnqueue.INSERTED, result)
+        assertEquals("h1", outboxDao.findLive("ct-1")!!.payloadHash)
+    }
+
+    @Test fun outbox_enqueue_replaces_hash_of_live_update_and_resets_backoff() = runTest {
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+        val id = outboxDao.findLive("ct-1")!!.id
+        outboxDao.recordFailure(id, attempts = 2, error = "HTTP 503", nextAt = 999L)
+
+        val result = outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h2", now = 20L)
+
+        assertEquals(OutboxEnqueue.REPLACED, result)
+        val live = outboxDao.findLive("ct-1")!!
+        assertEquals(id, live.id)
+        assertEquals("h2", live.payloadHash)
+        assertEquals(0, live.attempts)
+        assertNull(live.lastError)
+        assertEquals(0L, live.nextAttemptAt)
+        assertEquals(1, outboxDao.findByContact("ct-1").size)
+    }
+
+    @Test fun outbox_enqueue_keeps_create_when_an_update_follows() = runTest {
+        outboxDao.enqueue("local-42", OutboxEntity.OpType.CREATE, "h1", now = 10L)
+
+        assertEquals(OutboxEnqueue.REPLACED, outboxDao.enqueue("local-42", OutboxEntity.OpType.UPDATE, "h2", now = 20L))
+
+        val live = outboxDao.findLive("local-42")!!
+        assertEquals(OutboxEntity.OpType.CREATE, live.opType)
+        assertEquals("h2", live.payloadHash)
+    }
+
+    @Test fun outbox_enqueue_drops_an_unpushed_create_on_delete() = runTest {
+        outboxDao.enqueue("local-42", OutboxEntity.OpType.CREATE, "h1", now = 10L)
+
+        assertEquals(OutboxEnqueue.DROPPED, outboxDao.enqueue("local-42", OutboxEntity.OpType.DELETE, "", now = 20L))
+
+        assertNull(outboxDao.findLive("local-42"))
+        assertTrue(outboxDao.findByContact("local-42").isEmpty())
+    }
+
+    @Test fun outbox_enqueue_delete_supersedes_update_and_restarts_grace() = runTest {
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+
+        assertEquals(OutboxEnqueue.REPLACED, outboxDao.enqueue("ct-1", OutboxEntity.OpType.DELETE, "", now = 500L))
+
+        val live = outboxDao.findLive("ct-1")!!
+        assertEquals(OutboxEntity.OpType.DELETE, live.opType)
+        assertEquals("", live.payloadHash)
+        assertEquals(500L, live.createdAt)
+    }
+
+    @Test fun outbox_enqueue_update_cancels_a_pending_delete() = runTest {
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.DELETE, "", now = 10L)
+
+        assertEquals(OutboxEnqueue.REPLACED, outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 20L))
+
+        val live = outboxDao.findLive("ct-1")!!
+        assertEquals(OutboxEntity.OpType.UPDATE, live.opType)
+        assertEquals("h1", live.payloadHash)
+        assertTrue(outboxDao.listPendingDeletes().isEmpty())
+    }
+
+    @Test fun outbox_enqueue_force_update_wins_over_update_either_way() = runTest {
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.FORCE_UPDATE, "", now = 20L)
+        assertEquals(OutboxEntity.OpType.FORCE_UPDATE, outboxDao.findLive("ct-1")!!.opType)
+
+        assertEquals(OutboxEnqueue.UNCHANGED, outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h2", now = 30L))
+
+        assertEquals(OutboxEntity.OpType.FORCE_UPDATE, outboxDao.findLive("ct-1")!!.opType)
+    }
+
+    @Test fun outbox_enqueue_same_op_same_hash_is_unchanged_and_keeps_backoff() = runTest {
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+        val id = outboxDao.findLive("ct-1")!!.id
+        outboxDao.recordFailure(id, attempts = 1, error = "HTTP 503", nextAt = 999L)
+
+        assertEquals(OutboxEnqueue.UNCHANGED, outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 20L))
+
+        val live = outboxDao.findLive("ct-1")!!
+        assertEquals(1, live.attempts)
+        assertEquals(999L, live.nextAttemptAt)
+    }
+
+    @Test fun outbox_enqueue_ignores_quarantined_rows() = runTest {
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+        outboxDao.quarantine(outboxDao.findLive("ct-1")!!.id, "HTTP 422")
+
+        assertEquals(OutboxEnqueue.INSERTED, outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h2", now = 20L))
+
+        assertEquals(2, outboxDao.findByContact("ct-1").size)
+        assertEquals("h2", outboxDao.findLive("ct-1")!!.payloadHash)
+    }
+
+    @Test fun outbox_delete_if_unchanged_keeps_a_row_replaced_meanwhile() = runTest {
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+        val id = outboxDao.findLive("ct-1")!!.id
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h2", now = 20L)
+
+        outboxDao.deleteIfUnchanged(id, OutboxEntity.OpType.UPDATE, "h1")
+        assertEquals("h2", outboxDao.findLive("ct-1")!!.payloadHash)
+
+        outboxDao.deleteIfUnchanged(id, OutboxEntity.OpType.UPDATE, "h2")
+        assertNull(outboxDao.findLive("ct-1"))
     }
 
     // --- outbox ---

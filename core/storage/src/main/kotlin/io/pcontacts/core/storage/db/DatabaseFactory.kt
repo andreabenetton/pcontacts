@@ -19,7 +19,7 @@ object DatabaseFactory {
             PcontactsDatabase::class.java,
             PcontactsDatabase.DATABASE_NAME
         )
-            .addMigrations(PcontactsDatabase.MIGRATION_1_2)
+            .addMigrations(PcontactsDatabase.MIGRATION_1_2, PcontactsDatabase.MIGRATION_2_3)
             // No fallbackToDestructiveMigration — we ship explicit Migration
             // objects per ADR-0008. A missing migration is a build-time bug,
             // not a "wipe the user's data" event.
@@ -36,6 +36,6 @@ object DatabaseFactory {
             context.applicationContext,
             PcontactsDatabase::class.java
         )
-            .addMigrations(PcontactsDatabase.MIGRATION_1_2)
+            .addMigrations(PcontactsDatabase.MIGRATION_1_2, PcontactsDatabase.MIGRATION_2_3)
             .build()
 }

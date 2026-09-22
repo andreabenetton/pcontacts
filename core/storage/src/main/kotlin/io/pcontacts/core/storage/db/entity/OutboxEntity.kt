@@ -9,18 +9,23 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * Persistent outbox for outbound contact mutations (ADR-0017 §5B).
- * Each row represents a single pending CREATE, UPDATE, or DELETE that
- * the [ContactWriteEngine] will push to the Proton API on the next
- * sync run.
+ * Persistent outbox for outbound contact mutations (ADR-0017 §5B, as
+ * amended). There is exactly **one live (non-quarantined) row per
+ * `proton_contact_id`**: `OutboxDao.enqueue` coalesces every new
+ * change into the existing row instead of appending, so two edits
+ * between pushes never become two requests and two CREATEs for the
+ * same local contact cannot race.
  *
  * Rows are quarantined (not retried) after a permanent failure (4xx
  * except 429). Transient failures (5xx, 429, IOException) increment
  * [attempts] and push [nextAttemptAt] forward with exponential backoff.
  *
- * The outbox stores no decrypted contact content (ADR-0007). The
- * [payloadHash] is used to dedup and coalesce successive edits to
- * the same contact before a push drains the queue.
+ * The outbox stores no decrypted contact content (ADR-0007).
+ * [payloadHash] is the hash of the local row at the time it was last
+ * enqueued: the dedup key at enqueue time and the optimistic token when
+ * a push completes (the row is removed only if it still carries the
+ * hash that was pushed). It is `""` for DELETE and FORCE_UPDATE, whose
+ * content is not compared.
  */
 @Entity(
     tableName = "outbox",
@@ -44,5 +49,8 @@ data class OutboxEntity(
         const val CREATE = 0
         const val UPDATE = 1
         const val DELETE = 2
+
+        /** The user chose "use phone version" for a conflict: push local as-is, no merge. */
+        const val FORCE_UPDATE = 3
     }
 }
