@@ -125,8 +125,18 @@ jobs:
     name: Instrumented tests (emulator)
     runs-on: ubuntu-latest
     strategy:
+      # 26 = minSdk, 33 = the long-standing lane, 35 = targetSdk (runtime
+      # behaviour changes are gated on targetSdk, so that is the boundary
+      # worth testing). [U] API 35 x86_64 exists only as a google_apis image.
+      fail-fast: false
       matrix:
-        api-level: [26, 33]
+        include:
+          - api-level: 26
+            target: default
+          - api-level: 33
+            target: default
+          - api-level: 35
+            target: google_apis
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -150,6 +160,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
           arch: x86_64
           script: >-
             ./gradlew --no-daemon --stacktrace
