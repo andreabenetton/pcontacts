@@ -14,25 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Dependency audit in the app** (ADR-0024). A coloured dot next to
-  the version says whether any shipped dependency has a known CVE:
-  green none, amber known matches assessed as not applicable (with the
-  reason), red an open one. Tapping it opens a Dependencies screen
-  listing every artifact with version, license and advisories linked to
-  osv.dev.
-  The data is a snapshot committed at build time and verified by CI;
-  the app looks nothing up while it runs, and a CVE published after the
-  release shows up with the next one. A red snapshot is announced once
-  per version by a notification. A scanner false positive (a CPE match
-  for a different product) is listed but leaves the artifact green.
+- **Dependency audit in the app** (ADR-0024). A "Dependencies" chip
+  next to the version opens a screen listing every shipped artifact
+  with version, license and known advisories linked to osv.dev. The
+  list is a snapshot generated at build time from one osv.dev query and
+  committed to the repository; CI fails when it no longer matches the
+  resolved classpath or when osv.dev reports an open advisory it does
+  not list. By default the app looks nothing up while it runs, so an
+  advisory published after the release shows up with the next one. A
+  snapshot shipped with an open advisory is announced once per version
+  by a notification.
 - **Optional runtime advisory check** (ADR-0025), off by default. A
   switch in Privacy says in plain words what leaves the device: the
   list of this version's artifacts, sent once a day to osv.dev, which
-  then sees the device's address. New advisories turn the chip red,
-  appear on the Dependencies screen with their osv.dev link and are
-  announced once; a "Check now" runs it on demand. An advisory can be
-  muted, which counts as assessed (amber) until the artifact changes
-  version. Nothing else in the app depends on the answer.
+  then sees the device's address and can infer the app from the
+  artifacts asked — a privacy-versus-security trade-off left to the
+  user. Only while it is on does the chip carry a verdict, from osv.dev
+  alone: "Dependencies OK", assessed (amber) or vulnerability (red).
+  New advisories appear on the Dependencies screen with their osv.dev
+  link and are announced once; a "Check now" runs the check on demand.
+  An advisory can be muted, which counts as assessed until the artifact
+  changes version. Nothing else in the app depends on the answer.
 - **Import details from linked contacts** (ADR-0023). The app lists
   every contact that exists only in other providers (WhatsApp,
   Telegram, device-local, …) or whose Proton copy lacks details, with

@@ -157,11 +157,13 @@ the `NVD_API_KEY` secret); nothing local depends on it.
 ### Runtime advisory check (ADR-0025)
 
 Independent of the snapshot, the user can turn on a daily check of the
-same artifact list against osv.dev under Privacy. It is off by default,
-lives in `:core:advisories` behind its own host guard, and its findings
-are merged into the same chip and screen; a muted advisory counts as
-assessed until the artifact changes version. Nothing in the release
-process changes because of it.
+same artifact list against osv.dev under Privacy. It is off by default
+and lives in `:core:advisories` behind its own host guard. While it is
+on, the chip and the Dependencies screen show osv.dev's findings alone
+(the snapshot is only the baseline they are compared with); while it is
+off, the chip is a plain link and the screen shows the snapshot without
+colours. A muted advisory counts as assessed until the artifact changes
+version. Nothing in the release process changes because of it.
 
 ## Reproducible builds
 

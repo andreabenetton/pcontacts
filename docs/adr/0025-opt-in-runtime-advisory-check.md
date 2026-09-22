@@ -36,9 +36,12 @@ sent and to whom. When on, the app sends the coordinates of exactly the
 artifacts in the ADR-0024 snapshot to `api.osv.dev` (batch query by Maven
 package and version), at most once every 24 hours in the background plus
 on an explicit "Check now", fetches details only for advisories the
-snapshot does not already list, and merges them into the same dot and
-Dependencies screen as open vulnerabilities. A new advisory is announced
-once by a notification.**
+snapshot does not already list, and shows them on the chip next to the
+version and on the Dependencies screen as open advisories. While the
+check is on, the chip and the screen show osv.dev's findings alone; the
+snapshot is the baseline they are compared with. A new advisory is
+announced once by a notification, and the user can mute one, which
+counts as assessed until the artifact changes version.**
 
 Constraints that keep this the narrow exception it is:
 
@@ -96,9 +99,9 @@ Constraints that keep this the narrow exception it is:
   chip next to the version is a plain link to the dependency list, and
   the list carries no colours and no mute control. Colours are a claim
   about the present, which only the runtime check can make.
-- The status dot can now turn red between releases. The Dependencies
-  screen marks such entries as runtime advisories with their osv.dev link
-  and shows when the last check ran.
+- The chip can now turn red between releases. The Dependencies screen
+  marks such entries as runtime advisories with their osv.dev link, offers
+  the mute control on them, and shows when the last check ran.
 - No new dependency: the module uses the OkHttp and kotlinx-serialization
   already shipped for the Proton client.
 

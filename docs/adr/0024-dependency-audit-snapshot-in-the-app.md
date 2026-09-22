@@ -21,9 +21,10 @@ license report already fails the build on a disallowed license.
 None of that is visible in the app. Showing it raises one hard constraint:
 ADR-0015 forbids any network call to a host outside `*.proton.me` and any
 remote configuration, so the app can never ask NVD, OSV or GitHub for CVE
-data at runtime. Whatever the app shows must be fixed at build time, and
-the F-Droid build must reproduce it byte for byte, so it cannot be
-generated from NVD during the build either.
+data at runtime (ADR-0025 later adds one opt-in exception). Whatever the
+app shows by default must be fixed at build time, and the F-Droid build
+must reproduce it byte for byte, so it cannot be generated from a live
+advisory feed during the build either.
 
 ## Decision
 
@@ -43,9 +44,11 @@ The snapshot is kept honest by two checks:
 - `verifyDependencyAudit` fails any build whose resolved classpath differs
   from the snapshot's artifact list (a bump without a regenerated
   snapshot). It runs in the CI unit-test job and needs no network.
-- After the CI vulnerability scan, the same task compares the fresh
-  report with the snapshot and fails when an **open** CVE appears that the
-  snapshot does not list. A newly suppressed match only logs a warning.
+- In the CI scan job the same task runs with `-PauditLive=true`: it asks
+  osv.dev again and fails when an **open** advisory appears that the
+  snapshot does not list (by id or alias), then compares the
+  Dependency-Check report as a second opinion. A newly suppressed match
+  only logs a warning.
 
 A red status can only ship if the owner regenerates the snapshot with an
 open CVE and releases anyway; the build gate makes that a decision, not an
@@ -79,6 +82,12 @@ the app itself sends nothing.
   assessment, not a shorthand.
 - No new runtime dependency: the asset is parsed with the platform's JSON
   classes.
+- Amendment 2026-09-22 (ADR-0025): the coloured indicator described above
+  is shown only while the opt-in runtime check is on, and then it reflects
+  osv.dev's current findings alone. While the check is off the chip is a
+  plain "Dependencies" link and the screen shows the snapshot without
+  colours; the snapshot's role is the baseline every runtime result is
+  compared with, and the record of what shipped.
 
 ## Validation
 
