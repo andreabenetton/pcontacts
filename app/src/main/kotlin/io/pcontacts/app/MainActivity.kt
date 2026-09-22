@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import io.pcontacts.app.account.LogoutHelper
@@ -50,7 +51,9 @@ import io.pcontacts.app.permissions.ContactsPermissionStatus
 import io.pcontacts.app.settings.DeGoogledRomsActivity
 import io.pcontacts.app.settings.DependenciesActivity
 import io.pcontacts.app.settings.DependencyAuditAsset
+import io.pcontacts.app.settings.REPOSITORY_URL
 import io.pcontacts.app.settings.SettingsHost
+import io.pcontacts.app.settings.startActivityIfAvailable
 import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationLauncher
@@ -150,7 +153,8 @@ class MainActivity : ComponentActivity() {
                         onOpenDeGoogledRoms = { startActivity(Intent(this, DeGoogledRomsActivity::class.java)) },
                         storageUpgradeNotice = storageUpgradeNotice,
                         snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } },
-                        audit = AuditIndicator(signedOutStatus, openDependencies)
+                        audit = AuditIndicator(signedOutStatus, openDependencies),
+                        onOpenRepository = ::openRepository
                     )
                 }
 
@@ -331,6 +335,10 @@ class MainActivity : ComponentActivity() {
             onSignedOutFromSettings()
         }
         return true
+    }
+
+    private fun openRepository() {
+        startActivityIfAvailable(Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri()))
     }
 
     private fun launchLogin() {

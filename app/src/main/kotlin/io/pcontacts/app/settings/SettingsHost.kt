@@ -18,6 +18,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
 import androidx.activity.ComponentActivity
+import androidx.core.net.toUri
 import io.pcontacts.app.account.LogoutHelper
 import io.pcontacts.app.account.MissingContactsPermissionException
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
@@ -53,6 +54,9 @@ import io.pcontacts.feature.settings.VerificationStats
  */
 // Manual-DI wiring hub: the function count is the seam surface.
 @Suppress("TooManyFunctions")
+/** The source repository; opened through the platform, never an embedded WebView. */
+const val REPOSITORY_URL = "https://github.com/andreabenetton/pcontacts"
+
 class SettingsHost(
     private val activity: ComponentActivity,
     private val onSignedOut: () -> Unit
@@ -102,7 +106,8 @@ class SettingsHost(
         onOpenContactsAccess = { kind -> activity.startActivity(ContactsAccessActivity.intent(activity, kind)) },
         onOpenContactsStorage = contactsStorageAction(),
         onOpenDeGoogledRoms = { activity.startActivity(Intent(activity, DeGoogledRomsActivity::class.java)) },
-        onOpenDependencies = { activity.startActivity(Intent(activity, DependenciesActivity::class.java)) }
+        onOpenDependencies = { activity.startActivity(Intent(activity, DependenciesActivity::class.java)) },
+        onOpenRepository = { activity.startActivityIfAvailable(Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri())) }
     )
 
     fun onResume() {
