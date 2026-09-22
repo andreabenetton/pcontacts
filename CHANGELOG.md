@@ -135,7 +135,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and return with the first sync; local edits not yet pushed at that
   moment are lost) and the sign-in screen explains why. A background
   sync that runs before the app is opened posts the same explanation
-  as a notification.
+  as a notification. Without Contacts access the sign-out waits for
+  the permission instead of crashing at launch, and runs as soon as
+  it is granted.
 - **The sync-adapter and authenticator services are no longer
   exported**, and the sync binder is handed out only to the system's
   sync-adapter bind.

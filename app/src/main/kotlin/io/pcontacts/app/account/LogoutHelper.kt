@@ -10,11 +10,14 @@
 
 package io.pcontacts.app.account
 
+import android.Manifest
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Context
+import android.content.pm.PackageManager
 import android.provider.ContactsContract
+import androidx.core.content.ContextCompat
 import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.core.sync.auth.LogoutResult
 import kotlinx.coroutines.CoroutineDispatcher
@@ -40,8 +43,11 @@ class LogoutHelper(
         require(account.type == PROTON_ACCOUNT_TYPE) {
             "LogoutHelper only handles accounts of type $PROTON_ACCOUNT_TYPE"
         }
-        val resolver = context.contentResolver
-        val provider = resolver.acquireContentProviderClient(ContactsContract.AUTHORITY)
+        // Without WRITE_CONTACTS the framework throws a SecurityException from the acquire instead
+        // of returning null; check first so callers see the one exception they handle.
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS)
+        if (granted != PackageManager.PERMISSION_GRANTED) throw MissingContactsPermissionException()
+        val provider = context.contentResolver.acquireContentProviderClient(ContactsContract.AUTHORITY)
             ?: throw MissingContactsPermissionException()
         try {
             cancelAutoSync(account)
