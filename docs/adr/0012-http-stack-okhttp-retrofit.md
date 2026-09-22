@@ -106,4 +106,4 @@ Deferred:
 
 - `LoggingInterceptor` with body redaction (the custom `PcontactsSensitiveLog` Lint rule already covers the static-call surface).
 - `BuildConfig.PROTON_SRP_KEY_FINGERPRINT` for the cert-pin-rotation companion to ADR-0014.
-- Captcha / human-verification submission UI — today's `HumanVerificationRequiredException` reaches the SyncAdapter but the in-app surface that would post `submitChallengeToken(token, type)` is not built yet.
+- Captcha / human-verification submission UI — delivered by ADR-0019 (in-app WebView + `HumanVerificationHeadersInterceptor`); closed.

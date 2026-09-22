@@ -10,7 +10,7 @@ This repo is:
 - **single-app Android** (Kotlin, Gradle, multi-module — see ADR-0011)
 - **GPL-3.0-only**, with SPDX headers on every source file
 - **F-Droid first**, sideload-friendly; **no Google Play Services, no telemetry, no proprietary blobs**
-- **client-side-crypto-only**: the Proton API decrypt happens on-device; decrypted contact data is never logged, never sent off-device, never persisted in MVP
+- **client-side-crypto-only**: the Proton API decrypt happens on-device; decrypted contact data is never logged and never sent off-device. It is written only to the system Contacts provider (the destination the user asked for); the app keeps no app-private plaintext copy — its own database holds content hashes and, for conflict detection, a per-contact last-known-server snapshot sealed under the device Keystore (ADR-0018)
 - **unofficial-API consumer**: every claim about Proton's API is marked with `[V]` / `[U]` / `[A]` / `[D]` (verified / unverified / assumption / discouraged)
 
 ---
@@ -42,14 +42,14 @@ These are the load-bearing invariants. Every one corresponds to an ADR; read the
 
 ### Crypto strategy (ADR-0002, ADR-0013, ADR-0014)
 - All crypto is **native Kotlin** in `:core:crypto`: BouncyCastle for OpenPGP, ported SRP-6a, ported bcrypt-SHA512.
-- **No JS engine is ever bundled.** The app never executes JavaScript.
+- **No JS engine is bundled and no JavaScript runs for protocol or crypto work.** The only JavaScript the app ever executes is Proton's hosted captcha page, inside the locked-down WebView of ADR-0019.
 - Every change to `:core:crypto` runs the captured-vector test suite (`tools/vectors/`) and must pass.
 - The Proton SRP modulus signing public key is pinned (`core:crypto/src/main/resources/proton_srp_signing_key.asc`); modulus signature verification is mandatory before SRP arithmetic; on verification failure, login aborts.
 
 ### Decrypt client-side only (ADR-0007)
 - Always pull encrypted `Cards[]` and decrypt locally.
 - The app **never** calls `GET contacts/v4/contacts/export`. A CI grep fails the build if that path appears in any source file outside ADR-0007.
-- Decrypted vCard bytes live only on the heap during a sync; they are not logged, not persisted, not transmitted off-device.
+- Decrypted vCard bytes live only on the heap during a sync and in the system Contacts provider rows the sync writes; they are never logged, never transmitted off-device, and never stored app-privately in plaintext (Room holds hashes and the Keystore-sealed merge base of ADR-0018 only).
 
 ### Secrets storage (ADR-0009)
 - All secret reads/writes go through the `SecretStore` interface in `:core:storage`.

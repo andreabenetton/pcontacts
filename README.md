@@ -42,7 +42,7 @@ Until Proton publishes a first-party solution, this app reverse-engineers the sa
 - **Not affiliated with or endorsed by Proton AG.**
 - Uses the Proton Mail web client's HTTP API, which is **not officially documented or supported for third-party use**. The API may change at any time without notice and may break this app.
 - Operates only with credentials the user owns. Does not bypass captchas, rate limits, abuse protection, or any other Proton security control.
-- All cryptography happens on-device. Decrypted contact data is never logged, transmitted off-device, or persisted to disk. See [`docs/adr/0007-client-side-decryption-only.md`](docs/adr/0007-client-side-decryption-only.md) and [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+- All cryptography happens on-device. Decrypted contact data is never logged or transmitted off-device. Decrypted contacts are written only where the user asked for them: the system Contacts provider. pcontacts keeps no app-private plaintext copy; the only app-private derived data are content hashes and, for conflict detection, a per-contact last-known-server snapshot sealed under the device Keystore (ADR-0018). See [`docs/adr/0007-client-side-decryption-only.md`](docs/adr/0007-client-side-decryption-only.md) and [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## License
 

@@ -42,9 +42,9 @@ android {
     }
 }
 
-// Room: export schemas to disk so MigrationTestHelper can diff v(N) → v(N+1)
-// once a migration exists. The first migration commit will add a JSON dump
-// under :core:storage/schemas/.
+// Room: export schemas to disk so MigrationTestHelper can diff v(N) → v(N+1).
+// The JSON dumps live under :core:storage/schemas/ (1.json … 3.json);
+// MigrationTest exercises every migration against them.
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

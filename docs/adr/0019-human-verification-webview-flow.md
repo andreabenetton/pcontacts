@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-05-28
 - **Deciders:** repo maintainer
-- **Related:** ADR-0007 (decrypt client-side only), ADR-0009 (secrets storage), ADR-0012 (HTTP stack)
+- **Related:** ADR-0002 (clarifies its no-JavaScript claim), ADR-0007 (decrypt client-side only), ADR-0009 (secrets storage), ADR-0012 (HTTP stack)
 
 ## Context
 

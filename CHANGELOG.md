@@ -67,10 +67,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Three-way merge used an empty base.** A field deleted on Proton was
+  resurrected from the phone and a field deleted on the phone was
+  resurrected from Proton, and unchanged fields could read as
+  conflicts. The merge now runs against the real last-known server
+  state, kept per contact sealed under the device Keystore; a missing
+  base is shown as a conflict, never merged as empty.
+- **Conflicts can now be resolved.** "Use phone version" pushes the
+  local contact as-is; "use Proton version" makes the next sync
+  rewrite it. Before, both choices re-entered the same conflict.
+- **Outbox no longer queues duplicates.** Edits to the same contact
+  coalesce into one pending change, so two edits between syncs are one
+  request and a new contact can never be created twice on Proton.
+  Deleting a contact that never reached Proton drops the pending
+  create instead of creating and then deleting it.
+- **Android's sync switch is honoured.** The periodic background sync
+  and the refresh after a permission grant no longer bypass "Sync off"
+  in Android Settings; only "Sync now", sign-in and a linked import do.
+- **Verification during two-factor sign-in works.** A captcha demanded
+  while entering the code opens the verification page and returns to
+  the code screen for a fresh code, instead of a dead-end error.
 - The sync card no longer says "Last sync: In 0 minutes" right after a
   sync completes.
 - The import list keeps its scroll position across the rescan that
   follows an import.
+
+### Security
+
+- **Sign-out is durable.** Secrets are wiped with a synchronous commit
+  and the Keystore key is deleted and verified; if that fails the app
+  stays signed in and says so instead of leaving secrets on disk. Sign
+  out also forgets the account's sync bookkeeping.
+- **Secrets are sealed by the Android Keystore directly.** The
+  deprecated `androidx.security:security-crypto` (alpha) and Tink are
+  gone. After updating from 1.x, sign in again once: stored session
+  material from earlier versions is deleted on first start; contacts
+  and the account stay.
+- **The sync-adapter and authenticator services are no longer
+  exported**, and the sync binder is handed out only to the system's
+  sync-adapter bind.
+- **The verification WebView is locked to `https://verify.proton.me`**
+  for the document and navigation, to `proton.me` hosts for
+  subresources, and its bridge accepts a single, bounded ASCII token
+  only from that page. The verification URL is built with proper
+  encoding.
+- **"Send via Proton Mail" validates its caller's URI**: it acts only on
+  a Contacts row of its own type under the pcontacts account.
+- **CI actions are pinned to commit SHAs**, releases run in a protected
+  environment and re-run the verification gates before signing, and
+  the emulator matrix now includes API 35.
 
 ## [1.7.2] - 2026-09-19
 

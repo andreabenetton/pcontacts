@@ -1,9 +1,9 @@
 # ADR-0002: Crypto strategy — native Kotlin (BouncyCastle + ported SRP/bcrypt-SHA512)
 
-- **Status:** Accepted
+- **Status:** Accepted (clarified 2026-09-22 by ADR-0019: scope of the no-JavaScript claim; the decision — native crypto, no bundled engine — is unchanged and nothing is permitted that ADR-0019 had not already accepted)
 - **Date:** 2026-05-22
 - **Deciders:** project owner
-- **Related:** ADR-0013, ADR-0014
+- **Related:** ADR-0013, ADR-0014, ADR-0019
 
 ## Context
 
@@ -36,7 +36,7 @@ Adopt **option A**: native Kotlin crypto. `:core:crypto` exposes a small typed s
 - **Ported bcrypt-SHA512** as `bcrypt(SHA-512(password))` with cost parameter from Proton's spec — neither `jbcrypt` nor `bcrypt-jvm` does the SHA-512 pre-hash on its own.
 - **Modulus pinning** — see ADR-0014.
 
-No JS engine is bundled. The app never executes JavaScript.
+No JS engine is bundled and no JavaScript runs for protocol or crypto work. (Clarified by ADR-0019: Proton's hosted captcha page — Proton's JavaScript, not ours — runs inside a locked-down system WebView for human verification only; no SRP, bcrypt, OpenPGP or vCard logic ever touches it.)
 
 ## Alternatives considered
 

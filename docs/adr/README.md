@@ -11,7 +11,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | ADR | Title | Status |
 |---|---|---|
 | [0001](0001-license-gpl-3-only.md) | License — GPL-3.0-only | Accepted |
-| [0002](0002-native-kotlin-crypto.md) | Crypto strategy — native Kotlin (BouncyCastle + ported SRP/bcrypt-SHA512) | Accepted |
+| [0002](0002-native-kotlin-crypto.md) | Crypto strategy — native Kotlin (BouncyCastle + ported SRP/bcrypt-SHA512) | Accepted (clarified by 0019) |
 | [0003](0003-distribution-fdroid-first.md) | Distribution — F-Droid first, sideload-friendly | Accepted |
 | [0004](0004-account-authenticator-sync-adapter.md) | System integration — AccountAuthenticator + SyncAdapter (+ WorkManager) | Accepted |
 | [0005](0005-vcard-library-ezvcard.md) | vCard library — ez-vcard, no ical.js port | Accepted |
