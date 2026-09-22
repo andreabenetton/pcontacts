@@ -33,6 +33,13 @@ interface SecretStore {
     fun refreshToken(): String?
     fun setRefreshToken(value: String?)
 
+    /**
+     * Stores a rotated token pair in one durable write, so a crash
+     * between the two can never leave an access token paired with a
+     * refresh token from another rotation.
+     */
+    fun setTokens(accessToken: String?, refreshToken: String?)
+
     /** Returns the unwrapped keyPassword bytes, or null if not stored. */
     fun keyPassword(): ByteArray?
 

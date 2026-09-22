@@ -89,6 +89,10 @@ interface ContactMapDao {
     @Query("UPDATE contact_map SET modify_time = 0, content_hash = '' WHERE proton_contact_id = :id")
     suspend fun forceRefetch(id: String)
 
+    /** Drops mappings whose contact exists neither on the server nor in the provider (ADR-0022). */
+    @Query("DELETE FROM contact_map WHERE proton_contact_id IN (:ids)")
+    suspend fun deleteByProtonIds(ids: List<String>)
+
     @Query("DELETE FROM contact_map")
     suspend fun deleteAll()
 }

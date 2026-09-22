@@ -33,6 +33,14 @@ interface UserPreferences {
     var lastSyncSuccessAtMillis: Long
 
     /**
+     * Wall-clock millis of the last sync run that completed, whatever
+     * it achieved. Differs from [lastSyncSuccessAtMillis], which is
+     * stamped only when the run left nothing failed, pending,
+     * conflicted or quarantined ("fully converged").
+     */
+    var lastSyncRunAtMillis: Long
+
+    /**
      * Stable, non-sensitive code for the most recent sync failure
      * (e.g. `reauth`, `verification`, `app_version`, `io`), or `null`
      * when the last sync attempt succeeded. Lets the UI distinguish

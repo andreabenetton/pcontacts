@@ -47,6 +47,13 @@ class EncryptedSecretStore internal constructor(
     override fun refreshToken(): String? = readString(KEY_REFRESH_TOKEN)
     override fun setRefreshToken(value: String?) = write(KEY_REFRESH_TOKEN, value?.encodeToByteArray())
 
+    override fun setTokens(accessToken: String?, refreshToken: String?) {
+        val editor = prefs.edit()
+        editor.put(KEY_ACCESS_TOKEN, accessToken?.encodeToByteArray())
+        editor.put(KEY_REFRESH_TOKEN, refreshToken?.encodeToByteArray())
+        if (!editor.commit()) throw SecretStoreWriteException(KEY_ACCESS_TOKEN)
+    }
+
     override fun keyPassword(): ByteArray? = read(KEY_PASSWORD)
     override fun setKeyPassword(value: ByteArray?) = write(KEY_PASSWORD, value)
 
@@ -79,12 +86,16 @@ class EncryptedSecretStore internal constructor(
 
     private fun write(key: String, value: ByteArray?) {
         val editor = prefs.edit()
-        if (value == null) {
-            editor.remove(key)
-        } else {
-            editor.putString(key, Base64.getEncoder().encodeToString(cipher.wrap(value)))
-        }
+        editor.put(key, value)
         if (!editor.commit()) throw SecretStoreWriteException(key)
+    }
+
+    private fun SharedPreferences.Editor.put(key: String, value: ByteArray?) {
+        if (value == null) {
+            remove(key)
+        } else {
+            putString(key, Base64.getEncoder().encodeToString(cipher.wrap(value)))
+        }
     }
 
     companion object {

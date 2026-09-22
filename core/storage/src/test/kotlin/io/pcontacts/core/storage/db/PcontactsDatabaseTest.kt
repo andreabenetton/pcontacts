@@ -113,6 +113,16 @@ class PcontactsDatabaseTest {
         assertTrue(tomb!!.deleted)
     }
 
+    @Test fun delete_by_proton_ids_removes_only_the_named_rows() = runTest {
+        contactMapDao.upsert(sampleContact(id = "ct-1", rawId = 100L))
+        contactMapDao.upsert(sampleContact(id = "ct-2", rawId = 101L))
+        contactMapDao.upsert(sampleContact(id = "ct-3", rawId = 102L))
+
+        contactMapDao.deleteByProtonIds(listOf("ct-1", "ct-3"))
+
+        assertEquals(listOf("ct-2"), contactMapDao.listLive().map { it.protonContactId })
+    }
+
     @Test fun delete_by_proton_id_removes_the_row_entirely() = runTest {
         contactMapDao.upsert(sampleContact(id = "ct-1", rawId = 100L))
         contactMapDao.deleteByProtonId("ct-1")

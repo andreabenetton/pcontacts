@@ -61,6 +61,18 @@ class EncryptedSecretStoreTest {
         assertTrue(Base64.getDecoder().decode(raw).size > "access".length)
     }
 
+    @Test fun setTokens_writes_both_tokens_together() {
+        val s = store()
+
+        s.setTokens("access-2", "refresh-2")
+
+        assertEquals("access-2", s.accessToken())
+        assertEquals("refresh-2", s.refreshToken())
+        s.setTokens(null, null)
+        assertNull(s.accessToken())
+        assertNull(s.refreshToken())
+    }
+
     @Test fun keyPassword_round_trips_bytes() {
         val s = store()
         val bytes = byteArrayOf(1, 2, 3, 4)

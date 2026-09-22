@@ -1335,6 +1335,7 @@ internal class WriteFakeContactMapDao : ContactMapDao {
     override suspend fun maxLastSyncedAt(): Long? =
         rows.values.filter { !it.deleted }.maxOfOrNull { it.lastSyncedAt }
     override suspend fun deleteByProtonId(id: String) { rows.remove(id) }
+    override suspend fun deleteByProtonIds(ids: List<String>) { ids.forEach { rows.remove(it) } }
     override suspend fun setMergeBase(id: String, sealed: ByteArray?) {
         rows[id]?.let { rows[id] = it.copy(lastKnownServerPayload = sealed) }
     }

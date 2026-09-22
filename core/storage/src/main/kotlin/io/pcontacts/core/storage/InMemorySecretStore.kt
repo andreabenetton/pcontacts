@@ -28,6 +28,10 @@ class InMemorySecretStore : SecretStore {
 
     override fun refreshToken(): String? = refreshToken
     override fun setRefreshToken(value: String?) { refreshToken = value }
+    override fun setTokens(accessToken: String?, refreshToken: String?) {
+        this.accessToken = accessToken
+        this.refreshToken = refreshToken
+    }
 
     override fun keyPassword(): ByteArray? = keyPassword?.copyOf()
     override fun setKeyPassword(value: ByteArray?) {
