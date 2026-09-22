@@ -5,96 +5,131 @@ package io.pcontacts.core.storage
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import io.pcontacts.core.logging.Logger
+import io.pcontacts.core.logging.NoOpSink
+import io.pcontacts.core.logging.RedactingLogger
+import java.io.File
+import java.security.GeneralSecurityException
 import java.util.Base64
 
 /**
- * Production `SecretStore` (ADR-0009).
- *   - Tokens (UID, AccessToken, RefreshToken) land in
- *     EncryptedSharedPreferences directly. The MasterKey is StrongBox-backed
- *     where the device supports it.
- *   - The mailbox keyPassword is double-wrapped: KeystoreAesGcmKek
- *     (alias `pcontacts.kekv1`) encrypts the bytes; the resulting blob is
- *     base64-encoded and stored alongside the tokens. `logout()` deletes
- *     both the prefs file's entries and the KEK alias.
+ * Production `SecretStore` (ADR-0009, amended 2026-09-22): every value
+ * is sealed by the Keystore AES-256-GCM key `pcontacts.kekv1`
+ * ([KeystoreAesGcmKek]) and stored as base64 in a private
+ * SharedPreferences file. Nothing else is in that file, so logout can
+ * clear it wholesale. Key names are compile-time constants, so their
+ * being readable reveals nothing.
  *
- * Construction is intentionally a single side-effect-free factory call so
- * the encrypted-prefs initialization (which touches Keystore) runs at a
- * predictable point in app lifecycle, not lazily inside the orchestrator.
+ * Durability: every write and the logout wipe use `commit()`, and a
+ * refused commit throws [SecretStoreWriteException] — a sign-out must
+ * never be reported when the secrets may still be on disk. Reads fail
+ * closed: ciphertext that no longer opens (the key was deleted, the
+ * blob is damaged) reads as absent, which sends the app to the
+ * existing "sign in again" path instead of crashing a sync.
+ *
+ * The earlier EncryptedSharedPreferences file and its androidx master
+ * key are deleted on first start after the update; users of 1.x sign
+ * in once more. Nothing is migrated: the old file also held Tink
+ * keysets, and deleting it is the only wipe that removes those.
  */
-class EncryptedSecretStore private constructor(
+class EncryptedSecretStore internal constructor(
     private val prefs: SharedPreferences,
-    private val kek: KeystoreAesGcmKek
+    private val cipher: SecretCipher,
+    private val logger: Logger
 ) : SecretStore {
 
-    override fun uid(): String? = prefs.getString(KEY_UID, null)
-    override fun setUid(value: String?) = prefs.put(KEY_UID, value)
+    override fun uid(): String? = readString(KEY_UID)
+    override fun setUid(value: String?) = write(KEY_UID, value?.encodeToByteArray())
 
-    override fun accessToken(): String? = prefs.getString(KEY_ACCESS_TOKEN, null)
-    override fun setAccessToken(value: String?) = prefs.put(KEY_ACCESS_TOKEN, value)
+    override fun accessToken(): String? = readString(KEY_ACCESS_TOKEN)
+    override fun setAccessToken(value: String?) = write(KEY_ACCESS_TOKEN, value?.encodeToByteArray())
 
-    override fun refreshToken(): String? = prefs.getString(KEY_REFRESH_TOKEN, null)
-    override fun setRefreshToken(value: String?) = prefs.put(KEY_REFRESH_TOKEN, value)
+    override fun refreshToken(): String? = readString(KEY_REFRESH_TOKEN)
+    override fun setRefreshToken(value: String?) = write(KEY_REFRESH_TOKEN, value?.encodeToByteArray())
 
-    override fun keyPassword(): ByteArray? {
-        val wrappedB64 = prefs.getString(KEY_PASSWORD_WRAPPED, null) ?: return null
-        return kek.unwrap(Base64.getDecoder().decode(wrappedB64))
-    }
+    override fun keyPassword(): ByteArray? = read(KEY_PASSWORD)
+    override fun setKeyPassword(value: ByteArray?) = write(KEY_PASSWORD, value)
 
-    override fun setKeyPassword(value: ByteArray?) {
-        if (value == null) {
-            prefs.put(KEY_PASSWORD_WRAPPED, null)
-            return
-        }
-        val wrapped = kek.wrap(value)
-        prefs.put(KEY_PASSWORD_WRAPPED, Base64.getEncoder().encodeToString(wrapped))
-    }
+    override fun humanVerificationToken(): String? = readString(KEY_HV_TOKEN)
+    override fun setHumanVerificationToken(value: String?) = write(KEY_HV_TOKEN, value?.encodeToByteArray())
 
-    override fun humanVerificationToken(): String? = prefs.getString(KEY_HV_TOKEN, null)
-    override fun setHumanVerificationToken(value: String?) = prefs.put(KEY_HV_TOKEN, value)
+    override fun humanVerificationTokenType(): String? = readString(KEY_HV_TOKEN_TYPE)
+    override fun setHumanVerificationTokenType(value: String?) = write(KEY_HV_TOKEN_TYPE, value?.encodeToByteArray())
 
-    override fun humanVerificationTokenType(): String? = prefs.getString(KEY_HV_TOKEN_TYPE, null)
-    override fun setHumanVerificationTokenType(value: String?) = prefs.put(KEY_HV_TOKEN_TYPE, value)
-
+    /** Values first, then the key: a Keystore failure after the commit still leaves nothing readable. */
     override fun logout() {
-        prefs.edit()
-            .remove(KEY_UID)
-            .remove(KEY_ACCESS_TOKEN)
-            .remove(KEY_REFRESH_TOKEN)
-            .remove(KEY_PASSWORD_WRAPPED)
-            .remove(KEY_HV_TOKEN)
-            .remove(KEY_HV_TOKEN_TYPE)
-            .apply()
-        kek.delete()
+        if (!prefs.edit().clear().commit()) throw SecretStoreWriteException("logout")
+        cipher.delete()
     }
 
-    private fun SharedPreferences.put(key: String, value: String?) {
-        edit().apply { if (value == null) remove(key) else putString(key, value) }.apply()
+    private fun readString(key: String): String? = read(key)?.decodeToString()
+
+    private fun read(key: String): ByteArray? {
+        val encoded = prefs.getString(key, null) ?: return null
+        return try {
+            cipher.unwrap(Base64.getDecoder().decode(encoded))
+        } catch (e: GeneralSecurityException) {
+            logger.warn(e) { "secret '$key' unreadable; treating as absent" }
+            null
+        } catch (e: IllegalArgumentException) {
+            logger.warn(e) { "secret '$key' malformed; treating as absent" }
+            null
+        }
+    }
+
+    private fun write(key: String, value: ByteArray?) {
+        val editor = prefs.edit()
+        if (value == null) {
+            editor.remove(key)
+        } else {
+            editor.putString(key, Base64.getEncoder().encodeToString(cipher.wrap(value)))
+        }
+        if (!editor.commit()) throw SecretStoreWriteException(key)
     }
 
     companion object {
-        private const val FILE_NAME: String = "pcontacts_auth_prefs"
+        internal const val FILE_NAME: String = "pcontacts_auth_v2"
         private const val KEY_UID: String = "uid"
         private const val KEY_ACCESS_TOKEN: String = "access_token"
         private const val KEY_REFRESH_TOKEN: String = "refresh_token"
-        private const val KEY_PASSWORD_WRAPPED: String = "key_password_wrapped"
+        private const val KEY_PASSWORD: String = "key_password"
         private const val KEY_HV_TOKEN: String = "hv_token"
         private const val KEY_HV_TOKEN_TYPE: String = "hv_token_type"
 
-        fun create(context: Context): EncryptedSecretStore {
-            val masterKey = MasterKey.Builder(context.applicationContext)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .setRequestStrongBoxBacked(true)
-                .build()
-            val prefs = EncryptedSharedPreferences.create(
-                context.applicationContext,
-                FILE_NAME,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        /** The EncryptedSharedPreferences file of releases up to 1.7.2 and its androidx master-key alias. */
+        internal const val LEGACY_FILE_NAME: String = "pcontacts_auth_prefs"
+        private const val LEGACY_MASTER_KEY_ALIAS: String = "_androidx_security_master_key_"
+
+        fun create(
+            context: Context,
+            logger: Logger = RedactingLogger(tag = "SecretStore", sink = NoOpSink)
+        ): EncryptedSecretStore {
+            val app = context.applicationContext
+            purgeLegacy(app, KeystoreAesGcmKek(LEGACY_MASTER_KEY_ALIAS), logger)
+            return EncryptedSecretStore(
+                app.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE),
+                KeystoreAesGcmKek(),
+                logger
             )
-            return EncryptedSecretStore(prefs, KeystoreAesGcmKek())
+        }
+
+        /**
+         * Deletes the pre-2.0 secret file and its master key, once. A
+         * failure here leaves the old ciphertext in place; it is never
+         * read, so the outcome is the same as success: sign in again.
+         */
+        internal fun purgeLegacy(app: Context, legacyMasterKey: SecretCipher, logger: Logger) {
+            val legacyFile = File(app.applicationInfo.dataDir, "shared_prefs/$LEGACY_FILE_NAME.xml")
+            if (!legacyFile.exists()) return
+            try {
+                app.deleteSharedPreferences(LEGACY_FILE_NAME)
+                legacyMasterKey.delete()
+                logger.info { "legacy secret store purged; sign-in required" }
+            } catch (e: GeneralSecurityException) {
+                logger.warn(e) { "legacy secret store purge failed" }
+            } catch (e: IllegalStateException) {
+                logger.warn(e) { "legacy secret store purge failed" }
+            }
         }
     }
 }

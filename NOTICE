@@ -76,7 +76,7 @@ checked at release time by a Gradle license-compatibility task.
     License: Apache 2.0
   kotlinx.coroutines
     License: Apache 2.0
-  AndroidX (security-crypto, room, work-manager, biometric, credentials,
+  AndroidX (room, work-manager, biometric, credentials,
             activity, activity-compose, lifecycle-runtime-compose,
             appcompat, core-ktx)
     License: Apache 2.0

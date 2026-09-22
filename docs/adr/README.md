@@ -18,7 +18,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0006](0006-mvp-read-only-single-account.md) | MVP scope — read-only, single account | Superseded by ADR-0018 |
 | [0007](0007-client-side-decryption-only.md) | Decrypt client-side only — never use server-side export | Accepted |
 | [0008](0008-room-mapping-database.md) | Local mapping store — Room for ProtonID ↔ RawContactID | Accepted |
-| [0009](0009-secrets-storage.md) | Secrets storage — EncryptedSharedPreferences + Keystore AEAD; no backup | Accepted |
+| [0009](0009-secrets-storage.md) | Secrets storage — Keystore AES-GCM (direct, since 2.0.0); durable wipe; no backup | Accepted (amended 2026-09-22) |
 | [0010](0010-contactscontract-write-strategy.md) | ContactsContract write strategy — delete-and-reinsert child rows | Accepted |
 | [0011](0011-gradle-module-structure.md) | Gradle module structure — feature/core split | Accepted |
 | [0012](0012-http-stack-okhttp-retrofit.md) | HTTP stack — OkHttp + Retrofit, single-flight refresh | Accepted |

@@ -52,7 +52,7 @@ PR.
 | # | Assumption | Justification |
 |---|---|---|
 | A1 | Android Keystore is honest (AES-GCM KEK at alias `pcontacts.kekv1` cannot be exfiltrated by another app, only by code running with our UID). | Standard Android security model. StrongBox-backed where the device supports it. |
-| A2 | `EncryptedSharedPreferences` (androidx.security:security-crypto) is honest — its AES256_SIV + AES256_GCM cipher pair has no known break. | Reviewed crypto, Tink-backed. |
+| A2 | The platform AES-GCM implementation behind the Keystore key is honest; no third-party cryptography sits in the secrets path (androidx security-crypto and Tink were removed in 2.0.0). | Android's Conscrypt provider, exercised by every Keystore-backed app. |
 | A3 | The Android `ContactsContract` provider is honest — `caller_is_syncadapter=true` semantics work as documented (no duplicate-resurrection bug). | AOSP-documented, exercised by every account-syncing app. |
 | A4 | The user's Proton account password is sufficiently strong to resist offline brute-force against the bcrypt-SHA-512 key-password (≥ 60 bits of entropy in practice). | Proton enforces a minimum complexity at signup. |
 | A5 | The OkHttp + BouncyCastle releases pinned in `gradle/libs.versions.toml` do not contain a known CVE we're vulnerable to. | Dep-bump cadence per ADR-0015. Dependabot is enabled (`.github/dependabot.yml`). OWASP Dependency-Check runs weekly (Monday 09:00 UTC) and on PRs touching `gradle/libs.versions.toml` — see the `vulnerability-scan` job in `.github/workflows/build.yml`. Findings with CVSS >= 7.0 fail the build. |
@@ -63,11 +63,11 @@ PR.
 
 | Asset | Lifetime | At rest | In transit | If leaked |
 |---|---|---|---|---|
-| Proton session **UID** | indefinite (until logout) | `EncryptedSharedPreferences` | `x-pm-uid` header on every request | Account fingerprinting; cannot read mail/contacts alone. |
-| **AccessToken** | ~24h (Proton's `ExpiresIn`) | `EncryptedSharedPreferences` | `Authorization: Bearer …` header | Full read+write access to Proton REST API as the user until expiry. |
-| **RefreshToken** | until revoked | `EncryptedSharedPreferences` | request body to `/auth/refresh` only | Long-lived foothold; equivalent to password-less re-login indefinitely. |
-| **HumanVerificationToken** + **TokenType** (ADR-0019) | until cleared (next 9001 with stale token, or `SecretStore.logout()`) | `EncryptedSharedPreferences` | `x-pm-human-verification-token` + `x-pm-human-verification-token-type` headers on every request after a captcha solve | Allows an attacker to bypass Proton's captcha gate as this user; does NOT grant API access on its own — the bearer token is still required. |
-| **keyPassword** (bcrypt-SHA-512 string) | indefinite (until logout) | wrapped under Keystore AEAD KEK in EncryptedSharedPreferences | never on the wire | Offline decrypt of every Proton-encrypted Card on the device. |
+| Proton session **UID** | indefinite (until logout) | AES-256-GCM under `pcontacts.kekv1` in the private prefs file `pcontacts_auth_v2` | `x-pm-uid` header on every request | Account fingerprinting; cannot read mail/contacts alone. |
+| **AccessToken** | ~24h (Proton's `ExpiresIn`) | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | `Authorization: Bearer …` header | Full read+write access to Proton REST API as the user until expiry. |
+| **RefreshToken** | until revoked | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | request body to `/auth/refresh` only | Long-lived foothold; equivalent to password-less re-login indefinitely. |
+| **HumanVerificationToken** + **TokenType** (ADR-0019) | until cleared (next 9001 with stale token, or `SecretStore.logout()`) | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | `x-pm-human-verification-token` + `x-pm-human-verification-token-type` headers on every request after a captcha solve | Allows an attacker to bypass Proton's captcha gate as this user; does NOT grant API access on its own — the bearer token is still required. |
+| **keyPassword** (bcrypt-SHA-512 string) | indefinite (until logout) | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | never on the wire | Offline decrypt of every Proton-encrypted Card on the device. |
 | Unlocked **PGP user private key** | sync-run lifetime (seconds); re-unlocked for outbox push retries (ADR-0017/0018) | NEVER persisted; constructed from armored block + keyPassword on demand | never on the wire | As above. |
 | Decrypted **vCard plaintext** | sync-run lifetime (seconds, per-contact) | NEVER persisted; lives only on the heap during ContactDecryptBootstrap → VCardMerger | never on the wire | Discloses contact list, emails, phones, addresses, notes. |
 | Local **Room mapping** (`contact_map`, `group_map`, `sync_state`) | until logout / data wipe | plaintext SQLite (IDs, timestamps, content hashes; no decrypted content) except the sealed merge-base column below | never on the wire | Discloses contact IDs + sync timestamps; no plaintext content. |
@@ -90,8 +90,8 @@ PR.
 │ │  │ pcontacts.kekv1    │ │         │ shared with: every app   │ │
 │ │  └────────────────────┘ │         │ holding READ_CONTACTS    │ │
 │ │  ┌────────────────────┐ │         │                          │ │
-│ │  │ EncryptedSharedPref│─┼────────►│ wrote: RawContacts +     │ │
-│ │  │ — secret blobs     │ │         │ Data rows under          │ │
+│ │  │ pcontacts_auth_v2  │─┼────────►│ wrote: RawContacts +     │ │
+│ │  │ — sealed secrets   │ │         │ Data rows under          │ │
 │ │  └────────────────────┘ │         │ io.pcontacts.account     │ │
 │ │  ┌────────────────────┐ │         └──────────────────────────┘ │
 │ │  │ Room DB (mapping)  │ │                                      │
@@ -122,7 +122,7 @@ The three crossings:
    single-flight mutex), `FibonacciBackoffInterceptor` (429
    tolerance), `HumanVerificationInterceptor` (9001 surfaces as
    a typed exception, never silently retried).
-2. **App heap ↔ EncryptedSharedPreferences** — every secret
+2. **App heap ↔ Keystore-sealed preferences** — every secret
    read/write. Single-surface SecretStore interface; direct
    `SharedPreferences` constructor calls are forbidden outside
    `:core:storage` (CLAUDE.md anti-pattern, custom Android Lint
@@ -167,12 +167,13 @@ write-side artefacts are ContactsContract rows owned by us
 |---|---|---|---|
 | I1 | Decrypted contact content lands in `Log.*` / `println` / `System.out.*` and gets harvested via `logcat`. | Custom `PcontactsSensitiveLog` Lint rule fails the build on direct `Log.*` calls outside `:core:logging` / `:app.logging`; production logger sink (`RedactingLogger`) strips fields named `token`, `password`, `passphrase`, etc.; the `:app` `AndroidLogcatSink` is the single sanctioned bridge to `android.util.Log`. | Low — Lint is mechanical; the per-field redaction list is the soft spot (a misnamed field could slip through). |
 | I2 | Decrypted vCard plaintext is persisted to disk (Room, SharedPreferences, file cache). | ADR-0007 — explicit "never persisted" rule. Engine holds plaintext only on the heap during a sync run. No file caches. | Low. |
-| I3 | Tokens / keyPassword end up in a crash dump / process memory dump. | `EncryptedSharedPreferences` decrypts on read; we attempt to zero the temporary `CharArray` passphrase after key unlock (ADR-0009). The JVM cannot guarantee memory zeroization — the GC may have copied the array elsewhere. | **Medium.** A heap dump of a running process exposes the unlocked key. Defending against this requires native memory the JVM doesn't manage; out of scope. |
-| I4 | Android auto-backup exfiltrates `EncryptedSharedPreferences` to Google Drive. | `android:allowBackup="false"` in the manifest + a `data_extraction_rules` XML that excludes the secret-bearing prefs. Asserted by `:app:verifyManifestInvariants`, run on every `assembleRelease`. | Low. |
+| I3 | Tokens / keyPassword end up in a crash dump / process memory dump. | Values are opened on read and held only as long as needed; we attempt to zero the temporary `CharArray` passphrase after key unlock (ADR-0009). The JVM cannot guarantee memory zeroization — the GC may have copied the array elsewhere. | **Medium.** A heap dump of a running process exposes the unlocked key. Defending against this requires native memory the JVM doesn't manage; out of scope. |
+| I4 | Android auto-backup exfiltrates the secrets file `pcontacts_auth_v2` to Google Drive. | `android:allowBackup="false"` in the manifest + a `data_extraction_rules` XML that excludes the secret-bearing prefs. Asserted by `:app:verifyManifestInvariants`, run on every `assembleRelease`. | Low. |
 | I5 | Sync log + ContactsContract rows exfiltrated by another app holding `READ_CONTACTS`. | Standard Android permission model — user grants `READ_CONTACTS` to the apps they trust. We don't have a stronger boundary. | **Medium by design.** This is the whole *point* — pcontacts puts contacts in the system address book so other apps (SMS, Phone, Mail) can use them. The user opts in when they grant READ_CONTACTS to a given app. |
 | I6 | Contact photo bytes (the inline `Photo.PHOTO` column) leak via `READ_CONTACTS` to other apps. | Same as I5 — by design. The photo is downscaled to ≤96KB JPEG before storing. | Acceptable. |
 | I7 | Outbox stores decrypted contact content at rest (if three-way merge requires last-known server payload). | ADR-0018 mandates: if the payload is stored, it MUST be encrypted under the Keystore AEAD KEK (`pcontacts.kekv1`) before writing to Room. If the implementation avoids storing payloads (re-fetches on demand), this threat is moot. | **Low** if encrypted; **Medium** if the implementation stores plaintext payloads (which ADR-0018 forbids). |
 | I8 | Unlocked signing key lingers in heap between outbox push retries. | The key is re-unlocked from `keyPassword` on demand for each push attempt; it is not held between retries. The per-attempt window is the same as a sync run (seconds). | Low — same exposure as I3, no worse. |
+| I9 | Sign-out leaves secrets on disk: the wipe was an asynchronous `apply()`, and a read after logout re-provisioned the Keystore key. | `SecretStore.logout()` commits the wipe synchronously, deletes the alias and verifies it is gone, and throws otherwise; `LogoutOrchestrator` then keeps the Android account and reports the failure instead of pretending. `unwrap` never creates a key, so stale ciphertext reads as absent. Covered by `EncryptedSecretStoreTest` (including a fresh store over the same file after logout) and the Keystore instrumented test. | Low — Keystore honesty (A1). |
 
 ### Denial of service
 
@@ -189,7 +190,7 @@ write-side artefacts are ContactsContract rows owned by us
 
 | # | Threat | Mitigation today | Residual risk |
 |---|---|---|---|
-| E1 | An attacker with code execution in the app sandbox reads keyPassword + decrypts every contact. | Standard Android sandbox boundary; keyPassword is double-wrapped (Keystore AEAD KEK + EncryptedSharedPreferences AES). Defeat requires breaking out of the sandbox. | Acceptable. |
+| E1 | An attacker with code execution in the app sandbox reads keyPassword + decrypts every contact. | Standard Android sandbox boundary; every secret is sealed under the Keystore key `pcontacts.kekv1`, which only code running as our UID can use. Defeat requires breaking out of the sandbox. | Acceptable. |
 | E2 | The `RefreshingAuthenticator` is tricked into refreshing a token for a different account (multi-account confusion). | Single-account MVP. AuthInterceptor + RefreshingAuthenticator both read from the same `InMemorySession`; no cross-account state. | Acceptable for MVP; revisit when multi-account ships. |
 | E3 | A 9001 response loops forever, consuming network + battery. | Bounded retries (FibonacciBackoffInterceptor cap 5); 9001 thrown immediately to the caller without retry. | Low. |
 | E4 | A rogue `AccountAuthenticator` issues a fake access token + tricks the SyncAdapter into syncing the wrong account. | The SyncAdapter reads its account from the system, not from a user-supplied source. | Low. |
@@ -249,16 +250,16 @@ User loses an unlocked device with the app in the foreground:
   ran). Plaintext vCards may still be in memory. Worst case window:
   the few seconds of an active sync run plus whatever the GC hasn't
   reclaimed.
-- `EncryptedSharedPreferences` is decryptable by any code running
-  with our UID — so any app with our package ID can read tokens +
-  keyPassword. Mitigation: app-sandbox UID isolation.
+- The sealed secrets are decryptable by any code running with our
+  UID (the Keystore key answers to the UID) — so code with our
+  package ID can read tokens + keyPassword. Mitigation: app-sandbox
+  UID isolation.
 - `RawContacts` rows are visible to every READ_CONTACTS-holding
   app on the device.
 
 User loses a locked, screen-locked device:
 
-- `EncryptedSharedPreferences` master key is backed by the
-  Keystore. On API 23+ the Keystore key requires the device be
+- The secrets key `pcontacts.kekv1` lives in the Keystore. On API 23+ the Keystore key requires the device be
   unlocked at least once after boot before its key material
   becomes usable. So a powered-off / freshly-rebooted lost
   device protects the keyPassword via the lockscreen.
@@ -276,8 +277,8 @@ framework stops trying.
 ## 6. Mitigations summary
 
 Implemented:
-- SecretStore with double-wrapping (Keystore AEAD KEK + EncryptedSharedPreferences).
-- Keystore alias deletion on `SecretStore.logout()`.
+- SecretStore sealing every value under the Keystore AEAD key `pcontacts.kekv1` (no third-party crypto in the path).
+- Durable logout: synchronous commit of the wipe, verified Keystore alias deletion, sign-out aborted and reported when either fails.
 - `android:allowBackup="false"` + data_extraction_rules XML.
 - DNS guard (`ProtonHostDnsGuard`), SPKI certificate pinning (`ProtonCertificatePins` — ISRG Root X1 + X2, release-gated).
 - Per-Card signature verification with `is_verified=false` on failure

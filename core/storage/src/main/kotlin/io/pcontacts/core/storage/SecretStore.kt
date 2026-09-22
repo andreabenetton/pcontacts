@@ -13,13 +13,14 @@ package io.pcontacts.core.storage
  *     `SharedPreferences` and the Android Keystore. Direct
  *     `SharedPreferences` constructor calls outside `:core:storage`
  *     are forbidden (CLAUDE.md).
- *   - The mailbox key password is wrapped under a Keystore-backed
- *     AES-256-GCM key (`pcontacts.kekv1`) before it touches
- *     EncryptedSharedPreferences. The wrap key is rotated on full
- *     re-auth and deleted on logout.
- *   - On `logout()` every field is wiped and the Keystore alias is
- *     deleted. This is the single line of defence against a stolen
- *     device with an unlocked app sandbox.
+ *   - Every value is sealed under the Keystore-backed AES-256-GCM key
+ *     `pcontacts.kekv1` before it is stored in a private preferences
+ *     file. The key is created at first sign-in and deleted at logout;
+ *     nothing rotates it.
+ *   - `logout()` is the durable wipe: the values are committed away
+ *     synchronously and the Keystore alias is deleted and verified.
+ *     It throws when either step fails so the caller never reports a
+ *     sign-out that did not happen.
  */
 interface SecretStore {
 
@@ -55,9 +56,13 @@ interface SecretStore {
     fun setHumanVerificationTokenType(value: String?)
 
     /**
-     * Wipes every secret and deletes the Keystore AEAD key. Subsequent
-     * reads return null. Called from the sign-out flow and during the
-     * "Forget account" path.
+     * Wipes every secret durably and deletes the Keystore AEAD key.
+     * Subsequent reads return null. Throws [SecretStoreWriteException]
+     * (or a Keystore error) when the wipe could not be completed; the
+     * sign-out flow then keeps the account and reports the failure.
      */
     fun logout()
 }
+
+/** A `commit()` of the secrets file was refused; the value may still be on disk. */
+class SecretStoreWriteException(key: String) : IllegalStateException("secret store commit failed for '$key'")

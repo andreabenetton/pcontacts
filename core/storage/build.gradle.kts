@@ -56,8 +56,8 @@ ksp {
 }
 
 dependencies {
-    // ADR-0009: SecretStore — EncryptedSharedPreferences + Keystore AEAD.
-    implementation(libs.androidx.security.crypto)
+    // ADR-0009: SecretStore seals every value with the Android Keystore
+    // directly (KeystoreAesGcmKek); no androidx.security dependency.
 
     // ADR-0008: Room mapping store (ProtonID ↔ RawContactID, sync state).
     // 'api' because PcontactsDatabase extends RoomDatabase; downstream
