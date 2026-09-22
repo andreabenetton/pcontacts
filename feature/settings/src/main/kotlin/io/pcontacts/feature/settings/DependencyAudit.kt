@@ -3,7 +3,6 @@
 
 package io.pcontacts.feature.settings
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -114,11 +113,12 @@ enum class AuditStatus { CLEAN, ASSESSED, OPEN }
 /** What the app bar shows next to the version: the status dot and where a tap goes. */
 data class AuditIndicator(val status: AuditStatus, val onOpen: () -> Unit)
 
+/** Fixed, saturated colours: the theme's error tone is a pale pink in the dark theme and blends with the accents. */
 @Composable
 internal fun AuditStatus.tint(): Color = when (this) {
     AuditStatus.CLEAN -> AuditGreen
     AuditStatus.ASSESSED -> AuditAmber
-    AuditStatus.OPEN -> MaterialTheme.colorScheme.error
+    AuditStatus.OPEN -> AuditRed
 }
 
 internal fun AuditStatus.labelRes(): Int = when (this) {
@@ -134,5 +134,6 @@ internal fun AuditStatus.chipRes(): Int = when (this) {
     AuditStatus.OPEN -> R.string.dependencies_chip_open
 }
 
-private val AuditGreen = Color(0xFF2E9E5B)
-private val AuditAmber = Color(0xFFE0A100)
+private val AuditGreen = Color(0xFF34C759)
+private val AuditAmber = Color(0xFFFFA000)
+private val AuditRed = Color(0xFFFF3B30)
