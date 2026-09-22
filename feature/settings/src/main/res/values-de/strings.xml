@@ -218,6 +218,9 @@
     <string name="advisory_check_never">Noch nicht geprüft.</string>
     <string name="advisory_check_clean">Nichts Neues gemeldet · letzte Prüfung %1$s</string>
     <string name="advisory_check_found">%1$d neue Hinweise · letzte Prüfung %2$s</string>
+    <string name="dependencies_mute">Stummschalten</string>
+    <string name="dependencies_unmute">Stummschaltung aufheben</string>
+    <string name="dependencies_cve_muted">Von Ihnen stummgeschaltet — gilt als bewertet, bis das Artefakt die Version wechselt</string>
     <string name="rom_grapheneos_compat">Optional offizielles Google Play, installiert als gewöhnliche Sandbox-Apps ohne privilegierten Systemzugriff.</string>
     <string name="rom_grapheneos_focus">Starke Härtung von Sicherheit und Privatsphäre.</string>
     <string name="rom_grapheneos_hardware">Vor allem unterstützte Google-Pixel-Geräte.</string>

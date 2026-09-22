@@ -244,6 +244,9 @@
     <string name="advisory_check_never">Ещё не проверялось.</string>
     <string name="advisory_check_clean">Ничего нового · последняя проверка %1$s</string>
     <string name="advisory_check_found">Новых предупреждений: %1$d · последняя проверка %2$s</string>
+    <string name="dependencies_mute">Скрыть</string>
+    <string name="dependencies_unmute">Показывать снова</string>
+    <string name="dependencies_cve_muted">Скрыто вами — считается оценённым, пока артефакт не сменит версию</string>
     <string name="rom_grapheneos_compat">По желанию — официальный Google Play, установленный как обычные изолированные приложения без привилегированного доступа к системе.</string>
     <string name="rom_grapheneos_focus">Сильное усиление безопасности и приватности.</string>
     <string name="rom_grapheneos_hardware">В основном поддерживаемые устройства Google Pixel.</string>

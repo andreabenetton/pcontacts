@@ -218,6 +218,9 @@
     <string name="advisory_check_never">Not checked yet.</string>
     <string name="advisory_check_clean">Nothing new reported · last check %1$s</string>
     <string name="advisory_check_found">%1$d new advisories · last check %2$s</string>
+    <string name="dependencies_mute">Mute</string>
+    <string name="dependencies_unmute">Unmute</string>
+    <string name="dependencies_cve_muted">Muted by you — counts as assessed until the artifact changes version</string>
     <string name="rom_grapheneos_compat">Optional official Google Play, installed as ordinary sandboxed apps without privileged system access.</string>
     <string name="rom_grapheneos_focus">Strong security and privacy hardening.</string>
     <string name="rom_grapheneos_hardware">Primarily supported Google Pixel devices.</string>

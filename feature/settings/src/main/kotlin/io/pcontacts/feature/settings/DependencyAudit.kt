@@ -42,7 +42,7 @@ data class DependencyAudit(
         return copy(
             dependencies = dependencies.map { d ->
                 val extra = byCoordinate[d.coordinate].orEmpty().map { a ->
-                    AuditCve(a.id, null, a.severity, a.url, suppressed = false, reason = a.summary, runtime = true)
+                    AuditCve(a.id, null, a.severity, a.url, suppressed = a.muted, reason = a.summary, runtime = true)
                 }
                 if (extra.isEmpty()) d else d.copy(cves = d.cves + extra)
             }
@@ -81,14 +81,21 @@ data class AuditCve(
     val runtime: Boolean = false
 )
 
-/** An advisory the runtime check found that the snapshot does not list. */
+/**
+ * An advisory the runtime check found that the snapshot does not list. [muted] is the user's
+ * own assessment: a muted advisory counts as assessed (amber), an unmuted one as open (red).
+ */
 data class RuntimeAdvisory(
     val coordinate: String,
     val id: String,
     val url: String,
     val severity: String?,
-    val summary: String?
-)
+    val summary: String?,
+    val muted: Boolean = false
+) {
+    /** The mute key: the coordinate carries the version, so a bump invalidates the mute. */
+    val key: String get() = "$coordinate|$id"
+}
 
 /** The opt-in runtime check (ADR-0025): its switch, when it last ran and what it found. */
 data class AdvisoryCheckState(

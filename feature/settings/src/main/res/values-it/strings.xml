@@ -218,6 +218,9 @@
     <string name="advisory_check_never">Non ancora controllato.</string>
     <string name="advisory_check_clean">Nessuna novità segnalata · ultimo controllo %1$s</string>
     <string name="advisory_check_found">%1$d nuovi avvisi · ultimo controllo %2$s</string>
+    <string name="dependencies_mute">Silenzia</string>
+    <string name="dependencies_unmute">Riattiva</string>
+    <string name="dependencies_cve_muted">Silenziata da te — conta come valutata finché l’artefatto non cambia versione</string>
     <string name="rom_grapheneos_compat">Google Play ufficiale opzionale, installato come normali app in sandbox senza accesso privilegiato al sistema.</string>
     <string name="rom_grapheneos_focus">Forte irrobustimento di sicurezza e privacy.</string>
     <string name="rom_grapheneos_hardware">Principalmente i dispositivi Google Pixel supportati.</string>

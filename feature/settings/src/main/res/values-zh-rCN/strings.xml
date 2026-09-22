@@ -205,6 +205,9 @@
     <string name="advisory_check_never">尚未检查。</string>
     <string name="advisory_check_clean">未报告新内容 · 上次检查 %1$s</string>
     <string name="advisory_check_found">%1$d 条新公告 · 上次检查 %2$s</string>
+    <string name="dependencies_mute">静音</string>
+    <string name="dependencies_unmute">取消静音</string>
+    <string name="dependencies_cve_muted">已被您静音 — 在该构件更换版本之前视为已评估</string>
     <string name="rom_grapheneos_compat">可选安装官方 Google Play，作为普通沙盒应用运行，没有系统特权。</string>
     <string name="rom_grapheneos_focus">强安全性和隐私加固。</string>
     <string name="rom_grapheneos_hardware">主要是受支持的 Google Pixel 设备。</string>

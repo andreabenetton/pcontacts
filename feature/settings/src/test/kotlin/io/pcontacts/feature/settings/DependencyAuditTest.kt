@@ -71,6 +71,14 @@ class DependencyAuditTest {
         assertEquals(listOf(clean.coordinate, assessed.coordinate), merged.sortedForDisplay.map { it.coordinate })
     }
 
+    @Test fun a_muted_runtime_advisory_counts_as_assessed() {
+        val muted = RuntimeAdvisory(clean.coordinate, "GHSA-m", "u", null, null, muted = true)
+        val state = AdvisoryCheckState(enabled = true, lastCheckedAtMillis = 1L, advisories = listOf(muted))
+        val merged = DependencyAudit("2026-09-22", null, listOf(clean)).withRuntime(state)
+        assertEquals(AuditStatus.ASSESSED, merged.status)
+        assertEquals("a:b:1|GHSA-1", RuntimeAdvisory("a:b:1", "GHSA-1", "u", null, null).key)
+    }
+
     @Test fun display_order_puts_open_first_then_assessed_then_the_rest_by_coordinate() {
         val audit = DependencyAudit("2026-09-22", null, listOf(clean, assessed, open))
         assertEquals(listOf(open, assessed, clean), audit.sortedForDisplay)
