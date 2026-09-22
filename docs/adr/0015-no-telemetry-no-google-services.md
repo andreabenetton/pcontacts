@@ -1,6 +1,6 @@
 # ADR-0015: No telemetry, no Google Services, no proprietary dependencies
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-22 — ADR-0025 carves out one opt-in network path, off by default, to `api.osv.dev` for the runtime advisory check; everything else stands)
 - **Date:** 2026-05-22
 - **Deciders:** project owner
 - **Related:** ADR-0001, ADR-0003, ADR-0007, ADR-0009
@@ -29,7 +29,7 @@ The redacting-logger requirement (no `Log.*` of tokens, passwords, signatures, v
    - Matches the Google Play Services group `com.google.android.gms` or `com.google.firebase`.
    - Carries a known proprietary license (anything not in our allowlist: Apache-2.0, BSD-2-Clause, BSD-3-Clause, MIT, EPL-2.0, MPL-2.0, LGPL-2.1+, LGPL-3.0+, GPL-2.0+, GPL-3.0+, ISC, CC0-1.0, Unlicense).
    - Pulls a binary `.so` blob that wasn't built from source we ship.
-2. **No telemetry endpoint allowlist.** `OkHttpClient` for `:core:proton-api` is constructed with a `Dns` resolver that rejects any host not matching `*.proton.me`. Tests assert this. The app has no other `OkHttpClient` instance; this is enforced by detekt rule "OkHttpClient must be constructed only in `:core:proton-api`".
+2. **No telemetry endpoint allowlist.** `OkHttpClient` for `:core:proton-api` is constructed with a `Dns` resolver that rejects any host not matching `*.proton.me`. Tests assert this. The app has no other `OkHttpClient` instance; this is enforced by detekt rule "OkHttpClient must be constructed only in `:core:proton-api`". *Amendment 2026-09-22 (ADR-0025):* one more client exists, in `:core:advisories`, behind its own guard that resolves `api.osv.dev` only; it is used solely by the opt-in advisory check, never by default.
 3. **Manifest invariants** asserted in a manifest-merger test on release builds:
    - No `<meta-data android:name="com.google.android.gms.version">`.
    - No `<provider>` declarations from `com.google.firebase`.
