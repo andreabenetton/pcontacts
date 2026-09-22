@@ -274,6 +274,8 @@ class MainActivity : ComponentActivity() {
     /** Back to the sign-in prompt; the settings view model forgets its "signed out" state for the next login. */
     private fun onSignedOutFromSettings() {
         settingsHost.viewModel.reset()
+        // The next sign-in asks for the permissions again instead of going straight to the banner.
+        SharedPreferencesUserPreferences(this).contactsPermissionRequested = false
         viewModel.refresh()
     }
 
