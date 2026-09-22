@@ -158,4 +158,8 @@
     <string name="sync_state_progress">Sincronizzazione di %1$d su %2$d…</string>
     <string name="contacts_access_got_it">Ho capito</string>
     <string name="contacts_access_view_list">Vedi elenco</string>
+    <plurals name="sync_contacts_count">
+        <item quantity="one">%d contatto</item>
+        <item quantity="other">%d contatti</item>
+    </plurals>
 </resources>

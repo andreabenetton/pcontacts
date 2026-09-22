@@ -94,7 +94,8 @@ enum class ContactsAccessKind { USER, SYSTEM }
  */
 data class SettingsActions(
     val onSignedOut: () -> Unit,
-    val onBack: () -> Unit = {},
+    /** Null when the screen is the app's root: no back arrow. */
+    val onBack: (() -> Unit)? = null,
     val onOpenLinkedImport: () -> Unit = {},
     val onOpenContactsAccess: (ContactsAccessKind) -> Unit = {},
     val onOpenContactsStorage: (() -> Unit)? = null

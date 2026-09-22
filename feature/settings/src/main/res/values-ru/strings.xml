@@ -182,4 +182,10 @@
     <string name="sync_state_progress">Синхронизация %1$d из %2$d…</string>
     <string name="contacts_access_got_it">Понятно</string>
     <string name="contacts_access_view_list">Показать список</string>
+    <plurals name="sync_contacts_count">
+        <item quantity="one">%d контакт</item>
+        <item quantity="few">%d контакта</item>
+        <item quantity="many">%d контактов</item>
+        <item quantity="other">%d контакта</item>
+    </plurals>
 </resources>

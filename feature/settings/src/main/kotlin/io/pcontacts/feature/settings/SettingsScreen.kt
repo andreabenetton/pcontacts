@@ -69,7 +69,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     actions: SettingsActions,
     modifier: Modifier = Modifier,
-    banner: @Composable () -> Unit = {}
+    banner: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
@@ -79,7 +80,8 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { ScreenTopBar(title = stringResource(R.string.settings_title), onBack = actions.onBack) }
+        topBar = { ScreenTopBar(title = stringResource(R.string.settings_title), onBack = actions.onBack) },
+        snackbarHost = snackbarHost
     ) { padding ->
         Column(
             modifier = Modifier
@@ -236,6 +238,7 @@ private fun SyncStatusCard(
     val outbox by viewModel.outboxStats.collectAsStateWithLifecycle()
     val interval by viewModel.syncInterval.collectAsStateWithLifecycle()
     val progress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val stats by viewModel.verificationStats.collectAsStateWithLifecycle()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -260,7 +263,7 @@ private fun SyncStatusCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = headline.tone.tint
                     )
-                    lastSync?.let { LastSyncLine(it, now) }
+                    lastSync?.let { LastSyncLine(it, now, stats?.totalContacts) }
                 }
                 Spacer(Modifier.width(12.dp))
                 Button(enabled = syncEnabled, onClick = viewModel::triggerSyncNow) {
@@ -285,16 +288,16 @@ private fun SyncStatusCard(
 }
 
 /**
- * When the last completed run happened — relative, ticking with [now];
- * tapping toggles the absolute date and time — and how many contacts
- * it could not sync.
+ * How many contacts are synced and when the last completed run
+ * happened — relative, ticking with [now]; tapping toggles the absolute
+ * date and time — plus how many contacts it could not sync.
  */
 @Composable
-private fun LastSyncLine(info: LastSyncSummary, now: Long) {
+private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?) {
     val syncedAt = info.syncedAtMillis
     var absolute by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val text = when {
+    val syncText = when {
         syncedAt == null -> stringResource(R.string.settings_last_sync_never)
         absolute -> stringResource(
             R.string.settings_last_sync,
@@ -304,6 +307,11 @@ private fun LastSyncLine(info: LastSyncSummary, now: Long) {
             R.string.settings_last_sync,
             DateUtils.getRelativeTimeSpanString(syncedAt, now, DateUtils.MINUTE_IN_MILLIS)
         )
+    }
+    val text = if (contacts != null) {
+        pluralStringResource(R.plurals.sync_contacts_count, contacts, contacts) + " · " + syncText
+    } else {
+        syncText
     }
     Text(
         text = text,
