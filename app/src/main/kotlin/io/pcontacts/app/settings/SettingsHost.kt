@@ -93,10 +93,8 @@ class SettingsHost(
         onChange = { viewModel.updateSyncRunning(it) }
     )
 
-    /** [onBack] null hides the back arrow — the screen is the app's root. */
-    fun actions(onBack: (() -> Unit)?) = SettingsActions(
+    fun actions() = SettingsActions(
         onSignedOut = onSignedOut,
-        onBack = onBack,
         onOpenLinkedImport = { activity.startActivity(Intent(activity, LinkedImportActivity::class.java)) },
         onOpenContactsAccess = { kind -> activity.startActivity(ContactsAccessActivity.intent(activity, kind)) },
         onOpenContactsStorage = contactsStorageAction()

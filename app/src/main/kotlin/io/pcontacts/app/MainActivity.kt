@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
                 if (state is LauncherUiState.SignedIn) {
                     SettingsScreen(
                         viewModel = settingsHost.viewModel,
-                        actions = settingsHost.actions(onBack = null),
+                        actions = settingsHost.actions(),
                         snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } },
                         banner = {
                             if (contactsPermissionStatus != ContactsPermissionStatus.GRANTED) {
