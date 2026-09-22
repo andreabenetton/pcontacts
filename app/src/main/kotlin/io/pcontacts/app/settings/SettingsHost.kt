@@ -263,7 +263,8 @@ class SettingsHost(
                 outboxId = ref.outboxId,
                 displayName = ref.androidRawContactId?.let { names[it] },
                 operation = ref.op.toUiOperation(),
-                reason = ref.lastError
+                reason = ref.lastError,
+                rawContactId = ref.androidRawContactId
             )
         }
     }
