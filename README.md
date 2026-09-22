@@ -89,10 +89,6 @@ Reproducible-build verification is documented in [`docs/BUILD.md`](docs/BUILD.md
 
 Three layers, documented in [`docs/BUILD.md` §Vulnerability scanning](docs/BUILD.md#vulnerability-scanning): an osv.dev audit snapshot committed with each release and verified by CI, an opt-in daily osv.dev check on the device, and OWASP Dependency-Check against the NVD on every push and weekly in CI, with a reviewed suppression file.
 
-## Vulnerability scanning
-
-Three layers, documented in [`docs/BUILD.md` §Vulnerability scanning](docs/BUILD.md#vulnerability-scanning): an osv.dev audit snapshot committed with each release and verified by CI, an opt-in daily osv.dev check on the device, and OWASP Dependency-Check against the NVD on every push and weekly in CI, with a reviewed suppression file.
-
 ## Running the test suites
 
 ```bash
@@ -141,6 +137,12 @@ Both the SRP auth flow and the bidirectional sync write path (CREATE / UPDATE / 
 - Device reports for the "Default account for new contacts" and Contacts-permission shortcuts, which depend on OEM Settings intents.
 
 Open an issue first for anything larger; this is a single-maintainer project and an unscoped PR is hard to absorb.
+
+## Buy me a coffee
+
+If pcontacts is useful to you, a coffee is welcome, in bitcoin:
+
+`bc1qe793n6n6yvfyazu6wrt4upueljksfg8lep8x2p`
 
 ## Reporting a security issue
 
