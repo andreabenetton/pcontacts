@@ -1,0 +1,1962 @@
+{
+    "schema": 1,
+    "generatedAt": "2026-09-22",
+    "nvdDataAsOf": "2026-09-19T06:16:30Z",
+    "engine": "13.0.0",
+    "dependencies": [
+        {
+            "group": "androidx.activity",
+            "name": "activity",
+            "version": "1.9.3",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.activity",
+            "name": "activity-compose",
+            "version": "1.9.3",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.activity",
+            "name": "activity-ktx",
+            "version": "1.9.3",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.annotation",
+            "name": "annotation",
+            "version": "1.10.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.annotation",
+            "name": "annotation-experimental",
+            "version": "1.4.1",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.annotation",
+            "name": "annotation-jvm",
+            "version": "1.10.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.arch.core",
+            "name": "core-common",
+            "version": "2.2.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.arch.core",
+            "name": "core-runtime",
+            "version": "2.2.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.autofill",
+            "name": "autofill",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.collection",
+            "name": "collection",
+            "version": "1.5.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.collection",
+            "name": "collection-jvm",
+            "version": "1.5.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.collection",
+            "name": "collection-ktx",
+            "version": "1.5.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose",
+            "name": "compose-bom",
+            "version": "2026.05.01",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.animation",
+            "name": "animation",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.animation",
+            "name": "animation-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.animation",
+            "name": "animation-core",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.animation",
+            "name": "animation-core-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.foundation",
+            "name": "foundation",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.foundation",
+            "name": "foundation-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.foundation",
+            "name": "foundation-layout",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.foundation",
+            "name": "foundation-layout-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.material",
+            "name": "material-icons-core",
+            "version": "1.7.8",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.material",
+            "name": "material-icons-core-android",
+            "version": "1.7.8",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.material",
+            "name": "material-ripple",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.material",
+            "name": "material-ripple-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.material3",
+            "name": "material3",
+            "version": "1.4.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.material3",
+            "name": "material3-android",
+            "version": "1.4.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime-annotation",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime-annotation-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime-retain",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime-retain-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime-saveable",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.runtime",
+            "name": "runtime-saveable-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-geometry",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-geometry-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-graphics",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-graphics-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-text",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-text-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-tooling-preview",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-tooling-preview-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-unit",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-unit-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-util",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.compose.ui",
+            "name": "ui-util-android",
+            "version": "1.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.concurrent",
+            "name": "concurrent-futures",
+            "version": "1.1.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.concurrent",
+            "name": "concurrent-futures-ktx",
+            "version": "1.1.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.core",
+            "name": "core",
+            "version": "1.16.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.core",
+            "name": "core-ktx",
+            "version": "1.16.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.core",
+            "name": "core-viewtree",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.customview",
+            "name": "customview-poolingcontainer",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.documentfile",
+            "name": "documentfile",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.dynamicanimation",
+            "name": "dynamicanimation",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.emoji2",
+            "name": "emoji2",
+            "version": "1.4.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.graphics",
+            "name": "graphics-path",
+            "version": "1.0.1",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.interpolator",
+            "name": "interpolator",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.legacy",
+            "name": "legacy-support-core-utils",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-common",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-common-java8",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-common-jvm",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-livedata",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-livedata-core",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-livedata-core-ktx",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-process",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-runtime",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-runtime-android",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-runtime-compose",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-runtime-compose-android",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-runtime-ktx",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-runtime-ktx-android",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-service",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-viewmodel",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-viewmodel-android",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-viewmodel-ktx",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-viewmodel-savedstate",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.lifecycle",
+            "name": "lifecycle-viewmodel-savedstate-android",
+            "version": "2.9.4",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.loader",
+            "name": "loader",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.localbroadcastmanager",
+            "name": "localbroadcastmanager",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.print",
+            "name": "print",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.profileinstaller",
+            "name": "profileinstaller",
+            "version": "1.4.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.room",
+            "name": "room-common",
+            "version": "2.7.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.room",
+            "name": "room-common-jvm",
+            "version": "2.7.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.room",
+            "name": "room-ktx",
+            "version": "2.7.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.room",
+            "name": "room-runtime",
+            "version": "2.7.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.room",
+            "name": "room-runtime-android",
+            "version": "2.7.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.savedstate",
+            "name": "savedstate",
+            "version": "1.3.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.savedstate",
+            "name": "savedstate-android",
+            "version": "1.3.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.savedstate",
+            "name": "savedstate-compose",
+            "version": "1.3.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.savedstate",
+            "name": "savedstate-compose-android",
+            "version": "1.3.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.savedstate",
+            "name": "savedstate-ktx",
+            "version": "1.3.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.sqlite",
+            "name": "sqlite",
+            "version": "2.5.1",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.sqlite",
+            "name": "sqlite-android",
+            "version": "2.5.1",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                {
+                    "id": "CVE-2015-5895",
+                    "score": 10.0,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-5895",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2017-10989",
+                    "score": 9.8,
+                    "severity": "CRITICAL",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-10989",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2019-19646",
+                    "score": 9.8,
+                    "severity": "CRITICAL",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19646",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-11656",
+                    "score": 9.8,
+                    "severity": "CRITICAL",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11656",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-20346",
+                    "score": 8.1,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20346",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-20506",
+                    "score": 8.1,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20506",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2026-11822",
+                    "score": 7.8,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11822",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2026-11824",
+                    "score": 7.8,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11824",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2025-6965",
+                    "score": 7.7,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-6965",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3414",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3414",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3415",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3415",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3416",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3416",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3717",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3717",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-20505",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20505",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-8740",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-8740",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-11655",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11655",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2022-35737",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-35737",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2025-70873",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-70873",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2023-7104",
+                    "score": 7.3,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-7104",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13630",
+                    "score": 7.0,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13630",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-6607",
+                    "score": 6.8,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-6607",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2016-6153",
+                    "score": 5.9,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2016-6153",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2019-19645",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19645",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13434",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13434",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13435",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13435",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13631",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13631",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13632",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13632",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-15358",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-15358",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                }
+            ]
+        },
+        {
+            "group": "androidx.sqlite",
+            "name": "sqlite-framework",
+            "version": "2.5.1",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.sqlite",
+            "name": "sqlite-framework-android",
+            "version": "2.5.1",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                {
+                    "id": "CVE-2015-5895",
+                    "score": 10.0,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-5895",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2017-10989",
+                    "score": 9.8,
+                    "severity": "CRITICAL",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-10989",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2019-19646",
+                    "score": 9.8,
+                    "severity": "CRITICAL",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19646",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-11656",
+                    "score": 9.8,
+                    "severity": "CRITICAL",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11656",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-20346",
+                    "score": 8.1,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20346",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-20506",
+                    "score": 8.1,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20506",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2026-11822",
+                    "score": 7.8,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11822",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2026-11824",
+                    "score": 7.8,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-11824",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2025-6965",
+                    "score": 7.7,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-6965",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3414",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3414",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3415",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3415",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3416",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3416",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-3717",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-3717",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-20505",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-20505",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2018-8740",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-8740",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-11655",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11655",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2022-35737",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-35737",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2025-70873",
+                    "score": 7.5,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-70873",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2023-7104",
+                    "score": 7.3,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-7104",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13630",
+                    "score": 7.0,
+                    "severity": "HIGH",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13630",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2015-6607",
+                    "score": 6.8,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2015-6607",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2016-6153",
+                    "score": 5.9,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2016-6153",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2019-19645",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-19645",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13434",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13434",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13435",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13435",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13631",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13631",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-13632",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-13632",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                },
+                {
+                    "id": "CVE-2020-15358",
+                    "score": 5.5,
+                    "severity": "MEDIUM",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-15358",
+                    "suppressed": true,
+                    "reason": "False positive: androidx.sqlite is a Kotlin wrapper, not the C SQLite engine. SQLite CVEs apply to the Android-OS-bundled engine, patched by the platform. Re-evaluate 2027-06-01."
+                }
+            ]
+        },
+        {
+            "group": "androidx.startup",
+            "name": "startup-runtime",
+            "version": "1.2.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.tracing",
+            "name": "tracing",
+            "version": "1.2.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.tracing",
+            "name": "tracing-ktx",
+            "version": "1.2.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.transition",
+            "name": "transition",
+            "version": "1.6.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.versionedparcelable",
+            "name": "versionedparcelable",
+            "version": "1.1.1",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.window",
+            "name": "window",
+            "version": "1.5.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.window",
+            "name": "window-core",
+            "version": "1.5.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.window",
+            "name": "window-core-android",
+            "version": "1.5.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.work",
+            "name": "work-runtime",
+            "version": "2.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "androidx.work",
+            "name": "work-runtime-ktx",
+            "version": "2.11.2",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.fasterxml.jackson",
+            "name": "jackson-bom",
+            "version": "2.21.0",
+            "licenses": [
+                "Apache License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.fasterxml.jackson.core",
+            "name": "jackson-core",
+            "version": "2.21.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.github.mangstadt",
+            "name": "vinnie",
+            "version": "2.0.2",
+            "licenses": [
+                "MIT License"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.google.guava",
+            "name": "listenablefuture",
+            "version": "1.0",
+            "licenses": [
+                
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.googlecode.ez-vcard",
+            "name": "ez-vcard",
+            "version": "0.12.2",
+            "licenses": [
+                "FreeBSD License"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.squareup.okhttp3",
+            "name": "okhttp",
+            "version": "5.4.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.squareup.okhttp3",
+            "name": "okhttp-android",
+            "version": "5.4.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.squareup.okio",
+            "name": "okio",
+            "version": "3.17.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.squareup.okio",
+            "name": "okio-jvm",
+            "version": "3.17.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.squareup.retrofit2",
+            "name": "converter-kotlinx-serialization",
+            "version": "3.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "com.squareup.retrofit2",
+            "name": "retrofit",
+            "version": "3.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.bouncycastle",
+            "name": "bcpg-jdk18on",
+            "version": "1.86",
+            "licenses": [
+                "Bouncy Castle Licence",
+                "Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.bouncycastle",
+            "name": "bcprov-jdk18on",
+            "version": "1.86",
+            "licenses": [
+                "Bouncy Castle Licence"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.bouncycastle",
+            "name": "bcutil-jdk18on",
+            "version": "1.86",
+            "licenses": [
+                "Bouncy Castle Licence"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.freemarker",
+            "name": "freemarker",
+            "version": "2.3.35",
+            "licenses": [
+                "Apache License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains",
+            "name": "annotations",
+            "version": "23.0.0",
+            "licenses": [
+                "The Apache Software License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlin",
+            "name": "kotlin-stdlib",
+            "version": "2.4.20",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlin",
+            "name": "kotlin-stdlib-common",
+            "version": "2.4.20",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-coroutines-android",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-coroutines-bom",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-coroutines-core",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-coroutines-core-jvm",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-serialization-bom",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-serialization-core",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-serialization-core-jvm",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-serialization-json",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jetbrains.kotlinx",
+            "name": "kotlinx-serialization-json-jvm",
+            "version": "1.11.0",
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jsoup",
+            "name": "jsoup",
+            "version": "1.22.1",
+            "licenses": [
+                "The MIT License"
+            ],
+            "cves": [
+                
+            ]
+        },
+        {
+            "group": "org.jspecify",
+            "name": "jspecify",
+            "version": "1.0.0",
+            "licenses": [
+                "The Apache License, Version 2.0"
+            ],
+            "cves": [
+                
+            ]
+        }
+    ]
+}

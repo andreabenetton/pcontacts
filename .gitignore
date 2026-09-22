@@ -47,6 +47,8 @@ signing.properties
 # Local environment overrides
 .env
 .envrc
+# NVD API key for the local Dependency-Check run (ADR-0024)
+nvd.properties
 
 # Logs and crash dumps
 *.log

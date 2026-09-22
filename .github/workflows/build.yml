@@ -56,6 +56,11 @@ jobs:
             :feature:settings:test \
             :tools:lint:test
 
+      # ADR-0024: the committed dependency audit snapshot must list exactly the
+      # resolved release classpath (a bump without a regenerated snapshot fails).
+      - name: Verify dependency audit snapshot
+        run: ./gradlew --no-daemon --stacktrace :app:verifyDependencyAudit
+
       - name: Generate coverage report (Kover)
         if: success()
         run: ./gradlew --no-daemon --stacktrace koverXmlReport koverHtmlReport
@@ -313,6 +318,11 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./gradlew --no-daemon --stacktrace :app:dependencyCheckAnalyze
+
+      # ADR-0024: an open CVE the shipped snapshot does not list fails the scan;
+      # the fix is a dependency bump and/or a regenerated snapshot, never silence.
+      - name: Compare the scan with the shipped audit snapshot
+        run: ./gradlew --no-daemon --stacktrace :app:verifyDependencyAudit
 
       - name: Save NVD database cache
         if: always()

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // SPDX-FileCopyrightText: 2026 pcontacts contributors
 
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -149,6 +153,41 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
 }
 
+/** Every external artifact on :app's resolved release runtime classpath. */
+fun resolvedReleaseComponents(): Set<org.gradle.api.artifacts.component.ModuleComponentIdentifier> {
+    val config = configurations.findByName("releaseRuntimeClasspath")
+        ?: throw GradleException("Configuration 'releaseRuntimeClasspath' not found")
+    return config.incoming.resolutionResult.allDependencies
+        .filterIsInstance<org.gradle.api.artifacts.result.ResolvedDependencyResult>()
+        .map { it.selected.id }
+        .filterIsInstance<org.gradle.api.artifacts.component.ModuleComponentIdentifier>()
+        .toSet()
+}
+
+/** POM-declared license names per "group:name:version", via ArtifactResolutionQuery. */
+fun pomLicenses(
+    components: Set<org.gradle.api.artifacts.component.ModuleComponentIdentifier>
+): Map<String, List<String>> {
+    if (components.isEmpty()) return emptyMap()
+    val licensePattern = Regex("""<license>\s*<name>\s*([^<]+?)\s*</name>""", RegexOption.DOT_MATCHES_ALL)
+    val result = dependencies.createArtifactResolutionQuery()
+        .forComponents(components)
+        .withArtifacts(
+            org.gradle.maven.MavenModule::class.java,
+            org.gradle.maven.MavenPomArtifact::class.java
+        )
+        .execute()
+    val licenses = mutableMapOf<String, List<String>>()
+    for (component in result.resolvedComponents) {
+        for (artifact in component.getArtifacts(org.gradle.maven.MavenPomArtifact::class.java)) {
+            if (artifact !is org.gradle.api.artifacts.result.ResolvedArtifactResult) continue
+            val pomText = artifact.file.readText()
+            licenses[component.id.displayName] = licensePattern.findAll(pomText).map { it.groupValues[1].trim() }.toList()
+        }
+    }
+    return licenses
+}
+
 // ADR-0015: license-compatibility enforcement. Walks :app's resolved release
 // runtime classpath, fetches POM-declared licenses via ArtifactResolutionQuery,
 // and fails if any artifact carries a license not on the allowlist in
@@ -175,13 +214,7 @@ tasks.register("checkLicense") {
             }
         }
 
-        val config = configurations.findByName("releaseRuntimeClasspath")
-            ?: throw GradleException("Configuration 'releaseRuntimeClasspath' not found")
-
-        val componentIds = config.incoming.resolutionResult.allDependencies
-            .filterIsInstance<org.gradle.api.artifacts.result.ResolvedDependencyResult>()
-            .map { it.selected.id }
-            .filterIsInstance<org.gradle.api.artifacts.component.ModuleComponentIdentifier>()
+        val componentIds = resolvedReleaseComponents()
             .filter { "${it.group}:${it.module}" !in excludedModules }
             .toSet()
 
@@ -190,30 +223,14 @@ tasks.register("checkLicense") {
             return@doLast
         }
 
-        val result = dependencies.createArtifactResolutionQuery()
-            .forComponents(componentIds)
-            .withArtifacts(
-                org.gradle.maven.MavenModule::class.java,
-                org.gradle.maven.MavenPomArtifact::class.java
-            )
-            .execute()
-
         val violations = mutableListOf<String>()
-        val licensePattern = Regex("""<license>\s*<name>\s*([^<]+?)\s*</name>""", RegexOption.DOT_MATCHES_ALL)
-
-        for (component in result.resolvedComponents) {
-            val pomArtifacts = component.getArtifacts(org.gradle.maven.MavenPomArtifact::class.java)
-            for (artifact in pomArtifacts) {
-                if (artifact !is org.gradle.api.artifacts.result.ResolvedArtifactResult) continue
-                val pomText = artifact.file.readText()
-                val licenses = licensePattern.findAll(pomText).map { it.groupValues[1].trim() }.toList()
-                if (licenses.isEmpty()) {
-                    violations += "${component.id} — no license declared in POM"
-                } else {
-                    val unrecognized = licenses.filter { it.lowercase() !in allowedNames }
-                    for (lic in unrecognized) {
-                        violations += "${component.id} — disallowed license: $lic"
-                    }
+        for ((id, licenses) in pomLicenses(componentIds)) {
+            if (licenses.isEmpty()) {
+                violations += "$id — no license declared in POM"
+            } else {
+                val unrecognized = licenses.filter { it.lowercase() !in allowedNames }
+                for (lic in unrecognized) {
+                    violations += "$id — disallowed license: $lic"
                 }
             }
         }
@@ -225,6 +242,162 @@ tasks.register("checkLicense") {
             )
         }
         logger.lifecycle("ADR-0015 license check passed — ${componentIds.size} dependencies scanned.")
+    }
+}
+
+// ADR-0024: the dependency audit snapshot the app ships as an asset. Built from
+// the resolved release classpath, the POM licenses, the Dependency-Check JSON
+// report and the suppression file; committed so the F-Droid build reproduces it.
+val dependencyAuditFile = layout.projectDirectory.file("src/main/assets/dependency-audit.json")
+val dependencyCheckReport = layout.buildDirectory.file("reports/dependency-check/dependency-check-report.json")
+val suppressionFileForAudit = rootProject.file("config/dependency-check-suppressions.xml")
+
+@Suppress("UNCHECKED_CAST")
+fun auditCvesOf(dependency: Map<String, Any?>): List<Map<String, Any?>> = dependency["cves"] as List<Map<String, Any?>>
+
+/** One `<suppress>` entry of the suppression file: the reason and what it matches. */
+class AuditSuppression(val notes: String, val cves: Set<String>, val packageUrl: Regex?)
+
+fun readAuditSuppressions(): List<AuditSuppression> {
+    val doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(suppressionFileForAudit)
+    val nodes = doc.getElementsByTagName("suppress")
+    return (0 until nodes.length).map { i ->
+        val el = nodes.item(i) as org.w3c.dom.Element
+        fun texts(tag: String) = el.getElementsByTagName(tag).let { l -> (0 until l.length).map { l.item(it).textContent.trim() } }
+        val purl = el.getElementsByTagName("packageUrl").item(0)
+        AuditSuppression(
+            notes = texts("notes").firstOrNull()?.replace(Regex("\\s+"), " ").orEmpty(),
+            cves = texts("cve").toSet(),
+            packageUrl = purl?.let { if (it.attributes.getNamedItem("regex")?.nodeValue == "true") Regex(it.textContent.trim()) else Regex(Regex.escape(it.textContent.trim())) }
+        )
+    }
+}
+
+/** CVEs per "group:name:version" from the Dependency-Check JSON report, open and suppressed. */
+fun readAuditCves(reportFile: File): Map<String, List<Map<String, Any?>>> {
+    @Suppress("UNCHECKED_CAST")
+    val report = groovy.json.JsonSlurper().parse(reportFile) as Map<String, Any?>
+    val suppressions = readAuditSuppressions()
+    val purlPattern = Regex("""^pkg:maven/([^/]+)/([^@]+)@(.+)$""")
+    val out = mutableMapOf<String, MutableMap<String, Map<String, Any?>>>()
+    @Suppress("UNCHECKED_CAST")
+    for (dep in report["dependencies"] as List<Map<String, Any?>>) {
+        val purls = (dep["packages"] as? List<Map<String, Any?>>)?.mapNotNull { it["id"] as? String }.orEmpty()
+        for (purl in purls) {
+            val m = purlPattern.find(purl) ?: continue
+            val coordinate = "${m.groupValues[1]}:${m.groupValues[2]}:${m.groupValues[3]}"
+            for ((key, suppressed) in listOf("vulnerabilities" to false, "suppressedVulnerabilities" to true)) {
+                for (v in (dep[key] as? List<Map<String, Any?>>).orEmpty()) {
+                    val id = v["name"] as String
+                    val v3 = v["cvssv3"] as? Map<String, Any?>
+                    val v2 = v["cvssv2"] as? Map<String, Any?>
+                    val score = (v3?.get("baseScore") ?: v2?.get("score"))?.toString()?.toDoubleOrNull()
+                    val severity = (v3?.get("baseSeverity") ?: v2?.get("severity") ?: v["severity"])?.toString()?.uppercase()
+                    val reason = if (!suppressed) null else suppressions.firstOrNull { id in it.cves }?.notes
+                        ?: suppressions.firstOrNull { it.packageUrl?.containsMatchIn(purl) == true }?.notes
+                        ?: "Suppressed in config/dependency-check-suppressions.xml"
+                    val url = if (id.startsWith("CVE-")) "https://nvd.nist.gov/vuln/detail/$id" else
+                        (v["references"] as? List<Map<String, Any?>>)?.firstOrNull()?.get("url")?.toString() ?: "https://github.com/advisories/$id"
+                    out.getOrPut(coordinate) { linkedMapOf() }.putIfAbsent(
+                        id,
+                        linkedMapOf("id" to id, "score" to score, "severity" to severity, "url" to url, "suppressed" to suppressed, "reason" to reason)
+                    )
+                }
+            }
+        }
+    }
+    return out.mapValues { (_, byId) -> byId.values.sortedByDescending { (it["score"] as? Double) ?: 0.0 } }
+}
+
+tasks.register("dependencyAudit") {
+    group = "verification"
+    description = "Regenerates src/main/assets/dependency-audit.json (ADR-0024) from the resolved release " +
+        "classpath and the Dependency-Check report; run :app:dependencyCheckAnalyze first."
+    notCompatibleWithConfigurationCache("walks resolved configurations at execution time")
+
+    doLast {
+        val reportFile = dependencyCheckReport.get().asFile
+        require(reportFile.exists()) {
+            "No Dependency-Check report at $reportFile — run ./gradlew :app:dependencyCheckAnalyze " +
+                "(needs the NVD API key in nvd.properties) or copy the CI artifact there."
+        }
+        @Suppress("UNCHECKED_CAST")
+        val report = groovy.json.JsonSlurper().parse(reportFile) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val scanInfo = report["scanInfo"] as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val nvdAsOf = (scanInfo["dataSource"] as? List<Map<String, Any?>>)
+            ?.firstOrNull { it["name"] == "NVD API Last Modified" }?.get("timestamp")?.toString()
+        val components = resolvedReleaseComponents()
+        val licenses = pomLicenses(components)
+        val cves = readAuditCves(reportFile)
+        val dependencies = components
+            .sortedWith(compareBy({ it.group }, { it.module }, { it.version }))
+            .map { c ->
+                val coordinate = "${c.group}:${c.module}:${c.version}"
+                linkedMapOf(
+                    "group" to c.group,
+                    "name" to c.module,
+                    "version" to c.version,
+                    "licenses" to licenses[coordinate].orEmpty(),
+                    "cves" to cves[coordinate].orEmpty()
+                )
+            }
+        val unmatched = cves.keys - dependencies.map { "${it["group"]}:${it["name"]}:${it["version"]}" }.toSet()
+        if (unmatched.isNotEmpty()) logger.warn("dependencyAudit: report CVEs on artifacts outside the classpath: $unmatched")
+        val snapshot = linkedMapOf(
+            "schema" to 1,
+            "generatedAt" to LocalDate.now(ZoneOffset.UTC).toString(),
+            "nvdDataAsOf" to nvdAsOf,
+            "engine" to scanInfo["engineVersion"],
+            "dependencies" to dependencies
+        )
+        dependencyAuditFile.asFile.parentFile.mkdirs()
+        dependencyAuditFile.asFile.writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(snapshot)) + "\n")
+        val open = dependencies.sumOf { d -> auditCvesOf(d).count { it["suppressed"] == false } }
+        logger.lifecycle("ADR-0024 audit snapshot written: ${dependencies.size} artifacts, $open open CVEs.")
+    }
+}
+
+tasks.register("verifyDependencyAudit") {
+    group = "verification"
+    description = "Fails if the committed dependency audit snapshot (ADR-0024) does not match the resolved " +
+        "release classpath, or — when a Dependency-Check report is present — lists a different set of open CVEs."
+    notCompatibleWithConfigurationCache("walks resolved configurations at execution time")
+
+    doLast {
+        val file = dependencyAuditFile.asFile
+        require(file.exists()) { "Missing $file — run ./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit" }
+        @Suppress("UNCHECKED_CAST")
+        val snapshot = groovy.json.JsonSlurper().parse(file) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val deps = snapshot["dependencies"] as List<Map<String, Any?>>
+        val snapshotCoordinates = deps.map { "${it["group"]}:${it["name"]}:${it["version"]}" }.toSet()
+        val resolved = resolvedReleaseComponents().map { "${it.group}:${it.module}:${it.version}" }.toSet()
+        val problems = mutableListOf<String>()
+        (resolved - snapshotCoordinates).sorted().forEach { problems += "on the classpath, not in the snapshot: $it" }
+        (snapshotCoordinates - resolved).sorted().forEach { problems += "in the snapshot, not on the classpath: $it" }
+
+        val reportFile = dependencyCheckReport.get().asFile
+        if (reportFile.exists()) {
+            fun openIds(cves: List<Map<String, Any?>>) = cves.filter { it["suppressed"] == false }.map { it["id"] as String }.toSet()
+            val snapshotOpen = deps.flatMap { d -> openIds(auditCvesOf(d)).map { "${d["group"]}:${d["name"]}:${d["version"]} $it" } }.toSet()
+            val fresh = readAuditCves(reportFile)
+            val freshOpen = fresh.flatMap { (c, cves) -> openIds(cves).map { "$c $it" } }.toSet()
+            (freshOpen - snapshotOpen).sorted().forEach { problems += "open CVE not in the snapshot: $it" }
+            (snapshotOpen - freshOpen).sorted().forEach { logger.warn("verifyDependencyAudit: snapshot lists an open CVE the scan no longer reports: $it") }
+            val snapshotSuppressed = deps.flatMap { d -> auditCvesOf(d).filter { it["suppressed"] == true }.map { "${d["group"]}:${d["name"]}:${d["version"]} ${it["id"]}" } }.toSet()
+            val freshSuppressed = fresh.flatMap { (c, cves) -> cves.filter { it["suppressed"] == true }.map { "$c ${it["id"]}" } }.toSet()
+            if (snapshotSuppressed != freshSuppressed) logger.warn("verifyDependencyAudit: suppressed CVE set drifted; regenerate the snapshot when convenient (${(freshSuppressed - snapshotSuppressed).size} new, ${(snapshotSuppressed - freshSuppressed).size} gone)")
+        }
+
+        if (problems.isNotEmpty()) {
+            throw GradleException(
+                "ADR-0024 — dependency audit snapshot is stale; run ./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit and commit:\n  - " +
+                    problems.joinToString("\n  - ")
+            )
+        }
+        logger.lifecycle("ADR-0024 dependency audit snapshot matches: ${resolved.size} artifacts" + if (reportFile.exists()) ", open CVEs match the scan." else ".")
     }
 }
 
@@ -372,7 +545,15 @@ dependencyCheck {
     // classpaths pull in transitives (gRPC, Netty, protobuf, kotlin-compiler)
     // with their own CVE histories, none of which reach end users.
     scanConfigurations = listOf("releaseRuntimeClasspath")
-    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
+    // Locally the key lives in the gitignored nvd.properties (`nvd.apiKey=...`).
+    val nvdKeyFile = rootProject.file("nvd.properties")
+    val nvdKeyFromFile: String? = if (nvdKeyFile.exists()) {
+        Properties().also { props -> nvdKeyFile.inputStream().use { props.load(it) } }.getProperty("nvd.apiKey")
+    } else {
+        null
+    }
+    val nvdKey: String = System.getenv("NVD_API_KEY") ?: nvdKeyFromFile?.trim().orEmpty()
+    nvd.apiKey = nvdKey
     // NVD's API returns intermittent 503/timeout responses. Bump retry count
     // and inter-request delay enough to survive a brief blip, but not so much
     // that a sustained NVD outage runs past the CI job timeout.
