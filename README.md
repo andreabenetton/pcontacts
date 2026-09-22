@@ -29,6 +29,8 @@ What works in code (verified by unit tests + live integration test):
 
 3. **Synced list mirrors Proton's address book — including auto-saved senders.** pcontacts pulls from `contacts/v4/contacts*` only (the same surface as Proton Mail web's Contacts page). If your Proton Mail **Auto-save contacts** setting is on (`mail.proton.me → Settings → Messages and composing → Automatically save contacts`), Proton silently adds every email sender to your address book and pcontacts faithfully syncs them. The API exposes no flag distinguishing manual contacts from auto-saved ones, so client-side filtering can't be done without risking real-contact loss. To trim the list, disable Auto-save and delete unwanted entries on the web; the next pcontacts sync mirrors the cleanup.
 
+Practical questions from real phones (a contact saved from WhatsApp that vanished at sign-out, WhatsApp showing a number instead of a name, what sign-out deletes, when the app notifies) are answered in [`docs/FAQ.md`](docs/FAQ.md).
+
 ## Why this exists
 
 - Proton Mail has no CardDAV, no official Android contacts client, and no documented public API for contacts.
