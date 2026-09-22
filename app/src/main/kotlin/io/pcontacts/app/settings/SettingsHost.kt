@@ -17,6 +17,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.core.net.toUri
 import io.pcontacts.app.account.LogoutHelper
@@ -44,6 +45,7 @@ import io.pcontacts.feature.settings.SettingsActionResult
 import io.pcontacts.feature.settings.SettingsActions
 import io.pcontacts.feature.settings.SettingsViewModel
 import io.pcontacts.feature.settings.SyncProgress
+import io.pcontacts.feature.settings.SyncSwitchState
 import io.pcontacts.feature.settings.UnverifiedContactSummary
 import io.pcontacts.feature.settings.VerificationStats
 
@@ -86,6 +88,8 @@ class SettingsHost(
             queryContactsAccessApps = { ContactsAccessApps.list(activity, ContactsAccessKind.USER) },
             querySystemContactsAccessApps = { ContactsAccessApps.list(activity, ContactsAccessKind.SYSTEM) },
             onSyncIntervalChanged = ::handleSyncIntervalChanged,
+            querySyncSwitch = ::querySyncSwitch,
+            setSyncEnabled = ::setSyncEnabled,
             querySyncProgress = ::querySyncProgress,
             querySystemNoticeDismissed = { userPrefs.systemContactsNoticeDismissed },
             dismissSystemNotice = { userPrefs.systemContactsNoticeDismissed = true },
@@ -108,12 +112,14 @@ class SettingsHost(
         onOpenContactsStorage = contactsStorageAction(),
         onOpenDeGoogledRoms = { activity.startActivity(Intent(activity, DeGoogledRomsActivity::class.java)) },
         onOpenDependencies = { activity.startActivity(Intent(activity, DependenciesActivity::class.java)) },
-        onOpenRepository = { activity.startActivityIfAvailable(Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri())) }
+        onOpenRepository = { activity.startActivityIfAvailable(Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri())) },
+        onOpenSyncSettings = { activity.startActivityIfAvailable(Intent(Settings.ACTION_SYNC_SETTINGS)) }
     )
 
     fun onResume() {
         syncRunningMonitor.start()
         viewModel.refreshAdvisoryState()
+        viewModel.refreshSyncSwitch()
     }
 
     fun onPause() = syncRunningMonitor.stop()
@@ -239,6 +245,21 @@ class SettingsHost(
     /** The engine's "N of total" for the run in flight; null once the adapter has cleared it. */
     private fun querySyncProgress(): SyncProgress? =
         SyncProgress(userPrefs.syncProgressDone, userPrefs.syncProgressTotal).takeIf { it.total > 0 }
+
+    /** Android's two switches (ADR-0004); with no account the slider shows Off. */
+    private fun querySyncSwitch(): SyncSwitchState {
+        val account = currentAccount() ?: return SyncSwitchState(accountOn = false, masterOn = true)
+        return SyncSwitchState(
+            accountOn = ContentResolver.getSyncAutomatically(account, ContactsContract.AUTHORITY),
+            masterOn = ContentResolver.getMasterSyncAutomatically()
+        )
+    }
+
+    /** The slider's Off position drives the per-account switch; the periodic worker checks it before requesting. */
+    private fun setSyncEnabled(enabled: Boolean) {
+        val account = currentAccount() ?: return
+        ContentResolver.setSyncAutomatically(account, ContactsContract.AUTHORITY, enabled)
+    }
 
     private fun handleSyncIntervalChanged(hours: Long) {
         userPrefs.syncIntervalHours = hours
