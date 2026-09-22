@@ -109,6 +109,24 @@ the first tag of a release:
 | `RELEASE_KEY_ALIAS` | Key alias (e.g. `pcontacts`) |
 | `RELEASE_KEY_PASSWORD` | Key password |
 
+### Repository rulesets (owner-side, once)
+
+`master` and the `v*` tags are what F-Droid and the release workflow
+trust, so GitHub should refuse what CI would refuse:
+
+- **Branch ruleset on `master`**: require the `build` workflow's status
+  checks (unit tests, lint, the three emulator legs, release build,
+  reproducible build, dependency scan) to pass before merging; block
+  force pushes and deletion. The owner may bypass for the release
+  bump commit, which the build workflow still verifies before a tag
+  can be pushed.
+- **Tag ruleset on `v*`**: only the repository owner may create or
+  delete release tags.
+
+Neither touches anything F-Droid reads: it keys off the tag existing,
+the version fields in `app/build.gradle.kts`, the fastlane folder at
+the tagged commit and the published release APK.
+
 ## Reproducible builds
 
 ADR-0003 requires that two clean builds from the same commit produce
@@ -230,8 +248,11 @@ Follow this sequence exactly. Do not tag until the build is verified.
 ### 1. Prepare the version bump
 
 - [ ] Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
-- [ ] Add a `## [X.Y.Z] - YYYY-MM-DD` entry in `CHANGELOG.md` with a
-      link reference at the bottom.
+      The tag will be `vX.Y.Z`; the release workflow refuses a tag whose
+      version differs from `versionName`.
+- [ ] Turn the `## [X.Y.Z] - Unreleased` entry in `CHANGELOG.md` into
+      `## [X.Y.Z] - YYYY-MM-DD` and point its link reference at the
+      release tag. `README.md`'s status line stops saying "unreleased".
 - [ ] Update `README.md` status section if the release changes the
       project's maturity level (e.g. pre-release → stable).
 - [ ] Update `docs/ROADMAP.md` — remove the items this release ships
@@ -264,13 +285,25 @@ All modules must pass. Do not proceed with failures.
 Verify the build succeeds and the APK exists at
 `app/build/outputs/apk/release/pcontacts-release.apk`.
 
-### 4. Commit and push
+### 4. Commit, push, wait for the build workflow
 
 ```bash
 git add -A
 git commit -m "release: bump to vX.Y.Z"
 git push
 ```
+
+Wait until the `build` workflow is green on that commit — every job:
+unit tests, lint, the three emulator legs, the R8 release build, the
+reproducible build and the dependency scan. The release workflow
+checks this and stops otherwise; it does not repeat those gates.
+
+- [ ] Organic verification check on the test account: provoke a
+      Proton captcha (Code 9001) — a VPN or Tor exit usually does —
+      and confirm the in-app WebView appears, the token is stored and
+      the sync resumes (ADR-0019 §Validation). Proton's captcha may
+      load resources from hosts outside `proton.me`; a blocked one
+      shows as an `HV: blocked` warning in the log.
 
 ### 5. Tag
 
@@ -281,16 +314,20 @@ git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-Pushing the tag triggers the `release.yml` CI workflow. It pauses for
-the `release` environment's approval — approve it in the Actions run —
-then re-runs the verification gates, builds a signed APK, computes
-SHA-256 checksums, and creates a draft GitHub Release with the APK and
-checksums attached.
+Pushing the tag triggers the `release.yml` CI workflow. It checks that
+the tag names `versionName` and that the tagged commit passed every
+`build` job, pauses for the `release` environment's approval — approve
+it in the Actions run — then re-runs the fast gates (unit tests,
+detekt, lint, dependency policy), builds a signed APK, computes SHA-256
+checksums, and **publishes** the GitHub Release with the APK and
+checksums attached (F-Droid's `Binaries:` verification downloads that
+APK, so the release is not left as a draft).
 
-### 6. Create or finalise the GitHub Release
+### 6. Check the GitHub Release
 
-If CI created a draft release, review and publish it. Otherwise create
-it manually:
+CI publishes the release with generated notes; review them and edit
+if needed. Only if CI failed after signing, create the release
+manually:
 
 ```bash
 gh release create vX.Y.Z --title "vX.Y.Z" --notes "$(cat <<'EOF'

@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2026-09-22
+## [2.0.0] - Unreleased
 
 ### Added
 
@@ -86,7 +86,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in Android Settings; only "Sync now", sign-in and a linked import do.
 - **Verification during two-factor sign-in works.** A captcha demanded
   while entering the code opens the verification page and returns to
-  the code screen for a fresh code, instead of a dead-end error.
+  the code screen for a fresh code, instead of a dead-end error. One
+  demanded after the code was accepted resumes sign-in on the same
+  session — it never asks for another code.
+- **An edit on the phone no longer erases what Proton knows and the
+  phone cannot show.** An update now patches the contact's current
+  cards on the server: birthdays, websites, nicknames, groups, e-mail
+  parameters, keys and any other property outside the phone's model
+  survive an unrelated local edit (ADR-0017, Choice 2C).
+- **A newer Proton photo survives an unrelated local edit**, and a photo
+  changed on both sides is a conflict like any other field.
+- **A Labels outage no longer wipes group memberships.** While the
+  label list is unavailable the memberships already on the phone are
+  kept and the contacts are re-checked once it is back.
+- **A contact reduced to a name on Proton is updated on the phone**,
+  instead of keeping its stale phone number or e-mail forever.
+- **Cancelling a sync no longer marks the pending change as failed.**
+- **Cancelling a deletion brings the contact back** on the phone (or
+  re-fetches it) instead of only forgetting the queued delete.
+- **Import details** re-reads the contact when you confirm and asks you
+  to look again if it changed meanwhile; an imported row says "Added
+  to Proton" only once Proton accepted it, otherwise it says waiting or
+  failed.
+- **A create whose answer was lost** is recognised on Proton by its
+  identity instead of being sent again or reported as failed.
+- **"Up to date" means it**: a run that left contacts or changes behind
+  shows attention, and the card shows when the last run happened.
+- Two postal addresses that share a street and city are no longer
+  treated as the same address.
+- Leaving the sign-in flow half-way now wipes the partial session at
+  once; a rotated token pair is stored in one write.
 - The sync card no longer says "Last sync: In 0 minutes" right after a
   sync completes.
 - The import list keeps its scroll position across the rescan that
@@ -119,7 +148,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a Contacts row of its own type under the pcontacts account.
 - **CI actions are pinned to commit SHAs**, releases run in a protected
   environment and re-run the verification gates before signing, and
-  the emulator matrix now includes API 35.
+  the emulator matrix now includes API 35. A release tag must name the
+  app's version and must point at a commit the build workflow passed
+  in full.
+- **Address keys are trusted only with a valid Token signature**
+  (ADR-0020): a key whose Token is unsigned or signed by a foreign key
+  is skipped and never used to verify contact cards.
+- **Proton's own error codes inside successful HTTP answers are
+  refusals**, never read as data; per-item codes of batch calls too.
+- WorkManager updated to 2.11.2.
 
 ## [1.7.2] - 2026-09-19
 
@@ -550,7 +587,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
-[2.0.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.0.0
+[2.0.0]: https://github.com/andreabenetton/pcontacts/compare/v1.7.2...master
 [1.7.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.2
 [1.7.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.1
 [1.7.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.0

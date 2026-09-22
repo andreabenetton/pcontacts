@@ -85,8 +85,8 @@ What this makes harder / new obligations:
   before that, `EncryptedSharedPreferences`). Same threat profile
   (session-scoped), cleared on `SecretStore.logout()` and on the next
   9001 with stale-token detection. THREAT_MODEL.md updated to list it as a session asset.
-- The `androidx.browser` (Chrome Custom Tabs) dependency could be dropped
-  if nothing else uses it — left in place for now since the cost is small.
+- The `androidx.browser` (Chrome Custom Tabs) dependency was removed
+  together with the Custom-Tab flow; nothing else used it.
 - The JS-bridge envelope shape (`{type: "HUMAN_VERIFICATION_SUCCESS",
   payload: {token, type}}`) is `[U]` — inferred from
   protoncore_android's HV3DialogFragment. If Proton renames a field

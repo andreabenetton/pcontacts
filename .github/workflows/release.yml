@@ -2,10 +2,13 @@
 # SPDX-FileCopyrightText: 2026 pcontacts contributors
 
 # Release pipeline: triggered by pushing a tag matching v*.
-# Re-runs the verification gates, then signs the APK with the release
-# keystore (GHA secrets of the protected `release` environment) and
-# attaches it to a GitHub Release. Every action is pinned to a commit
-# SHA (the release tag is the trailing comment); Dependabot bumps both.
+# Proves the tagged commit is the one the build workflow already
+# passed (every job, including the emulator matrix, diffoscope and the
+# dependency scan), checks the tag against versionName, re-runs the
+# fast gates, then signs the APK with the release keystore (GHA secrets
+# of the protected `release` environment) and attaches it to a GitHub
+# Release. Every action is pinned to a commit SHA (the release tag is
+# the trailing comment); Dependabot bumps both.
 
 name: release
 
@@ -16,6 +19,8 @@ on:
 
 permissions:
   contents: write
+  checks: read
+  actions: read
 
 jobs:
   build-and-release:
@@ -40,9 +45,37 @@ jobs:
       - name: Validate wrapper
         uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
+      - name: Tag matches versionName
+        # F-Droid derives the release from versionName/versionCode; the tag must
+        # name the same version or the listing and the APK disagree.
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          actual="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -1)"
+          echo "tag=$GITHUB_REF_NAME versionName=$actual"
+          test "$expected" = "$actual"
+
+      - name: Tagged commit passed the build workflow
+        # The emulator matrix, the reproducible build and the dependency scan
+        # are not repeated here: the tagged commit must already carry a
+        # successful run of every build.yml job.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          runs="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" --jq \
+            '[.check_runs[] | select(.app.slug == "github-actions") | {name: .name, conclusion: .conclusion}]')"
+          echo "$runs"
+          for job in "Unit tests (all modules)" "Assemble debug + lint" "Assemble release (R8 minified)" \
+            "Reproducible build (diffoscope)" "OWASP Dependency-Check" \
+            "Instrumented tests (emulator) (26, default)" "Instrumented tests (emulator) (33, default)" \
+            "Instrumented tests (emulator) (35, google_apis)"; do
+            conclusion="$(echo "$runs" | jq -r --arg n "$job" '[.[] | select(.name == $n)] | last | .conclusion // "missing"')"
+            echo "$job: $conclusion"
+            test "$conclusion" = "success"
+          done
+
       - name: Verify before signing
-        # The tag is not trusted to have been built from a green master: the
-        # same gates as build.yml run here, before the keystore touches disk.
+        # Repeated here because they are cheap and the keystore is about to be
+        # decoded: unit tests, detekt, lint and the dependency-policy gates.
         run: |
           ./gradlew --no-daemon --stacktrace \
             :app:testDebugUnitTest \

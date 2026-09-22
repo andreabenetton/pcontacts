@@ -5,7 +5,7 @@
 
 # ADR-0022: ContactsProvider is authoritative — sync metadata self-heals
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-22 — orphan mappings and cancelled deletions)
 - **Date:** 2026-08-29
 - **Deciders:** project owner
 - **Related:** ADR-0008 (Room mapping), ADR-0010 (ContactsContract write strategy), ADR-0017 (bidirectional sync policies)
@@ -72,3 +72,23 @@ flag) instead of a lossy flat map.
   repair performs zero writes.
 - Recovery events are logged redacted (id hash tags and row ids only,
   never contact content).
+
+## Amendment (2026-09-22): orphan mappings; cancelling a deletion
+
+Two gaps found by the second v2.0.0 review, both strengthening the
+"provider is authoritative" rule:
+
+- **Orphan mappings.** A chunked provider batch that fails leaves the
+  earlier chunks committed; the mapping of a contact one of them deleted
+  outlived its row and its server contact, and nothing ever removed it.
+  Now the mappings of rows a failed batch deleted are dropped at once,
+  and every run drops any live mapping whose contact is on neither
+  side. A queued change (a `local-<id>` create, any live outbox row)
+  keeps its mapping.
+- **Cancelling a deletion** is a state transition, not just the removal
+  of the queued DELETE: the tombstoned RawContact is made live again
+  through the sync-adapter URI (its Data rows were never touched), or,
+  when the provider already purged it, the mapping is marked for a
+  refetch so the next pull recreates the contact; a sync is requested
+  either way.
+

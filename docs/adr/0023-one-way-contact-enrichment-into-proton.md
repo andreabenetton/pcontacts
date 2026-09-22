@@ -5,7 +5,7 @@
 
 # ADR-0023: One-way contact enrichment — pull linked accounts' fields into Proton
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-22 — allowlist narrowed to what ships; consent model stated)
 - **Date:** 2026-09-21
 - **Deciders:** project owner
 - **Related:** ADR-0007 (decrypt/read client-side only), ADR-0010 (ContactsContract write strategy), ADR-0011 (module boundaries), ADR-0017 (bidirectional sync), ADR-0022 (ContactsProvider authoritative)
@@ -48,7 +48,7 @@ Concretely, per enrichment action:
    Membership is never persisted — Android re-aggregates freely (ADR-0022).
 2. **Read sibling Data rows**, restricted to an **allowlist** of standard
    PIM mimetypes (StructuredName, Phone, Email, StructuredPostal,
-   Organization, Note, Im, Nickname, Event, Website). Everything else —
+   Organization, Note, Im — see the 2026-09-22 amendment). Everything else —
    app-specific/action rows (`vnd.com.whatsapp.*`, `vnd.org.telegram.*`),
    our own `send_via_proton_mail` chip, GroupMembership — is skipped
    (fail-closed: under-import rather than pull junk).
@@ -110,3 +110,25 @@ through the per-contact review above.
 - **Unit tests**: allowlist filtering (WhatsApp/Telegram action rows and the Proton chip excluded); normalization/dedup (a phone already on the Proton copy is not re-offered).
 - **Manual** (Evelino Belloli): import the phone from the WhatsApp/local copy → it appears on the Proton contact and syncs up, while the WhatsApp/local/Telegram copies are unchanged.
 - **Privacy audit**: confirm no code path transmits sibling data off-device or persists it beyond the fields the user imported.
+
+## Amendment (2026-09-22): allowlist narrowed; consent model stated
+
+- **Allowlist.** The mimetypes imported are exactly StructuredName,
+  Email, Phone, StructuredPostal, Organization, Note and Im — the seven
+  the contact model can carry. Nickname, Event and Website, listed
+  above, were never implemented (the model has no slot for them) and
+  are a follow-up, not a promise; a unit test pins the list to these
+  seven. Nothing is imported that was not before.
+- **Consent model, as implemented.** Opening the import screen is the
+  consent to *discover* candidates: the provider is scanned once,
+  read-only and in memory, across every account, to list the contacts
+  that could be enriched. Writing anything into Proton takes a further
+  per-contact, per-field choice. The earlier wording "per-action consent
+  for every sibling read" described the picker-based flow this
+  amendment's predecessor replaced; the obligation that stands is that
+  sibling data is never persisted or transmitted and that no write
+  happens without the per-field choice.
+- **Selections are matched by field identity**, not by position, and
+  the candidates are re-read when the user confirms; if a chosen field
+  is gone the user is asked to review again.
+
