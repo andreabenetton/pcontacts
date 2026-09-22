@@ -165,7 +165,7 @@
     </plurals>
     <string name="settings_sign_in">Se connecter</string>
     <string name="settings_sign_in_detail">Connectez-vous avec votre compte Proton pour commencer à synchroniser vos contacts.</string>
-    <string name="sign_in_storage_upgrade_notice">Vous avez été déconnecté car la version 2.0 conserve votre session dans un stockage chiffré plus robuste et lié à l\'appareil, et l\'ancienne n\'a pas pu être reprise. Reconnectez-vous une seule fois — vos contacts reviennent avec la première synchronisation et vos réglages sont conservés.</string>
+    <string name="sign_in_storage_upgrade_notice">Vous avez été déconnecté parce que la version 2.0 conserve votre session dans un stockage chiffré plus robuste et lié à l’appareil, et que l’ancienne ne pouvait pas être reprise. Vos contacts synchronisés ont été retirés de ce téléphone. Reconnectez-vous une seule fois : la première synchronisation retélécharge tous les contacts depuis Proton (resynchronisation complète). Ce qui n’avait pas encore été envoyé à Proton à ce moment est perdu ; les favoris, sonneries ou liens définis sur ces contacts sur ce téléphone ne sont pas conservés. Vos réglages sont conservés.</string>
     <string name="settings_contacts_storage_unavailable">Indisponible sur cette version d\'Android : choisissez-le dans les paramètres de votre app Contacts.</string>
     <string name="linked_import_row_added">Ajouté à Proton</string>
     <string name="linked_import_select_a11y">Sélectionner %1$s</string>
