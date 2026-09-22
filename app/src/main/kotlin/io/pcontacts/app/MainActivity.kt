@@ -85,8 +85,11 @@ class MainActivity : ComponentActivity() {
         val prefs = SharedPreferencesUserPreferences(this)
         prefs.contactsPermissionRequested = true
         contactsPermissionStatus = ContactsPermissionState.check(this, true)
-        // The sync requested at sign-in could not write without Contacts access; run it now.
-        if (contactsPermissionStatus == ContactsPermissionStatus.GRANTED) requestExpeditedSync()
+        // The sync requested at sign-in could not write without Contacts access; run it now —
+        // unless the upgrade sign-out that waited for this access takes the account away first.
+        if (contactsPermissionStatus == ContactsPermissionStatus.GRANTED && !signOutAfterStorageUpgradeIfNeeded()) {
+            requestExpeditedSync()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -189,8 +192,8 @@ class MainActivity : ComponentActivity() {
         // Access granted while we were away (the system Settings page): sync as soon as we can.
         val gainedContactsAccess = !hadContactsAccess && contactsPermissionStatus == ContactsPermissionStatus.GRANTED
         // The upgrade sign-out needs Contacts access; if it was skipped for lack of it, now is the time.
-        if (gainedContactsAccess) signOutAfterStorageUpgradeIfNeeded()
-        if (gainedContactsAccess && hasProtonAccount()) requestExpeditedSync()
+        val signingOut = gainedContactsAccess && signOutAfterStorageUpgradeIfNeeded()
+        if (gainedContactsAccess && !signingOut) requestExpeditedSync()
         settingsHost.onResume()
 
         if (pendingVerificationReturn) {
@@ -296,12 +299,13 @@ class MainActivity : ComponentActivity() {
      * First start after a 1.x install: the old session went with its purged secret file (ADR-0009)
      * and cannot be carried over, so the stale account is signed out here, before the screen is
      * decided, and the sign-in screen says why. Without Contacts access the sign-out cannot run;
-     * the account then stays and the sync card reports the re-auth instead.
+     * the account then stays until the permission arrives (in-app grant or the system page).
+     * Returns true when a sign-out was started.
      */
-    private fun signOutAfterStorageUpgradeIfNeeded() {
-        if (upgradeSignOutRunning) return
-        val account = AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull() ?: return
-        if (!AuthBootstrap.storageUpgradePending(this)) return
+    private fun signOutAfterStorageUpgradeIfNeeded(): Boolean {
+        if (upgradeSignOutRunning) return false
+        val account = AccountManager.get(this).getAccountsByType(PROTON_ACCOUNT_TYPE).firstOrNull() ?: return false
+        if (!AuthBootstrap.storageUpgradePending(this)) return false
         storageUpgradeNotice = true
         upgradeSignOutRunning = true
         lifecycleScope.launch {
@@ -314,6 +318,7 @@ class MainActivity : ComponentActivity() {
             upgradeSignOutRunning = false
             onSignedOutFromSettings()
         }
+        return true
     }
 
     private fun launchLogin() {
