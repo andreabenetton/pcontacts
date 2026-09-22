@@ -3,8 +3,10 @@
 
 package io.pcontacts.core.sync.contacts
 
+import android.accounts.Account
 import android.content.ContentProviderClient
 import android.content.Context
+import android.provider.ContactsContract
 import io.pcontacts.core.contactswriter.BatchApplier
 import io.pcontacts.core.contactswriter.DirtyContactReader
 import io.pcontacts.core.contactswriter.DirtyFlagClearer
@@ -12,6 +14,7 @@ import io.pcontacts.core.contactswriter.LocalGroupsWriter
 import io.pcontacts.core.contactswriter.RawContactDataReader
 import io.pcontacts.core.contactswriter.RawContactReader
 import io.pcontacts.core.contactswriter.SourceIdWriter
+import io.pcontacts.core.contactswriter.TombstoneRestorer
 import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
@@ -374,6 +377,29 @@ object SyncBootstrap {
                 processor.process(apis.contacts.getContact(protonContactId).contact)
             }
         )
+    }
+
+    /**
+     * The user cancelled a deletion still in its grace period (Settings).
+     * Restores the tombstoned row through the sync-adapter URI when the
+     * provider still has it; without Contacts access or without the row,
+     * the next pull recreates the contact. Returns true when restored.
+     */
+    suspend fun cancelPendingDelete(context: Context, account: Account, protonContactId: String): Boolean {
+        val appContext = context.applicationContext
+        val db = DatabaseFactory.create(appContext)
+        return cancelPendingDelete(db.contactMapDao(), db.outboxDao(), protonContactId) { id ->
+            withContext(Dispatchers.IO) {
+                val provider = appContext.contentResolver.acquireContentProviderClient(ContactsContract.AUTHORITY)
+                    ?: return@withContext 0
+                try {
+                    TombstoneRestorer(provider).restore(account, id)
+                } finally {
+                    @Suppress("DEPRECATION")
+                    provider.release()
+                }
+            }
+        }
     }
 
     /** The user's answer to a conflict row (Settings): phone version or Proton version. */
