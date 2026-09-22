@@ -21,6 +21,17 @@ import org.junit.Test
  */
 class DecryptedContactToRowTest {
 
+    @Test fun a_name_only_contact_yields_a_row_with_no_fields() {
+        val row = DecryptedContactToRow.convert(decrypted(protonContactId = "p1", fullName = "Alice Doe"))
+        assertNotNull(row)
+        assertEquals("Alice Doe", row!!.displayName)
+        assertEquals(emptyList<String>(), row.emails)
+    }
+
+    @Test fun a_contact_with_neither_name_nor_field_yields_no_row() {
+        assertNull(DecryptedContactToRow.convert(decrypted(protonContactId = "p1", fullName = null)))
+    }
+
     @Test fun fullName_passes_through_when_present() {
         val row = DecryptedContactToRow.convert(
             decrypted(

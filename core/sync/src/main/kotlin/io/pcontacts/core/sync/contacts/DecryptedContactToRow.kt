@@ -39,10 +39,12 @@ import io.pcontacts.core.protoncontacts.DecryptedStructuredName
  *     unknown schemes ride as CUSTOM with the scheme as label.
  *   - photo: passed through with the bytes copied verbatim.
  *
- * Returns null when the contact has nothing user-actionable —
- * emails AND phones AND addresses AND imAccounts all empty. The
- * writer's init guard rejects the same condition; this branch is
- * an early return that avoids a no-op throw.
+ * Returns null only when the contact has neither a name nor any
+ * field — a Proton contact needs no phone or email to be valid, and a
+ * name-only contact must reach the provider so a stale local email
+ * disappears when the server drops it. The writer's init guard
+ * rejects the same condition; this branch is an early return that
+ * avoids a no-op throw.
  */
 internal object DecryptedContactToRow {
 
@@ -66,10 +68,6 @@ internal object DecryptedContactToRow {
 
         val imAccounts = decrypted.imAccounts.map(::toWriterImAccount)
 
-        if (emails.isEmpty() && phones.isEmpty() && addresses.isEmpty() && imAccounts.isEmpty()) {
-            return null
-        }
-
         // Use only real Proton names (FN or projected from N). DO NOT
         // synthesize a displayName from a phone / email / IM handle —
         // that string lands in StructuredName.DISPLAY_NAME and lets
@@ -79,17 +77,28 @@ internal object DecryptedContactToRow {
         // the StructuredName row entirely.
         val displayName = decrypted.fullName?.takeIf { it.isNotBlank() }
 
+        // A name alone is a contact (Proton needs no phone or email); only a
+        // contact that says nothing representable at all yields no row.
+        val structuredName = toWriterStructured(decrypted.structuredName)
+        val organization = toWriterOrganization(decrypted.organization)
+        val notes = decrypted.notes.filter { it.isNotBlank() }
+        val photo = toWriterPhoto(decrypted.photo)
+        val hasName = displayName != null || structuredName != null
+        val hasField = emails.isNotEmpty() || phones.isNotEmpty() || addresses.isNotEmpty() ||
+            imAccounts.isNotEmpty() || organization != null || notes.isNotEmpty() || photo != null
+        if (!hasName && !hasField) return null
+
         return ContactRow(
             sourceId = decrypted.protonContactId,
             displayName = displayName,
-            structuredName = toWriterStructured(decrypted.structuredName),
+            structuredName = structuredName,
             emails = emails,
             phones = phones,
             addresses = addresses,
-            organization = toWriterOrganization(decrypted.organization),
-            notes = decrypted.notes.filter { it.isNotBlank() },
+            organization = organization,
+            notes = notes,
             imAccounts = imAccounts,
-            photo = toWriterPhoto(decrypted.photo)
+            photo = photo
         )
     }
 

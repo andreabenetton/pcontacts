@@ -263,7 +263,8 @@ class ContactDetailSyncEngine(
                 continue
             }
             if (baseRow == null) {
-                logger.warn { "contact yielded no row (no email); skipping" }
+                fetchFailures += 1
+                logger.warn { "contact skipped (nothing representable) idTag=${sourceId.hashCode()}" }
                 continue
             }
             // Attach the contact's group memberships (translating Proton
