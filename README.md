@@ -89,6 +89,10 @@ Reproducible-build verification is documented in [`docs/BUILD.md`](docs/BUILD.md
 
 Three layers, documented in [`docs/BUILD.md` §Vulnerability scanning](docs/BUILD.md#vulnerability-scanning): an osv.dev audit snapshot committed with each release and verified by CI, an opt-in daily osv.dev check on the device, and OWASP Dependency-Check against the NVD on every push and weekly in CI, with a reviewed suppression file.
 
+## Vulnerability scanning
+
+Three layers, documented in [`docs/BUILD.md` §Vulnerability scanning](docs/BUILD.md#vulnerability-scanning): an osv.dev audit snapshot committed with each release and verified by CI, an opt-in daily osv.dev check on the device, and OWASP Dependency-Check against the NVD on every push and weekly in CI, with a reviewed suppression file.
+
 ## Running the test suites
 
 ```bash
