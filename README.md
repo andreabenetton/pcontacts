@@ -58,6 +58,7 @@ The load-bearing calls:
 
 - **Native Kotlin crypto** in `:core:crypto`: BouncyCastle for OpenPGP, ported Proton SRP (go-srp variant) + bcrypt-SHA-512. No embedded JS engine. (ADR 0002)
 - **F-Droid first**, sideload-friendly. No Google Play Services, no telemetry, no closed-source binaries. Enforced by a `checkForbiddenDependencies` Gradle task that fails CI on any forbidden group landing in a release classpath. (ADRs 0003, 0015)
+- **The dependency audit ships in the app.** A dot next to the version says whether any shipped artifact has a known CVE (green none, amber assessed as not applicable, red open) and a Dependencies screen lists every artifact with license and CVE links. It is a build-time snapshot committed to the repo, verified by CI against the resolved classpath and the weekly scan; the app never queries anything at runtime. (ADR 0024)
 - **`AbstractAccountAuthenticator` + `SyncAdapter`** for system integration; `WorkManager` as the belt-and-suspenders periodic scheduler. (ADR 0004)
 - **Client-side decrypt only.** The app never calls `GET contacts/v4/contacts/export` (server-side decrypt); a CI grep fails on the path. (ADR 0007)
 - **Bidirectional sync** with persistent outbox, per-field three-way merge, soft-delete with 1-hour grace, and push-before-pull ordering. Supersedes the read-only MVP scope. (ADRs 0017, 0018; supersedes ADR 0006)

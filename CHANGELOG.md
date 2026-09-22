@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dependency audit in the app** (ADR-0024). A coloured dot next to
+  the version says whether any shipped dependency has a known CVE:
+  green none, amber known matches assessed as not applicable (with the
+  reason), red an open one. Tapping it opens a Dependencies screen
+  listing every artifact with version, license and CVEs linked to NVD.
+  The data is a snapshot committed at build time and verified by CI;
+  the app looks nothing up while it runs, and a CVE published after the
+  release shows up with the next one. A red snapshot is announced once
+  per version by a notification.
 - **Import details from linked contacts** (ADR-0023). The app lists
   every contact that exists only in other providers (WhatsApp,
   Telegram, device-local, …) or whose Proton copy lacks details, with

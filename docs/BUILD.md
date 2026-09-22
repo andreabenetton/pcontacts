@@ -10,6 +10,11 @@
 - JDK 17 (Temurin recommended)
 - Android SDK with platform 34
 - Gradle 8.10+ (the wrapper handles this)
+- For the dependency audit snapshot only (ADR-0024): a free NVD API key
+  pasted into the gitignored `nvd.properties` at the repo root as
+  `nvd.apiKey=...` (request one at
+  https://nvd.nist.gov/developers/request-an-api-key). CI has its own
+  key in the `NVD_API_KEY` secret.
 
 ## Debug build
 
@@ -128,6 +133,34 @@ so the owner's direct pushes and tags keep working:
 Neither touches anything F-Droid reads: it keys off the tag existing,
 the version fields in `app/build.gradle.kts`, the fastlane folder at
 the tagged commit and the published release APK.
+
+## Dependency audit snapshot (ADR-0024)
+
+The app shows, next to its version, whether any shipped dependency has a
+known CVE, and a Dependencies screen with every artifact, its license and
+its CVEs. It never looks anything up at runtime: what it shows is
+`app/src/main/assets/dependency-audit.json`, a committed file that
+`:app:dependencyAudit` writes from the resolved release classpath, the POM
+licenses, the Dependency-Check JSON report and the `<notes>` of
+`config/dependency-check-suppressions.xml` (the reason shown for an
+amber, "assessed" CVE).
+
+```bash
+./gradlew :app:dependencyCheckAnalyze :app:dependencyAudit   # needs nvd.properties
+git add app/src/main/assets/dependency-audit.json
+```
+
+Without a local key, download the `dependency-check-reports` artifact of
+the latest CI scan, drop its JSON at
+`app/build/reports/dependency-check/dependency-check-report.json` and run
+`:app:dependencyAudit` alone.
+
+`:app:verifyDependencyAudit` keeps the file honest: the CI unit-test job
+fails when the classpath and the snapshot differ (a bump without a
+regenerated snapshot), and the CI scan job fails when it finds an open
+CVE the snapshot does not list. A red status therefore only ships if the
+owner regenerates the snapshot with an open CVE and releases anyway; the
+app then posts one notification per version pointing at the screen.
 
 ## Reproducible builds
 
@@ -269,6 +302,11 @@ Follow this sequence exactly. Do not tag until the build is verified.
 - [ ] If new user-facing strings were added, verify every locale's
       `strings.xml` has the same keys as the default `values/strings.xml`
       in every module.
+- [ ] Regenerate the dependency audit snapshot (ADR-0024) so the release
+      shows the current scan: `./gradlew :app:dependencyCheckAnalyze
+      :app:dependencyAudit`, then commit `app/src/main/assets/dependency-audit.json`.
+      If it reports an open CVE, bump the dependency or write an assessed
+      suppression before tagging; shipping red is a deliberate decision.
 
 ### 2. Run the full test suite
 
