@@ -105,7 +105,9 @@ class EncryptedSecretStore internal constructor(
             logger: Logger = RedactingLogger(tag = "SecretStore", sink = NoOpSink)
         ): EncryptedSecretStore {
             val app = context.applicationContext
-            purgeLegacy(app, KeystoreAesGcmKek(LEGACY_MASTER_KEY_ALIAS), logger)
+            if (purgeLegacy(app, KeystoreAesGcmKek(LEGACY_MASTER_KEY_ALIAS), logger)) {
+                SharedPreferencesUserPreferences(app).secretsStorageUpgraded = true
+            }
             return EncryptedSecretStore(
                 app.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE),
                 KeystoreAesGcmKek(),
@@ -117,10 +119,12 @@ class EncryptedSecretStore internal constructor(
          * Deletes the pre-2.0 secret file and its master key, once. A
          * failure here leaves the old ciphertext in place; it is never
          * read, so the outcome is the same as success: sign in again.
+         * Returns `true` when a legacy file was found, i.e. this install
+         * was upgraded from 1.x and the user must sign in again.
          */
-        internal fun purgeLegacy(app: Context, legacyMasterKey: SecretCipher, logger: Logger) {
+        internal fun purgeLegacy(app: Context, legacyMasterKey: SecretCipher, logger: Logger): Boolean {
             val legacyFile = File(app.applicationInfo.dataDir, "shared_prefs/$LEGACY_FILE_NAME.xml")
-            if (!legacyFile.exists()) return
+            if (!legacyFile.exists()) return false
             try {
                 app.deleteSharedPreferences(LEGACY_FILE_NAME)
                 legacyMasterKey.delete()
@@ -130,6 +134,7 @@ class EncryptedSecretStore internal constructor(
             } catch (e: IllegalStateException) {
                 logger.warn(e) { "legacy secret store purge failed" }
             }
+            return true
         }
     }
 }

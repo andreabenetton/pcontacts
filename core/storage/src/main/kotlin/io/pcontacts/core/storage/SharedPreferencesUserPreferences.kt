@@ -58,6 +58,10 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, false)
         set(value) { prefs.edit().putBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, value).apply() }
 
+    override var secretsStorageUpgraded: Boolean
+        get() = prefs.getBoolean(KEY_SECRETS_STORAGE_UPGRADED, false)
+        set(value) { prefs.edit().putBoolean(KEY_SECRETS_STORAGE_UPGRADED, value).commit() }
+
     override fun clearSyncState() {
         prefs.edit()
             .remove(KEY_LAST_SYNC_SUCCESS_AT)
@@ -65,6 +69,7 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
             .remove(KEY_LAST_SYNC_FAILED_CONTACTS)
             .remove(KEY_SYNC_PROGRESS_DONE)
             .remove(KEY_SYNC_PROGRESS_TOTAL)
+            .remove(KEY_SECRETS_STORAGE_UPGRADED)
             .commit()
     }
 
@@ -79,5 +84,6 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_SYNC_PROGRESS_DONE = "sync_progress_done"
         const val KEY_SYNC_PROGRESS_TOTAL = "sync_progress_total"
         const val KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED = "system_contacts_notice_dismissed"
+        const val KEY_SECRETS_STORAGE_UPGRADED = "secrets_storage_upgraded"
     }
 }

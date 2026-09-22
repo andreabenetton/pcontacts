@@ -153,16 +153,27 @@ class EncryptedSecretStoreTest {
         assertTrue(legacyFile.exists())
         val masterKey = JvmAesGcmCipher()
 
-        EncryptedSecretStore.purgeLegacy(context, masterKey, logger)
+        assertTrue(EncryptedSecretStore.purgeLegacy(context, masterKey, logger))
 
         assertFalse(legacyFile.exists())
         assertTrue(masterKey.deleted)
     }
 
+    @Test fun create_after_a_legacy_file_flags_the_storage_upgrade_for_the_ui() {
+        context.getSharedPreferences(EncryptedSecretStore.LEGACY_FILE_NAME, Context.MODE_PRIVATE)
+            .edit().putString("k", "x").commit()
+        val userPreferences = SharedPreferencesUserPreferences(context)
+        assertFalse(userPreferences.secretsStorageUpgraded)
+
+        EncryptedSecretStore.create(context, logger)
+
+        assertTrue(userPreferences.secretsStorageUpgraded)
+    }
+
     @Test fun purge_is_a_noop_without_a_legacy_file() {
         val masterKey = JvmAesGcmCipher()
 
-        EncryptedSecretStore.purgeLegacy(context, masterKey, logger)
+        assertFalse(EncryptedSecretStore.purgeLegacy(context, masterKey, logger))
 
         assertFalse(masterKey.deleted)
     }

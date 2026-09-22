@@ -66,10 +66,13 @@ class SharedPreferencesUserPreferencesTest {
         prefs().lastSyncFailedContacts = 2
         prefs().syncProgressDone = 5
         prefs().syncProgressTotal = 9
+        prefs().secretsStorageUpgraded = true
         prefs().syncIntervalHours = 6L
         prefs().systemContactsNoticeDismissed = true
 
         prefs().clearSyncState()
+
+        assertEquals(false, prefs().secretsStorageUpgraded)
 
         assertEquals(0L, prefs().lastSyncSuccessAtMillis)
         assertNull(prefs().lastSyncErrorCode)
