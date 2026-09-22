@@ -27,7 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not list. By default the app looks nothing up while it runs, so an
   advisory published after the release shows up with the next one. A
   snapshot shipped with an open advisory is announced once per version
-  by a notification.
+  by a notification. OWASP Dependency-Check runs in CI as well, against
+  the National Vulnerability Database, on every push and weekly, and
+  fails on an unsuppressed score of 7.0 or higher; the notes of its
+  reviewed suppressions are what the screen gives as the reason an
+  advisory does not apply, and a scanner mismatch leaves the artifact
+  green rather than amber.
 - **Optional runtime advisory check** (ADR-0025), off by default. A
   switch in Privacy says in plain words what leaves the device: the
   list of this version's artifacts, sent once a day to osv.dev, which
