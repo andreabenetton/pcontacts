@@ -154,6 +154,7 @@ jobs:
           script: >-
             ./gradlew --no-daemon --stacktrace
             :core:contacts-writer:connectedDebugAndroidTest
+            :core:storage:connectedDebugAndroidTest
             :feature:onboarding:connectedDebugAndroidTest
             :feature:settings:connectedDebugAndroidTest
 

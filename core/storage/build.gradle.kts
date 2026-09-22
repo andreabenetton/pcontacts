@@ -13,6 +13,7 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.android.min.sdk.get().toInt()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -27,6 +28,10 @@ android {
         getByName("test") {
             java.srcDirs("src/test/kotlin")
             assets.srcDirs("schemas")
+        }
+        // The Keystore AEAD can only be exercised against a real AndroidKeyStore.
+        getByName("androidTest") {
+            java.srcDirs("src/androidTest/kotlin")
         }
     }
 
@@ -68,6 +73,10 @@ dependencies {
     testImplementation(libs.androidx.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.room.testing)
+
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.junit)
 
     lintChecks(project(":tools:lint"))
 }
