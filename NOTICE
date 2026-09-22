@@ -123,3 +123,13 @@ Trademarks
 This project is not affiliated with, endorsed by, or sponsored by
 Proton AG. The Proton wordmark and Proton logos are not used in the
 app icon, splash screen, or store description.
+
+----------------------------------------------------------------------
+Third-party assets
+----------------------------------------------------------------------
+
+  GitHub Octicons — "mark-github"
+  https://github.com/primer/octicons
+  License: MIT (Copyright (c) GitHub Inc.)
+  Used as feature/settings/src/main/res/drawable/ic_github.xml, only to
+  link to the project's repository on GitHub, per GitHub's logo guidelines.

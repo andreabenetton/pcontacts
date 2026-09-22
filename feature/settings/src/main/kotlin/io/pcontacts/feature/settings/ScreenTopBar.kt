@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -59,17 +60,27 @@ internal fun ScreenTopBar(title: String, onBack: () -> Unit) {
  * The root screens' bar: the launcher icon, the app's name and, in
  * small type under it, the installed version — all read from the
  * package at runtime so the module carries no copy of any of them.
- * With an [audit] indicator a coloured dot sits next to the version
- * (ADR-0024: green no known CVE, amber assessed, red open) and the
- * version row opens the Dependencies screen. Public so the host can give
- * the sign-in flow the same bar.
+ * With an [audit] indicator a chip sits next to the version (ADR-0024/0025)
+ * and opens the Dependencies screen. With [onOpenRepository] the GitHub
+ * mark sits at the right end and opens the source repository through the
+ * host. Public so the host can give the sign-in flow the same bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppTopBar(audit: AuditIndicator? = null) {
+fun AppTopBar(audit: AuditIndicator? = null, onOpenRepository: (() -> Unit)? = null) {
     val context = LocalContext.current
     val brand = remember { Brand.of(context) }
     TopAppBar(
+        actions = {
+            onOpenRepository?.let { open ->
+                IconButton(onClick = open) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_github),
+                        contentDescription = stringResource(R.string.topbar_repository_a11y)
+                    )
+                }
+            }
+        },
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(

@@ -251,4 +251,11 @@
     <string name="rom_replicant_focus">Liberté logicielle : remplacer ou éviter les composants Android propriétaires partout où c\'est possible.</string>
     <string name="rom_replicant_hardware">Matériel limité et en grande partie ancien par rapport aux autres projets de cette liste.</string>
     <string name="rom_replicant_note">Listé pour son importance en tant que projet Android résolument libre, non comme équivalent pratique des projets actuels en disponibilité d\'appareils.</string>
+    <!-- Contribute (bottom of the main screen): repository link and buy me a coffee -->
+    <string name="contribute_title">Contribuer</string>
+    <string name="contribute_detail">pcontacts est un logiciel libre. Signalements, traductions et code sont les bienvenus ; le symbole GitHub en haut ouvre le dépôt, qui explique comment.</string>
+    <string name="topbar_repository_a11y">Ouvrir le dépôt source sur GitHub</string>
+    <string name="support_coffee_title">Offrez-moi un café</string>
+    <string name="support_coffee_detail">Si pcontacts vous est utile, un café est le bienvenu, en bitcoin. Touchez l’adresse pour la copier.</string>
+    <string name="support_coffee_copied">Adresse copiée</string>
 </resources>

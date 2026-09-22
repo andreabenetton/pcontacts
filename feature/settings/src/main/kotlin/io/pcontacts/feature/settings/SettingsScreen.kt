@@ -4,6 +4,7 @@
 package io.pcontacts.feature.settings
 
 import android.text.format.DateUtils
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,12 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -83,7 +88,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { AppTopBar(auditIndicator) },
+        topBar = { AppTopBar(auditIndicator, actions.onOpenRepository) },
         snackbarHost = snackbarHost
     ) { padding ->
         Column(
@@ -128,6 +133,7 @@ fun SettingsScreen(
             ) {
                 Text(stringResource(R.string.settings_sign_out))
             }
+            ContributeSection()
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -924,4 +930,37 @@ internal fun AdvisoryCheckStatusLine(state: AdvisoryCheckState, checking: Boolea
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Text(text = text, style = MaterialTheme.typography.bodySmall, color = tint)
+}
+
+/**
+ * Contribute: a word on the repository (the GitHub mark in the app bar opens it) and
+ * "buy me a coffee" with the bitcoin address, copied with a tap and selectable.
+ */
+@Composable
+private fun ContributeSection() {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val address = stringResource(R.string.support_btc_address)
+    val copied = stringResource(R.string.support_coffee_copied)
+    SectionHeader(R.string.contribute_title)
+    Text(text = stringResource(R.string.contribute_detail), style = MaterialTheme.typography.bodySmall)
+    Spacer(Modifier.height(8.dp))
+    Text(text = stringResource(R.string.support_coffee_title), style = MaterialTheme.typography.bodyMedium)
+    Text(text = stringResource(R.string.support_coffee_detail), style = MaterialTheme.typography.bodySmall)
+    Spacer(Modifier.height(8.dp))
+    SelectionContainer {
+        Text(
+            text = address,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    clipboard.setText(AnnotatedString(address))
+                    Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
+                }
+                .semantics { contentDescription = "support_btc_address" }
+        )
+    }
 }

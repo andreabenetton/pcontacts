@@ -113,7 +113,9 @@ data class SettingsActions(
     val onOpenContactsAccess: (ContactsAccessKind) -> Unit = {},
     val onOpenContactsStorage: (() -> Unit)? = null,
     val onOpenDeGoogledRoms: () -> Unit = {},
-    val onOpenDependencies: () -> Unit = {}
+    val onOpenDependencies: () -> Unit = {},
+    /** The source repository, opened in the browser from the GitHub mark in the app bar. */
+    val onOpenRepository: () -> Unit = {}
 )
 
 /**

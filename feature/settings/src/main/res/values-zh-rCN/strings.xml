@@ -238,4 +238,11 @@
     <string name="rom_replicant_focus">软件自由：尽可能替换或避免专有的 Android 组件。</string>
     <string name="rom_replicant_hardware">与此列表中的其他项目相比，硬件有限且大多较旧。</string>
     <string name="rom_replicant_note">因其作为严格自由软件 Android 项目的重要性而列出，在设备可用性上并非当前项目的实际等价物。</string>
+    <!-- Contribute (bottom of the main screen): repository link and buy me a coffee -->
+    <string name="contribute_title">参与贡献</string>
+    <string name="contribute_detail">pcontacts 是自由软件。欢迎提交错误报告、翻译和代码；顶部的 GitHub 标志会打开仓库，其中有说明。</string>
+    <string name="topbar_repository_a11y">在 GitHub 上打开源码仓库</string>
+    <string name="support_coffee_title">请我喝杯咖啡</string>
+    <string name="support_coffee_detail">如果 pcontacts 对您有用，欢迎用比特币请我喝杯咖啡。点按地址即可复制。</string>
+    <string name="support_coffee_copied">地址已复制</string>
 </resources>

@@ -50,11 +50,12 @@ fun SignInScreen(
     storageUpgradeNotice: Boolean = false,
     snackbarHost: @Composable () -> Unit = {},
     /** The shipped dependency audit's status (ADR-0024), shown next to the version. */
-    audit: AuditIndicator? = null
+    audit: AuditIndicator? = null,
+    onOpenRepository: (() -> Unit)? = null
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { AppTopBar(audit) },
+        topBar = { AppTopBar(audit, onOpenRepository) },
         snackbarHost = snackbarHost
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
