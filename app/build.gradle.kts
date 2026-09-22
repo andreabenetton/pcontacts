@@ -7,7 +7,6 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -642,16 +641,8 @@ dependencyCheck {
     // classpaths pull in transitives (gRPC, Netty, protobuf, kotlin-compiler)
     // with their own CVE histories, none of which reach end users.
     scanConfigurations = listOf("releaseRuntimeClasspath")
-    // Locally the key lives in the gitignored .env at the repo root (`NVD_API_KEY=...`),
-    // next to the test-account variables; CI sets the environment variable.
-    val dotEnv = rootProject.file(".env")
-    val nvdKeyFromDotEnv: String? = if (dotEnv.exists()) {
-        Properties().also { props -> dotEnv.inputStream().use { props.load(it) } }.getProperty("NVD_API_KEY")
-    } else {
-        null
-    }
-    val nvdKey: String = System.getenv("NVD_API_KEY") ?: nvdKeyFromDotEnv?.trim().orEmpty()
-    nvd.apiKey = nvdKey
+    // CI sets the key; the audit snapshot (ADR-0024) does not need Dependency-Check locally.
+    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
     // NVD's API returns intermittent 503/timeout responses. Bump retry count
     // and inter-request delay enough to survive a brief blip, but not so much
     // that a sustained NVD outage runs past the CI job timeout.
