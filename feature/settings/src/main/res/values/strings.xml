@@ -162,4 +162,6 @@
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>
     </plurals>
+    <string name="settings_sign_in">Sign in</string>
+    <string name="settings_sign_in_detail">Sign in with your Proton account to start syncing contacts.</string>
 </resources>

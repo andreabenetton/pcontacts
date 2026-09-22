@@ -188,4 +188,6 @@
         <item quantity="many">%d контактов</item>
         <item quantity="other">%d контакта</item>
     </plurals>
+    <string name="settings_sign_in">Войти</string>
+    <string name="settings_sign_in_detail">Войдите в аккаунт Proton, чтобы начать синхронизацию контактов.</string>
 </resources>

@@ -149,4 +149,6 @@
     <plurals name="sync_contacts_count">
         <item quantity="other">%d 位联系人</item>
     </plurals>
+    <string name="settings_sign_in">登录</string>
+    <string name="settings_sign_in_detail">使用您的 Proton 账户登录以开始同步联系人。</string>
 </resources>

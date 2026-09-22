@@ -134,7 +134,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SectionHeader(titleRes: Int) {
+internal fun SectionHeader(titleRes: Int) {
     Spacer(Modifier.height(24.dp))
     Text(
         text = stringResource(titleRes),

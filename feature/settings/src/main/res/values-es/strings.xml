@@ -162,4 +162,6 @@
         <item quantity="one">%d contacto</item>
         <item quantity="other">%d contactos</item>
     </plurals>
+    <string name="settings_sign_in">Iniciar sesión</string>
+    <string name="settings_sign_in_detail">Inicia sesión con tu cuenta de Proton para empezar a sincronizar contactos.</string>
 </resources>
