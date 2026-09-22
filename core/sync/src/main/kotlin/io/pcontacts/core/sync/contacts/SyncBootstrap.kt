@@ -200,6 +200,7 @@ object SyncBootstrap {
             contactMapDao = db.contactMapDao(),
             readExisting = { account -> withContext(Dispatchers.IO) { reader.readExistingState(account) } },
             hasPendingDelete = hasPendingOutboxDelete(db.outboxDao()),
+            hasLocalMutation = { id -> db.outboxDao().findByContact(id).isNotEmpty() },
             hasLiveOutboxRow = { id -> db.outboxDao().findLive(id) != null },
             applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } },
             reconcileGroups = { account, labels ->
@@ -281,6 +282,7 @@ object SyncBootstrap {
             contactMapDao = db.contactMapDao(),
             readExisting = { account -> withContext(Dispatchers.IO) { reader.readExistingState(account) } },
             hasPendingDelete = hasPendingOutboxDelete(db.outboxDao()),
+            hasLocalMutation = { id -> db.outboxDao().findByContact(id).isNotEmpty() },
             hasLiveOutboxRow = { id -> db.outboxDao().findLive(id) != null },
             applyIntents = { account, intents -> withContext(Dispatchers.IO) { applier.apply(account, intents) } },
             reconcileGroups = { account, labels ->

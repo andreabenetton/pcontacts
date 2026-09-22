@@ -6,11 +6,15 @@ package io.pcontacts.core.sync.contacts
 import android.accounts.Account
 import io.pcontacts.core.contactswriter.RawContactOpIntent
 import io.pcontacts.core.proton.api.contacts.ContactMetadataDto
+import io.pcontacts.core.proton.api.contacts.ContactsPageResponse
 import io.pcontacts.core.proton.api.labels.GetLabelsResponse
 import io.pcontacts.core.proton.api.labels.LabelDto
 import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
+import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
 
@@ -162,4 +166,84 @@ class ContactDetailSyncEngineIntegrityTest {
         lastError = null,
         lastSyncedAt = 0L
     )
+
+    private val bobVCard = """
+        BEGIN:VCARD
+        VERSION:4.0
+        FN:Bob
+        EMAIL:bob@proton.me
+        END:VCARD
+    """.trimIndent()
+
+    private fun aliceBobApi(secondPage: ContactsPageResponse) = DetailFakeApi(
+        metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L)), secondPage),
+        contacts = mapOf("c1" to contact("c1", 100L, aliceVCard), "c2" to contact("c2", 100L, bobVCard)),
+        repeatContacts = true
+    )
+
+    @Test fun a_conflict_awaiting_the_user_is_not_overwritten_by_a_server_change() = runTest {
+        val api = aliceBobApi(secondPage = metaPage(meta("c1", 100L), meta("c2", 200L)))
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+        engine.sync(account)
+        dao.markConflict("c2", "conflict: fullName")
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.updated)
+        assertTrue(applier.lastIntents.none { it is RawContactOpIntent.UpdateContact })
+        val mapping = dao.snapshot()["c2"]!!
+        assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
+        assertEquals("conflict: fullName", mapping.lastError)
+        assertEquals(100L, mapping.modifyTime)
+    }
+
+    @Test fun a_queued_or_quarantined_change_protects_the_row_from_a_server_change() = runTest {
+        val api = aliceBobApi(secondPage = metaPage(meta("c1", 100L), meta("c2", 200L)))
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier, hasLocalMutation = { it == "c2" })
+        engine.sync(account)
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.updated)
+        assertEquals(100L, dao.snapshot()["c2"]!!.modifyTime)
+    }
+
+    @Test fun a_row_deleted_on_proton_while_the_phone_owns_a_change_is_kept_as_a_conflict() = runTest {
+        val api = aliceBobApi(secondPage = metaPage(meta("c1", 100L)))
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier, hasLocalMutation = { it == "c2" })
+        engine.sync(account)
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.deleted)
+        assertTrue(applier.lastIntents.none { it is RawContactOpIntent.DeleteContact })
+        assertEquals(listOf(2L), applier.rawIdsFor("c2"))
+        val mapping = dao.snapshot()["c2"]!!
+        assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
+        assertEquals(SERVER_DELETED_CONFLICT, mapping.lastError)
+    }
+
+    @Test fun a_row_whose_create_is_queued_after_a_server_deleted_conflict_is_not_deleted_by_the_pull() = runTest {
+        val api = aliceBobApi(secondPage = metaPage(meta("c1", 100L)))
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+        engine.sync(account)
+        // The user kept the phone's version: the mapping is re-keyed to the raw row and a CREATE queued.
+        val old = dao.snapshot()["c2"]!!
+        dao.deleteByProtonId("c2")
+        dao.upsert(old.copy(protonContactId = "local-2", protonUid = null, syncStatus = ContactMapEntity.Status.CLEAN))
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.deleted)
+        assertEquals(listOf(2L), applier.rawIdsFor("c2"))
+        assertNotNull(dao.snapshot()["local-2"])
+    }
 }

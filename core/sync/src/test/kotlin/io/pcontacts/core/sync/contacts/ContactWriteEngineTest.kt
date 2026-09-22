@@ -1311,6 +1311,35 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    @Test fun push_update_of_a_contact_deleted_on_proton_becomes_a_server_deleted_conflict() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "ct-1",
+                opType = OutboxEntity.OpType.UPDATE,
+                payloadHash = "h",
+                createdAt = 0L
+            )
+        )
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1")),
+            fetchServerContact = { throw HttpException(Response.error<Any>(404, "".toResponseBody())) }
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.conflicted)
+        assertEquals(0, report.quarantined)
+        val mapping = contactMap.findByProtonId("ct-1")!!
+        assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
+        assertEquals(SERVER_DELETED_CONFLICT, mapping.lastError)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
     @Test fun push_delete_without_an_item_acknowledgement_stays_queued() = runTest {
         val api = WriteFakeApi().apply { deleteAckMissing = true }
         val outbox = WriteFakeOutboxDao()

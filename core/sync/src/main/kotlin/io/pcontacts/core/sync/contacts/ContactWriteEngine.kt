@@ -255,10 +255,24 @@ class ContactWriteEngine(
             throw e
         } catch (e: CancellationException) {
             throw e
+        } catch (e: HttpException) {
+            if (e.code() == HTTP_NOT_FOUND) serverDeletedConflict(entry) else handleFailure(entry, e)
         } catch (e: Exception) {
             logger.warn { "pushUpdate: failed ${e.javaClass.simpleName}" }
             handleFailure(entry, e)
         }
+    }
+
+    /**
+     * The Proton copy is gone while the phone has a change to it: the row stays, the change
+     * leaves the outbox, and the mapping becomes a conflict the user settles (keep the phone's
+     * version as a new Proton contact, or delete it here too).
+     */
+    private suspend fun serverDeletedConflict(entry: OutboxEntity): WriteReport {
+        logger.warn { "pushUpdate: deleted on Proton meanwhile; kept as a conflict idTag=${entry.protonContactId.hashCode()}" }
+        contactMapDao.markConflict(entry.protonContactId, SERVER_DELETED_CONFLICT)
+        outboxDao.deleteById(entry.id)
+        return WriteReport(conflicted = 1)
     }
 
     /**
@@ -464,6 +478,7 @@ class ContactWriteEngine(
     }
 
     companion object {
+        private const val HTTP_NOT_FOUND = 404
         const val MAX_CONCURRENT_PUSHES = 4
         const val GRACE_PERIOD_MS = 3_600_000L
         const val MAX_BACKOFF_MS = 3_600_000L

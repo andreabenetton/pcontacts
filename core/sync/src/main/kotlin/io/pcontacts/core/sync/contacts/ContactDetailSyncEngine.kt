@@ -114,6 +114,11 @@ class ContactDetailSyncEngine(
      * recompute instead of wiping them.
      */
     private val readGroupRowIds: suspend (rawContactId: Long) -> List<Long> = { emptyList() },
+    /**
+     * Whether the outbox holds any row for the contact, queued or quarantined: the phone still
+     * owns a change to it, so the pull must neither overwrite nor delete the row.
+     */
+    private val hasLocalMutation: suspend (protonContactId: String) -> Boolean = { false },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
@@ -207,6 +212,8 @@ class ContactDetailSyncEngine(
         var fetchFailures = 0
         var modifyTimeSkips = 0
         var processed = 0
+        // Rows the phone still owns a change to: never overwritten or deleted by this pull.
+        val protectedIds = HashSet<String>()
 
         for ((sourceId, serverModifyTime) in serverModifyTimes) {
             processed += 1
@@ -224,6 +231,14 @@ class ContactDetailSyncEngine(
                 // here would resurrect an intentional deletion before it
                 // propagates to Proton.
                 logger.info { "skip: local delete pending push idTag=${sourceId.hashCode()}" }
+                continue
+            }
+            if (liveRawId != null && stored != null && locallyOwned(stored, sourceId)) {
+                // A conflict awaiting the user's decision, or a change still queued or
+                // quarantined for push: the server version must not replace the row
+                // the user is still the owner of (ADR-0017 §3C).
+                logger.info { "skip: unresolved local state idTag=${sourceId.hashCode()}" }
+                protectedIds += sourceId
                 continue
             }
             val storedFormatCurrent =
@@ -327,11 +342,31 @@ class ContactDetailSyncEngine(
             target += row
         }
 
-        // 4. Decide intents — duplicate cleanup first, then the diff.
+        // 3b. Rows the server no longer has while the phone still owns a change to them
+        //     (or a CREATE is queued for the raw row): not deleted, marked as a conflict
+        //     the user settles — keep the phone's version on Proton anew, or let it go.
+        val rawIdsWithQueuedCreate = storedMappings.values
+            .filter { it.protonContactId.startsWith(LOCAL_ID_PREFIX) }
+            .map { it.androidRawContactId }
+            .toSet()
+        for ((sourceId, rawId) in existing) {
+            if (sourceId in serverSourceIds) continue
+            val stored = storedMappings[sourceId]
+            val owned = (stored != null && locallyOwned(stored, sourceId)) || rawId in rawIdsWithQueuedCreate
+            if (!owned) continue
+            protectedIds += sourceId
+            if (stored != null && stored.lastError != SERVER_DELETED_CONFLICT) {
+                logger.warn { "deleted on Proton while edited here; kept as a conflict idTag=${sourceId.hashCode()}" }
+                contactMapDao.markConflict(sourceId, SERVER_DELETED_CONFLICT)
+            }
+        }
+
+        // 4. Decide intents — duplicate cleanup first, then the diff. Protected rows count as
+        //    present on the server so the differ leaves them alone.
         val intents = dedupeIntents + RawContactDiffer.diff(
             target = target,
             existing = existing,
-            serverSourceIds = serverSourceIds
+            serverSourceIds = serverSourceIds + protectedIds
         )
 
         if (intents.isEmpty()) {
@@ -413,6 +448,10 @@ class ContactDetailSyncEngine(
             failed = fetchFailures
         )
     }
+
+    /** A conflict awaiting the user, or any outbox row (queued or quarantined) for the contact. */
+    private suspend fun locallyOwned(stored: ContactMapEntity, sourceId: String): Boolean =
+        stored.syncStatus == ContactMapEntity.Status.CONFLICT || hasLocalMutation(sourceId)
 
     /**
      * Points the Room mapping at the RawContact the provider actually

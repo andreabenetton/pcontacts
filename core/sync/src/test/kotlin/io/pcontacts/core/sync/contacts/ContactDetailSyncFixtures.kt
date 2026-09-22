@@ -65,6 +65,7 @@ internal fun newEngine(
     applier: DetailFakeApplier,
     hasPendingDelete: suspend (String) -> Boolean = { false },
     hasLiveOutboxRow: suspend (String) -> Boolean = { false },
+    hasLocalMutation: suspend (String) -> Boolean = { false },
     /** Like production, the base lands in the mapping row's column (unsealed here). */
     saveMergeBase: suspend (String, DecryptedContact) -> Unit = { id, c ->
         dao.setMergeBase(id, DecryptedContactJson.encode(c))
@@ -89,6 +90,7 @@ internal fun newEngine(
         readExisting = { _ -> applier.knownState() },
         hasPendingDelete = hasPendingDelete,
         hasLiveOutboxRow = hasLiveOutboxRow,
+        hasLocalMutation = hasLocalMutation,
         applyIntents = { acct, intents -> applier.apply(acct, intents) },
         reconcileGroups = reconcileGroups,
         readGroupRowIds = readGroupRowIds,
