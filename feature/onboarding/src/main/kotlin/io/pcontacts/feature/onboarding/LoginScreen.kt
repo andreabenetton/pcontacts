@@ -3,16 +3,14 @@
 
 package io.pcontacts.feature.onboarding
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -25,9 +23,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -37,7 +35,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /**
  * Login screen. Pure Composable — no Activity coupling, no DI framework.
  * The hosting Activity constructs the LoginViewModel (which carries the
- * orchestrator dependency) and passes it down.
+ * orchestrator dependency) and passes it down, and wraps the screen in
+ * the app's shell (top bar); the screen lays out like a Settings
+ * section so signing in looks like the screen that follows it.
  *
  * `onSuccess` / `onTwoFactorRequired` are navigation hooks the host
  * Activity wires up; the screen itself doesn't know what comes next.
@@ -64,27 +64,28 @@ fun LoginScreen(
     // surviving process death or landing in saved-state bundles.
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val editable = state !is LoginUiState.Submitting
+    val canSubmit = editable && username.isNotBlank() && password.isNotEmpty()
+    val submit = {
+        val pwd = password.toCharArray()
+        viewModel.login(username.trim(), pwd)
+        // Clear the in-memory String now; the CharArray is in-flight.
+        password = ""
+    }
 
-    Column(
-        modifier = modifier.fillMaxSize().padding(PaddingValues(24.dp)),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = stringResource(R.string.login_title),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(Modifier.height(16.dp))
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        FormHeader(titleRes = R.string.login_title, subtitleRes = R.string.login_subtitle)
 
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
             label = { Text(stringResource(R.string.login_username_label)) },
             singleLine = true,
-            enabled = state !is LoginUiState.Submitting,
+            enabled = editable,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
-                autoCorrectEnabled = false
+                autoCorrectEnabled = false,
+                imeAction = ImeAction.Next
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -95,11 +96,13 @@ fun LoginScreen(
             onValueChange = { password = it },
             label = { Text(stringResource(R.string.login_password_label)) },
             singleLine = true,
-            enabled = state !is LoginUiState.Submitting,
+            enabled = editable,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
-                autoCorrectEnabled = false
+                autoCorrectEnabled = false,
+                imeAction = ImeAction.Done
             ),
+            keyboardActions = KeyboardActions(onDone = { if (canSubmit) submit() }),
             visualTransformation = if (passwordVisible) {
                 VisualTransformation.None
             } else {
@@ -114,19 +117,7 @@ fun LoginScreen(
         )
         Spacer(Modifier.height(24.dp))
 
-        Button(
-            enabled = state !is LoginUiState.Submitting &&
-                username.isNotBlank() && password.isNotEmpty(),
-            onClick = {
-                val pwd = password.toCharArray()
-                viewModel.login(username.trim(), pwd)
-                // Clear the in-memory String now; the CharArray is in-flight.
-                password = ""
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.login_sign_in))
-        }
+        SignInButton(textRes = R.string.login_sign_in, enabled = canSubmit, onClick = submit)
 
         Spacer(Modifier.height(16.dp))
 

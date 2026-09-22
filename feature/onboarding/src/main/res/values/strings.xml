@@ -5,6 +5,7 @@
 -->
 <resources>
     <string name="login_title">Proton account</string>
+    <string name="login_subtitle">Sign in with your Proton account to start syncing contacts.</string>
     <string name="login_username_label">Email or username</string>
     <string name="login_password_label">Password</string>
     <string name="login_password_show">Show</string>

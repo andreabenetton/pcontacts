@@ -5,6 +5,7 @@
 -->
 <resources>
     <string name="login_title">Proton 账户</string>
+    <string name="login_subtitle">使用您的 Proton 账户登录以开始同步联系人。</string>
     <string name="login_username_label">电子邮件或用户名</string>
     <string name="login_password_label">密码</string>
     <string name="login_password_show">显示</string>

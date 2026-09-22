@@ -5,6 +5,7 @@
 -->
 <resources>
     <string name="login_title">Аккаунт Proton</string>
+    <string name="login_subtitle">Войдите в аккаунт Proton, чтобы начать синхронизацию контактов.</string>
     <string name="login_username_label">Эл. почта или имя пользователя</string>
     <string name="login_password_label">Пароль</string>
     <string name="login_password_show">Показать</string>

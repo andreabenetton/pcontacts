@@ -5,6 +5,7 @@
 -->
 <resources>
     <string name="login_title">Compte Proton</string>
+    <string name="login_subtitle">Connectez-vous avec votre compte Proton pour commencer à synchroniser vos contacts.</string>
     <string name="login_username_label">E-mail ou nom d\'utilisateur</string>
     <string name="login_password_label">Mot de passe</string>
     <string name="login_password_show">Afficher</string>

@@ -3,15 +3,14 @@
 
 package io.pcontacts.feature.onboarding
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -23,10 +22,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,22 +54,16 @@ fun TwoFactorScreen(
 
     var code by remember { mutableStateOf("") }
     val submitting = state is LoginUiState.TwoFactorSubmitting
+    val canSubmit = !submitting && code.length >= 6
+    val submit = {
+        val pending = code
+        viewModel.submitTwoFactor(pending)
+        // Clear immediately — the lambda has captured the value.
+        code = ""
+    }
 
-    Column(
-        modifier = modifier.fillMaxSize().padding(PaddingValues(24.dp)),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = stringResource(R.string.two_factor_title),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.two_factor_subtitle),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(Modifier.height(16.dp))
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        FormHeader(titleRes = R.string.two_factor_title, subtitleRes = R.string.two_factor_subtitle)
 
         OutlinedTextField(
             value = code,
@@ -82,23 +74,13 @@ fun TwoFactorScreen(
             label = { Text(stringResource(R.string.two_factor_code_label)) },
             singleLine = true,
             enabled = !submitting,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { if (canSubmit) submit() }),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(24.dp))
 
-        Button(
-            enabled = !submitting && code.length >= 6,
-            onClick = {
-                val pending = code
-                viewModel.submitTwoFactor(pending)
-                // Clear immediately — the lambda has captured the value.
-                code = ""
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.two_factor_verify))
-        }
+        SignInButton(textRes = R.string.two_factor_verify, enabled = canSubmit, onClick = submit)
 
         Spacer(Modifier.height(8.dp))
 
