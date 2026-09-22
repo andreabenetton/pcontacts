@@ -223,7 +223,6 @@
     <string name="dependencies_status_assessed">Известные CVE оценены как неприменимые</string>
     <string name="dependencies_status_open">Открытая уязвимость в зависимости</string>
     <string name="dependencies_checked_on">Проверено по данным NVD от %1$s.</string>
-    <string name="dependencies_intro">Этот список фиксируется при сборке приложения и отражает ту проверку; во время работы приложение ничего не запрашивает. Уязвимость, опубликованная позже, появится в следующей версии. Идентификаторы CVE открывают страницу NVD в браузере.</string>
     <string name="dependencies_count">Артефактов в этой версии: %1$d</string>
     <string name="dependencies_version">Версия %1$s</string>
     <string name="dependencies_license_unknown">лицензия не указана</string>
@@ -234,6 +233,17 @@
     <string name="dependencies_chip_assessed">Зависимости: оценённые CVE</string>
     <string name="dependencies_chip_open">Зависимости: уязвимость</string>
     <string name="dependencies_false_positive_group">Совпадений сканера с другим продуктом (ложное срабатывание): %1$d</string>
+    <string name="dependencies_intro_snapshot">Этот список получен при проверке во время сборки приложения. Он не меняется до следующей версии; проверку между версиями можно включить в разделе «Конфиденциальность». Идентификаторы CVE открывают страницу NVD в браузере.</string>
+    <string name="dependencies_intro_runtime">Этот список получен при проверке во время сборки приложения и дополняется ежедневной проверкой тех же артефактов на osv.dev. Идентификаторы открывают страницу NVD или osv.dev в браузере.</string>
+    <string name="dependencies_cve_runtime">Сообщено osv.dev после выпуска этой версии — ещё не оценено</string>
+    <string name="advisory_check_title">Проверять зависимости на osv.dev</string>
+    <string name="advisory_check_detail">По умолчанию выключено. Если включено, список артефактов и версий этой сборки (открыто опубликован в репозитории) раз в день отправляется на osv.dev — базу уязвимостей, которой управляет Google; она видит ваш IP-адрес и то, что вы используете pcontacts. Больше ничего не отправляется, а ответ меняет только то, что показывает это приложение.</string>
+    <string name="advisory_check_now">Проверить сейчас</string>
+    <string name="advisory_check_open_list">Зависимости</string>
+    <string name="advisory_check_running">Проверка…</string>
+    <string name="advisory_check_never">Ещё не проверялось.</string>
+    <string name="advisory_check_clean">Ничего нового · последняя проверка %1$s</string>
+    <string name="advisory_check_found">Новых предупреждений: %1$d · последняя проверка %2$s</string>
     <string name="rom_grapheneos_compat">По желанию — официальный Google Play, установленный как обычные изолированные приложения без привилегированного доступа к системе.</string>
     <string name="rom_grapheneos_focus">Сильное усиление безопасности и приватности.</string>
     <string name="rom_grapheneos_hardware">В основном поддерживаемые устройства Google Pixel.</string>

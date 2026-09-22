@@ -28,6 +28,26 @@ data class DependencyAudit(
     /** Problem artifacts first (open before assessed), then the rest, each group by coordinate. */
     val sortedForDisplay: List<AuditedDependency> =
         dependencies.sortedWith(compareBy({ it.status.ordinal.unaryMinus() }, { it.coordinate }))
+
+    /** Every id the snapshot lists, open or assessed: what a runtime result is compared with. */
+    val knownIds: Set<String> get() = dependencies.flatMap { d -> d.cves.map { it.id } }.toSet()
+
+    /**
+     * The snapshot plus what the opt-in runtime check found (ADR-0025): each advisory becomes an
+     * open entry of its artifact, so the dot, the order and the screen treat it like any open CVE.
+     */
+    fun withRuntime(runtime: AdvisoryCheckState): DependencyAudit {
+        if (runtime.advisories.isEmpty()) return this
+        val byCoordinate = runtime.advisories.groupBy { it.coordinate }
+        return copy(
+            dependencies = dependencies.map { d ->
+                val extra = byCoordinate[d.coordinate].orEmpty().map { a ->
+                    AuditCve(a.id, null, a.severity, a.url, suppressed = false, reason = a.summary, runtime = true)
+                }
+                if (extra.isEmpty()) d else d.copy(cves = d.cves + extra)
+            }
+        )
+    }
 }
 
 data class AuditedDependency(
@@ -56,8 +76,30 @@ data class AuditCve(
     val suppressed: Boolean,
     val reason: String?,
     /** The scanner matched a different product than this artifact (a CPE mismatch). */
-    val falsePositive: Boolean = false
+    val falsePositive: Boolean = false,
+    /** Found by the runtime check against osv.dev, not by the build-time scan (ADR-0025). */
+    val runtime: Boolean = false
 )
+
+/** An advisory the runtime check found that the snapshot does not list. */
+data class RuntimeAdvisory(
+    val coordinate: String,
+    val id: String,
+    val url: String,
+    val severity: String?,
+    val summary: String?
+)
+
+/** The opt-in runtime check (ADR-0025): its switch, when it last ran and what it found. */
+data class AdvisoryCheckState(
+    val enabled: Boolean,
+    val lastCheckedAtMillis: Long,
+    val advisories: List<RuntimeAdvisory>
+) {
+    companion object {
+        val OFF = AdvisoryCheckState(enabled = false, lastCheckedAtMillis = 0L, advisories = emptyList())
+    }
+}
 
 /** Green, amber, red — in that order, so the ordinal is the severity. */
 enum class AuditStatus { CLEAN, ASSESSED, OPEN }

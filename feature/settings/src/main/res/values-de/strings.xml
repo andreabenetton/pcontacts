@@ -197,7 +197,6 @@
     <string name="dependencies_status_assessed">Bekannte CVEs als nicht zutreffend bewertet</string>
     <string name="dependencies_status_open">Offene Schwachstelle in einer Abhängigkeit</string>
     <string name="dependencies_checked_on">Geprüft gegen die NVD-Daten vom %1$s.</string>
-    <string name="dependencies_intro">Diese Liste wird beim Bau der App festgelegt und gibt diesen Scan wieder; die App fragt zur Laufzeit nichts ab. Eine später veröffentlichte Schwachstelle erscheint mit der nächsten Version. CVE-Kennungen öffnen die NVD-Seite in Ihrem Browser.</string>
     <string name="dependencies_count">%1$d Artefakte in dieser Version</string>
     <string name="dependencies_version">Version %1$s</string>
     <string name="dependencies_license_unknown">keine Lizenz angegeben</string>
@@ -208,6 +207,17 @@
     <string name="dependencies_chip_assessed">Abhängigkeiten: bewertete CVEs</string>
     <string name="dependencies_chip_open">Abhängigkeiten: Schwachstelle</string>
     <string name="dependencies_false_positive_group">%1$d Scanner-Treffer für ein anderes Produkt (falsch positiv)</string>
+    <string name="dependencies_intro_snapshot">Diese Liste stammt aus dem Scan beim Bau der App. Sie ändert sich erst mit der nächsten Version; eine Prüfung zwischen Versionen lässt sich unter Datenschutz einschalten. CVE-Kennungen öffnen die NVD-Seite in Ihrem Browser.</string>
+    <string name="dependencies_intro_runtime">Diese Liste stammt aus dem Scan beim Bau der App, ergänzt um eine tägliche Prüfung derselben Artefakte bei osv.dev. Kennungen öffnen die NVD- oder osv.dev-Seite in Ihrem Browser.</string>
+    <string name="dependencies_cve_runtime">Von osv.dev nach dieser Version gemeldet — noch nicht bewertet</string>
+    <string name="advisory_check_title">Abhängigkeiten bei osv.dev prüfen</string>
+    <string name="advisory_check_detail">Standardmäßig aus. Wenn an, wird die Liste der Artefakte und Versionen dieser Version (im Quellcode öffentlich) einmal täglich an osv.dev gesendet, eine von Google betriebene Schwachstellendatenbank, die dann Ihre IP-Adresse sieht und dass Sie pcontacts nutzen. Mehr wird nicht gesendet, und die Antwort ändert nur, was diese App anzeigt.</string>
+    <string name="advisory_check_now">Jetzt prüfen</string>
+    <string name="advisory_check_open_list">Abhängigkeiten</string>
+    <string name="advisory_check_running">Prüfung läuft …</string>
+    <string name="advisory_check_never">Noch nicht geprüft.</string>
+    <string name="advisory_check_clean">Nichts Neues gemeldet · letzte Prüfung %1$s</string>
+    <string name="advisory_check_found">%1$d neue Hinweise · letzte Prüfung %2$s</string>
     <string name="rom_grapheneos_compat">Optional offizielles Google Play, installiert als gewöhnliche Sandbox-Apps ohne privilegierten Systemzugriff.</string>
     <string name="rom_grapheneos_focus">Starke Härtung von Sicherheit und Privatsphäre.</string>
     <string name="rom_grapheneos_hardware">Vor allem unterstützte Google-Pixel-Geräte.</string>

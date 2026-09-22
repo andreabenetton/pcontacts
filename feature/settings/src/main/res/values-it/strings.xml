@@ -197,7 +197,6 @@
     <string name="dependencies_status_assessed">CVE note valutate come non applicabili</string>
     <string name="dependencies_status_open">Vulnerabilità aperta in una dipendenza</string>
     <string name="dependencies_checked_on">Verificato sui dati NVD del %1$s.</string>
-    <string name="dependencies_intro">Questo elenco è fissato quando l\'app viene compilata e riflette quella scansione; l\'app non consulta nulla mentre è in uso. Una vulnerabilità pubblicata in seguito compare con la versione successiva. Gli identificativi CVE aprono la pagina NVD nel browser.</string>
     <string name="dependencies_count">%1$d artefatti in questa versione</string>
     <string name="dependencies_version">Versione %1$s</string>
     <string name="dependencies_license_unknown">licenza non dichiarata</string>
@@ -208,6 +207,17 @@
     <string name="dependencies_chip_assessed">Dipendenze: CVE valutate</string>
     <string name="dependencies_chip_open">Dipendenze: vulnerabilità</string>
     <string name="dependencies_false_positive_group">%1$d corrispondenze dello scanner per un altro prodotto (falso positivo)</string>
+    <string name="dependencies_intro_snapshot">Questo elenco viene dalla scansione fatta alla compilazione dell\'app. Non cambia fino alla versione successiva; un controllo tra una versione e l\'altra si può attivare in Privacy. Gli identificativi CVE aprono la pagina NVD nel browser.</string>
+    <string name="dependencies_intro_runtime">Questo elenco viene dalla scansione fatta alla compilazione dell\'app, più un controllo giornaliero degli stessi artefatti su osv.dev. Gli identificativi aprono la pagina NVD o osv.dev nel browser.</string>
+    <string name="dependencies_cve_runtime">Segnalata da osv.dev dopo questa versione — non ancora valutata</string>
+    <string name="advisory_check_title">Controlla le dipendenze su osv.dev</string>
+    <string name="advisory_check_detail">Disattivato per impostazione predefinita. Se attivo, l\'elenco degli artefatti e delle versioni di questa release (pubblico nel repository dei sorgenti) viene inviato una volta al giorno a osv.dev, un database di vulnerabilità gestito da Google, che così vede il tuo indirizzo IP e che usi pcontacts. Non viene inviato altro, e la risposta cambia solo ciò che questa app mostra.</string>
+    <string name="advisory_check_now">Controlla ora</string>
+    <string name="advisory_check_open_list">Dipendenze</string>
+    <string name="advisory_check_running">Controllo in corso…</string>
+    <string name="advisory_check_never">Non ancora controllato.</string>
+    <string name="advisory_check_clean">Nessuna novità segnalata · ultimo controllo %1$s</string>
+    <string name="advisory_check_found">%1$d nuovi avvisi · ultimo controllo %2$s</string>
     <string name="rom_grapheneos_compat">Google Play ufficiale opzionale, installato come normali app in sandbox senza accesso privilegiato al sistema.</string>
     <string name="rom_grapheneos_focus">Forte irrobustimento di sicurezza e privacy.</string>
     <string name="rom_grapheneos_hardware">Principalmente i dispositivi Google Pixel supportati.</string>

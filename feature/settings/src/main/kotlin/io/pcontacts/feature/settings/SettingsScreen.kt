@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,10 +67,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     banner: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
-    /** Status of the shipped dependency audit (ADR-0024), shown next to the version. */
-    auditStatus: AuditStatus? = null
+    /** The shipped dependency audit (ADR-0024); its status, merged with the runtime check, sits next to the version. */
+    audit: DependencyAudit? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val advisoryState by viewModel.advisoryState.collectAsStateWithLifecycle()
+    val auditIndicator = audit?.let { AuditIndicator(it.withRuntime(advisoryState).status, actions.onOpenDependencies) }
     val syncInterval by viewModel.syncInterval.collectAsStateWithLifecycle()
     val syncRunning by viewModel.syncRunning.collectAsStateWithLifecycle()
     val actionInFlight = state is SettingsUiState.Syncing || state is SettingsUiState.SigningOut
@@ -77,7 +80,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { AppTopBar(auditStatus?.let { AuditIndicator(it, actions.onOpenDependencies) }) },
+        topBar = { AppTopBar(auditIndicator) },
         snackbarHost = snackbarHost
     ) { padding ->
         Column(
@@ -110,6 +113,7 @@ fun SettingsScreen(
             LinkedImportSection(enabled = !busy, onOpen = actions.onOpenLinkedImport)
 
             ContactsAccessSection(viewModel, actions)
+            AdvisoryCheckSection(viewModel, actions)
 
             SectionHeader(R.string.settings_section_account)
             OutlinedButton(
@@ -504,9 +508,9 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel, actions: Setting
     val contactsAccessApps by viewModel.contactsAccessApps.collectAsStateWithLifecycle()
     val systemContactsAccessApps by viewModel.systemContactsAccessApps.collectAsStateWithLifecycle()
     val systemNoticeDismissed by viewModel.systemNoticeDismissed.collectAsStateWithLifecycle()
-    if (contactsAccessApps.isEmpty() && systemContactsAccessApps.isEmpty()) return
 
     SectionHeader(R.string.settings_section_privacy)
+    if (contactsAccessApps.isEmpty() && systemContactsAccessApps.isEmpty()) return
     if (contactsAccessApps.isNotEmpty()) {
         ContactsAccessBanner(
             apps = contactsAccessApps,
@@ -849,3 +853,71 @@ private const val CLOCK_TICK_MILLIS = 30_000L
 /** Absolute form of the last-sync time, shown on tap. */
 private const val ABSOLUTE_FLAGS =
     DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_YEAR
+
+/**
+ * The opt-in runtime advisory check (ADR-0025): the switch says in plain words what leaves the
+ * device and to whom; below it, what the last check found and when, and a check on demand.
+ */
+@Composable
+private fun AdvisoryCheckSection(viewModel: SettingsViewModel, actions: SettingsActions) {
+    val state by viewModel.advisoryState.collectAsStateWithLifecycle()
+    val checking by viewModel.advisoryChecking.collectAsStateWithLifecycle()
+    Spacer(Modifier.height(12.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.advisory_check_title),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Switch(
+                checked = state.enabled,
+                onCheckedChange = viewModel::setAdvisoryCheck,
+                modifier = Modifier.semantics { contentDescription = "advisory_check_switch" }
+            )
+        }
+        Text(
+            text = stringResource(R.string.advisory_check_detail),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (state.enabled) {
+            Spacer(Modifier.height(8.dp))
+            AdvisoryCheckStatusLine(state, checking)
+            Spacer(Modifier.height(4.dp))
+            Row {
+                TextButton(onClick = viewModel::checkAdvisoriesNow, enabled = !checking) {
+                    Text(stringResource(R.string.advisory_check_now))
+                }
+                TextButton(onClick = actions.onOpenDependencies) {
+                    Text(stringResource(R.string.advisory_check_open_list))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun AdvisoryCheckStatusLine(state: AdvisoryCheckState, checking: Boolean) {
+    val text = when {
+        checking -> stringResource(R.string.advisory_check_running)
+        state.lastCheckedAtMillis == 0L -> stringResource(R.string.advisory_check_never)
+        state.advisories.isEmpty() -> stringResource(
+            R.string.advisory_check_clean,
+            DateUtils.getRelativeTimeSpanString(state.lastCheckedAtMillis).toString()
+        )
+        else -> stringResource(
+            R.string.advisory_check_found,
+            state.advisories.size,
+            DateUtils.getRelativeTimeSpanString(state.lastCheckedAtMillis).toString()
+        )
+    }
+    val tint = if (state.advisories.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else AuditStatus.OPEN.tint()
+    Text(text = text, style = MaterialTheme.typography.bodySmall, color = tint)
+}

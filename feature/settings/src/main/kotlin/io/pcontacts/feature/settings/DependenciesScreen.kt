@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,8 +55,13 @@ fun DependenciesScreen(
     audit: DependencyAudit,
     onOpenLink: (String) -> Boolean,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The opt-in runtime check (ADR-0025); its findings are merged into the list. */
+    runtime: AdvisoryCheckState = AdvisoryCheckState.OFF,
+    checking: Boolean = false,
+    onCheckNow: () -> Unit = {}
 ) {
+    val merged = audit.withRuntime(runtime)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val noBrowser = stringResource(R.string.rom_no_browser)
@@ -68,8 +74,8 @@ fun DependenciesScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
-            item { AuditSummary(audit) }
-            items(audit.sortedForDisplay, key = { it.coordinate }) { dependency ->
+            item { AuditSummary(merged, runtime, checking, onCheckNow) }
+            items(merged.sortedForDisplay, key = { it.coordinate }) { dependency ->
                 DependencyRow(dependency, open)
             }
             item { Spacer(Modifier.height(16.dp)) }
@@ -78,7 +84,12 @@ fun DependenciesScreen(
 }
 
 @Composable
-private fun AuditSummary(audit: DependencyAudit) {
+private fun AuditSummary(
+    audit: DependencyAudit,
+    runtime: AdvisoryCheckState,
+    checking: Boolean,
+    onCheckNow: () -> Unit
+) {
     Column {
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -97,7 +108,19 @@ private fun AuditSummary(audit: DependencyAudit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(8.dp))
-        Text(text = stringResource(R.string.dependencies_intro), style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = stringResource(
+                if (runtime.enabled) R.string.dependencies_intro_runtime else R.string.dependencies_intro_snapshot
+            ),
+            style = MaterialTheme.typography.bodySmall
+        )
+        if (runtime.enabled) {
+            Spacer(Modifier.height(4.dp))
+            AdvisoryCheckStatusLine(runtime, checking)
+            TextButton(onClick = onCheckNow, enabled = !checking) {
+                Text(stringResource(R.string.advisory_check_now))
+            }
+        }
         Spacer(Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.dependencies_count, audit.dependencies.size),
@@ -207,10 +230,19 @@ private fun CveRow(cve: AuditCve, open: (String) -> Unit) {
         }
         if (!cve.suppressed) {
             Text(
-                text = stringResource(R.string.dependencies_cve_open),
+                text = stringResource(
+                    if (cve.runtime) R.string.dependencies_cve_runtime else R.string.dependencies_cve_open
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = tone.tint()
             )
+            cve.reason?.takeIf { cve.runtime }?.let { summary ->
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

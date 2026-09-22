@@ -55,6 +55,22 @@ class DependencyAuditTest {
         assertEquals(AuditStatus.CLEAN, clean.status)
     }
 
+    @Test fun runtime_advisories_join_their_artifact_as_open_entries_and_turn_the_status_red() {
+        val url = "https://osv.dev/vulnerability/GHSA-x"
+        val runtime = AdvisoryCheckState(
+            enabled = true,
+            lastCheckedAtMillis = 1L,
+            advisories = listOf(RuntimeAdvisory(clean.coordinate, "GHSA-x", url, "HIGH", "s"))
+        )
+        val merged = DependencyAudit("2026-09-22", null, listOf(clean, assessed)).withRuntime(runtime)
+
+        assertEquals(AuditStatus.OPEN, merged.status)
+        val cve = merged.dependencies.single { it.coordinate == clean.coordinate }.cves.single()
+        assertEquals(AuditCve("GHSA-x", null, "HIGH", url, suppressed = false, reason = "s", runtime = true), cve)
+        assertEquals(setOf("CVE-2015-5895"), DependencyAudit("2026-09-22", null, listOf(clean, assessed)).knownIds)
+        assertEquals(listOf(clean.coordinate, assessed.coordinate), merged.sortedForDisplay.map { it.coordinate })
+    }
+
     @Test fun display_order_puts_open_first_then_assessed_then_the_rest_by_coordinate() {
         val audit = DependencyAudit("2026-09-22", null, listOf(clean, assessed, open))
         assertEquals(listOf(open, assessed, clean), audit.sortedForDisplay)

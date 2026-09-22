@@ -184,7 +184,6 @@
     <string name="dependencies_status_assessed">已知 CVE 经评估不适用</string>
     <string name="dependencies_status_open">某个依赖项存在未修复的漏洞</string>
     <string name="dependencies_checked_on">已对照 %1$s 的 NVD 数据检查。</string>
-    <string name="dependencies_intro">此列表在构建应用时确定并反映当时的扫描结果；应用运行时不会查询任何内容。之后公布的漏洞会随下一个版本显示。点按 CVE 编号可在浏览器中打开 NVD 页面。</string>
     <string name="dependencies_count">本版本包含 %1$d 个构件</string>
     <string name="dependencies_version">版本 %1$s</string>
     <string name="dependencies_license_unknown">未声明许可证</string>
@@ -195,6 +194,17 @@
     <string name="dependencies_chip_assessed">依赖项：已评估的 CVE</string>
     <string name="dependencies_chip_open">依赖项：存在漏洞</string>
     <string name="dependencies_false_positive_group">%1$d 个扫描器匹配项属于其他产品（误报）</string>
+    <string name="dependencies_intro_snapshot">此列表来自构建应用时的扫描。在下一个版本之前不会更改；可在“隐私”中开启版本之间的检查。点按 CVE 编号可在浏览器中打开 NVD 页面。</string>
+    <string name="dependencies_intro_runtime">此列表来自构建应用时的扫描，并每天对同一批构件在 osv.dev 上进行检查。点按编号可在浏览器中打开 NVD 或 osv.dev 页面。</string>
+    <string name="dependencies_cve_runtime">由 osv.dev 在本版本发布后报告 — 尚未评估</string>
+    <string name="advisory_check_title">在 osv.dev 上检查依赖项</string>
+    <string name="advisory_check_detail">默认关闭。开启后，本版本的构件和版本列表（在源码仓库中公开）每天发送一次到 osv.dev（由 Google 运营的漏洞数据库），它会因此看到您的 IP 地址以及您在使用 pcontacts。不会发送其他内容，返回结果只影响此应用显示的内容。</string>
+    <string name="advisory_check_now">立即检查</string>
+    <string name="advisory_check_open_list">依赖项</string>
+    <string name="advisory_check_running">正在检查…</string>
+    <string name="advisory_check_never">尚未检查。</string>
+    <string name="advisory_check_clean">未报告新内容 · 上次检查 %1$s</string>
+    <string name="advisory_check_found">%1$d 条新公告 · 上次检查 %2$s</string>
     <string name="rom_grapheneos_compat">可选安装官方 Google Play，作为普通沙盒应用运行，没有系统特权。</string>
     <string name="rom_grapheneos_focus">强安全性和隐私加固。</string>
     <string name="rom_grapheneos_hardware">主要是受支持的 Google Pixel 设备。</string>

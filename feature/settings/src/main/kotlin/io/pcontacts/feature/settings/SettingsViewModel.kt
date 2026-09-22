@@ -56,6 +56,10 @@ class SettingsViewModel(
     private val querySyncProgress: (suspend () -> SyncProgress?)? = null,
     private val querySystemNoticeDismissed: suspend () -> Boolean = { false },
     private val dismissSystemNotice: suspend () -> Unit = {},
+    /** ADR-0025: the opt-in runtime advisory check — its state, the switch, and a check on demand. */
+    private val queryAdvisoryState: suspend () -> AdvisoryCheckState = { AdvisoryCheckState.OFF },
+    private val setAdvisoryCheckEnabled: suspend (Boolean) -> Unit = {},
+    private val runAdvisoryCheck: suspend () -> AdvisoryCheckState = { AdvisoryCheckState.OFF },
     initialSyncIntervalHours: Long = SyncInterval.TWELVE_HOURS.hours,
     private val scope: CoroutineScope = MainScope(),
     private val workDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -109,6 +113,12 @@ class SettingsViewModel(
     private val _systemNoticeDismissed = MutableStateFlow(false)
     val systemNoticeDismissed: StateFlow<Boolean> = _systemNoticeDismissed.asStateFlow()
 
+    private val _advisoryState = MutableStateFlow(AdvisoryCheckState.OFF)
+    val advisoryState: StateFlow<AdvisoryCheckState> = _advisoryState.asStateFlow()
+
+    private val _advisoryChecking = MutableStateFlow(false)
+    val advisoryChecking: StateFlow<Boolean> = _advisoryChecking.asStateFlow()
+
     private var pendingJob: Job? = null
     private var progressJob: Job? = null
 
@@ -133,6 +143,26 @@ class SettingsViewModel(
             _contactsAccessApps.value = orDefault(emptyList()) { queryContactsAccessApps() }
             _systemContactsAccessApps.value = orDefault(emptyList()) { querySystemContactsAccessApps() }
             _systemNoticeDismissed.value = orDefault(false) { querySystemNoticeDismissed() }
+            _advisoryState.value = orDefault(AdvisoryCheckState.OFF) { queryAdvisoryState() }
+        }
+    }
+
+    /** The Privacy switch: turning it on runs a first check at once, turning it off drops the result. */
+    fun setAdvisoryCheck(enabled: Boolean) {
+        _advisoryState.value = if (enabled) _advisoryState.value.copy(enabled = true) else AdvisoryCheckState.OFF
+        scope.launch {
+            withContext(workDispatcher) { orDefault(Unit) { setAdvisoryCheckEnabled(enabled) } }
+            if (enabled) checkAdvisoriesNow()
+        }
+    }
+
+    fun checkAdvisoriesNow() {
+        if (_advisoryChecking.value) return
+        _advisoryChecking.value = true
+        scope.launch {
+            val result = withContext(workDispatcher) { orDefault(null) { runAdvisoryCheck() } }
+            if (result != null) _advisoryState.value = result
+            _advisoryChecking.value = false
         }
     }
 

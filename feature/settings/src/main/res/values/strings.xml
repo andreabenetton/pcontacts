@@ -197,7 +197,6 @@
     <string name="dependencies_status_assessed">Known CVEs assessed as not applicable</string>
     <string name="dependencies_status_open">Open vulnerability in a dependency</string>
     <string name="dependencies_checked_on">Checked against the NVD data of %1$s.</string>
-    <string name="dependencies_intro">This list is fixed when the app is built and reflects that scan; the app never looks anything up while it runs. A vulnerability published later appears with the next release. CVE ids open the NVD page in your browser.</string>
     <string name="dependencies_count">%1$d artifacts in this release</string>
     <string name="dependencies_version">Version %1$s</string>
     <string name="dependencies_license_unknown">license not declared</string>
@@ -208,6 +207,17 @@
     <string name="dependencies_chip_assessed">Dependencies: assessed CVEs</string>
     <string name="dependencies_chip_open">Dependencies: vulnerability</string>
     <string name="dependencies_false_positive_group">%1$d scanner matches for a different product (false positive)</string>
+    <string name="dependencies_intro_snapshot">This list comes from the scan made when the app was built. It does not change until the next release; a check between releases can be turned on under Privacy. CVE ids open the NVD page in your browser.</string>
+    <string name="dependencies_intro_runtime">This list comes from the scan made when the app was built, plus a daily check of these same artifacts against osv.dev. Ids open the NVD or osv.dev page in your browser.</string>
+    <string name="dependencies_cve_runtime">Reported by osv.dev after this release — not yet assessed</string>
+    <string name="advisory_check_title">Check dependencies against osv.dev</string>
+    <string name="advisory_check_detail">Off by default. When on, the list of this release\'s artifacts and versions (public in the source repository) is sent once a day to osv.dev, a vulnerability database run by Google, which then sees your IP address and that you use pcontacts. Nothing else is sent, and the answer only changes what this app shows.</string>
+    <string name="advisory_check_now">Check now</string>
+    <string name="advisory_check_open_list">Dependencies</string>
+    <string name="advisory_check_running">Checking…</string>
+    <string name="advisory_check_never">Not checked yet.</string>
+    <string name="advisory_check_clean">Nothing new reported · last check %1$s</string>
+    <string name="advisory_check_found">%1$d new advisories · last check %2$s</string>
     <string name="rom_grapheneos_compat">Optional official Google Play, installed as ordinary sandboxed apps without privileged system access.</string>
     <string name="rom_grapheneos_focus">Strong security and privacy hardening.</string>
     <string name="rom_grapheneos_hardware">Primarily supported Google Pixel devices.</string>
