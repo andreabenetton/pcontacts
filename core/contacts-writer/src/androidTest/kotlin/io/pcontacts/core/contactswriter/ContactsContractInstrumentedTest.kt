@@ -453,6 +453,56 @@ class ContactsContractInstrumentedTest {
         assertEquals(groupId.toString(), memberships[0][GroupMembership.GROUP_ROW_ID])
     }
 
+    @Test
+    fun group_reader_returns_the_membership_row_ids() {
+        val groupId = LocalGroupsWriter(testProvider)
+            .reconcile(testAccount, listOf(ProtonLabel("label-gr", "ReaderGroup")))
+            .getValue("label-gr")
+        val row = ContactRow(
+            sourceId = "proton-gr1",
+            displayName = "GroupReader",
+            emails = listOf("gr@proton.me"),
+            groupRowIds = listOf(groupId)
+        )
+        BatchApplier(testProvider).apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
+        val rawId = findRawContactBySourceId("proton-gr1")!!
+
+        assertEquals(listOf(groupId), RawContactDataReader(testProvider).readGroupRowIds(rawId))
+    }
+
+    @Test
+    fun tombstone_restorer_makes_a_deleted_raw_contact_live_again_with_its_data() {
+        val row = ContactRow(sourceId = "proton-tomb", displayName = "Tomb Stone", emails = listOf("t@proton.me"))
+        BatchApplier(testProvider).apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
+        val rawId = findRawContactBySourceId("proton-tomb")!!
+        // The user deletes the contact: the provider tombstones it (DELETED=1, DIRTY=1).
+        testProvider.delete(
+            android.content.ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawId),
+            null,
+            null
+        )
+        assertEquals(1, rawContactFlag(rawId, RawContacts.DELETED))
+
+        val restored = TombstoneRestorer(testProvider).restore(testAccount, "proton-tomb")
+
+        assertEquals(1, restored)
+        assertEquals(0, rawContactFlag(rawId, RawContacts.DELETED))
+        assertEquals(0, rawContactFlag(rawId, RawContacts.DIRTY))
+        assertNotNull(queryDataRow(rawId, Email.CONTENT_ITEM_TYPE))
+        assertEquals(0, TombstoneRestorer(testProvider).restore(testAccount, "proton-tomb"))
+    }
+
+    private fun rawContactFlag(rawContactId: Long, column: String): Int =
+        testProvider.query(
+            RawContacts.CONTENT_URI.buildUpon()
+                .appendQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER, "true")
+                .build(),
+            arrayOf(column),
+            "${RawContacts._ID} = ?",
+            arrayOf(rawContactId.toString()),
+            null
+        )!!.use { if (it.moveToFirst()) it.getInt(0) else -1 }
+
     // ---- Idempotent sync ----
 
     @Test

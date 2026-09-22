@@ -17,7 +17,27 @@ sealed interface LinkedField {
     data class Im(val account: ImAccount) : LinkedField
 }
 
-/** Whether the field can reach the person — what [ContactRow] requires at least one of. */
+/**
+ * A stable identity for the field: kind plus normalised value. The
+ * import dialog remembers selections by this key and re-reads the
+ * candidates at confirmation, so a selection survives a re-aggregation
+ * (ADR-0023) and never indexes into a stale list.
+ */
+val LinkedField.key: String
+    get() = when (this) {
+        is LinkedField.PhoneNumber -> "phone:" + phone.number.filter { !it.isWhitespace() && it != '-' }
+        is LinkedField.EmailAddress -> "email:" + address.trim().lowercase()
+        is LinkedField.Address -> "addr:" + with(address) {
+            listOf(poBox, neighborhood, street, city, region, postcode, country).joinToString("|") { it?.trim().orEmpty() }
+        }
+        is LinkedField.Org -> "org:" + with(organization) {
+            listOf(company, department, title).joinToString("|") { it?.trim().orEmpty() }
+        }
+        is LinkedField.NoteText -> "note:" + note.trim()
+        is LinkedField.Im -> "im:" + with(account) { "${customProtocol ?: protocol.name}:${handle.trim()}" }
+    }
+
+/** Whether the field can reach the person — what a new Proton contact is created from (ADR-0023). */
 val LinkedField.reachesContact: Boolean
     get() = when (this) {
         is LinkedField.PhoneNumber, is LinkedField.EmailAddress, is LinkedField.Address, is LinkedField.Im -> true

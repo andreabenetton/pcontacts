@@ -6,14 +6,15 @@ package io.pcontacts.core.contactswriter
 import android.content.ContentProviderClient
 import android.database.Cursor
 import android.provider.ContactsContract.CommonDataKinds.Email
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
 import android.provider.ContactsContract.CommonDataKinds.Note
-import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.Photo
-import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
 import android.provider.ContactsContract.Data
+import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
+import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName
 
 /**
  * Reads all Data rows for a given RawContact and reconstructs a
@@ -35,6 +36,22 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
             null
         )
         return cursor?.use { parse(it, sourceId) }
+    }
+
+    /** The local Groups._ID values this RawContact is a member of (its GroupMembership rows). */
+    fun readGroupRowIds(rawContactId: Long): List<Long> {
+        val cursor = provider.query(
+            Data.CONTENT_URI,
+            arrayOf(GroupMembership.GROUP_ROW_ID),
+            "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?",
+            arrayOf(rawContactId.toString(), GroupMembership.CONTENT_ITEM_TYPE),
+            null
+        ) ?: return emptyList()
+        return cursor.use { c ->
+            val ids = ArrayList<Long>(c.count)
+            while (c.moveToNext()) if (!c.isNull(0)) ids += c.getLong(0)
+            ids
+        }
     }
 
     companion object {
@@ -164,7 +181,10 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
         fun build(sourceId: String): ContactRow? {
             // Primary-first ordering for emails
             val sortedEmails = emails.sortedByDescending { it.second }.map { it.first }
-            if (listOf(sortedEmails, phones, addresses, imAccounts).all { it.isEmpty() }) return null
+            val hasName = !displayName.isNullOrBlank() || structuredName != null
+            val hasField = listOf(sortedEmails, phones, addresses, imAccounts, notes).any { it.isNotEmpty() } ||
+                organization != null || photo != null
+            if (!hasName && !hasField) return null
             return ContactRow(
                 sourceId = sourceId,
                 displayName = displayName,

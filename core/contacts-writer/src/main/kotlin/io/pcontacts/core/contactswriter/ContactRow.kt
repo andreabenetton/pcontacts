@@ -56,14 +56,13 @@ data class ContactRow(
     val groupRowIds: List<Long> = emptyList()
 ) {
     init {
-        require(
-            emails.isNotEmpty() ||
-                phones.isNotEmpty() ||
-                addresses.isNotEmpty() ||
-                imAccounts.isNotEmpty()
-        ) {
-            "ContactRow must carry at least one email, phone, address, or IM account"
-        }
+        // A Proton contact needs no phone or email to be valid — a name alone
+        // is a contact (a note-only contact still has its FN). Only a row
+        // that says nothing at all is unrepresentable.
+        val hasName = !displayName.isNullOrBlank() || structuredName != null
+        val hasField = emails.isNotEmpty() || phones.isNotEmpty() || addresses.isNotEmpty() ||
+            imAccounts.isNotEmpty() || organization != null || notes.isNotEmpty() || photo != null
+        require(hasName || hasField) { "ContactRow must carry a name or at least one field" }
     }
 }
 

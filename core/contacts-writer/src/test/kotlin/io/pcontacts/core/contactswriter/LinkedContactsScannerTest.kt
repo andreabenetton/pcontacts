@@ -95,4 +95,19 @@ class LinkedContactsScannerTest {
         val listed = LinkedContactsScanner.summarize(account, whatsappOnly, mapOf(50L to real)).single()
         assertEquals(2, listed.newFieldCount)
     }
+
+    @Test fun allowlist_is_exactly_the_adr_0023_list() {
+        assertEquals(
+            listOf(
+                "vnd.android.cursor.item/name",
+                "vnd.android.cursor.item/email_v2",
+                "vnd.android.cursor.item/phone_v2",
+                "vnd.android.cursor.item/postal-address_v2",
+                "vnd.android.cursor.item/organization",
+                "vnd.android.cursor.item/note",
+                "vnd.android.cursor.item/im"
+            ),
+            LinkedContactsScanner.ALLOWED_MIMETYPES
+        )
+    }
 }

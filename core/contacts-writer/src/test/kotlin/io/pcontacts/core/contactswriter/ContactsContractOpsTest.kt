@@ -221,15 +221,10 @@ class ContactsContractOpsTest {
         assertTrue("ops 1..n must be inserts", ops.drop(1).all { it.isInsert })
     }
 
-    @Test fun contact_row_rejects_empty_email_AND_empty_phone_list() {
-        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
-            ContactRow(
-                sourceId = "c1",
-                displayName = "Alice",
-                emails = emptyList(),
-                phones = emptyList()
-            )
-        }
+    @Test fun contact_row_with_only_a_name_is_valid() {
+        // A Proton contact needs no phone or email; a name alone is a contact.
+        val row = ContactRow(sourceId = "c1", displayName = "Alice", emails = emptyList(), phones = emptyList())
+        assertEquals("Alice", row.displayName)
     }
 
     @Test fun phone_only_contact_is_allowed_and_emits_RawContacts_StructuredName_plus_Phone_rows() {
@@ -381,18 +376,9 @@ class ContactsContractOpsTest {
         )
     }
 
-    @Test fun contact_row_still_rejects_completely_actionless_rows() {
-        // No email, no phone, no address, no IM — must still be rejected.
-        // Note / org / photo alone aren't enough; the user can't do anything
-        // with a contact carrying just those.
+    @Test fun contact_row_that_says_nothing_at_all_is_rejected() {
         org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
-            ContactRow(
-                sourceId = "c1",
-                displayName = "Alice",
-                emails = emptyList(),
-                notes = listOf("alone"),
-                organization = Organization(company = "Acme")
-            )
+            ContactRow(sourceId = "c1", displayName = null, emails = emptyList())
         }
     }
 

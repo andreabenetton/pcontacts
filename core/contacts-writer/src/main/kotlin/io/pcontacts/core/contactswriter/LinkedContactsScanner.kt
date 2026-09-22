@@ -104,7 +104,7 @@ class LinkedContactsScanner(private val provider: ContentProviderClient) {
         )
 
         /** The ADR-0023 allowlist; photos are deliberately left out of the bulk read. */
-        private val ALLOWED_MIMETYPES = listOf(
+        internal val ALLOWED_MIMETYPES = listOf(
             StructuredName.CONTENT_ITEM_TYPE,
             Email.CONTENT_ITEM_TYPE,
             Phone.CONTENT_ITEM_TYPE,
