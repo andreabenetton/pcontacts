@@ -58,4 +58,25 @@ class SharedPreferencesUserPreferencesTest {
         prefs().systemContactsNoticeDismissed = true
         assertEquals(true, prefs().systemContactsNoticeDismissed)
     }
+
+    @Test
+    fun clearSyncState_resets_sync_fields_and_keeps_device_preferences() {
+        prefs().lastSyncSuccessAtMillis = 1_700_000_000_000L
+        prefs().lastSyncErrorCode = "reauth"
+        prefs().lastSyncFailedContacts = 2
+        prefs().syncProgressDone = 5
+        prefs().syncProgressTotal = 9
+        prefs().syncIntervalHours = 6L
+        prefs().systemContactsNoticeDismissed = true
+
+        prefs().clearSyncState()
+
+        assertEquals(0L, prefs().lastSyncSuccessAtMillis)
+        assertNull(prefs().lastSyncErrorCode)
+        assertEquals(0, prefs().lastSyncFailedContacts)
+        assertEquals(0, prefs().syncProgressDone)
+        assertEquals(0, prefs().syncProgressTotal)
+        assertEquals(6L, prefs().syncIntervalHours)
+        assertEquals(true, prefs().systemContactsNoticeDismissed)
+    }
 }

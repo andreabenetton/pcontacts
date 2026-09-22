@@ -58,6 +58,16 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, false)
         set(value) { prefs.edit().putBoolean(KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED, value).apply() }
 
+    override fun clearSyncState() {
+        prefs.edit()
+            .remove(KEY_LAST_SYNC_SUCCESS_AT)
+            .remove(KEY_LAST_SYNC_ERROR_CODE)
+            .remove(KEY_LAST_SYNC_FAILED_CONTACTS)
+            .remove(KEY_SYNC_PROGRESS_DONE)
+            .remove(KEY_SYNC_PROGRESS_TOTAL)
+            .commit()
+    }
+
     private companion object {
         const val PREFS_NAME = "pcontacts_user_prefs"
         const val KEY_SYNC_INTERVAL = "sync_interval_hours"

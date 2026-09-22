@@ -60,6 +60,15 @@ interface UserPreferences {
     /** Whether the user acknowledged the OS-apps contact-access notice ("Got it"). */
     var systemContactsNoticeDismissed: Boolean
 
+    /**
+     * Forgets everything that describes the signed-out account's syncs:
+     * last success time, last error, failed-contact count and any
+     * in-flight progress. Device preferences (interval, permission and
+     * notice flags) are kept — they are about this install, not the
+     * account. Called by the sign-out flow.
+     */
+    fun clearSyncState()
+
     companion object {
         const val DEFAULT_SYNC_INTERVAL_HOURS = 12L
         val ALLOWED_INTERVALS_HOURS = listOf(1L, 6L, 12L, 24L)

@@ -17,4 +17,12 @@ class InMemoryUserPreferences : UserPreferences {
     override var syncProgressDone: Int = 0
     override var syncProgressTotal: Int = 0
     override var systemContactsNoticeDismissed: Boolean = false
+
+    override fun clearSyncState() {
+        lastSyncSuccessAtMillis = 0L
+        lastSyncErrorCode = null
+        lastSyncFailedContacts = 0
+        syncProgressDone = 0
+        syncProgressTotal = 0
+    }
 }
