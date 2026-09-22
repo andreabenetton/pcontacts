@@ -279,7 +279,7 @@
     <string name="rom_replicant_note">Включён из-за важности как строго свободный Android-проект, а не как практическая замена современным проектам по доступности устройств.</string>
     <!-- Contribute (bottom of the main screen): repository link and buy me a coffee -->
     <string name="contribute_title">Участвовать</string>
-    <string name="contribute_detail">pcontacts — свободное ПО. Сообщения об ошибках, переводы и код приветствуются; значок GitHub вверху открывает репозиторий, где описано, как.</string>
+    <string name="contribute_detail">pcontacts — свободное ПО. Сообщения об ошибках, переводы и код приветствуются; значок GitHub в правом верхнем углу экрана открывает репозиторий, где описано, как.</string>
     <string name="topbar_repository_a11y">Открыть репозиторий исходного кода на GitHub</string>
     <string name="support_coffee_title">Угостить кофе</string>
     <string name="support_coffee_detail">Если pcontacts вам полезен, кофе приветствуется — в биткоинах. Нажмите на адрес, чтобы скопировать его.</string>

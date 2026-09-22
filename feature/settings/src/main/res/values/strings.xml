@@ -253,7 +253,7 @@
     <string name="rom_replicant_note">Listed for its importance as a strongly free-software Android project, not as a practical equivalent to current projects in device availability.</string>
     <!-- Contribute (bottom of the main screen): repository link and buy me a coffee -->
     <string name="contribute_title">Contribute</string>
-    <string name="contribute_detail">pcontacts is free software. Bug reports, translations and code are welcome; the GitHub mark above opens the repository, which explains how.</string>
+    <string name="contribute_detail">pcontacts is free software. Bug reports, translations and code are welcome; the GitHub mark at the top right of the screen opens the repository, which explains how.</string>
     <string name="topbar_repository_a11y">Open the source repository on GitHub</string>
     <string name="support_coffee_title">Buy me a coffee</string>
     <string name="support_coffee_detail">If pcontacts is useful to you, a coffee is welcome, in bitcoin. Tap the address to copy it.</string>
