@@ -30,6 +30,7 @@ import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.contacts.ChangeOp
+import io.pcontacts.core.sync.contacts.SERVER_DELETED_CONFLICT
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
@@ -286,7 +287,8 @@ class SettingsHost(
             ConflictInfo(
                 protonContactId = entity.protonContactId,
                 displayName = null,
-                conflictFields = entity.lastError?.removePrefix("conflict: ")
+                conflictFields = entity.lastError?.removePrefix("conflict: "),
+                serverDeleted = entity.lastError == SERVER_DELETED_CONFLICT
             )
         }
 
