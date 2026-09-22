@@ -4,6 +4,7 @@
 package io.pcontacts.app
 
 import android.app.Application
+import io.pcontacts.app.advisories.AdvisoryScheduler
 import io.pcontacts.app.notifications.NotificationChannels
 import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
@@ -14,5 +15,6 @@ class PcontactsApplication : Application() {
         NotificationChannels.createAll(this)
         val prefs = SharedPreferencesUserPreferences(this)
         SyncScheduler.schedulePeriodic(this, prefs.syncIntervalHours)
+        if (prefs.advisoryCheckEnabled) AdvisoryScheduler.schedule(this)
     }
 }

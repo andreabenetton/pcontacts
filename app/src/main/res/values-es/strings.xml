@@ -24,6 +24,8 @@
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 guarda tu sesión con un cifrado más robusto y vinculado al dispositivo. Inicia sesión de nuevo una vez para reanudar la sincronización de contactos.</string>
     <string name="notification_vulnerability_title">Aviso de seguridad</string>
     <string name="notification_vulnerability_text">Esta versión incluye una dependencia con una vulnerabilidad conocida sin corregir. Toca para ver cuál y a qué afecta.</string>
+    <string name="notification_advisory_title">Nuevo aviso de seguridad</string>
+    <string name="notification_advisory_text">osv.dev ha notificado %1$d avisos nuevos sobre las dependencias de esta versión. Toca para verlos.</string>
     <string name="notification_sync_failure_title">Falló la sincronización de contactos</string>
     <string name="notification_sync_failure_text">La sincronización ha fallado repetidamente. Abre la app para comprobar tu conexión y volver a intentarlo.</string>
     <string name="notification_permission_denied">Las notificaciones están desactivadas. La sincronización sigue funcionando, pero no verás avisos cuando se necesite una acción.</string>

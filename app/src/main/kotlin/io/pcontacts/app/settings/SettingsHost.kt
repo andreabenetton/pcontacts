@@ -21,6 +21,7 @@ import androidx.activity.ComponentActivity
 import io.pcontacts.app.account.LogoutHelper
 import io.pcontacts.app.account.MissingContactsPermissionException
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
+import io.pcontacts.app.advisories.AdvisoryBootstrap
 import io.pcontacts.app.sync.SyncErrorCodes
 import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.sync.SyncScheduler
@@ -83,6 +84,9 @@ class SettingsHost(
             querySyncProgress = ::querySyncProgress,
             querySystemNoticeDismissed = { userPrefs.systemContactsNoticeDismissed },
             dismissSystemNotice = { userPrefs.systemContactsNoticeDismissed = true },
+            queryAdvisoryState = { AdvisoryBootstrap.state(context, userPrefs) },
+            setAdvisoryCheckEnabled = { AdvisoryBootstrap.setEnabled(context, it, userPrefs) },
+            runAdvisoryCheck = { AdvisoryBootstrap.runCheck(context, userPrefs) },
             initialSyncIntervalHours = userPrefs.syncIntervalHours
         )
     }

@@ -24,6 +24,8 @@
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 speichert Ihre Sitzung mit stärkerer, gerätegebundener Verschlüsselung. Melden Sie sich einmal erneut an, um die Kontaktsynchronisierung fortzusetzen.</string>
     <string name="notification_vulnerability_title">Sicherheitshinweis</string>
     <string name="notification_vulnerability_text">Diese Version enthält eine Abhängigkeit mit einer bekannten offenen Schwachstelle. Tippen Sie, um zu sehen, welche und was betroffen ist.</string>
+    <string name="notification_advisory_title">Neuer Sicherheitshinweis</string>
+    <string name="notification_advisory_text">osv.dev hat %1$d neue Hinweise zu Abhängigkeiten dieser Version gemeldet. Tippen Sie, um sie zu sehen.</string>
     <string name="notification_sync_failure_title">Kontaktsynchronisierung fehlgeschlagen</string>
     <string name="notification_sync_failure_text">Die Synchronisierung ist wiederholt fehlgeschlagen. Öffnen Sie die App, um Ihre Verbindung zu prüfen und es erneut zu versuchen.</string>
     <string name="notification_permission_denied">Benachrichtigungen sind deaktiviert. Die Synchronisierung funktioniert weiterhin, aber Sie erhalten keine Hinweise, wenn eine Aktion erforderlich ist.</string>

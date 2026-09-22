@@ -68,6 +68,19 @@ class SyncNotifier(private val context: Context) {
         )
     }
 
+    /** The opt-in runtime check found advisories the snapshot does not list (ADR-0025). */
+    fun notifyNewAdvisories(count: Int) {
+        post(
+            id = NOTIFICATION_ID_ADVISORY,
+            title = R.string.notification_advisory_title,
+            text = R.string.notification_advisory_text,
+            formatArg = count,
+            intent = Intent(context, DependenciesActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+        )
+    }
+
     fun notifyPersistentFailure(
         @Suppress("UNUSED_PARAMETER") account: Account,
         @Suppress("UNUSED_PARAMETER") reason: String
@@ -79,7 +92,15 @@ class SyncNotifier(private val context: Context) {
         )
     }
 
-    private fun post(id: Int, title: Int, text: Int, intent: Intent? = null, headsUp: Boolean = false) {
+    @Suppress("LongParameterList") // one parameter per notification facet
+    private fun post(
+        id: Int,
+        title: Int,
+        text: Int,
+        intent: Intent? = null,
+        headsUp: Boolean = false,
+        formatArg: Any? = null
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
@@ -94,11 +115,12 @@ class SyncNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val channel = if (headsUp) NotificationChannels.SIGN_IN_REQUIRED else NotificationChannels.ACTION_REQUIRED
+        val body = if (formatArg == null) context.getString(text) else context.getString(text, formatArg)
         val notification = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(title))
-            .setContentText(context.getString(text))
-            .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(text)))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(if (headsUp) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .setOnlyAlertOnce(headsUp)
             .setAutoCancel(true)
@@ -119,5 +141,6 @@ class SyncNotifier(private val context: Context) {
         private const val NOTIFICATION_ID_VERIFICATION = 9001
         private const val NOTIFICATION_ID_FAILURE = 9003
         private const val NOTIFICATION_ID_VULNERABILITY = 9004
+        private const val NOTIFICATION_ID_ADVISORY = 9005
     }
 }

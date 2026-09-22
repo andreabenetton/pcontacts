@@ -39,6 +39,7 @@ import androidx.lifecycle.lifecycleScope
 import io.pcontacts.app.account.LogoutHelper
 import io.pcontacts.app.account.MissingContactsPermissionException
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
+import io.pcontacts.app.advisories.AdvisoryBootstrap
 import io.pcontacts.app.auth.LoginActivity
 import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.app.notifications.SyncNotifier
@@ -111,7 +112,8 @@ class MainActivity : ComponentActivity() {
         )
         signOutAfterStorageUpgradeIfNeeded()
         VulnerabilityNotice.postIfOpen(this)
-        val auditStatus = DependencyAuditAsset.load(this).status
+        val audit = DependencyAuditAsset.load(this)
+        val signedOutStatus = audit.withRuntime(AdvisoryBootstrap.state(this)).status
         val openDependencies = { startActivity(Intent(this, DependenciesActivity::class.java)) }
 
         setContent {
@@ -137,7 +139,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         },
-                        auditStatus = auditStatus
+                        audit = audit
                     )
                 } else {
                     SignInScreen(
@@ -147,7 +149,7 @@ class MainActivity : ComponentActivity() {
                         onOpenDeGoogledRoms = { startActivity(Intent(this, DeGoogledRomsActivity::class.java)) },
                         storageUpgradeNotice = storageUpgradeNotice,
                         snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(snackbarData = data) } },
-                        audit = AuditIndicator(auditStatus, openDependencies)
+                        audit = AuditIndicator(signedOutStatus, openDependencies)
                     )
                 }
 

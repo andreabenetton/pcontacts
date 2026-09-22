@@ -24,6 +24,8 @@
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 使用更安全、与设备绑定的加密方式保存您的会话。请重新登录一次以恢复联系人同步。</string>
     <string name="notification_vulnerability_title">安全提示</string>
     <string name="notification_vulnerability_text">此版本包含一个存在已知未修复漏洞的依赖项。点按查看是哪一个以及影响范围。</string>
+    <string name="notification_advisory_title">新的安全公告</string>
+    <string name="notification_advisory_text">osv.dev 报告了本版本依赖项的 %1$d 条新公告。点按查看。</string>
     <string name="notification_sync_failure_title">联系人同步失败</string>
     <string name="notification_sync_failure_text">同步多次失败。请打开应用检查网络连接并重试。</string>
     <string name="notification_permission_denied">通知已停用。同步仍会正常进行，但在需要操作时您不会收到提醒。</string>
