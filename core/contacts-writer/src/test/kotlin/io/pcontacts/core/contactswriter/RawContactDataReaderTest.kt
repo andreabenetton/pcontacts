@@ -284,12 +284,12 @@ class RawContactDataReaderTest {
         assertEquals(1, row.phones.size)
     }
 
-    @Test fun parse_no_actionable_fields_returns_null() {
+    @Test fun parse_name_only_row_is_kept() {
         val cursor = MatrixCursor(columns).apply {
             addRow(structuredNameRow("Alice"))
             addRow(noteRow("Just a note"))
         }
-        assertNull(RawContactDataReader.parse(cursor, "ct-1"))
+        assertNotNull(RawContactDataReader.parse(cursor, "ct-1"))
     }
 
     @Test fun parse_unknown_mime_type_ignored() {
