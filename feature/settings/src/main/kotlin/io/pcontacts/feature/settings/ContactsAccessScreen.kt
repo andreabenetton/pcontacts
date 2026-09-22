@@ -43,16 +43,13 @@ fun ContactsAccessScreen(
     apps: List<ContactsAccessApp>,
     permissionRoute: ContactsPermissionRoute,
     onOpenPermission: () -> Unit,
+    onOpenDeGoogledRoms: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val titleRes = when (kind) {
         ContactsAccessKind.USER -> R.string.contacts_access_dialog_title
         ContactsAccessKind.SYSTEM -> R.string.system_contacts_access_dialog_title
-    }
-    val detailRes = when (kind) {
-        ContactsAccessKind.USER -> R.string.contacts_access_detail
-        ContactsAccessKind.SYSTEM -> R.string.system_contacts_access_detail
     }
     Scaffold(
         modifier = modifier,
@@ -65,7 +62,7 @@ fun ContactsAccessScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Spacer(Modifier.height(8.dp))
-                Text(text = stringResource(detailRes), style = MaterialTheme.typography.bodySmall)
+                Detail(kind = kind, onOpenDeGoogledRoms = onOpenDeGoogledRoms)
                 Spacer(Modifier.height(16.dp))
                 AppList(apps)
                 Spacer(Modifier.height(16.dp))
@@ -83,6 +80,26 @@ fun ContactsAccessScreen(
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+/**
+ * The explanation above the list. For OS-installed apps it ends with
+ * the advice to run on a de-Googled ROM, where the phrase itself is a
+ * link to [DeGoogledRomsScreen].
+ */
+@Composable
+private fun Detail(kind: ContactsAccessKind, onOpenDeGoogledRoms: () -> Unit) {
+    when (kind) {
+        ContactsAccessKind.USER -> Text(
+            text = stringResource(R.string.contacts_access_detail),
+            style = MaterialTheme.typography.bodySmall
+        )
+        ContactsAccessKind.SYSTEM -> LinkedText(
+            templateRes = R.string.system_contacts_access_detail,
+            phraseRes = R.string.de_googled_rom_link,
+            onClick = onOpenDeGoogledRoms
+        )
     }
 }
 

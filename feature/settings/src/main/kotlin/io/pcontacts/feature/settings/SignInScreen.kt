@@ -30,11 +30,19 @@ private val SignInGreen = Color(0xFF2E9E5B)
  * signing in and signing out happen in the same place on the same
  * screen. [loading] disables the button while the account state is
  * still being read.
+ *
+ * While the Contacts permission has not been granted yet — that is,
+ * before the first sync could expose anything — the bottom of the
+ * screen says who will be able to read the synced contacts and links
+ * the de-Googled ROM explanation, so the choice is informed before it
+ * is made.
  */
 @Composable
 fun SignInScreen(
     loading: Boolean,
+    contactsPermissionGranted: Boolean,
     onSignIn: () -> Unit,
+    onOpenDeGoogledRoms: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: @Composable () -> Unit = {}
 ) {
@@ -58,6 +66,16 @@ fun SignInScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.settings_sign_in))
+            }
+            if (!contactsPermissionGranted) {
+                Spacer(Modifier.weight(1f))
+                LinkedText(
+                    templateRes = R.string.sign_in_rom_notice,
+                    phraseRes = R.string.de_googled_rom_link,
+                    onClick = onOpenDeGoogledRoms,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(16.dp))
             }
         }
     }

@@ -81,7 +81,7 @@
         <item quantity="one">%d app di sistema può leggere i tuoi contatti</item>
         <item quantity="other">%d app di sistema possono leggere i tuoi contatti</item>
     </plurals>
-    <string name="system_contacts_access_detail">Queste app sono preinstallate dal sistema operativo e hanno il permesso READ_CONTACTS per impostazione predefinita. Su Android stock sono in genere servizi Google o dell\'OEM non disinstallabili. Per una maggiore privacy esegui pcontacts su una ROM senza Google come GrapheneOS o LineageOS.</string>
+    <string name="system_contacts_access_detail">Queste app sono preinstallate dal sistema operativo e hanno il permesso READ_CONTACTS per impostazione predefinita. Su Android stock sono in genere servizi Google o dell\'OEM non disinstallabili. Per una maggiore privacy esegui pcontacts su una %1$s.</string>
     <string name="system_contacts_access_dialog_title">App di sistema con accesso ai contatti</string>
 
     <string name="linked_import_button">Importa dettagli dai contatti collegati</string>
@@ -167,4 +167,49 @@
     <string name="linked_import_row_added">Aggiunto a Proton</string>
     <string name="linked_import_select_a11y">Seleziona %1$s</string>
     <string name="linked_import_row_syncing">Sincronizzazione…</string>
+
+    <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
+    <string name="de_googled_rom_link">ROM senza Google</string>
+    <string name="sign_in_rom_notice">Una volta sincronizzati, i tuoi contatti possono essere letti da ogni app con il permesso Contatti. Su Android stock ciò include servizi Google e dell\'OEM che non puoi rimuovere. Per una configurazione privata, esegui pcontacts su una %1$s.</string>
+    <string name="rom_screen_title">ROM Android senza Google</string>
+    <string name="rom_intro_definition">Una ROM Android senza Google è un sistema operativo derivato da Android utilizzabile senza che i Google Play Services proprietari e le app Google abbiano accesso privilegiato al dispositivo.</string>
+    <string name="rom_intro_approaches">I progetti seguono approcci diversi: alcuni rimuovono del tutto i componenti Google, altri sostituiscono parte dei Google Play Services con microG, altri ancora permettono di installare i Google Play Services in modo opzionale, senza accesso privilegiato al sistema.</string>
+    <string name="rom_intro_security">Essere senza Google è cosa distinta dalla sicurezza del sistema operativo. Verified Boot, blocco del bootloader, aggiornamenti di sicurezza, supporto hardware e isolamento delle app vanno valutati separatamente. I progetti qui sotto non sono classificati e non offrono garanzie equivalenti.</string>
+    <string name="rom_label_google_free">Senza Google per impostazione predefinita</string>
+    <string name="rom_label_compat">Compatibilità Google</string>
+    <string name="rom_label_focus">Obiettivo</string>
+    <string name="rom_label_hardware">Hardware</string>
+    <string name="rom_google_free_yes">Sì</string>
+    <string name="rom_website">Sito ufficiale</string>
+    <string name="rom_website_a11y">Apri il sito di %1$s</string>
+    <string name="rom_no_browser">Nessuna app su questo dispositivo può aprire link web.</string>
+    <string name="rom_grapheneos_compat">Google Play ufficiale opzionale, installato come normali app in sandbox senza accesso privilegiato al sistema.</string>
+    <string name="rom_grapheneos_focus">Forte irrobustimento di sicurezza e privacy.</string>
+    <string name="rom_grapheneos_hardware">Principalmente i dispositivi Google Pixel supportati.</string>
+    <string name="rom_grapheneos_note">Non usa microG: se scegli di installarli, i veri componenti Google Play girano nella normale sandbox delle app.</string>
+    <string name="rom_calyxos_compat">microG opzionale.</string>
+    <string name="rom_calyxos_focus">Privacy con compatibilità delle app e usabilità relativamente alte.</string>
+    <string name="rom_calyxos_hardware">Diverse famiglie di dispositivi, tra cui Pixel e alcuni Fairphone, Motorola e SHIFT; l\'elenco cambia nel tempo.</string>
+    <string name="rom_iodeos_compat">Usa microG.</string>
+    <string name="rom_iodeos_focus">Privacy, blocco dei tracker e visibilità e controllo a livello di rete.</string>
+    <string name="rom_iodeos_hardware">Una gamma di dispositivi di diversi produttori.</string>
+    <string name="rom_eos_compat">Usa microG per le app che dipendono dai servizi Google.</string>
+    <string name="rom_eos_focus">Ecosistema senza Google orientato al consumatore, con app e servizi sostitutivi.</string>
+    <string name="rom_eos_hardware">Ampio supporto di dispositivi; versioni di Android e stato del supporto di sicurezza variano da dispositivo a dispositivo.</string>
+    <string name="rom_lineage_microg_compat">microG è integrato nella distribuzione.</string>
+    <string name="rom_lineage_microg_focus">LineageOS combinato con uno strato di compatibilità libero e open source per i servizi Google.</string>
+    <string name="rom_lineage_microg_hardware">Ampio supporto di dispositivi ereditato da LineageOS, limitato ai dispositivi per cui questo progetto compila davvero.</string>
+    <string name="rom_lineage_microg_note">Un progetto distinto dal LineageOS standard.</string>
+    <string name="rom_lineageos_google_free">Sì, se installato senza un pacchetto Google Apps.</string>
+    <string name="rom_lineageos_compat">Le Google Apps non sono richieste; gli utenti possono installare pacchetti Google separatamente dove supportato.</string>
+    <string name="rom_lineageos_focus">Distribuzione Android open source generalista con ampio supporto hardware.</string>
+    <string name="rom_lineageos_hardware">Copertura di dispositivi molto ampia rispetto alla maggior parte delle distribuzioni orientate alla privacy.</string>
+    <string name="rom_lineageos_note">Non è una distribuzione orientata alla privacy nel senso di GrapheneOS o dei progetti senza Google dedicati; è elencata perché può funzionare senza lo stack proprietario di Google.</string>
+    <string name="rom_shiftos_compat">La variante senza Google del sistema Android di SHIFT.</string>
+    <string name="rom_shiftos_focus">Android senza Google su hardware SHIFT supportato.</string>
+    <string name="rom_shiftos_hardware">SHIFTphones.</string>
+    <string name="rom_replicant_compat">I servizi Google non sono il suo obiettivo.</string>
+    <string name="rom_replicant_focus">Libertà del software: sostituire o evitare i componenti Android proprietari ovunque possibile.</string>
+    <string name="rom_replicant_hardware">Hardware limitato e in gran parte datato rispetto agli altri progetti in elenco.</string>
+    <string name="rom_replicant_note">Elencato per la sua importanza come progetto Android rigorosamente libero, non come equivalente pratico dei progetti attuali nella disponibilità di dispositivi.</string>
 </resources>

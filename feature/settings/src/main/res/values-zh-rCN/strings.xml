@@ -74,7 +74,7 @@
     <plurals name="system_contacts_access_count">
         <item quantity="other">%d 个系统预装应用可以读取您的联系人</item>
     </plurals>
-    <string name="system_contacts_access_detail">这些应用随操作系统预装，并默认获得了 READ_CONTACTS 权限。在原生 Android 上，它们通常是无法卸载的 Google 或厂商服务。为了更好地保护隐私，请在 GrapheneOS 或 LineageOS 等去 Google 化的 ROM 上运行 pcontacts。</string>
+    <string name="system_contacts_access_detail">这些应用随操作系统预装，并默认获得了 READ_CONTACTS 权限。在原生 Android 上，它们通常是无法卸载的 Google 或厂商服务。为了更好地保护隐私，请在%1$s上运行 pcontacts。</string>
     <string name="system_contacts_access_dialog_title">可访问联系人的系统应用</string>
 
     <string name="linked_import_button">从关联联系人导入详情</string>
@@ -154,4 +154,49 @@
     <string name="linked_import_row_added">已添加到 Proton</string>
     <string name="linked_import_select_a11y">选择 %1$s</string>
     <string name="linked_import_row_syncing">正在同步…</string>
+
+    <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
+    <string name="de_googled_rom_link">去 Google 化的 ROM</string>
+    <string name="sign_in_rom_notice">同步后，任何拥有“通讯录”权限的应用都能读取您的联系人。在原生 Android 上，这包括无法移除的 Google 和厂商服务。若要保护隐私，请在%1$s上运行 pcontacts。</string>
+    <string name="rom_screen_title">去 Google 化的 Android ROM</string>
+    <string name="rom_intro_definition">去 Google 化的 Android ROM 是一种源自 Android 的操作系统，可以在 Google 专有的 Play 服务和 Google 应用不拥有设备特权访问的情况下使用。</string>
+    <string name="rom_intro_approaches">各项目采取不同的做法：有的完全移除 Google 组件，有的用 microG 替代部分 Google Play 服务，还有的允许在没有系统特权的情况下选择性安装 Google Play 服务。</string>
+    <string name="rom_intro_security">去 Google 化与操作系统的安全性是两回事。Verified Boot、引导加载程序锁定、安全更新、硬件支持和应用沙盒必须单独评估。以下项目未做排名，也不提供同等保证。</string>
+    <string name="rom_label_google_free">默认不含 Google</string>
+    <string name="rom_label_compat">Google 兼容性</string>
+    <string name="rom_label_focus">侧重点</string>
+    <string name="rom_label_hardware">硬件</string>
+    <string name="rom_google_free_yes">是</string>
+    <string name="rom_website">官方网站</string>
+    <string name="rom_website_a11y">打开 %1$s 网站</string>
+    <string name="rom_no_browser">此设备上没有可以打开网页链接的应用。</string>
+    <string name="rom_grapheneos_compat">可选安装官方 Google Play，作为普通沙盒应用运行，没有系统特权。</string>
+    <string name="rom_grapheneos_focus">强安全性和隐私加固。</string>
+    <string name="rom_grapheneos_hardware">主要是受支持的 Google Pixel 设备。</string>
+    <string name="rom_grapheneos_note">不使用 microG：若您选择安装，真正的 Google Play 组件会在普通应用沙盒中运行。</string>
+    <string name="rom_calyxos_compat">可选 microG。</string>
+    <string name="rom_calyxos_focus">隐私，同时具有较高的应用兼容性和易用性。</string>
+    <string name="rom_calyxos_hardware">多个设备系列，包括 Pixel 以及部分 Fairphone、Motorola 和 SHIFT 设备；列表会随时间变化。</string>
+    <string name="rom_iodeos_compat">使用 microG。</string>
+    <string name="rom_iodeos_focus">隐私、跟踪器拦截以及网络层面的可见性与控制。</string>
+    <string name="rom_iodeos_hardware">多家厂商的一系列设备。</string>
+    <string name="rom_eos_compat">为依赖 Google 服务的应用使用 microG。</string>
+    <string name="rom_eos_focus">面向消费者的去 Google 化生态系统，提供替代应用和服务。</string>
+    <string name="rom_eos_hardware">设备支持广泛；Android 版本和安全支持状态因设备而异。</string>
+    <string name="rom_lineage_microg_compat">microG 已集成到发行版中。</string>
+    <string name="rom_lineage_microg_focus">LineageOS 结合自由开源的 Google 服务兼容层。</string>
+    <string name="rom_lineage_microg_hardware">继承自 LineageOS 的广泛设备支持，但仅限该项目实际构建的设备。</string>
+    <string name="rom_lineage_microg_note">与标准 LineageOS 是不同的项目。</string>
+    <string name="rom_lineageos_google_free">是，在不安装 Google Apps 包的情况下。</string>
+    <string name="rom_lineageos_compat">不需要 Google Apps；在受支持的配置上，用户可以另行安装 Google 软件包。</string>
+    <string name="rom_lineageos_focus">通用的开源 Android 发行版，硬件支持广泛。</string>
+    <string name="rom_lineageos_hardware">与大多数注重隐私的发行版相比，设备覆盖范围非常广。</string>
+    <string name="rom_lineageos_note">并非 GrapheneOS 或专门去 Google 化项目那种注重隐私的发行版；列出它是因为它可以在没有 Google 专有组件的情况下运行。</string>
+    <string name="rom_shiftos_compat">SHIFT Android 操作系统的无 Google 版本。</string>
+    <string name="rom_shiftos_focus">在受支持的 SHIFT 硬件上运行无 Google 的 Android。</string>
+    <string name="rom_shiftos_hardware">SHIFTphone。</string>
+    <string name="rom_replicant_compat">Google 服务不是其目标。</string>
+    <string name="rom_replicant_focus">软件自由：尽可能替换或避免专有的 Android 组件。</string>
+    <string name="rom_replicant_hardware">与此列表中的其他项目相比，硬件有限且大多较旧。</string>
+    <string name="rom_replicant_note">因其作为严格自由软件 Android 项目的重要性而列出，在设备可用性上并非当前项目的实际等价物。</string>
 </resources>

@@ -81,7 +81,7 @@
         <item quantity="one">%d OS-installed app can read your contacts</item>
         <item quantity="other">%d OS-installed apps can read your contacts</item>
     </plurals>
-    <string name="system_contacts_access_detail">These apps shipped with your OS and were granted READ_CONTACTS by default. On stock Android they are typically Google or OEM services that cannot be uninstalled. For better privacy, run pcontacts on a de-Googled ROM such as GrapheneOS or LineageOS.</string>
+    <string name="system_contacts_access_detail">These apps shipped with your OS and were granted READ_CONTACTS by default. On stock Android they are typically Google or OEM services that cannot be uninstalled. For better privacy, run pcontacts on a %1$s.</string>
     <string name="system_contacts_access_dialog_title">System apps with contact access</string>
 
     <string name="linked_import_button">Import details from linked contacts</string>
@@ -167,4 +167,49 @@
     <string name="linked_import_row_added">Added to Proton</string>
     <string name="linked_import_select_a11y">Select %1$s</string>
     <string name="linked_import_row_syncing">Syncing…</string>
+
+    <!-- De-Googled ROM information screen (linked from the OS-apps notice and the sign-in screen) -->
+    <string name="de_googled_rom_link">de-Googled ROM</string>
+    <string name="sign_in_rom_notice">Once synced, your contacts can be read by every app that holds the Contacts permission. On stock Android that includes Google and OEM services you cannot remove. For a private setup, run pcontacts on a %1$s.</string>
+    <string name="rom_screen_title">De-Googled Android ROMs</string>
+    <string name="rom_intro_definition">A de-Googled Android ROM is an Android-derived operating system that can be used without Google\'s proprietary Play Services and Google app stack having privileged access to the device.</string>
+    <string name="rom_intro_approaches">Projects take different approaches: some remove Google components entirely, some replace parts of Google Play Services with microG, and others let Google Play Services be installed optionally without privileged system access.</string>
+    <string name="rom_intro_security">Being de-Googled is distinct from the security of the operating system. Verified Boot, bootloader locking, security updates, hardware support and app sandboxing must be judged separately. The projects below are not ranked and do not offer equivalent guarantees.</string>
+    <string name="rom_label_google_free">Google-free by default</string>
+    <string name="rom_label_compat">Google compatibility</string>
+    <string name="rom_label_focus">Focus</string>
+    <string name="rom_label_hardware">Hardware</string>
+    <string name="rom_google_free_yes">Yes</string>
+    <string name="rom_website">Official website</string>
+    <string name="rom_website_a11y">Open the %1$s website</string>
+    <string name="rom_no_browser">No app on this device can open web links.</string>
+    <string name="rom_grapheneos_compat">Optional official Google Play, installed as ordinary sandboxed apps without privileged system access.</string>
+    <string name="rom_grapheneos_focus">Strong security and privacy hardening.</string>
+    <string name="rom_grapheneos_hardware">Primarily supported Google Pixel devices.</string>
+    <string name="rom_grapheneos_note">Does not use microG: when you choose to install them, the real Google Play components run inside the normal app sandbox.</string>
+    <string name="rom_calyxos_compat">Optional microG.</string>
+    <string name="rom_calyxos_focus">Privacy with relatively high app compatibility and usability.</string>
+    <string name="rom_calyxos_hardware">Several device families, including Pixels and selected Fairphone, Motorola and SHIFT devices; the list changes over time.</string>
+    <string name="rom_iodeos_compat">Uses microG.</string>
+    <string name="rom_iodeos_focus">Privacy, tracker blocking and network-level visibility and control.</string>
+    <string name="rom_iodeos_hardware">A range of devices from several manufacturers.</string>
+    <string name="rom_eos_compat">Uses microG for apps that depend on Google services.</string>
+    <string name="rom_eos_focus">Consumer-friendly de-Googled ecosystem with replacement apps and services.</string>
+    <string name="rom_eos_hardware">Broad device support; Android versions and security-support status vary between devices.</string>
+    <string name="rom_lineage_microg_compat">microG is integrated into the distribution.</string>
+    <string name="rom_lineage_microg_focus">LineageOS combined with a free and open-source Google-services compatibility layer.</string>
+    <string name="rom_lineage_microg_hardware">Broad device support inherited from LineageOS, limited to the devices this project actually builds for.</string>
+    <string name="rom_lineage_microg_note">A distinct project from standard LineageOS.</string>
+    <string name="rom_lineageos_google_free">Yes, when installed without a Google Apps package.</string>
+    <string name="rom_lineageos_compat">Google Apps are not required; users may install Google packages separately where supported.</string>
+    <string name="rom_lineageos_focus">General-purpose open-source Android distribution with broad hardware support.</string>
+    <string name="rom_lineageos_hardware">Very broad device coverage compared with most privacy-focused distributions.</string>
+    <string name="rom_lineageos_note">Not a privacy-focused distribution in the sense of GrapheneOS or the dedicated de-Googled projects; listed because it can run without Google\'s proprietary stack.</string>
+    <string name="rom_shiftos_compat">The Google-free variant of SHIFT\'s Android operating system.</string>
+    <string name="rom_shiftos_focus">Google-free Android on supported SHIFT hardware.</string>
+    <string name="rom_shiftos_hardware">SHIFTphones.</string>
+    <string name="rom_replicant_compat">Google services are not its objective.</string>
+    <string name="rom_replicant_focus">Software freedom: replacing or avoiding proprietary Android components wherever possible.</string>
+    <string name="rom_replicant_hardware">Limited and largely older hardware compared with the other projects here.</string>
+    <string name="rom_replicant_note">Listed for its importance as a strongly free-software Android project, not as a practical equivalent to current projects in device availability.</string>
 </resources>
