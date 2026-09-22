@@ -5,13 +5,16 @@ package io.pcontacts.app.settings
 
 import android.accounts.Account
 import android.accounts.AccountManager
+import android.accounts.AuthenticatorDescription
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.ContactsContract
+import androidx.core.graphics.drawable.toBitmap
 import io.pcontacts.app.R
 import io.pcontacts.core.contactswriter.LinkedContactCandidates
 import io.pcontacts.core.contactswriter.LinkedField
@@ -36,6 +39,9 @@ class LinkedImportBridge(
     private var loaded: LinkedContactCandidates? = null
     private var loadedContactId: Long = 0L
 
+    /** Launcher icons per provider account type, loaded once per bridge; null where there is no app (device-local). */
+    private val iconCache = HashMap<String?, Bitmap?>()
+
     /** Every contact with something to bring into Proton, providers resolved to labels. */
     suspend fun scan(): List<LinkedContactRow> {
         val account = account() ?: return emptyList()
@@ -44,6 +50,7 @@ class LinkedImportBridge(
                 contactId = summary.contactId,
                 name = summary.displayName,
                 sources = summary.sourceAccountTypes.map(::sourceLabel).distinct().joinToString(", "),
+                sourceIcons = sourceIcons(summary.sourceAccountTypes),
                 inProton = summary.hasProtonCopy,
                 newFields = summary.newFieldCount
             )
@@ -109,7 +116,8 @@ class LinkedImportBridge(
                     id = idx,
                     kind = LinkedImportFormat.kind(candidate.field),
                     value = LinkedImportFormat.value(candidate.field),
-                    source = candidate.sourceAccountTypes.map(::sourceLabel).distinct().joinToString(", ")
+                    source = candidate.sourceAccountTypes.map(::sourceLabel).distinct().joinToString(", "),
+                    sourceIcons = sourceIcons(candidate.sourceAccountTypes)
                 )
             }
         )
@@ -151,6 +159,23 @@ class LinkedImportBridge(
             null
         )?.use { if (it.moveToFirst()) it.getString(0) else null }
 
+    /** The providers' launcher icons, in the given order, skipping device-local rows. */
+    private fun sourceIcons(accountTypes: List<String?>): List<Bitmap> =
+        accountTypes.distinct().mapNotNull { type ->
+            iconCache.getOrPut(type) {
+                authenticatorOf(type)?.let { auth ->
+                    try {
+                        context.packageManager.getApplicationIcon(auth.packageName).toBitmap(ICON_PX, ICON_PX)
+                    } catch (_: PackageManager.NameNotFoundException) {
+                        null
+                    }
+                }
+            }
+        }
+
+    private fun authenticatorOf(accountType: String?): AuthenticatorDescription? =
+        accountType?.let { type -> AccountManager.get(context).authenticatorTypes.firstOrNull { it.type == type } }
+
     /**
      * The owning app's authenticator label ("WhatsApp"). A type no
      * authenticator claims (null, or a bare "PHONE" as seen on Pixel) is
@@ -159,9 +184,7 @@ class LinkedImportBridge(
     private fun sourceLabel(accountType: String?): String {
         val device = context.getString(R.string.linked_import_source_device)
         if (accountType == null) return device
-        val authenticator = AccountManager.get(context).authenticatorTypes
-            .firstOrNull { it.type == accountType }
-            ?: return device
+        val authenticator = authenticatorOf(accountType) ?: return device
         return try {
             context.packageManager
                 .getResourcesForApplication(authenticator.packageName)
@@ -203,3 +226,6 @@ internal object LinkedImportFormat {
         }
     }
 }
+
+/** Provider icons are shown at 16 dp; 96 px is plenty for any density. */
+private const val ICON_PX = 96
