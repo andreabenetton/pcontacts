@@ -102,7 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deprecated `androidx.security:security-crypto` (alpha) and Tink are
   gone. After updating from 1.x, sign in again once: stored session
   material from earlier versions is deleted on first start; contacts
-  and the account stay.
+  and the account stay. The sync card and the notification say that
+  the sign-in is owed to the storage upgrade, not an expired session.
 - **The sync-adapter and authenticator services are no longer
   exported**, and the sync binder is handed out only to the system's
   sync-adapter bind.

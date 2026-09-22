@@ -5,3 +5,4 @@ Versión 2.0.0.
 * Consulta qué apps pueden leer tus contactos, con acceso a la página de permisos.
 * Nueva guía «ROMs de Android sin Google».
 * Permisos tras iniciar sesión; acceso renovado; versión visible en la app.
+* Al actualizar desde 1.x: inicia sesión de nuevo una vez — la sesión se guarda ahora con un cifrado más robusto y vinculado al dispositivo; la app lo explica en pantalla.

@@ -5,3 +5,4 @@ Version 2.0.0.
 * See which apps can read your contacts, with a shortcut to the system permission page.
 * New "De-Googled Android ROMs" guide.
 * Permissions asked after sign-in; restyled sign-in; version shown in the app.
+* Updating from 1.x: sign in again once — the session is now stored with stronger, device-bound encryption; the app explains this on screen.

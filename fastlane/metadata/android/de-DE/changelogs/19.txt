@@ -5,3 +5,4 @@ Version 2.0.0.
 * Sehen, welche Apps Ihre Kontakte lesen können, mit Link zur Berechtigungsseite.
 * Neue Anleitung „Google-freie Android-ROMs“.
 * Berechtigungen erst nach der Anmeldung; neue Anmeldung; Version sichtbar.
+* Update von 1.x: einmal erneut anmelden — die Sitzung wird jetzt stärker und gerätegebunden verschlüsselt gespeichert; die App erklärt das auf dem Bildschirm.

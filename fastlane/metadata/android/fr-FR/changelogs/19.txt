@@ -5,3 +5,4 @@ Version 2.0.0.
 * Voyez quelles apps lisent vos contacts, avec un raccourci vers la page d'autorisation.
 * Nouveau guide « ROM Android sans Google ».
 * Autorisations après la connexion ; connexion revue.
+* Mise à jour depuis 1.x : reconnectez-vous une seule fois — la session est désormais stockée avec un chiffrement plus robuste et lié à l'appareil ; l'application l'explique à l'écran.
