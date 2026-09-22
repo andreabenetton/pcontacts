@@ -109,7 +109,8 @@ data class SettingsActions(
     val onSignedOut: () -> Unit,
     val onOpenLinkedImport: () -> Unit = {},
     val onOpenContactsAccess: (ContactsAccessKind) -> Unit = {},
-    val onOpenContactsStorage: (() -> Unit)? = null
+    val onOpenContactsStorage: (() -> Unit)? = null,
+    val onOpenDeGoogledRoms: () -> Unit = {}
 )
 
 /**

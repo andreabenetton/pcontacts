@@ -34,6 +34,7 @@ class SettingsScreenTest {
         queryConflicts: suspend () -> List<ConflictInfo> = { emptyList() },
         cancelDelete: suspend (String) -> Unit = {},
         resolveConflict: suspend (String, ConflictResolution) -> Unit = { _, _ -> },
+        querySystemContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() }
     ): SettingsViewModel {
         val dispatcher = UnconfinedTestDispatcher()
         return SettingsViewModel(
@@ -45,6 +46,7 @@ class SettingsScreenTest {
             queryConflicts = queryConflicts,
             cancelDelete = cancelDelete,
             resolveConflict = resolveConflict,
+            querySystemContactsAccessApps = querySystemContactsAccessApps,
             scope = TestScope(dispatcher),
             workDispatcher = dispatcher
         )
@@ -102,6 +104,21 @@ class SettingsScreenTest {
 
         composeRule.onNode(hasText("no_account", substring = true))
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun os_apps_notice_links_the_rom_explanation_instead_of_showing_a_placeholder() {
+        var opened = 0
+        val vm = viewModel(
+            querySystemContactsAccessApps = { listOf(ContactsAccessApp("Dialer", "com.example.dialer")) }
+        )
+        composeRule.setContent {
+            SettingsScreen(vm, SettingsActions(onSignedOut = {}, onOpenDeGoogledRoms = { opened++ }))
+        }
+        composeRule.onNodeWithText("%1\$s", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("de-Googled ROM", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.clickLink("de-Googled ROM")
+        assertEquals(1, opened)
     }
 
     @Test

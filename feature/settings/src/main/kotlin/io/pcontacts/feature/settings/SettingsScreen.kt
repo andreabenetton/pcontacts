@@ -532,7 +532,8 @@ private fun ContactsAccessSection(viewModel: SettingsViewModel, actions: Setting
             apps = systemContactsAccessApps,
             dismissed = systemNoticeDismissed,
             onView = { actions.onOpenContactsAccess(ContactsAccessKind.SYSTEM) },
-            onGotIt = viewModel::acknowledgeSystemNotice
+            onGotIt = viewModel::acknowledgeSystemNotice,
+            onOpenDeGoogledRoms = actions.onOpenDeGoogledRoms
         )
     }
 }
@@ -574,7 +575,8 @@ private fun SystemContactsAccessBanner(
     apps: List<ContactsAccessApp>,
     dismissed: Boolean,
     onView: () -> Unit,
-    onGotIt: () -> Unit
+    onGotIt: () -> Unit,
+    onOpenDeGoogledRoms: () -> Unit
 ) {
     val count = pluralStringResource(R.plurals.system_contacts_access_count, apps.size, apps.size)
     if (dismissed) {
@@ -603,9 +605,10 @@ private fun SystemContactsAccessBanner(
             .padding(16.dp)
     ) {
         Text(text = count, style = MaterialTheme.typography.bodyMedium)
-        Text(
-            text = stringResource(R.string.system_contacts_access_detail),
-            style = MaterialTheme.typography.bodySmall,
+        LinkedText(
+            templateRes = R.string.system_contacts_access_detail,
+            phraseRes = R.string.de_googled_rom_link,
+            onClick = onOpenDeGoogledRoms,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
