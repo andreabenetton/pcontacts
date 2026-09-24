@@ -21,6 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contact on the account — a sync with 7 changes no longer counts to
   902. A stage with nothing to do is not shown.
 
+### Fixed
+
+- **"Overdue" next to a recent "Last sync"**. Overdue was measured from
+  the last sync that settled everything, so a contact left in conflict
+  kept the card overdue while syncs kept running. It is now measured
+  from the last completed sync — the time the card shows — and a
+  conflict gets its own headline: "Edited on both sides — choose a
+  version".
+
 ### Added
 
 - **A 3-hour sync interval** on the slider, between 1 and 6 hours.
