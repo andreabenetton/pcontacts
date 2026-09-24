@@ -40,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +50,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 
 /**
  * The import list (ADR-0023 in-app discovery): every contact that is
@@ -136,6 +138,9 @@ private fun ImportOutcomes(
     val importState by importViewModel.state.collectAsStateWithLifecycle()
     val bulk by listViewModel.bulk.collectAsStateWithLifecycle()
     val resources = LocalContext.current.resources
+    // The effects reset the state they are keyed on, which restarts them: a snackbar shown from
+    // their own coroutine was cancelled at once. It runs in the screen's scope instead.
+    val snackbarScope = rememberCoroutineScope()
 
     LaunchedEffect(importState) {
         val message = when (val s = importState) {
@@ -150,7 +155,7 @@ private fun ImportOutcomes(
         }
         if (message != null) {
             importViewModel.dismiss()
-            snackbarHostState.showSnackbar(message)
+            snackbarScope.launch { snackbarHostState.showSnackbar(message) }
         }
     }
     LaunchedEffect(bulk) {
@@ -162,7 +167,7 @@ private fun ImportOutcomes(
         } else {
             resources.getString(R.string.linked_import_bulk_done, r.created, r.enriched, r.failed)
         }
-        snackbarHostState.showSnackbar(message)
+        snackbarScope.launch { snackbarHostState.showSnackbar(message) }
     }
 }
 
