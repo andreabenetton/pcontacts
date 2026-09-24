@@ -187,6 +187,7 @@
     <string name="sync_state_off">Автосинхронизация выключена</string>
     <string name="sync_master_off">Автосинхронизация выключена для всего телефона в настройках Android: само ничего не синхронизируется, работает только «Синхронизировать сейчас».</string>
     <string name="sync_open_settings">Открыть настройки синхронизации</string>
+    <string name="sync_stage_connecting">Подключение к Proton…</string>
     <string name="sync_stage_sending">Отправка изменений в Proton: %1$d из %2$d…</string>
     <string name="sync_stage_checking">Проверка контактов…</string>
     <string name="sync_stage_downloading">Загрузка контактов: %1$d из %2$d…</string>

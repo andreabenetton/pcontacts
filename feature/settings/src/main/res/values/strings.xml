@@ -163,6 +163,7 @@
     <string name="sync_state_off">Automatic sync is off</string>
     <string name="sync_master_off">Auto-sync is off for the whole phone in Android Settings, so nothing syncs on its own; only "Sync now" works.</string>
     <string name="sync_open_settings">Open sync settings</string>
+    <string name="sync_stage_connecting">Connecting to Proton…</string>
     <string name="sync_stage_sending">Sending changes to Proton: %1$d of %2$d…</string>
     <string name="sync_stage_checking">Checking contacts…</string>
     <string name="sync_stage_downloading">Downloading contacts: %1$d of %2$d…</string>

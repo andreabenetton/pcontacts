@@ -72,6 +72,10 @@ class SyncHealthTest {
         assertEquals(R.string.settings_sync_running, runningHeadlineRes(null))
         assertEquals(R.string.settings_sync_running, runningHeadlineRes(SyncProgress(done = 3, total = 7)))
         assertEquals(
+            R.string.sync_stage_connecting,
+            runningHeadlineRes(SyncProgress(done = 0, total = 0, stage = SyncStage.CONNECTING))
+        )
+        assertEquals(
             R.string.sync_stage_sending,
             runningHeadlineRes(SyncProgress(done = 1, total = 3, stage = SyncStage.SENDING))
         )

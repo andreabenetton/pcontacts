@@ -56,6 +56,9 @@ data class SyncProgress(val done: Int, val total: Int, val stage: SyncStage? = n
 
 /** The stages a sync run goes through, in order; each one the card names. */
 enum class SyncStage {
+    /** The session being opened and the keys unlocked. */
+    CONNECTING,
+
     /** Local changes going to Proton, counted. */
     SENDING,
 

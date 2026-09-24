@@ -237,6 +237,7 @@ private fun headline(facts: SyncFacts): Headline {
 
 /** What the running headline says for [progress]; the counted stages take done and total as arguments. */
 internal fun runningHeadlineRes(progress: SyncProgress?): Int = when (progress?.stage) {
+    SyncStage.CONNECTING -> R.string.sync_stage_connecting
     SyncStage.SENDING -> R.string.sync_stage_sending
     SyncStage.CHECKING -> R.string.sync_stage_checking
     SyncStage.DOWNLOADING -> R.string.sync_stage_downloading

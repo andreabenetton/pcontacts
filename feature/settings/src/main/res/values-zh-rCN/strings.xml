@@ -151,6 +151,7 @@
     <string name="sync_state_off">自动同步已关闭</string>
     <string name="sync_master_off">Android 设置中已关闭整部手机的自动同步：不会自动同步任何内容，只有“立即同步”可用。</string>
     <string name="sync_open_settings">打开同步设置</string>
+    <string name="sync_stage_connecting">正在连接 Proton…</string>
     <string name="sync_stage_sending">正在向 Proton 发送更改：第 %1$d 个，共 %2$d 个…</string>
     <string name="sync_stage_checking">正在检查联系人…</string>
     <string name="sync_stage_downloading">正在下载联系人：第 %1$d 个，共 %2$d 个…</string>
