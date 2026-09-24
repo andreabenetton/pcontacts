@@ -14,6 +14,7 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.ContactsContract
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import io.pcontacts.app.R
 import io.pcontacts.core.contactswriter.LinkedField
@@ -217,19 +218,22 @@ class LinkedImportBridge(
             null
         )?.use { if (it.moveToFirst()) it.getString(0) else null }
 
-    /** The providers' launcher icons, in the given order, skipping device-local rows. */
+    /** The providers' launcher icons, in the given order; the Android mark for device-local rows. */
     private fun sourceIcons(accountTypes: List<String?>): List<Bitmap> =
         accountTypes.distinct().mapNotNull { type ->
             iconCache.getOrPut(type) {
-                authenticatorOf(type)?.let { auth ->
-                    try {
-                        context.packageManager.getApplicationIcon(auth.packageName).toBitmap(ICON_PX, ICON_PX)
-                    } catch (_: PackageManager.NameNotFoundException) {
-                        null
-                    }
+                val auth = authenticatorOf(type) ?: return@getOrPut deviceIcon()
+                try {
+                    context.packageManager.getApplicationIcon(auth.packageName).toBitmap(ICON_PX, ICON_PX)
+                } catch (_: PackageManager.NameNotFoundException) {
+                    null
                 }
             }
         }
+
+    /** Device-local: no app registers the account (null, or a bare "PHONE"), so no launcher icon exists. */
+    private fun deviceIcon(): Bitmap? =
+        ContextCompat.getDrawable(context, R.drawable.ic_source_device)?.toBitmap(ICON_PX, ICON_PX)
 
     private fun authenticatorOf(accountType: String?): AuthenticatorDescription? =
         accountType?.let { type -> AccountManager.get(context).authenticatorTypes.firstOrNull { it.type == type } }

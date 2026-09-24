@@ -133,3 +133,10 @@ Third-party assets
   License: MIT (Copyright (c) GitHub Inc.)
   Used as feature/settings/src/main/res/drawable/ic_github.xml, only to
   link to the project's repository on GitHub, per GitHub's logo guidelines.
+
+  Material Design Icons — "android"
+  https://github.com/google/material-design-icons
+  License: Apache 2.0 (Copyright Google LLC)
+  Used as app/src/main/res/drawable/ic_source_device.xml, to mark a
+  contact stored on the device itself in the import list. Android is a
+  trademark of Google LLC.
