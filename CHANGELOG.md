@@ -26,6 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Birthdays, nicknames and websites added on the phone were lost.**
+  They were never sent to Proton, and the next change to the contact on
+  Proton deleted them from the phone. Birthday, anniversary, nickname
+  and website now sync both ways (ADR-0023 amendment). The first sync
+  after the update rewrites every contact once; a value only the phone
+  holds is sent to Proton first, and a birthday that differs between
+  the phone and Proton is put to the user as a conflict. A birthday
+  without a year travels as text: Proton's web view shows it as
+  `--06-12`, and its edit form shows an invented year until the field
+  is changed.
 - **Contacts deleted on a Samsung came back.** Samsung Contacts moves a
   deleted contact into its Recycle bin, hidden from sync apps, so the
   deletion never reached Proton and the next sync recreated the contact.

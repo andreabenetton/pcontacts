@@ -156,10 +156,15 @@ Formats follow Proton's web client at the commit pinned in
 - `[V]` `NICKNAME` and `URL` live in the same card and may repeat.
   Proton's editor offers `URL` but not `NICKNAME`; the server keeps
   both.
-- `[U]` A date without a year (Android `--MM-dd`) is sent as text: the
+- `[V]` A date without a year (Android `--MM-dd`) is sent as text: the
   web client parses date values with `parseISO`, which cannot read
-  `--MMdd`, and would show a wrong date. To be confirmed live, with
-  each new property's acceptance (no Code 2001).
+  `--MMdd`, and would fall back to today's date. Validated live
+  2026-09-24 (Samsung A40, test account): Proton accepted `BDAY`,
+  `NICKNAME` and `URL` in the encrypted card (no Code 2001) and they
+  came back unchanged on the next pull. The web view prints the text
+  as is; the web edit form guesses a year for its date picker (`new
+  Date("--06-12")` gives 12 June 2001) but writes a date back only if
+  the user changes the field.
 - `TITLE` was already carried on the Organization row; unchanged.
 
 Adding the fields to the change hash rolls its format, so every
