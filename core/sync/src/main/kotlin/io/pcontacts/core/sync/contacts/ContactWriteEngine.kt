@@ -87,6 +87,8 @@ class ContactWriteEngine(
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
     /** Server-current contact; throws on transport failure (handled like any push failure), null if there is none. */
     private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
+    /** ([SyncPhase.SENDING], changes sent, changes to send) — a delete still in its grace period is not one. */
+    private val onProgress: (phase: SyncPhase, done: Int, total: Int) -> Unit = { _, _, _ -> },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
 ) {
@@ -176,10 +178,25 @@ class ContactWriteEngine(
             newest
         }
 
+        val now = clock()
+        val sending = survivors.count { !(it.opType == OutboxEntity.OpType.DELETE && inGrace(it, now)) }
+        if (sending > 0) onProgress(SyncPhase.SENDING, 0, sending)
+        var sent = 0
+        val progressLock = Any()
+
         val semaphore = Semaphore(MAX_CONCURRENT_PUSHES)
         val results = coroutineScope {
             survivors.map { entry ->
-                async { semaphore.withPermit { pushEntry(entry, account) } }
+                async {
+                    semaphore.withPermit { pushEntry(entry, account) }.also { report ->
+                        if (report.skippedGrace == 0) {
+                            synchronized(progressLock) {
+                                sent += 1
+                                onProgress(SyncPhase.SENDING, min(sent, sending), sending)
+                            }
+                        }
+                    }
+                }
             }.awaitAll()
         }
 
@@ -197,9 +214,10 @@ class ContactWriteEngine(
         }
     }
 
+    private fun inGrace(entry: OutboxEntity, now: Long): Boolean = entry.createdAt + GRACE_PERIOD_MS > now
+
     private suspend fun pushDelete(entry: OutboxEntity): WriteReport {
-        val now = clock()
-        if (entry.createdAt + GRACE_PERIOD_MS > now) {
+        if (inGrace(entry, clock())) {
             return WriteReport(skippedGrace = 1)
         }
         return try {

@@ -74,7 +74,7 @@ internal fun newEngine(
     labelsApi: ProtonLabelsApi = NoLabelsApi,
     reconcileGroups: suspend (Account, List<ProtonLabel>) -> Map<String, Long> = { _, _ -> emptyMap() },
     readGroupRowIds: suspend (Long) -> List<Long> = { emptyList() },
-    onProgress: (Int, Int) -> Unit = { _, _ -> }
+    onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
         ContactDecrypter(cryptoOp = { _ ->

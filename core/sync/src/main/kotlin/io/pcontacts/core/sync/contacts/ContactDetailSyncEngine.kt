@@ -89,11 +89,12 @@ class ContactDetailSyncEngine(
      */
     private val reconcileGroups: suspend (Account, List<ProtonLabel>) -> Map<String, Long> = { _, _ -> emptyMap() },
     /**
-     * (contacts processed so far, server total) — reported once the
-     * total is known, then every [PROGRESS_EVERY] contacts and at the
-     * end of the per-contact pass, so a UI can show "120 of 898".
+     * (phase, items done, phase total) — [SyncPhase.CHECKING] when the run
+     * starts, [SyncPhase.DOWNLOADING] per contact that has to be fetched
+     * (the total is those contacts, not the server's), [SyncPhase.SAVING]
+     * before the provider write. A phase with nothing to do is skipped.
      */
-    private val onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    private val onProgress: (phase: SyncPhase, done: Int, total: Int) -> Unit = { _, _, _ -> },
     /**
      * Records the server state just written locally as the contact's
      * merge base (ADR-0017 §3); the write engine merges against it.
@@ -128,6 +129,7 @@ class ContactDetailSyncEngine(
     @Suppress("ThrowsCount", "LongMethod", "CyclomaticComplexMethod")
     suspend fun sync(account: Account): SyncReport {
         logger.info { "contact-detail sync start account=${account.name}" }
+        onProgress(SyncPhase.CHECKING, 0, 0)
 
         // 1a. Labels: fetch + reconcile ContactsContract.Groups before any
         //     contact write so per-contact GroupMembership rows have a
@@ -158,7 +160,6 @@ class ContactDetailSyncEngine(
         val serverLabelIds: Map<String, List<String>> =
             metadata.associate { it.id to it.labelIds }
         val serverSourceIds = serverModifyTimes.keys
-        onProgress(0, serverSourceIds.size)
 
         // 2. Local state. ContactsProvider is authoritative for which
         //    RawContacts exist; the Room mapping is only sync metadata
@@ -205,21 +206,18 @@ class ContactDetailSyncEngine(
         }
 
         // 3. Per-ID: cheap-skip (modifyTime) → fetch → decrypt → project →
-        //    hash-skip (content_hash) → target list.
+        //    hash-skip (content_hash) → target list. The skips need no network,
+        //    so they run first and the fetch pass knows how many contacts it has.
         val target = ArrayList<ContactRow>(serverSourceIds.size)
         val perContactMeta = HashMap<String, PerContactMeta>(serverSourceIds.size)
         val now = clock()
         var fetchFailures = 0
         var modifyTimeSkips = 0
-        var processed = 0
+        val toFetch = ArrayList<String>()
         // Rows the phone still owns a change to: never overwritten or deleted by this pull.
         val protectedIds = HashSet<String>()
 
         for ((sourceId, serverModifyTime) in serverModifyTimes) {
-            processed += 1
-            if (processed % PROGRESS_EVERY == 0 || processed == serverModifyTimes.size) {
-                onProgress(processed, serverModifyTimes.size)
-            }
             val stored = storedMappings[sourceId]
             val liveRawId = existing[sourceId]
             val deletePending = stored != null && liveRawId == null &&
@@ -265,7 +263,13 @@ class ContactDetailSyncEngine(
             if (stored != null && liveRawId == null) {
                 logger.warn { "RawContact missing for mapped contact; recreating idTag=${sourceId.hashCode()}" }
             }
+            toFetch += sourceId
+        }
 
+        for ((index, sourceId) in toFetch.withIndex()) {
+            onProgress(SyncPhase.DOWNLOADING, index, toFetch.size)
+            val stored = storedMappings[sourceId]
+            val liveRawId = existing[sourceId]
             val response = try {
                 contactsApi.getContact(sourceId)
             } catch (e: HumanVerificationRequiredException) {
@@ -341,6 +345,7 @@ class ContactDetailSyncEngine(
 
             target += row
         }
+        if (toFetch.isNotEmpty()) onProgress(SyncPhase.DOWNLOADING, toFetch.size, toFetch.size)
 
         // 3b. Rows the server no longer has while the phone still owns a change to them
         //     (or a CREATE is queued for the raw row): not deleted, marked as a conflict
@@ -391,6 +396,7 @@ class ContactDetailSyncEngine(
         // 5. Apply ops. A chunked batch that fails leaves the earlier
         //    chunks committed; the mappings of contacts those chunks
         //    deleted are dropped here so they do not outlive their rows.
+        onProgress(SyncPhase.SAVING, 0, 0)
         val applyResult = try {
             applyIntents(account, intents)
         } catch (e: CancellationException) {
@@ -485,6 +491,3 @@ class ContactDetailSyncEngine(
         val decrypted: DecryptedContact
     )
 }
-
-/** Progress callback cadence: every N contacts, plus the final one. */
-private const val PROGRESS_EVERY = 10

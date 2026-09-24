@@ -298,10 +298,21 @@ object SyncBootstrap {
             logger = logger
         )
 
-        val writeEngine = buildWriteEngine(apis, db, provider, processor, serializer, mergeBases, logger)
+        val writeEngine = buildWriteEngine(
+            apis,
+            db,
+            provider,
+            processor,
+            serializer,
+            mergeBases,
+            logger,
+            progressSink(context)
+        )
         return writeEngine to readEngine
     }
 
+    // The pieces of the one session both engines share; the count is structural.
+    @Suppress("LongParameterList")
     private fun buildWriteEngine(
         apis: ProtonApiFactory,
         db: PcontactsDatabase,
@@ -309,7 +320,8 @@ object SyncBootstrap {
         processor: ContactProcessor,
         serializer: ContactSerializer,
         mergeBases: MergeBaseStore,
-        logger: Logger
+        logger: Logger,
+        onProgress: (SyncPhase, Int, Int) -> Unit
     ): ContactWriteEngine {
         val dirtyReader = DirtyContactReader(provider)
         val dataReader = RawContactDataReader(provider)
@@ -337,7 +349,8 @@ object SyncBootstrap {
             // Failures propagate: the engine backs off or quarantines, never local-wins.
             fetchServerContact = { protonContactId ->
                 processor.process(apis.contacts.getContact(protonContactId).contact)
-            }
+            },
+            onProgress = onProgress
         )
     }
 
@@ -383,10 +396,11 @@ private fun hasPendingOutboxDelete(outboxDao: OutboxDao): suspend (String) -> Bo
         }
     }
 
-/** Persists the pull's "N of total" so the Settings card can show it while the run is in flight. */
-private fun progressSink(context: Context): (Int, Int) -> Unit {
+/** Persists the run's phase and its "N of total" so the Settings card can show them while it is in flight. */
+private fun progressSink(context: Context): (SyncPhase, Int, Int) -> Unit {
     val prefs = SharedPreferencesUserPreferences(context.applicationContext)
-    return { done, total ->
+    return { phase, done, total ->
+        prefs.syncProgressPhase = phase.code
         prefs.syncProgressDone = done
         prefs.syncProgressTotal = total
     }

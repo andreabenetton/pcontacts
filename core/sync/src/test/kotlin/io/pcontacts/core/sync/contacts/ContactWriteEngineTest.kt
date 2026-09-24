@@ -1209,6 +1209,39 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    @Test fun push_counts_the_changes_it_sends_and_leaves_out_deletes_still_in_grace() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val contacts = mapOf("ct-1" to sampleContact("ct-1"), "ct-2" to sampleContact("ct-2"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        contactMap.upsert(sampleMapping("ct-2", rawId = 200L))
+        contactMap.upsert(sampleMapping("ct-3", rawId = 300L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", 1L)
+        outbox.enqueue("ct-2", OutboxEntity.OpType.UPDATE, "h2", 2L)
+        outbox.enqueue("ct-3", OutboxEntity.OpType.DELETE, "", 2_000_000_000L)
+        val progress = mutableListOf<Triple<SyncPhase, Int, Int>>()
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            contacts = contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts,
+            onProgress = { phase, done, total -> progress += Triple(phase, done, total) }
+        )
+
+        val report = engine.push()
+
+        assertEquals(1, report.skippedGrace)
+        assertEquals(
+            listOf(
+                Triple(SyncPhase.SENDING, 0, 2),
+                Triple(SyncPhase.SENDING, 1, 2),
+                Triple(SyncPhase.SENDING, 2, 2)
+            ),
+            progress
+        )
+    }
+
     // ---- Proton item codes and the lost-response create (M4, A12) ----
 
     /** A create queued for RawContact 200: the local id carries the raw id, as the write engine mints it. */
@@ -1625,7 +1658,8 @@ class ContactWriteEngineTest {
         clock: () -> Long = { 2_000_000_000L },
         bases: Map<String, DecryptedContact> = emptyMap(),
         mergeBases: InMemoryMergeBaseStore = InMemoryMergeBaseStore(),
-        fetchServerContact: suspend (String) -> DecryptedContact? = { id -> serverContacts[id] }
+        fetchServerContact: suspend (String) -> DecryptedContact? = { id -> serverContacts[id] },
+        onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
     ): ContactWriteEngine {
         bases.forEach { (id, contact) -> MergeBaseCodec.save(mergeBases, id, contact) }
         return ContactWriteEngine(
@@ -1643,6 +1677,7 @@ class ContactWriteEngineTest {
             clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
             writeSourceId = { _, rawId, sourceId -> writtenSourceIds?.add(rawId to sourceId) },
             fetchServerContact = fetchServerContact,
+            onProgress = onProgress,
             clock = clock
         )
     }

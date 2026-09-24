@@ -67,7 +67,7 @@ class ContactDetailSyncEngineTest {
         assertEquals(listOf("alice@proton.me"), createIntent.row.emails)
     }
 
-    @Test fun progress_reports_the_server_total_first_and_the_final_count_last() = runTest {
+    @Test fun progress_walks_checking_downloading_and_saving_in_order() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L))),
             contacts = mapOf(
@@ -75,15 +75,68 @@ class ContactDetailSyncEngineTest {
                 "c2" to contact("c2", 100L, "BEGIN:VCARD\nVERSION:4.0\nFN:B\nEMAIL:b@x\nEND:VCARD")
             )
         )
-        val progress = mutableListOf<Pair<Int, Int>>()
-        val engine = newEngine(api, DetailFakeContactMapDao(), DetailFakeApplier(base = 1000L)) { done, total ->
-            progress += done to total
+        val progress = mutableListOf<Triple<SyncPhase, Int, Int>>()
+        val engine = newEngine(api, DetailFakeContactMapDao(), DetailFakeApplier(base = 1000L)) { phase, done, total ->
+            progress += Triple(phase, done, total)
         }
 
         engine.sync(account)
 
-        assertEquals(0 to 2, progress.first())
-        assertEquals(2 to 2, progress.last())
+        assertEquals(
+            listOf(
+                Triple(SyncPhase.CHECKING, 0, 0),
+                Triple(SyncPhase.DOWNLOADING, 0, 2),
+                Triple(SyncPhase.DOWNLOADING, 1, 2),
+                Triple(SyncPhase.DOWNLOADING, 2, 2),
+                Triple(SyncPhase.SAVING, 0, 0)
+            ),
+            progress
+        )
+    }
+
+    @Test fun download_total_counts_only_the_contacts_that_changed_on_the_server() = runTest {
+        val ids = (1..10).map { "c$it" }
+        val bumped = setOf("c3", "c7")
+        val api = DetailFakeApi(
+            metadataPages = listOf(
+                metaPage(*ids.map { meta(it, 100L) }.toTypedArray()),
+                metaPage(*ids.map { meta(it, if (it in bumped) 200L else 100L) }.toTypedArray())
+            ),
+            contacts = ids.associateWith {
+                contact(it, 100L, "BEGIN:VCARD\nVERSION:4.0\nFN:$it\nEMAIL:$it@x\nEND:VCARD")
+            },
+            repeatContacts = true
+        )
+        val progress = mutableListOf<Triple<SyncPhase, Int, Int>>()
+        val engine = newEngine(api, DetailFakeContactMapDao(), DetailFakeApplier(base = 1000L)) { phase, done, total ->
+            progress += Triple(phase, done, total)
+        }
+        engine.sync(account)
+        progress.clear()
+
+        engine.sync(account)
+
+        val downloads = progress.filter { it.first == SyncPhase.DOWNLOADING }
+        assertEquals(listOf(0 to 2, 1 to 2, 2 to 2), downloads.map { it.second to it.third })
+        assertFalse("nothing to write, so no saving phase", progress.any { it.first == SyncPhase.SAVING })
+    }
+
+    @Test fun an_unchanged_account_reports_only_the_checking_phase() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L)), metaPage(meta("c1", 100L))),
+            contacts = mapOf("c1" to contact("c1", 100L, "BEGIN:VCARD\nVERSION:4.0\nFN:A\nEMAIL:a@x\nEND:VCARD")),
+            repeatContacts = true
+        )
+        val progress = mutableListOf<SyncPhase>()
+        val engine = newEngine(api, DetailFakeContactMapDao(), DetailFakeApplier(base = 1000L)) { phase, _, _ ->
+            progress += phase
+        }
+        engine.sync(account)
+        progress.clear()
+
+        engine.sync(account)
+
+        assertEquals(listOf(SyncPhase.CHECKING), progress)
     }
 
     @Test fun second_run_with_unchanged_modifyTime_cheap_skips_without_fetching_contact() = runTest {
