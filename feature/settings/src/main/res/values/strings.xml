@@ -178,6 +178,7 @@
         <item quantity="one">%d contact</item>
         <item quantity="other">%d contacts</item>
     </plurals>
+    <string name="sync_contacts_after_deletions">(%d after the pending deletions)</string>
     <string name="settings_sign_in">Sign in</string>
     <string name="settings_sign_in_detail">Sign in with your Proton account to start syncing contacts.</string>
     <string name="sign_in_storage_upgrade_notice">You were signed out because version 2.0 keeps your session in a stronger, device-bound encrypted store and the previous one could not be carried over. Your synced contacts were removed from this phone. Sign in again once: the first sync downloads every contact from Proton again (a full resync). Anything not yet sent to Proton at that moment is lost, and stars, ringtones or links set on those contacts on this phone are not kept. Your settings are kept.</string>

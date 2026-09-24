@@ -273,6 +273,7 @@ private fun SyncStatusCard(
     val progress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val stats by viewModel.verificationStats.collectAsStateWithLifecycle()
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
+    val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -309,7 +310,7 @@ private fun SyncStatusCard(
                         style = MaterialTheme.typography.titleMedium,
                         glyphSize = 24.dp
                     )
-                    lastSync?.let { LastSyncLine(it, now, stats?.totalContacts) }
+                    lastSync?.let { LastSyncLine(it, now, stats?.totalContacts, pendingDeletes.size) }
                 }
                 Spacer(Modifier.width(12.dp))
                 Button(enabled = syncEnabled, onClick = viewModel::triggerSyncNow) {
@@ -339,7 +340,7 @@ private fun SyncStatusCard(
  * date and time — plus how many contacts it could not sync.
  */
 @Composable
-private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?) {
+private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?, pendingDeletes: Int) {
     val syncedAt = info.lastRunAtMillis ?: info.syncedAtMillis
     var absolute by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -356,8 +357,10 @@ private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?) {
         )
     }
     if (contacts != null) {
+        val count = pluralStringResource(R.plurals.sync_contacts_count, contacts, contacts)
+        val after = contactsAfterDeletes(contacts, pendingDeletes)
         Text(
-            text = pluralStringResource(R.plurals.sync_contacts_count, contacts, contacts),
+            text = if (after == null) count else count + " " + stringResource(R.string.sync_contacts_after_deletions, after),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -894,6 +897,10 @@ private fun ConflictResolutionDialog(
         }
     )
 }
+
+/** How many contacts remain once the queued deletions reach Proton; null when none is queued. */
+internal fun contactsAfterDeletes(contacts: Int, pendingDeletes: Int): Int? =
+    if (pendingDeletes > 0) (contacts - pendingDeletes).coerceAtLeast(0) else null
 
 /** The conflict dialog's prompt and the labels of its two choices. */
 internal data class ConflictDialogTexts(val prompt: Int, val useLocal: Int, val useServer: Int)

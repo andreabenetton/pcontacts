@@ -108,4 +108,10 @@ class SyncHealthTest {
         assertEquals(R.string.conflict_detail_local_removed, conflictDetailRes(listOf(edited, removed)))
         assertEquals(R.string.conflict_detail, conflictDetailRes(listOf(edited)))
     }
+
+    @Test fun the_count_after_pending_deletions_shows_only_while_some_are_queued() {
+        assertEquals(null, contactsAfterDeletes(contacts = 6, pendingDeletes = 0))
+        assertEquals(4, contactsAfterDeletes(contacts = 6, pendingDeletes = 2))
+        assertEquals(0, contactsAfterDeletes(contacts = 1, pendingDeletes = 3))
+    }
 }

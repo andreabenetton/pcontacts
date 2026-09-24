@@ -178,6 +178,7 @@
         <item quantity="one">%d contacto</item>
         <item quantity="other">%d contactos</item>
     </plurals>
+    <string name="sync_contacts_after_deletions">(%d tras las eliminaciones pendientes)</string>
     <string name="settings_sign_in">Iniciar sesión</string>
     <string name="settings_sign_in_detail">Inicia sesión con tu cuenta de Proton para empezar a sincronizar contactos.</string>
     <string name="sign_in_storage_upgrade_notice">Se cerró tu sesión porque la versión 2.0 guarda la sesión en un almacén cifrado más robusto y vinculado al dispositivo, y la anterior no podía trasladarse. Tus contactos sincronizados se eliminaron de este teléfono. Inicia sesión de nuevo una vez: la primera sincronización vuelve a descargar todos los contactos desde Proton (resincronización completa). Lo que aún no se había enviado a Proton en ese momento se pierde; las estrellas, tonos o enlaces puestos a esos contactos en este teléfono no se conservan. Tus ajustes se conservan.</string>

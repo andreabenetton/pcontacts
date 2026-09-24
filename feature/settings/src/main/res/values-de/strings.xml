@@ -178,6 +178,7 @@
         <item quantity="one">%d Kontakt</item>
         <item quantity="other">%d Kontakte</item>
     </plurals>
+    <string name="sync_contacts_after_deletions">(%d nach den ausstehenden Löschungen)</string>
     <string name="settings_sign_in">Anmelden</string>
     <string name="settings_sign_in_detail">Melde dich mit deinem Proton-Konto an, um Kontakte zu synchronisieren.</string>
     <string name="sign_in_storage_upgrade_notice">Sie wurden abgemeldet, weil Version 2.0 Ihre Sitzung in einem stärkeren, gerätegebundenen verschlüsselten Speicher hält und die alte nicht übernommen werden konnte. Ihre synchronisierten Kontakte wurden von diesem Telefon entfernt. Melden Sie sich einmal erneut an: Die erste Synchronisierung lädt alle Kontakte erneut von Proton (vollständige Neusynchronisierung). Noch nicht an Proton gesendete Änderungen gehen verloren; Sterne, Klingeltöne oder Verknüpfungen, die auf diesem Telefon an diesen Kontakten gesetzt waren, bleiben nicht erhalten. Ihre Einstellungen bleiben erhalten.</string>
