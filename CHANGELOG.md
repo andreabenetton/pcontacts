@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The import screen's result messages never showed** ("3 created in
+  Proton…"): each was cancelled the instant it appeared.
 - **Birthdays, nicknames and websites added on the phone were lost.**
   They were never sent to Proton, and the next change to the contact on
   Proton deleted them from the phone. Birthday, anniversary, nickname
