@@ -15,6 +15,12 @@ sealed interface LinkedField {
     data class Org(val organization: Organization) : LinkedField
     data class NoteText(val note: String) : LinkedField
     data class Im(val account: ImAccount) : LinkedField
+
+    /** In Android's Event form ([ContactRow.birthday]). */
+    data class Birthday(val date: String) : LinkedField
+    data class Anniversary(val date: String) : LinkedField
+    data class NicknameText(val name: String) : LinkedField
+    data class WebsiteUrl(val url: String) : LinkedField
 }
 
 /**
@@ -35,13 +41,18 @@ val LinkedField.key: String
         }
         is LinkedField.NoteText -> "note:" + note.trim()
         is LinkedField.Im -> "im:" + with(account) { "${customProtocol ?: protocol.name}:${handle.trim()}" }
+        is LinkedField.Birthday -> "bday:" + date.trim()
+        is LinkedField.Anniversary -> "anniversary:" + date.trim()
+        is LinkedField.NicknameText -> "nickname:" + name.trim().lowercase()
+        is LinkedField.WebsiteUrl -> "url:" + url.trim().lowercase()
     }
 
 /** Whether the field can reach the person — what a new Proton contact is created from (ADR-0023). */
 val LinkedField.reachesContact: Boolean
     get() = when (this) {
         is LinkedField.PhoneNumber, is LinkedField.EmailAddress, is LinkedField.Address, is LinkedField.Im -> true
-        is LinkedField.Org, is LinkedField.NoteText -> false
+        is LinkedField.Org, is LinkedField.NoteText, is LinkedField.Birthday, is LinkedField.Anniversary,
+        is LinkedField.NicknameText, is LinkedField.WebsiteUrl -> false
     }
 
 /**

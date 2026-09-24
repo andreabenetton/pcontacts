@@ -51,6 +51,12 @@ object LinkedContactDiff {
         private val ims = seed(proton?.imAccounts.orEmpty().map(::imKey))
         private var organization = if (proton?.organization?.let(::hasContent) == true) -1 else null
 
+        // At most one of each on a Proton contact: offered only while Proton has none.
+        private var birthday = if (proton?.birthday != null) -1 else null
+        private var anniversary = if (proton?.anniversary != null) -1 else null
+        private val nicknames = seed(proton?.nicknames.orEmpty().map { it.trim().lowercase() })
+        private val websites = seed(proton?.websites.orEmpty().map { it.trim().lowercase() })
+
         // Imported fields are appended, never promoted: drop the sibling's primary flag.
         fun offer(accountType: String?, row: ContactRow) {
             for (phone in row.phones) offerPhone(accountType, phone)
@@ -67,6 +73,21 @@ object LinkedContactDiff {
                 if (note.isNotBlank()) offer(notes, note.trim(), accountType) { LinkedField.NoteText(note) }
             }
             for (im in row.imAccounts) offer(ims, imKey(im), accountType) { LinkedField.Im(im) }
+            offerExtras(accountType, row)
+        }
+
+        /** Birthday and anniversary: the first sibling's value; nicknames and websites value by value. */
+        private fun offerExtras(accountType: String?, row: ContactRow) {
+            row.birthday?.let { date -> birthday = attribute(birthday, accountType) { LinkedField.Birthday(date) } }
+            row.anniversary?.let { date ->
+                anniversary = attribute(anniversary, accountType) { LinkedField.Anniversary(date) }
+            }
+            for (name in row.nicknames) {
+                offer(nicknames, name.trim().lowercase(), accountType) { LinkedField.NicknameText(name) }
+            }
+            for (url in row.websites) {
+                offer(websites, url.trim().lowercase(), accountType) { LinkedField.WebsiteUrl(url) }
+            }
         }
 
         fun result(): List<LinkedFieldCandidate> =

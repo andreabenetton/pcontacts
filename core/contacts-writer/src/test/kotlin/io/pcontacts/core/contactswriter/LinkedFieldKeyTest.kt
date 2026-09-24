@@ -31,4 +31,11 @@ class LinkedFieldKeyTest {
         assertEquals("im:matrix:h", custom.key)
         assertEquals("im:JABBER:h", builtIn.key)
     }
+
+    @Test fun the_new_kinds_have_their_own_keys() {
+        assertEquals("bday:1990-03-12", LinkedField.Birthday(" 1990-03-12").key)
+        assertEquals("nickname:evi", LinkedField.NicknameText(" Evi ").key)
+        assertEquals("url:https://a.example", LinkedField.WebsiteUrl("HTTPS://a.example").key)
+        assertEquals(false, LinkedField.Birthday("1990-03-12").reachesContact)
+    }
 }

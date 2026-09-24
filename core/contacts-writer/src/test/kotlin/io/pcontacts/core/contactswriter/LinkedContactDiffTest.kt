@@ -92,6 +92,26 @@ class LinkedContactDiffTest {
         assertTrue(notOffered.none { it.field is LinkedField.Org })
     }
 
+    @Test fun birthday_is_offered_only_while_proton_has_none_and_websites_value_by_value() {
+        val row = sibling(emails = listOf("x@y")).copy(
+            birthday = "1990-03-12",
+            nicknames = listOf("Evi"),
+            websites = listOf("https://evelino.example", "HTTPS://known.example")
+        )
+        val withExtras = proton.copy(birthday = "1990-03-13", websites = listOf("https://known.example"))
+
+        val offered = LinkedContactDiff.candidates(proton, listOf(null to row)).map { it.field }
+        assertTrue(LinkedField.Birthday("1990-03-12") in offered)
+        assertTrue(LinkedField.NicknameText("Evi") in offered)
+
+        val againstExtras = LinkedContactDiff.candidates(withExtras, listOf(null to row)).map { it.field }
+        assertTrue(againstExtras.none { it is LinkedField.Birthday })
+        assertEquals(
+            listOf(LinkedField.WebsiteUrl("https://evelino.example")),
+            againstExtras.filterIsInstance<LinkedField.WebsiteUrl>()
+        )
+    }
+
     @Test fun null_proton_row_offers_everything() {
         val row = ContactRow(
             sourceId = "",

@@ -100,6 +100,7 @@ object ContactsContractOps {
                 is LinkedField.Org -> ops += newOrganizationInsertForExisting(dataUri, rawContactId, field.organization)
                 is LinkedField.NoteText -> ops += newNoteInsertForExisting(dataUri, rawContactId, field.note)
                 is LinkedField.Im -> ops += newImInsertForExisting(dataUri, rawContactId, field.account)
+                else -> linkedExtraValues(field)?.let { ops += valuesInsertForExisting(dataUri, rawContactId, it) }
             }
         }
         ops += ContentProviderOperation.newUpdate(
@@ -264,12 +265,7 @@ object ContactsContractOps {
         row.organization?.let { ops += newOrganizationInsertForExisting(dataUri, rawContactId, it) }
         row.notes.forEach { note -> ops += newNoteInsertForExisting(dataUri, rawContactId, note) }
         row.imAccounts.forEach { im -> ops += newImInsertForExisting(dataUri, rawContactId, im) }
-        extraFieldValues(row).forEach { values ->
-            ops += ContentProviderOperation.newInsert(dataUri)
-                .withValue(Data.RAW_CONTACT_ID, rawContactId)
-                .apply { values.forEach { (column, value) -> withValue(column, value) } }
-                .build()
-        }
+        extraFieldValues(row).forEach { values -> ops += valuesInsertForExisting(dataUri, rawContactId, values) }
         row.photo?.let { photo ->
             val fitted = PhotoDownscaler.downscale(photo.data)
             if (fitted != null) ops += newPhotoInsertForExisting(dataUri, rawContactId, ContactPhoto(fitted))
@@ -559,25 +555,40 @@ object ContactsContractOps {
     private fun extraFieldValues(row: ContactRow): List<Map<String, Any>> = buildList {
         row.birthday?.let { add(eventValues(it, Event.TYPE_BIRTHDAY)) }
         row.anniversary?.let { add(eventValues(it, Event.TYPE_ANNIVERSARY)) }
-        row.nicknames.forEach {
-            add(
-                mapOf(
-                    Data.MIMETYPE to Nickname.CONTENT_ITEM_TYPE,
-                    Nickname.NAME to it,
-                    Nickname.TYPE to Nickname.TYPE_DEFAULT
-                )
-            )
-        }
-        row.websites.forEach {
-            add(
-                mapOf(
-                    Data.MIMETYPE to Website.CONTENT_ITEM_TYPE,
-                    Website.URL to it,
-                    Website.TYPE to Website.TYPE_OTHER
-                )
-            )
-        }
+        row.nicknames.forEach { add(nicknameValues(it)) }
+        row.websites.forEach { add(websiteValues(it)) }
     }
+
+    /** The one-value rows an imported birthday, anniversary, nickname or website becomes. */
+    private fun linkedExtraValues(field: LinkedField): Map<String, Any>? = when (field) {
+        is LinkedField.Birthday -> eventValues(field.date, Event.TYPE_BIRTHDAY)
+        is LinkedField.Anniversary -> eventValues(field.date, Event.TYPE_ANNIVERSARY)
+        is LinkedField.NicknameText -> nicknameValues(field.name)
+        is LinkedField.WebsiteUrl -> websiteValues(field.url)
+        else -> null
+    }
+
+    private fun nicknameValues(name: String): Map<String, Any> = mapOf(
+        Data.MIMETYPE to Nickname.CONTENT_ITEM_TYPE,
+        Nickname.NAME to name,
+        Nickname.TYPE to Nickname.TYPE_DEFAULT
+    )
+
+    private fun websiteValues(url: String): Map<String, Any> = mapOf(
+        Data.MIMETYPE to Website.CONTENT_ITEM_TYPE,
+        Website.URL to url,
+        Website.TYPE to Website.TYPE_OTHER
+    )
+
+    private fun valuesInsertForExisting(
+        dataUri: Uri,
+        rawContactId: Long,
+        values: Map<String, Any>
+    ): ContentProviderOperation =
+        ContentProviderOperation.newInsert(dataUri)
+            .withValue(Data.RAW_CONTACT_ID, rawContactId)
+            .apply { values.forEach { (column, value) -> withValue(column, value) } }
+            .build()
 
     private fun eventValues(date: String, type: Int): Map<String, Any> =
         mapOf(Data.MIMETYPE to Event.CONTENT_ITEM_TYPE, Event.START_DATE to date, Event.TYPE to type)

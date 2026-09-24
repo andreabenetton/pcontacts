@@ -6,12 +6,15 @@ package io.pcontacts.core.contactswriter
 import android.accounts.Account
 import android.content.ContentProviderClient
 import android.provider.ContactsContract.CommonDataKinds.Email
+import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.Im
+import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Organization
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.StructuredName
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
+import android.provider.ContactsContract.CommonDataKinds.Website
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.RawContacts
 
@@ -111,7 +114,10 @@ class LinkedContactsScanner(private val provider: ContentProviderClient) {
             StructuredPostal.CONTENT_ITEM_TYPE,
             Organization.CONTENT_ITEM_TYPE,
             Note.CONTENT_ITEM_TYPE,
-            Im.CONTENT_ITEM_TYPE
+            Im.CONTENT_ITEM_TYPE,
+            Event.CONTENT_ITEM_TYPE,
+            Nickname.CONTENT_ITEM_TYPE,
+            Website.CONTENT_ITEM_TYPE
         )
 
         fun summarize(

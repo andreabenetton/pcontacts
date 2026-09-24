@@ -33,7 +33,11 @@ class LinkedContactCreator(private val provider: ContentProviderClient) {
             addresses = fields.filterIsInstance<LinkedField.Address>().map { it.address },
             organization = fields.filterIsInstance<LinkedField.Org>().firstOrNull()?.organization,
             notes = fields.filterIsInstance<LinkedField.NoteText>().map { it.note },
-            imAccounts = fields.filterIsInstance<LinkedField.Im>().map { it.account }
+            imAccounts = fields.filterIsInstance<LinkedField.Im>().map { it.account },
+            birthday = fields.filterIsInstance<LinkedField.Birthday>().firstOrNull()?.date,
+            anniversary = fields.filterIsInstance<LinkedField.Anniversary>().firstOrNull()?.date,
+            nicknames = fields.filterIsInstance<LinkedField.NicknameText>().map { it.name },
+            websites = fields.filterIsInstance<LinkedField.WebsiteUrl>().map { it.url }
         )
         val ops = ContactsContractOps.buildCreateLocal(account, row, keepWithRawContactId = anyRawContactOf(contactId))
         val results = provider.applyBatch(ArrayList(ops))

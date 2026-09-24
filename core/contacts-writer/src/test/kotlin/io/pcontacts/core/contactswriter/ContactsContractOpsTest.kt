@@ -81,6 +81,21 @@ class ContactsContractOpsTest {
         assertTrue("op 1 must be Phone insert", ops[1].isInsert)
     }
 
+    @Test fun append_writes_an_imported_birthday_as_an_event_row() {
+        val ops = ContactsContractOps.buildAppend(
+            account = account,
+            rawContactId = 42L,
+            fields = listOf(LinkedField.Birthday("1990-03-12"), LinkedField.WebsiteUrl("www.bolt.eu"))
+        )
+        // Event + Website + the RawContacts DIRTY update.
+        assertEquals(3, ops.size)
+        val event = ops[0].resolveValueBackReferences(emptyArray(), 0)!!
+        assertEquals(Event.CONTENT_ITEM_TYPE, event.getAsString(ContactsContract.Data.MIMETYPE))
+        assertEquals(Event.TYPE_BIRTHDAY, event.getAsInteger(Event.TYPE))
+        assertEquals("1990-03-12", event.getAsString(Event.START_DATE))
+        assertEquals(42L, event.getAsLong(ContactsContract.Data.RAW_CONTACT_ID))
+    }
+
     @Test fun append_emits_only_inserts_plus_chip_and_ends_with_a_dirty_update() {
         val ops = ContactsContractOps.buildAppend(
             account = account,

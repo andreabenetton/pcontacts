@@ -105,7 +105,10 @@ class LinkedContactsScannerTest {
                 "vnd.android.cursor.item/postal-address_v2",
                 "vnd.android.cursor.item/organization",
                 "vnd.android.cursor.item/note",
-                "vnd.android.cursor.item/im"
+                "vnd.android.cursor.item/im",
+                "vnd.android.cursor.item/contact_event",
+                "vnd.android.cursor.item/nickname",
+                "vnd.android.cursor.item/website"
             ),
             LinkedContactsScanner.ALLOWED_MIMETYPES
         )
