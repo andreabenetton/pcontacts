@@ -10,6 +10,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The sync card names each stage of a run with its own count**:
+  "Sending changes to Proton: 2 of 7", "Checking contacts",
+  "Downloading contacts: 3 of 7", "Saving to your contacts". The
+  download count is the contacts that changed on Proton, not every
+  contact on the account — a sync with 7 changes no longer counts to
+  902. A stage with nothing to do is not shown.
+
 ## [2.0.0] - 2026-09-22
 
 ### Added
