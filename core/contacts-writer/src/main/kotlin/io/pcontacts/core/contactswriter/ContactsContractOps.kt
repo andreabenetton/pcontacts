@@ -8,12 +8,15 @@ import android.content.ContentProviderOperation
 import android.net.Uri
 import android.provider.ContactsContract.AggregationExceptions
 import android.provider.ContactsContract.CommonDataKinds.Email
+import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
+import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.Photo
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
+import android.provider.ContactsContract.CommonDataKinds.Website
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.RawContacts
 import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
@@ -227,6 +230,12 @@ object ContactsContractOps {
         row.organization?.let { ops += newOrganizationInsertWithBackRef(dataUri, rawIdx, it) }
         row.notes.forEach { note -> ops += newNoteInsertWithBackRef(dataUri, rawIdx, note) }
         row.imAccounts.forEach { im -> ops += newImInsertWithBackRef(dataUri, rawIdx, im) }
+        extraFieldValues(row).forEach { values ->
+            ops += ContentProviderOperation.newInsert(dataUri)
+                .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
+                .apply { values.forEach { (column, value) -> withValue(column, value) } }
+                .build()
+        }
         row.photo?.let { photo ->
             val fitted = PhotoDownscaler.downscale(photo.data)
             if (fitted != null) ops += newPhotoInsertWithBackRef(dataUri, rawIdx, ContactPhoto(fitted))
@@ -255,6 +264,12 @@ object ContactsContractOps {
         row.organization?.let { ops += newOrganizationInsertForExisting(dataUri, rawContactId, it) }
         row.notes.forEach { note -> ops += newNoteInsertForExisting(dataUri, rawContactId, note) }
         row.imAccounts.forEach { im -> ops += newImInsertForExisting(dataUri, rawContactId, im) }
+        extraFieldValues(row).forEach { values ->
+            ops += ContentProviderOperation.newInsert(dataUri)
+                .withValue(Data.RAW_CONTACT_ID, rawContactId)
+                .apply { values.forEach { (column, value) -> withValue(column, value) } }
+                .build()
+        }
         row.photo?.let { photo ->
             val fitted = PhotoDownscaler.downscale(photo.data)
             if (fitted != null) ops += newPhotoInsertForExisting(dataUri, rawContactId, ContactPhoto(fitted))
@@ -267,7 +282,7 @@ object ContactsContractOps {
         // chip rows (one per email) + M Phone + K Address + L Note + I Im
         // + (Organization?) + (Photo?) + groupRowIds.
         2 + (row.emails.size * 2) + row.phones.size + row.addresses.size +
-            row.notes.size + row.imAccounts.size + row.groupRowIds.size +
+            row.notes.size + row.imAccounts.size + row.groupRowIds.size + extraFieldValues(row).size +
             (if (row.organization != null) 1 else 0) +
             (if (row.photo != null) 1 else 0)
 
@@ -537,6 +552,35 @@ object ContactsContractOps {
         org.title?.takeIf { it.isNotBlank() }
             ?.let { builder.withValue(CCOrganization.TITLE, it) }
     }
+
+    // ---- Event / Nickname / Website (ADR-0023, 2026-09-24) ----
+
+    /** Column values of the rows that hold one plain value each: birthday, anniversary, nicknames, websites. */
+    private fun extraFieldValues(row: ContactRow): List<Map<String, Any>> = buildList {
+        row.birthday?.let { add(eventValues(it, Event.TYPE_BIRTHDAY)) }
+        row.anniversary?.let { add(eventValues(it, Event.TYPE_ANNIVERSARY)) }
+        row.nicknames.forEach {
+            add(
+                mapOf(
+                    Data.MIMETYPE to Nickname.CONTENT_ITEM_TYPE,
+                    Nickname.NAME to it,
+                    Nickname.TYPE to Nickname.TYPE_DEFAULT
+                )
+            )
+        }
+        row.websites.forEach {
+            add(
+                mapOf(
+                    Data.MIMETYPE to Website.CONTENT_ITEM_TYPE,
+                    Website.URL to it,
+                    Website.TYPE to Website.TYPE_OTHER
+                )
+            )
+        }
+    }
+
+    private fun eventValues(date: String, type: Int): Map<String, Any> =
+        mapOf(Data.MIMETYPE to Event.CONTENT_ITEM_TYPE, Event.START_DATE to date, Event.TYPE to type)
 
     // ---- Note ----
 

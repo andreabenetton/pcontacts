@@ -5,6 +5,9 @@ package io.pcontacts.core.contactswriter
 
 import android.accounts.Account
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Event
+import android.provider.ContactsContract.CommonDataKinds.Nickname
+import android.provider.ContactsContract.CommonDataKinds.Website
 import android.provider.ContactsContract.RawContacts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -335,6 +338,37 @@ class ContactsContractOpsTest {
         //   + 1 Organization + 2 Note + 2 Im + 1 Photo = 12.
         assertEquals(12, ops.size)
         assertTrue("all ops in a Create batch must be inserts", ops.all { it.isInsert })
+    }
+
+    @Test fun update_writes_birthday_anniversary_nickname_and_website_rows() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.UpdateContact(
+                rawContactId = 100L,
+                row = ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = emptyList(),
+                    birthday = "1990-03-12",
+                    anniversary = "--06-12",
+                    nicknames = listOf("Ali"),
+                    websites = listOf("https://alice.example")
+                )
+            ),
+            baseIdx = 0
+        )
+        // 1 delete + StructuredName + 2 Event + Nickname + Website.
+        assertEquals(6, ops.size)
+        val values = ops.drop(2).map { it.resolveValueBackReferences(emptyArray(), 0)!! }
+        val byMime = values.groupBy { it.getAsString(ContactsContract.Data.MIMETYPE) }
+        val events = byMime.getValue(Event.CONTENT_ITEM_TYPE)
+            .associate { it.getAsInteger(Event.TYPE) to it.getAsString(Event.START_DATE) }
+        assertEquals(mapOf(Event.TYPE_BIRTHDAY to "1990-03-12", Event.TYPE_ANNIVERSARY to "--06-12"), events)
+        assertEquals("Ali", byMime.getValue(Nickname.CONTENT_ITEM_TYPE).single().getAsString(Nickname.NAME))
+        assertEquals(
+            "https://alice.example",
+            byMime.getValue(Website.CONTENT_ITEM_TYPE).single().getAsString(Website.URL)
+        )
     }
 
     @Test fun update_with_full_field_set_emits_one_delete_plus_each_inserted_row() {

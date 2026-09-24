@@ -28,6 +28,10 @@ package io.pcontacts.core.contactswriter
  *     contact (multi-org is rare and not yet modelled).
  *   - `notes`: one Note Data row per entry.
  *   - `imAccounts`: one Im Data row per entry.
+ *   - `birthday` / `anniversary`: one Event row each (TYPE_BIRTHDAY /
+ *     TYPE_ANNIVERSARY), START_DATE in Android's form — `yyyy-MM-dd`,
+ *     `--MM-dd` without a year, or free text as found.
+ *   - `nicknames` / `websites`: one Nickname / Website row per entry.
  *   - `photo`: one Photo Data row (inline). Display-stream / large
  *     photos via RawContacts.DisplayPhoto land with the complete version.
  *
@@ -46,6 +50,10 @@ data class ContactRow(
     val organization: Organization? = null,
     val notes: List<String> = emptyList(),
     val imAccounts: List<ImAccount> = emptyList(),
+    val birthday: String? = null,
+    val anniversary: String? = null,
+    val nicknames: List<String> = emptyList(),
+    val websites: List<String> = emptyList(),
     val photo: ContactPhoto? = null,
     /**
      * Local Android Groups._ID values this contact belongs to.
@@ -61,9 +69,13 @@ data class ContactRow(
         // that says nothing at all is unrepresentable.
         val hasName = !displayName.isNullOrBlank() || structuredName != null
         val hasField = emails.isNotEmpty() || phones.isNotEmpty() || addresses.isNotEmpty() ||
-            imAccounts.isNotEmpty() || organization != null || notes.isNotEmpty() || photo != null
+            imAccounts.isNotEmpty() || organization != null || notes.isNotEmpty() || photo != null ||
+            hasExtraField()
         require(hasName || hasField) { "ContactRow must carry a name or at least one field" }
     }
+
+    private fun hasExtraField(): Boolean =
+        birthday != null || anniversary != null || nicknames.isNotEmpty() || websites.isNotEmpty()
 }
 
 /**

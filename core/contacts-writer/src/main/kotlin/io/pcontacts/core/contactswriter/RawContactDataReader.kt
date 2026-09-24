@@ -6,12 +6,15 @@ package io.pcontacts.core.contactswriter
 import android.content.ContentProviderClient
 import android.database.Cursor
 import android.provider.ContactsContract.CommonDataKinds.Email
+import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
+import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.Photo
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
+import android.provider.ContactsContract.CommonDataKinds.Website
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
 import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName
@@ -114,6 +117,10 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
         private var organization: Organization? = null
         private val notes = mutableListOf<String>()
         private val imAccounts = mutableListOf<ImAccount>()
+        private var birthday: String? = null
+        private var anniversary: String? = null
+        private val nicknames = mutableListOf<String>()
+        private val websites = mutableListOf<String>()
         private var photo: ContactPhoto? = null
 
         fun add(cursor: Cursor, c: Columns) {
@@ -153,10 +160,27 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
                         type = ImProtocolMapper.typeFromAndroid(cursor.getInt(c.d2))
                     )
                 }
+                Event.CONTENT_ITEM_TYPE, Nickname.CONTENT_ITEM_TYPE, Website.CONTENT_ITEM_TYPE ->
+                    addExtra(cursor.getString(c.mime), cursor, c)
                 Photo.CONTENT_ITEM_TYPE -> {
                     val blob = cursor.getBlob(c.d15)
                     if (blob != null && blob.isNotEmpty()) photo = ContactPhoto(blob)
                 }
+            }
+        }
+
+        /**
+         * Event, Nickname and Website rows (ADR-0023, 2026-09-24). Only the two
+         * event kinds Proton has a property for are carried; other or custom
+         * events are not.
+         */
+        private fun addExtra(mime: String, cursor: Cursor, c: Columns) {
+            val value = cursor.getString(c.d1)?.trim()?.takeIf { it.isNotEmpty() } ?: return
+            when {
+                mime == Nickname.CONTENT_ITEM_TYPE -> nicknames += value
+                mime == Website.CONTENT_ITEM_TYPE -> websites += value
+                cursor.getInt(c.d2) == Event.TYPE_BIRTHDAY -> birthday = value
+                cursor.getInt(c.d2) == Event.TYPE_ANNIVERSARY -> anniversary = value
             }
         }
 
@@ -182,8 +206,9 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
             // Primary-first ordering for emails
             val sortedEmails = emails.sortedByDescending { it.second }.map { it.first }
             val hasName = !displayName.isNullOrBlank() || structuredName != null
-            val hasField = listOf(sortedEmails, phones, addresses, imAccounts, notes).any { it.isNotEmpty() } ||
-                organization != null || photo != null
+            val hasField = listOf(sortedEmails, phones, addresses, imAccounts, notes, nicknames, websites)
+                .any { it.isNotEmpty() } ||
+                organization != null || photo != null || birthday != null || anniversary != null
             if (!hasName && !hasField) return null
             return ContactRow(
                 sourceId = sourceId,
@@ -195,6 +220,10 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
                 organization = organization,
                 notes = notes,
                 imAccounts = imAccounts,
+                birthday = birthday,
+                anniversary = anniversary,
+                nicknames = nicknames,
+                websites = websites,
                 photo = photo
             )
         }

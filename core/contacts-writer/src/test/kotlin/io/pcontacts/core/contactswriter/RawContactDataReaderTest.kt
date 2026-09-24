@@ -5,13 +5,14 @@ package io.pcontacts.core.contactswriter
 
 import android.database.MatrixCursor
 import android.provider.ContactsContract.CommonDataKinds.Email
+import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.Im
+import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
-import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.Photo
-import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
+import android.provider.ContactsContract.CommonDataKinds.Website
 import android.provider.ContactsContract.Data
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -21,6 +22,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import android.provider.ContactsContract.CommonDataKinds.Organization as CCOrganization
+import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStructuredName
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], manifest = Config.NONE)
@@ -50,6 +53,28 @@ class RawContactDataReaderTest {
         displayName, given, family, prefix, middle, suffix,
         null, null, null, null, null, 0
     )
+
+    private fun valueRow(mime: String, value: String, type: Int? = null): Array<Any?> = arrayOf(
+        mime, value, type, null, null, null, null, null, null, null, null, null, 0
+    )
+
+    @Test fun events_nicknames_and_websites_are_read_and_other_event_kinds_are_not() {
+        val cursor = MatrixCursor(columns).apply {
+            addRow(structuredNameRow("Alice"))
+            addRow(valueRow(Event.CONTENT_ITEM_TYPE, "1990-03-12", Event.TYPE_BIRTHDAY))
+            addRow(valueRow(Event.CONTENT_ITEM_TYPE, "--06-12", Event.TYPE_ANNIVERSARY))
+            addRow(valueRow(Event.CONTENT_ITEM_TYPE, "2001-01-01", Event.TYPE_OTHER))
+            addRow(valueRow(Nickname.CONTENT_ITEM_TYPE, " Ali "))
+            addRow(valueRow(Website.CONTENT_ITEM_TYPE, "https://alice.example"))
+        }
+
+        val row = RawContactDataReader.parse(cursor, "c1")!!
+
+        assertEquals("1990-03-12", row.birthday)
+        assertEquals("--06-12", row.anniversary)
+        assertEquals(listOf("Ali"), row.nicknames)
+        assertEquals(listOf("https://alice.example"), row.websites)
+    }
 
     private fun emailRow(address: String, isPrimary: Boolean = false): Array<Any?> = arrayOf(
         Email.CONTENT_ITEM_TYPE,
