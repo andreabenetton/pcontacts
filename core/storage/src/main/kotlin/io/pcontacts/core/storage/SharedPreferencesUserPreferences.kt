@@ -50,6 +50,14 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         get() = prefs.getInt(KEY_LAST_SYNC_FAILED_CONTACTS, 0)
         set(value) { prefs.edit().putInt(KEY_LAST_SYNC_FAILED_CONTACTS, value).apply() }
 
+    override var syncProgressPhase: String?
+        get() = prefs.getString(KEY_SYNC_PROGRESS_PHASE, null)
+        set(value) {
+            prefs.edit().apply {
+                if (value == null) remove(KEY_SYNC_PROGRESS_PHASE) else putString(KEY_SYNC_PROGRESS_PHASE, value)
+            }.apply()
+        }
+
     override var syncProgressDone: Int
         get() = prefs.getInt(KEY_SYNC_PROGRESS_DONE, 0)
         set(value) { prefs.edit().putInt(KEY_SYNC_PROGRESS_DONE, value).apply() }
@@ -104,6 +112,7 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
             .remove(KEY_LAST_SYNC_RUN_AT)
             .remove(KEY_LAST_SYNC_ERROR_CODE)
             .remove(KEY_LAST_SYNC_FAILED_CONTACTS)
+            .remove(KEY_SYNC_PROGRESS_PHASE)
             .remove(KEY_SYNC_PROGRESS_DONE)
             .remove(KEY_SYNC_PROGRESS_TOTAL)
             .remove(KEY_SYNC_PROBLEMS_NOTIFIED)
@@ -119,6 +128,7 @@ class SharedPreferencesUserPreferences(context: Context) : UserPreferences {
         const val KEY_LAST_SYNC_RUN_AT = "last_sync_run_at"
         const val KEY_LAST_SYNC_ERROR_CODE = "last_sync_error_code"
         const val KEY_LAST_SYNC_FAILED_CONTACTS = "last_sync_failed_contacts"
+        const val KEY_SYNC_PROGRESS_PHASE = "sync_progress_phase"
         const val KEY_SYNC_PROGRESS_DONE = "sync_progress_done"
         const val KEY_SYNC_PROGRESS_TOTAL = "sync_progress_total"
         const val KEY_SYSTEM_CONTACTS_NOTICE_DISMISSED = "system_contacts_notice_dismissed"

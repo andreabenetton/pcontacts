@@ -57,11 +57,14 @@ interface UserPreferences {
     var lastSyncFailedContacts: Int
 
     /**
-     * Progress of the sync run in flight: contacts processed so far and
-     * the server total, both `0` when no run is active. Written by the
-     * engine every few contacts, cleared by the sync adapter when the
-     * run ends; the Settings card polls it while a sync is running.
+     * Progress of the sync run in flight: the phase it is in (a stable,
+     * non-sensitive code the sync engines define; `null` before the first
+     * phase and when no run is active) and that phase's items done so far
+     * out of its total (both `0` for a phase without a count). Written by
+     * the engines, cleared by the sync adapter when the run ends; the
+     * Settings card polls it while a sync is running.
      */
+    var syncProgressPhase: String?
     var syncProgressDone: Int
     var syncProgressTotal: Int
 

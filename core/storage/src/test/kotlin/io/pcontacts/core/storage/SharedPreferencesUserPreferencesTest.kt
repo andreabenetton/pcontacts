@@ -44,12 +44,17 @@ class SharedPreferencesUserPreferencesTest {
 
     @Test
     fun syncProgress_defaults_idle_and_round_trips() {
+        assertNull(prefs().syncProgressPhase)
         assertEquals(0, prefs().syncProgressDone)
         assertEquals(0, prefs().syncProgressTotal)
+        prefs().syncProgressPhase = "downloading"
         prefs().syncProgressDone = 120
         prefs().syncProgressTotal = 898
         assertEquals(120, prefs().syncProgressDone)
         assertEquals(898, prefs().syncProgressTotal)
+        assertEquals("downloading", prefs().syncProgressPhase)
+        prefs().syncProgressPhase = null
+        assertNull(prefs().syncProgressPhase)
     }
 
     @Test
@@ -100,6 +105,7 @@ class SharedPreferencesUserPreferencesTest {
         prefs().lastSyncRunAtMillis = 1_700_000_000_500L
         prefs().lastSyncErrorCode = "reauth"
         prefs().lastSyncFailedContacts = 2
+        prefs().syncProgressPhase = "sending"
         prefs().syncProgressDone = 5
         prefs().syncProgressTotal = 9
         prefs().secretsStorageUpgraded = true
@@ -114,6 +120,7 @@ class SharedPreferencesUserPreferencesTest {
         assertEquals(0L, prefs().lastSyncRunAtMillis)
         assertNull(prefs().lastSyncErrorCode)
         assertEquals(0, prefs().lastSyncFailedContacts)
+        assertNull(prefs().syncProgressPhase)
         assertEquals(0, prefs().syncProgressDone)
         assertEquals(0, prefs().syncProgressTotal)
         assertEquals(6L, prefs().syncIntervalHours)
