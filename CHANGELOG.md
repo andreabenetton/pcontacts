@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without a year travels as text: Proton's web view shows it as
   `--06-12`, and its edit form shows an invented year until the field
   is changed.
+- **Import details from linked contacts** also offers birthday,
+  anniversary, nickname and website from the other copies of a contact.
 - **Contacts deleted on a Samsung came back.** Samsung Contacts moves a
   deleted contact into its Recycle bin, hidden from sync apps, so the
   deletion never reached Proton and the next sync recreated the contact.
