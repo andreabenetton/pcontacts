@@ -31,6 +31,12 @@ class SyncProgressMapperTest {
         )
     }
 
+    @Test fun every_engine_phase_has_a_stage_on_the_card() {
+        for (phase in SyncPhase.entries) {
+            assertEquals(phase.name, SyncProgressMapper.progress(phase.code, 0, 0)?.stage?.name)
+        }
+    }
+
     @Test fun no_phase_or_an_unknown_one_means_no_progress() {
         assertNull(SyncProgressMapper.progress(null, 0, 0))
         assertNull(SyncProgressMapper.progress("uploading", 1, 2))
