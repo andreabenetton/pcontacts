@@ -237,6 +237,69 @@ class ContactDetailSyncEngineSelfHealingTest {
         assertNull(mapping.lastError)
     }
 
+    // ---- The one-time v3 rewrite (ADR-0023, 2026-09-24) ----
+
+    /** A mapping written by the previous hash format, as every contact has right after the update. */
+    private fun DetailFakeContactMapDao.rollBackHashFormat(id: String) {
+        val stored = snapshot().getValue(id)
+        val legacy = stored.copy(contentHash = "v2:" + stored.contentHash.substringAfter(':'))
+        kotlinx.coroutines.runBlocking { upsert(legacy) }
+    }
+
+    @Test fun a_birthday_only_the_phone_holds_is_pushed_before_the_one_time_rewrite() = runTest {
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L)
+        val queued = mutableListOf<String>()
+        val phoneRow = io.pcontacts.core.contactswriter.ContactRow(
+            sourceId = "c1",
+            displayName = "Alice",
+            emails = listOf("alice@proton.me"),
+            birthday = "1990-03-12"
+        )
+        val engine = newEngine(
+            unchangedTwice(),
+            dao,
+            applier,
+            readLocalRow = { _, _ -> phoneRow },
+            queueUpdate = { queued += it }
+        )
+        engine.sync(account)
+        dao.rollBackHashFormat("c1")
+
+        val report = engine.sync(account)
+
+        assertEquals(listOf("c1"), queued)
+        assertEquals("not rewritten this run", 0, report.updated)
+        assertTrue(dao.snapshot().getValue("c1").contentHash.startsWith("v2:"))
+    }
+
+    @Test fun a_different_birthday_on_each_side_becomes_a_conflict_instead_of_a_rewrite() = runTest {
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L)
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L)), metaPage(meta("c1", 100L))),
+            contacts = mapOf(
+                "c1" to contact("c1", 100L, "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nBDAY:19900313\nEND:VCARD")
+            ),
+            repeatContacts = true
+        )
+        val phoneRow = io.pcontacts.core.contactswriter.ContactRow(
+            sourceId = "c1",
+            displayName = "Alice",
+            emails = emptyList(),
+            birthday = "1990-03-12"
+        )
+        val engine = newEngine(api, dao, applier, readLocalRow = { _, _ -> phoneRow })
+        engine.sync(account)
+        dao.rollBackHashFormat("c1")
+
+        engine.sync(account)
+
+        val mapping = dao.snapshot().getValue("c1")
+        assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
+        assertEquals("conflict: birthday", mapping.lastError)
+    }
+
     @Test fun tombstoned_raw_contact_counts_as_present_and_is_not_recreated() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(

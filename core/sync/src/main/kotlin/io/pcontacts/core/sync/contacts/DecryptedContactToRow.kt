@@ -83,10 +83,15 @@ internal object DecryptedContactToRow {
         val organization = toWriterOrganization(decrypted.organization)
         val notes = decrypted.notes.filter { it.isNotBlank() }
         val photo = toWriterPhoto(decrypted.photo)
+        val birthday = decrypted.birthday?.takeIf { it.isNotBlank() }
+        val anniversary = decrypted.anniversary?.takeIf { it.isNotBlank() }
+        val nicknames = decrypted.nicknames.filter { it.isNotBlank() }
+        val websites = decrypted.websites.filter { it.isNotBlank() }
         val hasName = displayName != null || structuredName != null
         val hasField = emails.isNotEmpty() || phones.isNotEmpty() || addresses.isNotEmpty() ||
             imAccounts.isNotEmpty() || organization != null || notes.isNotEmpty() || photo != null
-        if (!hasName && !hasField) return null
+        val hasExtra = birthday != null || anniversary != null || nicknames.isNotEmpty() || websites.isNotEmpty()
+        if (!hasName && !hasField && !hasExtra) return null
 
         return ContactRow(
             sourceId = decrypted.protonContactId,
@@ -98,6 +103,10 @@ internal object DecryptedContactToRow {
             organization = organization,
             notes = notes,
             imAccounts = imAccounts,
+            birthday = birthday,
+            anniversary = anniversary,
+            nicknames = nicknames,
+            websites = websites,
             photo = photo
         )
     }

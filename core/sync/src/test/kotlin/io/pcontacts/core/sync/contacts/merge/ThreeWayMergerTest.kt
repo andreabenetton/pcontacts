@@ -341,4 +341,38 @@ class ThreeWayMergerTest {
         val conflicted = result as ThreeWayMerger.MergeResult.Conflicted
         assertEquals("Alice B", conflicted.partial.fullName)
     }
+
+    // ---- birthday, anniversary, nicknames, websites (ADR-0023, 2026-09-24) ----
+
+    @Test fun a_birthday_added_on_the_phone_merges_into_an_unchanged_server() {
+        val base = contact()
+        val local = base.copy(birthday = "1990-03-12", nicknames = listOf("Ali"))
+
+        val result = mergePhotos(base, base, local)
+
+        val merged = (result as ThreeWayMerger.MergeResult.AutoMerged).merged
+        assertEquals("1990-03-12", merged.birthday)
+        assertEquals(listOf("Ali"), merged.nicknames)
+    }
+
+    @Test fun a_birthday_changed_differently_on_both_sides_is_a_conflict() {
+        val base = contact().copy(birthday = "1990-03-12")
+        val server = base.copy(birthday = "1990-03-13")
+        val local = base.copy(birthday = "1991-03-12")
+
+        val result = mergePhotos(base, server, local)
+
+        val conflicts = (result as ThreeWayMerger.MergeResult.Conflicted).conflicts
+        assertEquals(listOf("birthday"), conflicts.map { it.fieldName })
+    }
+
+    @Test fun websites_added_on_each_side_are_both_kept() {
+        val base = contact()
+        val server = base.copy(websites = listOf("https://a.example"))
+        val local = base.copy(websites = listOf("https://b.example"))
+
+        val merged = (mergePhotos(base, server, local) as ThreeWayMerger.MergeResult.AutoMerged).merged
+
+        assertEquals(setOf("https://a.example", "https://b.example"), merged.websites.toSet())
+    }
 }

@@ -18,7 +18,8 @@ import java.security.MessageDigest
  *
  * Covers every field that lands in ContactsContract:
  *   sourceId | displayName | structuredName | emails | phones |
- *   addresses | organization | notes | imAccounts | photo bytes
+ *   addresses | organization | notes | imAccounts | birthday |
+ *   anniversary | nicknames | websites | photo bytes
  *
  * Hash format is private to the engine — bumping it invalidates
  * every existing `contact_map.content_hash`, so the first sync
@@ -46,8 +47,10 @@ object EmailSyncHash {
      *        prefix as v1.
      *   v2 — adds the Send-via-Proton-Mail chip row per email
      *        (ADR-0021). Stored as "v2:<sha-hex>".
+     *   v3 — adds birthday, anniversary, nickname and website rows
+     *        (ADR-0023, 2026-09-24). Stored as "v3:<sha-hex>".
      */
-    const val FORMAT_PREFIX = "v2:"
+    const val FORMAT_PREFIX = "v3:"
 
     fun compute(row: ContactRow): String {
         val sink = ByteArrayOutputStream()
@@ -76,6 +79,10 @@ object EmailSyncHash {
         write(row.notes.joinToString("\n")); sep()
         write(row.imAccounts.joinToString(",", transform = ::imFingerprint)); sep()
         write(row.groupRowIds.joinToString(",")); sep()
+        write(row.birthday.orEmpty()); sep()
+        write(row.anniversary.orEmpty()); sep()
+        write(row.nicknames.joinToString(",")); sep()
+        write(row.websites.joinToString(",")); sep()
 
         // Photo bytes hashed bit-exactly — any change in pixels triggers
         // a rewrite on the next sync.

@@ -120,6 +120,10 @@ class ContactDetailSyncEngine(
      * owns a change to it, so the pull must neither overwrite nor delete the row.
      */
     private val hasLocalMutation: suspend (protonContactId: String) -> Boolean = { false },
+    /** The contact as the provider holds it; read only for the one-time v3 rewrite ([ExtraFieldsGuard]). */
+    private val readLocalRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
+    /** Queues an UPDATE for the contact, so the next push carries what only the phone holds. */
+    private val queueUpdate: suspend (protonContactId: String) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
@@ -311,6 +315,10 @@ class ContactDetailSyncEngine(
                 logger.warn { "contact skipped (nothing representable) idTag=${sourceId.hashCode()}" }
                 continue
             }
+            if (liveRawId != null && stored != null && keepsPhoneOnlyFields(stored, liveRawId, decrypted)) {
+                protectedIds += sourceId
+                continue
+            }
             // Attach the contact's group memberships (translating Proton
             // LabelIDs → local Groups._ID via the reconciled labelMap); with
             // the label state unknown, keep what the provider holds.
@@ -478,6 +486,36 @@ class ContactDetailSyncEngine(
         logger.info { "removed contact is back; question dropped idTag=${stored.protonContactId.hashCode()}" }
         contactMapDao.resolveConflict(stored.protonContactId)
         return stored.copy(syncStatus = ContactMapEntity.Status.CLEAN, lastError = null)
+    }
+
+    /**
+     * The one-time rewrite after the hash format rolled (ADR-0023, 2026-09-24): true when the
+     * phone holds new-field values Proton lacks — an UPDATE is queued so the push carries them —
+     * or holds a different birthday or anniversary — a conflict for the user. Either way the
+     * row is not rewritten this run.
+     */
+    private suspend fun keepsPhoneOnlyFields(
+        stored: ContactMapEntity,
+        liveRawId: Long,
+        server: DecryptedContact
+    ): Boolean {
+        val rolled = stored.contentHash.isNotEmpty() && !stored.contentHash.startsWith(EmailSyncHash.FORMAT_PREFIX)
+        if (!rolled) return false
+        val local = readLocalRow(liveRawId, stored.protonContactId) ?: return false
+        val idTag = stored.protonContactId.hashCode()
+        return when (val verdict = ExtraFieldsGuard.judge(local, server)) {
+            ExtraFieldsGuard.Verdict.Rewrite -> false
+            ExtraFieldsGuard.Verdict.PushFirst -> {
+                logger.info { "phone-only fields kept; update queued before the rewrite idTag=$idTag" }
+                queueUpdate(stored.protonContactId)
+                true
+            }
+            is ExtraFieldsGuard.Verdict.Clash -> {
+                logger.warn { "phone and Proton differ on ${verdict.fields}; asking idTag=$idTag" }
+                contactMapDao.markConflict(stored.protonContactId, "conflict: " + verdict.fields.joinToString(", "))
+                true
+            }
+        }
     }
 
     /** A conflict awaiting the user, or any outbox row (queued or quarantined) for the contact. */

@@ -117,11 +117,34 @@ object ThreeWayMerger {
             cards = input.server.cards
         )
 
+        // Before the verdict: a conflict on these fields counts like any other.
+        val complete = mergeExtraFields(input, merged, conflicts)
         return if (conflicts.isEmpty()) {
-            MergeResult.AutoMerged(merged)
+            MergeResult.AutoMerged(complete)
         } else {
-            MergeResult.Conflicted(merged, conflicts)
+            MergeResult.Conflicted(complete, conflicts)
         }
+    }
+
+    /** Birthday and anniversary merge as scalars, nicknames and websites value by value (ADR-0023, 2026-09-24). */
+    private fun mergeExtraFields(
+        input: MergeInput,
+        merged: DecryptedContact,
+        conflicts: MutableList<FieldConflict>
+    ): DecryptedContact {
+        val (base, server, local) = Triple(input.base, input.server, input.local)
+        return merged.copy(
+            birthday = mergeScalar("birthday", base.birthday, server.birthday, local.birthday, conflicts),
+            anniversary = mergeScalar(
+                "anniversary",
+                base.anniversary,
+                server.anniversary,
+                local.anniversary,
+                conflicts
+            ),
+            nicknames = mergeSet("nicknames", base.nicknames, server.nicknames, local.nicknames, { it }, conflicts),
+            websites = mergeSet("websites", base.websites, server.websites, local.websites, { it }, conflicts)
+        )
     }
 
     private fun mergePhoto(input: MergeInput, conflicts: MutableList<FieldConflict>): DecryptedPhoto? {

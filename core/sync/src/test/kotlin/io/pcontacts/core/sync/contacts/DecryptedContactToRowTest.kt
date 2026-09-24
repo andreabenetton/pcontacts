@@ -8,8 +8,10 @@ import io.pcontacts.core.protoncontacts.DecryptedEmail
 import io.pcontacts.core.protoncontacts.DecryptedPhone
 import io.pcontacts.core.protoncontacts.DecryptedStructuredName
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -113,4 +115,25 @@ class DecryptedContactToRowTest {
         cardCount = 1,
         unverifiedCardCount = 0
     )
+
+    @Test fun birthday_anniversary_nicknames_and_websites_round_trip_and_change_the_hash() {
+        val contact = io.pcontacts.core.protoncontacts.DecryptedContact.empty("c1").copy(
+            fullName = "Alice",
+            birthday = "1990-03-12",
+            anniversary = "--06-12",
+            nicknames = listOf("Ali"),
+            websites = listOf("https://alice.example")
+        )
+
+        val row = DecryptedContactToRow.convert(contact)!!
+        val back = RowToDecryptedContact.convert(row, "c1")
+
+        assertEquals("1990-03-12", row.birthday)
+        assertEquals(listOf("Ali"), row.nicknames)
+        assertEquals(contact.birthday, back.birthday)
+        assertEquals(contact.anniversary, back.anniversary)
+        assertEquals(contact.websites, back.websites)
+        assertNotEquals(EmailSyncHash.compute(row), EmailSyncHash.compute(row.copy(birthday = null)))
+        assertTrue(EmailSyncHash.compute(row).startsWith("v3:"))
+    }
 }

@@ -5,6 +5,7 @@ package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
 import io.pcontacts.core.contactswriter.ApplyResult
+import io.pcontacts.core.contactswriter.ContactRow
 import io.pcontacts.core.contactswriter.ExistingRawContact
 import io.pcontacts.core.contactswriter.ExistingRawContacts
 import io.pcontacts.core.contactswriter.ProtonLabel
@@ -74,6 +75,8 @@ internal fun newEngine(
     labelsApi: ProtonLabelsApi = NoLabelsApi,
     reconcileGroups: suspend (Account, List<ProtonLabel>) -> Map<String, Long> = { _, _ -> emptyMap() },
     readGroupRowIds: suspend (Long) -> List<Long> = { emptyList() },
+    readLocalRow: suspend (Long, String) -> ContactRow? = { _, _ -> null },
+    queueUpdate: suspend (String) -> Unit = {},
     onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
@@ -95,6 +98,8 @@ internal fun newEngine(
         reconcileGroups = reconcileGroups,
         readGroupRowIds = readGroupRowIds,
         onProgress = onProgress,
+        readLocalRow = readLocalRow,
+        queueUpdate = queueUpdate,
         saveMergeBase = saveMergeBase,
         readLocalPhotoHash = readLocalPhotoHash,
         clock = { 1_700_000_000L }

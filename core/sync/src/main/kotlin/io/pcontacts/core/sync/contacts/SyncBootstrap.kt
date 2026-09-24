@@ -209,7 +209,9 @@ object SyncBootstrap {
             onProgress = progressSink(context),
             saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
             readLocalPhotoHash = localPhotoHashReader(dataReader),
-            readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { dataReader.readGroupRowIds(rawId) } }
+            readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { dataReader.readGroupRowIds(rawId) } },
+            readLocalRow = { rawId, sourceId -> withContext(Dispatchers.IO) { dataReader.read(rawId, sourceId) } },
+            queueUpdate = queueUpdate(db.outboxDao())
         )
     }
 
@@ -294,6 +296,8 @@ object SyncBootstrap {
             saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
             readLocalPhotoHash = localPhotoHashReader(readDataReader),
             readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { readDataReader.readGroupRowIds(rawId) } },
+            readLocalRow = { rawId, sourceId -> withContext(Dispatchers.IO) { readDataReader.read(rawId, sourceId) } },
+            queueUpdate = queueUpdate(db.outboxDao()),
             // Same production logger as the write engine — the pull path was
             // previously wired to NoOpSink, so read-path failures (fetch /
             // decrypt / parse) were invisible in production logs.
@@ -397,6 +401,11 @@ private fun hasPendingOutboxDelete(outboxDao: OutboxDao): suspend (String) -> Bo
             !it.quarantined && it.opType == OutboxEntity.OpType.DELETE
         }
     }
+
+/** An ordinary UPDATE for the contact; the push merges and sends what only the phone holds (ADR-0023). */
+private fun queueUpdate(outboxDao: OutboxDao): suspend (String) -> Unit = { protonContactId ->
+    outboxDao.enqueue(protonContactId, OutboxEntity.OpType.UPDATE, "", System.currentTimeMillis())
+}
 
 /** Persists the run's phase and its "N of total" so the Settings card can show them while it is in flight. */
 private fun progressSink(context: Context): (SyncPhase, Int, Int) -> Unit {
