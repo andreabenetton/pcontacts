@@ -42,11 +42,21 @@ data class LinkedImportCandidate(
     val sourceIcons: List<Bitmap> = emptyList()
 )
 
-/** `createsNewContact` is true when the contact has no Proton copy and confirming creates one. */
+/** Details Proton does not keep, named before a move (ADR-0026). */
+enum class UncarriedDetail { EVENT, RELATION, SIP_ADDRESS }
+
+/** The contact sits in an orphan storage Android purges: it can be moved instead of copied (ADR-0026). */
+data class MoveOffer(val uncarried: List<UncarriedDetail> = emptyList())
+
+/**
+ * `createsNewContact` is true when the contact has no Proton copy and confirming creates one;
+ * [move] is set when that contact can be moved into Proton instead.
+ */
 data class LinkedImportPreview(
     val contactName: String?,
     val candidates: List<LinkedImportCandidate>,
-    val createsNewContact: Boolean = false
+    val createsNewContact: Boolean = false,
+    val move: MoveOffer? = null
 )
 
 sealed interface LinkedImportState {
@@ -84,10 +94,13 @@ sealed interface LinkedImportState {
  * and, for a preview that creates a new contact, creates it. It
  * answers false when the contact changed meanwhile and a selected
  * field is gone: the preview is reloaded for another look.
+ * `moveContact` moves the previewed orphan contact into Proton
+ * (ADR-0026) and answers false the same way.
  */
 class LinkedImportViewModel(
     private val loadPreview: suspend (Long) -> LinkedImportPreview?,
     private val importCandidates: suspend (List<String>) -> Boolean,
+    private val moveContact: suspend () -> Boolean = { false },
     private val scope: CoroutineScope = MainScope(),
     private val workDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
@@ -121,6 +134,27 @@ class LinkedImportViewModel(
         val review = _state.value as? LinkedImportState.Review ?: return
         val selected = if (id in review.selected) review.selected - id else review.selected + id
         _state.value = review.copy(selected = selected)
+    }
+
+    /** The whole contact moves: nothing is selected, the count is its candidates for the list row. */
+    fun move() {
+        val review = _state.value as? LinkedImportState.Review ?: return
+        if (review.preview.move == null) return
+        _state.value = LinkedImportState.Importing
+        scope.launch {
+            _state.value = try {
+                val done = withContext(workDispatcher) { moveContact() }
+                if (done) {
+                    LinkedImportState.Imported(review.preview.candidates.size, created = true, contactId = contactId)
+                } else {
+                    load(changed = true)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                LinkedImportState.Failed(e.javaClass.simpleName)
+            }
+        }
     }
 
     fun confirm() {

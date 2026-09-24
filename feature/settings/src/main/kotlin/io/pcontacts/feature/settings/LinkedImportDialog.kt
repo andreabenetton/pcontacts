@@ -57,6 +57,7 @@ internal fun LinkedImportDialog(viewModel: LinkedImportViewModel) {
             review = s,
             onToggle = viewModel::toggle,
             onConfirm = viewModel::confirm,
+            onMove = viewModel::move,
             onDismiss = viewModel::dismiss
         )
         LinkedImportState.Hidden,
@@ -88,9 +89,11 @@ private fun ReviewDialog(
     review: LinkedImportState.Review,
     onToggle: (String) -> Unit,
     onConfirm: () -> Unit,
+    onMove: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val creates = review.preview.createsNewContact
+    val move = review.preview.move
     val name = review.preview.contactName ?: stringResource(R.string.unverified_no_name)
     val titleRes = if (creates) R.string.linked_import_create_title else R.string.linked_import_dialog_title
     AlertDialog(
@@ -104,6 +107,7 @@ private fun ReviewDialog(
                 } else {
                     val detailRes = if (creates) R.string.linked_import_create_detail else R.string.linked_import_review_detail
                     Text(text = stringResource(detailRes, name), style = MaterialTheme.typography.bodySmall)
+                    move?.let { MoveExplanation(name, it) }
                     if (review.changed) {
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -132,10 +136,15 @@ private fun ReviewDialog(
             }
         },
         confirmButton = {
-            if (review.preview.candidates.isNotEmpty()) {
-                TextButton(onClick = onConfirm, enabled = review.canConfirm) {
-                    val confirmRes = if (creates) R.string.linked_import_create_confirm else R.string.linked_import_confirm
-                    Text(stringResource(confirmRes))
+            Row {
+                if (review.preview.candidates.isNotEmpty()) {
+                    TextButton(onClick = onConfirm, enabled = review.canConfirm) {
+                        val confirmRes = if (creates) R.string.linked_import_create_confirm else R.string.linked_import_confirm
+                        Text(stringResource(confirmRes))
+                    }
+                }
+                if (move != null) {
+                    TextButton(onClick = onMove) { Text(stringResource(R.string.linked_import_move_confirm)) }
                 }
             }
         },
@@ -181,6 +190,28 @@ internal fun SourceIcons(icons: List<Bitmap>) {
         }
     }
     Spacer(Modifier.width(6.dp))
+}
+
+/** Why a move beats a copy for this contact, and what Proton would not keep (ADR-0026). */
+@Composable
+private fun MoveExplanation(name: String, move: MoveOffer) {
+    Spacer(Modifier.height(8.dp))
+    Text(text = stringResource(R.string.linked_import_move_detail, name), style = MaterialTheme.typography.bodySmall)
+    if (move.uncarried.isNotEmpty()) {
+        val lost = move.uncarried.map { stringResource(uncarriedLabel(it)) }.joinToString(", ")
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.linked_import_move_loses, lost),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+}
+
+private fun uncarriedLabel(detail: UncarriedDetail): Int = when (detail) {
+    UncarriedDetail.EVENT -> R.string.linked_import_uncarried_event
+    UncarriedDetail.RELATION -> R.string.linked_import_uncarried_relation
+    UncarriedDetail.SIP_ADDRESS -> R.string.linked_import_uncarried_sip
 }
 
 private fun kindLabel(kind: LinkedFieldKind): Int = when (kind) {

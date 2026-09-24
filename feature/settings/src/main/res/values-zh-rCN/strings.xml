@@ -116,6 +116,12 @@
     <string name="linked_import_create_title">在 Proton 中创建</string>
     <string name="linked_import_create_detail">%s 尚未在 Proton 中。请选择新 Proton 联系人的详情。原始联系人不会被修改。</string>
     <string name="linked_import_create_confirm">创建</string>
+    <string name="linked_import_move_detail">%s 保存在一个不属于任何应用的存储中，Android 会在下次账户变更时将其删除。将它移到 Proton 可保留联系人本身，包括收藏星标、铃声和关联，而不是创建副本。</string>
+    <string name="linked_import_move_loses">Proton 不会保留：%s。改为创建副本即可保持原联系人不变。</string>
+    <string name="linked_import_move_confirm">移到 Proton</string>
+    <string name="linked_import_uncarried_event">其他日期</string>
+    <string name="linked_import_uncarried_relation">关系</string>
+    <string name="linked_import_uncarried_sip">SIP 地址</string>
     <string name="linked_import_create_nothing">此联系人中未找到可用于创建 Proton 联系人的详情。</string>
     <string name="linked_import_create_needs_contact_field">请至少选择一个电话号码、电子邮件、地址或聊天账号。</string>
     <plurals name="linked_import_created">

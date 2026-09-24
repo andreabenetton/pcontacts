@@ -124,6 +124,12 @@
     <string name="linked_import_create_title">Create in Proton</string>
     <string name="linked_import_create_detail">%s is not in Proton yet. Select the details for the new Proton contact. The originals stay where they are.</string>
     <string name="linked_import_create_confirm">Create</string>
+    <string name="linked_import_move_detail">%s is saved in a storage no app owns, which Android deletes at the next account change. Moving it into Proton keeps the contact itself, with its favourite star, ringtone and links, instead of making a copy.</string>
+    <string name="linked_import_move_loses">Proton does not keep: %s. Create a copy instead to leave the original untouched.</string>
+    <string name="linked_import_move_confirm">Move to Proton</string>
+    <string name="linked_import_uncarried_event">other dates</string>
+    <string name="linked_import_uncarried_relation">relations</string>
+    <string name="linked_import_uncarried_sip">SIP addresses</string>
     <string name="linked_import_create_nothing">No details were found on this contact to create a Proton contact from.</string>
     <string name="linked_import_create_needs_contact_field">Select at least a phone number, email, address or chat account.</string>
     <plurals name="linked_import_created">

@@ -124,6 +124,12 @@
     <string name="linked_import_create_title">Crear en Proton</string>
     <string name="linked_import_create_detail">%s aún no está en Proton. Selecciona los detalles del nuevo contacto de Proton. Los originales no se modifican.</string>
     <string name="linked_import_create_confirm">Crear</string>
+    <string name="linked_import_move_detail">%s está guardado en un almacenamiento que no pertenece a ninguna app y que Android borra en el próximo cambio de cuenta. Moverlo a Proton conserva el propio contacto, con su estrella de favorito, tono y vínculos, en lugar de hacer una copia.</string>
+    <string name="linked_import_move_loses">Proton no guarda: %s. Crea una copia en su lugar para dejar el original intacto.</string>
+    <string name="linked_import_move_confirm">Mover a Proton</string>
+    <string name="linked_import_uncarried_event">otras fechas</string>
+    <string name="linked_import_uncarried_relation">relaciones</string>
+    <string name="linked_import_uncarried_sip">direcciones SIP</string>
     <string name="linked_import_create_nothing">No se encontraron detalles en este contacto para crear un contacto de Proton.</string>
     <string name="linked_import_create_needs_contact_field">Selecciona al menos un número de teléfono, correo, dirección o cuenta de chat.</string>
     <plurals name="linked_import_created">

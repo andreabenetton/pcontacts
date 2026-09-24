@@ -54,6 +54,73 @@ class LinkedImportViewModelTest {
         assertEquals(LinkedImportState.Imported(1, created = false, contactId = 7L), vm.state.value)
     }
 
+    @Test fun move_moves_the_orphan_contact_and_reports_it_created() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val movable = preview.copy(createsNewContact = true, move = MoveOffer(listOf(UncarriedDetail.RELATION)))
+        var moved = 0
+        val vm = LinkedImportViewModel(
+            loadPreview = { movable },
+            importCandidates = { error("a move copies nothing") },
+            moveContact = {
+                moved++
+                true
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.start(contactId = 7L)
+        advanceUntilIdle()
+
+        vm.move()
+        assertEquals(LinkedImportState.Importing, vm.state.value)
+        advanceUntilIdle()
+
+        assertEquals(1, moved)
+        assertEquals(LinkedImportState.Imported(2, created = true, contactId = 7L), vm.state.value)
+    }
+
+    @Test fun a_move_refused_because_the_contact_changed_reloads_the_review() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val movable = preview.copy(createsNewContact = true, move = MoveOffer())
+        val vm = LinkedImportViewModel(
+            loadPreview = { movable },
+            importCandidates = { true },
+            moveContact = { false },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.start(contactId = 7L)
+        advanceUntilIdle()
+
+        vm.move()
+        advanceUntilIdle()
+
+        assertTrue((vm.state.value as LinkedImportState.Review).changed)
+    }
+
+    @Test fun move_without_a_move_offer_is_a_noop() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var moved = 0
+        val vm = LinkedImportViewModel(
+            loadPreview = { preview },
+            importCandidates = { true },
+            moveContact = {
+                moved++
+                true
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        vm.start(contactId = 7L)
+        advanceUntilIdle()
+
+        vm.move()
+        advanceUntilIdle()
+
+        assertEquals(0, moved)
+        assertTrue(vm.state.value is LinkedImportState.Review)
+    }
+
     @Test fun confirm_with_nothing_selected_is_a_noop() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         var imported: List<String>? = null

@@ -124,6 +124,12 @@
     <string name="linked_import_create_title">In Proton anlegen</string>
     <string name="linked_import_create_detail">%s ist noch nicht in Proton. Wähle die Details für den neuen Proton-Kontakt. Die Originale bleiben unverändert.</string>
     <string name="linked_import_create_confirm">Anlegen</string>
+    <string name="linked_import_move_detail">%s ist in einem Speicher abgelegt, der keiner App gehört und den Android beim nächsten Kontowechsel löscht. Wenn Sie ihn zu Proton verschieben, bleibt der Kontakt selbst erhalten, mit Favoritenstern, Klingelton und Verknüpfungen, statt einer Kopie.</string>
+    <string name="linked_import_move_loses">Proton speichert nicht: %s. Erstellen Sie stattdessen eine Kopie, um das Original unverändert zu lassen.</string>
+    <string name="linked_import_move_confirm">Zu Proton verschieben</string>
+    <string name="linked_import_uncarried_event">weitere Daten</string>
+    <string name="linked_import_uncarried_relation">Beziehungen</string>
+    <string name="linked_import_uncarried_sip">SIP-Adressen</string>
     <string name="linked_import_create_nothing">Auf diesem Kontakt wurden keine Details gefunden, aus denen ein Proton-Kontakt erstellt werden könnte.</string>
     <string name="linked_import_create_needs_contact_field">Wähle mindestens eine Telefonnummer, E-Mail, Adresse oder ein Chat-Konto.</string>
     <plurals name="linked_import_created">
