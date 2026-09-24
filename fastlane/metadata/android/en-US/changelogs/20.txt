@@ -1,0 +1,8 @@
+Version 2.1.0.
+
+The first sync after updating downloads every contact once.
+
+* Birthday, anniversary, nickname and website now sync both ways; before, ones added on the phone were lost.
+* Contacts Android would delete (saved under "PHONE" by WhatsApp) can be moved into Proton, keeping star and ringtone.
+* Samsung: a contact deleted into the Recycle bin is no longer brought back; you choose.
+* Sync card shows each stage with its own count; 3-hour interval.

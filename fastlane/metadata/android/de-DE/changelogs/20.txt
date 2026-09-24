@@ -1,0 +1,8 @@
+Version 2.1.0.
+
+Die erste Synchronisierung nach dem Update lädt alle Kontakte einmal neu.
+
+* Geburtstag, Jahrestag, Spitzname und Website werden in beide Richtungen synchronisiert; zuvor gingen am Telefon hinzugefügte verloren.
+* Kontakte, die Android löschen würde ("PHONE" von WhatsApp), lassen sich zu Proton verschieben.
+* Samsung: Ein in den Papierkorb gelöschter Kontakt kommt nicht mehr zurück; Sie entscheiden.
+* Sync-Karte mit Zähler pro Schritt; 3-Stunden-Intervall.

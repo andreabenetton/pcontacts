@@ -1,0 +1,8 @@
+Version 2.1.0.
+
+La première synchronisation après la mise à jour télécharge tous les contacts une fois.
+
+* Anniversaire, anniversaire de mariage, surnom et site web se synchronisent dans les deux sens ; ceux ajoutés sur le téléphone étaient perdus.
+* Les contacts qu'Android supprimerait ("PHONE" de WhatsApp) peuvent être déplacés vers Proton.
+* Samsung : un contact mis à la corbeille ne revient plus ; vous choisissez.
+* Carte de synchro avec un compteur par étape ; intervalle de 3 heures.

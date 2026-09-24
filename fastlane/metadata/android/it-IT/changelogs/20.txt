@@ -1,0 +1,8 @@
+Versione 2.1.0.
+
+La prima sincronizzazione dopo l'aggiornamento scarica una volta tutti i contatti.
+
+* Compleanno, anniversario, soprannome e sito web si sincronizzano nei due sensi; prima quelli aggiunti sul telefono andavano persi.
+* I contatti che Android cancellerebbe ("PHONE" di WhatsApp) si possono spostare in Proton, con stella e suoneria.
+* Samsung: un contatto eliminato nel cestino non ricompare più; scegli tu.
+* Sincronizzazione con conteggio per fase; intervallo di 3 ore.
