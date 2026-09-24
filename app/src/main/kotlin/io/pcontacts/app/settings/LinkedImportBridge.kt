@@ -231,6 +231,10 @@ internal object LinkedImportFormat {
         is LinkedField.Org -> LinkedFieldKind.ORGANIZATION
         is LinkedField.NoteText -> LinkedFieldKind.NOTE
         is LinkedField.Im -> LinkedFieldKind.IM
+        is LinkedField.Birthday -> LinkedFieldKind.BIRTHDAY
+        is LinkedField.Anniversary -> LinkedFieldKind.ANNIVERSARY
+        is LinkedField.NicknameText -> LinkedFieldKind.NICKNAME
+        is LinkedField.WebsiteUrl -> LinkedFieldKind.WEBSITE
     }
 
     fun value(field: LinkedField): String = when (field) {
@@ -248,6 +252,11 @@ internal object LinkedImportFormat {
         is LinkedField.Im -> with(field.account) {
             "${customProtocol ?: protocol.name.lowercase()}: $handle"
         }
+        // Dates as the phone stores them: yyyy-MM-dd, or --MM-dd without a year.
+        is LinkedField.Birthday -> field.date
+        is LinkedField.Anniversary -> field.date
+        is LinkedField.NicknameText -> field.name
+        is LinkedField.WebsiteUrl -> field.url
     }
 }
 

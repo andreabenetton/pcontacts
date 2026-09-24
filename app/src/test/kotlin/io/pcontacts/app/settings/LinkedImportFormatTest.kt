@@ -33,4 +33,11 @@ class LinkedImportFormatTest {
             assertEquals(expected.second, LinkedImportFormat.value(field))
         }
     }
+
+    @Test fun the_new_kinds_show_their_kind_and_raw_value() {
+        assertEquals(LinkedFieldKind.BIRTHDAY, LinkedImportFormat.kind(LinkedField.Birthday("--06-12")))
+        assertEquals("--06-12", LinkedImportFormat.value(LinkedField.Birthday("--06-12")))
+        assertEquals(LinkedFieldKind.WEBSITE, LinkedImportFormat.kind(LinkedField.WebsiteUrl("www.bolt.eu")))
+        assertEquals("Evi", LinkedImportFormat.value(LinkedField.NicknameText("Evi")))
+    }
 }
