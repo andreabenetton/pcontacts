@@ -29,7 +29,20 @@ What works in code (verified by unit tests + live integration test):
 
 3. **Synced list mirrors Proton's address book — including auto-saved senders.** pcontacts pulls from `contacts/v4/contacts*` only (the same surface as Proton Mail web's Contacts page). If your Proton Mail **Auto-save contacts** setting is on (`mail.proton.me → Settings → Messages and composing → Automatically save contacts`), Proton silently adds every email sender to your address book and pcontacts faithfully syncs them. The API exposes no flag distinguishing manual contacts from auto-saved ones, so client-side filtering can't be done without risking real-contact loss. To trim the list, disable Auto-save and delete unwanted entries on the web; the next pcontacts sync mirrors the cleanup.
 
-Practical questions from real phones (a contact saved from WhatsApp that vanished at sign-out, WhatsApp showing a number instead of a name, what sign-out deletes, when the app notifies) are answered in [`docs/FAQ.md`](docs/FAQ.md).
+## FAQ
+
+Practical questions from real phones, answered in [`docs/FAQ.md`](docs/FAQ.md):
+
+- [A contact I saved from WhatsApp disappeared after signing out, or after the 2.0 update](docs/FAQ.md#a-contact-i-saved-from-whatsapp-disappeared-after-signing-out-or-after-the-20-update)
+- [WhatsApp shows a phone number instead of the name](docs/FAQ.md#whatsapp-shows-a-phone-number-instead-of-the-name)
+- [The Contacts app shows two or three entries for one person](docs/FAQ.md#the-contacts-app-shows-two-or-three-entries-for-one-person)
+- [How do I make new contacts go to Proton?](docs/FAQ.md#how-do-i-make-new-contacts-go-to-proton)
+- [What does sign-out delete, and what does it keep?](docs/FAQ.md#what-does-sign-out-delete-and-what-does-it-keep)
+- [Why did 2.0 ask me to sign in again and download everything?](docs/FAQ.md#why-did-20-ask-me-to-sign-in-again-and-download-everything)
+- [When does pcontacts show a notification?](docs/FAQ.md#when-does-pcontacts-show-a-notification)
+- [I deleted a contact on a Samsung and pcontacts asks what to do](docs/FAQ.md#i-deleted-a-contact-on-a-samsung-and-pcontacts-asks-what-to-do)
+- [The sync interval slider has an "Off" position. What does it do?](docs/FAQ.md#the-sync-interval-slider-has-an-off-position-what-does-it-do)
+- [How can I see where a contact is stored?](docs/FAQ.md#how-can-i-see-where-a-contact-is-stored)
 
 ## Why this exists
 
