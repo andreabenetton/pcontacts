@@ -269,6 +269,12 @@ class SettingsViewModelTest {
         assertEquals(SyncInterval.SIX_HOURS, vm.syncInterval.value)
     }
 
+    @Test fun the_slider_offers_off_and_five_cadences_including_three_hours() {
+        // Must match UserPreferences.ALLOWED_INTERVALS_HOURS, which refuses any other value.
+        assertEquals(listOf(0L, 1L, 3L, 6L, 12L, 24L), SyncInterval.entries.map { it.hours })
+        assertEquals(SyncInterval.THREE_HOURS, SyncInterval.fromHours(3))
+    }
+
     @Test fun set_sync_interval_updates_state_and_calls_callback() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         var captured: Long? = null

@@ -10,6 +10,7 @@ package io.pcontacts.feature.settings
 enum class SyncInterval(val hours: Long) {
     OFF(0),
     ONE_HOUR(1),
+    THREE_HOURS(3),
     SIX_HOURS(6),
     TWELVE_HOURS(12),
     TWENTY_FOUR_HOURS(24);
