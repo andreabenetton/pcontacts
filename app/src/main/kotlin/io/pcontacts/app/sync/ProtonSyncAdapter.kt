@@ -140,7 +140,8 @@ class ProtonSyncAdapter(
                 notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
             }
         } finally {
-            // The in-flight "N of total" is meaningless once the run is over, however it ended.
+            // The in-flight phase and "N of total" are meaningless once the run is over, however it ended.
+            userPreferences.syncProgressPhase = null
             userPreferences.syncProgressDone = 0
             userPreferences.syncProgressTotal = 0
         }

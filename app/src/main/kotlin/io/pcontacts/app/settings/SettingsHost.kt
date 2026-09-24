@@ -242,9 +242,12 @@ class SettingsHost(
         }
     }
 
-    /** The engine's "N of total" for the run in flight; null once the adapter has cleared it. */
-    private fun querySyncProgress(): SyncProgress? =
-        SyncProgress(userPrefs.syncProgressDone, userPrefs.syncProgressTotal).takeIf { it.total > 0 }
+    /** The engines' phase and its "N of total" for the run in flight; null once the adapter has cleared it. */
+    private fun querySyncProgress(): SyncProgress? = SyncProgressMapper.progress(
+        userPrefs.syncProgressPhase,
+        userPrefs.syncProgressDone,
+        userPrefs.syncProgressTotal
+    )
 
     /** Android's two switches (ADR-0004); with no account the slider shows Off. */
     private fun querySyncSwitch(): SyncSwitchState {
