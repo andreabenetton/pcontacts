@@ -37,7 +37,8 @@ class LinkedImportActivity : ComponentActivity() {
     private val importViewModel by lazy {
         LinkedImportViewModel(
             loadPreview = bridge::loadPreview,
-            importCandidates = bridge::import
+            importCandidates = bridge::import,
+            moveContact = bridge::move
         )
     }
 

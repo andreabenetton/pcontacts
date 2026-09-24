@@ -9,7 +9,9 @@ import io.pcontacts.core.contactswriter.LinkedField
 import io.pcontacts.core.contactswriter.Organization
 import io.pcontacts.core.contactswriter.PhoneEntry
 import io.pcontacts.core.contactswriter.PostalAddress
+import io.pcontacts.core.contactswriter.UncarriedKind
 import io.pcontacts.feature.settings.LinkedFieldKind
+import io.pcontacts.feature.settings.UncarriedDetail
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -39,5 +41,12 @@ class LinkedImportFormatTest {
         assertEquals("--06-12", LinkedImportFormat.value(LinkedField.Birthday("--06-12")))
         assertEquals(LinkedFieldKind.WEBSITE, LinkedImportFormat.kind(LinkedField.WebsiteUrl("www.bolt.eu")))
         assertEquals("Evi", LinkedImportFormat.value(LinkedField.NicknameText("Evi")))
+    }
+
+    @Test fun every_uncarried_kind_has_a_detail_for_the_dialog() {
+        assertEquals(
+            listOf(UncarriedDetail.EVENT, UncarriedDetail.RELATION, UncarriedDetail.SIP_ADDRESS),
+            UncarriedKind.entries.map(LinkedImportFormat::uncarried)
+        )
     }
 }

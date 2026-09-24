@@ -17,6 +17,7 @@ import android.provider.ContactsContract
 import androidx.core.graphics.drawable.toBitmap
 import io.pcontacts.app.R
 import io.pcontacts.core.contactswriter.LinkedField
+import io.pcontacts.core.contactswriter.UncarriedKind
 import io.pcontacts.core.contactswriter.key
 import io.pcontacts.core.contactswriter.reachesContact
 import io.pcontacts.core.storage.db.DatabaseFactory
@@ -27,6 +28,8 @@ import io.pcontacts.feature.settings.LinkedContactRow
 import io.pcontacts.feature.settings.LinkedFieldKind
 import io.pcontacts.feature.settings.LinkedImportCandidate
 import io.pcontacts.feature.settings.LinkedImportPreview
+import io.pcontacts.feature.settings.MoveOffer
+import io.pcontacts.feature.settings.UncarriedDetail
 
 /**
  * `:app` side of the linked-contact import (ADR-0023): resolves the
@@ -43,6 +46,7 @@ class LinkedImportBridge(
 ) {
     private var loadedContactId: Long = 0L
     private var loadedProtonRawContactId: Long? = null
+    private var loadedMovableRawContactId: Long? = null
 
     /** Launcher icons per provider account type, loaded once per bridge; null where there is no app (device-local). */
     private val iconCache = HashMap<String?, Bitmap?>()
@@ -112,9 +116,13 @@ class LinkedImportBridge(
         val candidates = LinkedContactsBootstrap.loadCandidates(context, account, contactId) ?: return null
         loadedContactId = contactId
         loadedProtonRawContactId = candidates.protonRawContactId
+        loadedMovableRawContactId = candidates.movableRawContactId
         return LinkedImportPreview(
             contactName = contactName(contactId),
             createsNewContact = candidates.protonRawContactId == null,
+            move = candidates.movableRawContactId?.let {
+                MoveOffer(candidates.uncarried.map(LinkedImportFormat::uncarried))
+            },
             candidates = candidates.candidates.map { candidate ->
                 LinkedImportCandidate(
                     id = candidate.field.key,
@@ -146,6 +154,22 @@ class LinkedImportBridge(
         } else {
             LinkedContactsBootstrap.importFields(context, account, protonRawContactId, fields)
         }
+        requestSync(account)
+        return true
+    }
+
+    /**
+     * Moves the previewed orphan `PHONE` contact into the Proton account
+     * (ADR-0026) and asks for a sync, which creates it on Proton. The
+     * candidates are re-read first: false when the contact changed since
+     * the preview — it gained a Proton copy or its orphan row is gone.
+     */
+    suspend fun move(): Boolean {
+        val account = account() ?: return true
+        val candidates = LinkedContactsBootstrap.loadCandidates(context, account, loadedContactId) ?: return false
+        val rawContactId = candidates.movableRawContactId
+        if (rawContactId == null || rawContactId != loadedMovableRawContactId) return false
+        if (!LinkedContactsBootstrap.moveContact(context, account, rawContactId)) return false
         requestSync(account)
         return true
     }
@@ -235,6 +259,12 @@ internal object LinkedImportFormat {
         is LinkedField.Anniversary -> LinkedFieldKind.ANNIVERSARY
         is LinkedField.NicknameText -> LinkedFieldKind.NICKNAME
         is LinkedField.WebsiteUrl -> LinkedFieldKind.WEBSITE
+    }
+
+    fun uncarried(kind: UncarriedKind): UncarriedDetail = when (kind) {
+        UncarriedKind.EVENT -> UncarriedDetail.EVENT
+        UncarriedKind.RELATION -> UncarriedDetail.RELATION
+        UncarriedKind.SIP_ADDRESS -> UncarriedDetail.SIP_ADDRESS
     }
 
     fun value(field: LinkedField): String = when (field) {
