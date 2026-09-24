@@ -82,6 +82,10 @@
     <string name="conflict_use_server">Использовать версию Proton</string>
     <string name="conflict_detail_server_deleted">Удалён в Proton после изменения на этом телефоне.</string>
     <string name="conflict_dialog_server_deleted">Этот контакт был удалён в Proton после изменения на этом телефоне. Версия с телефона создаст его в Proton заново; версия Proton удалит его и здесь.</string>
+    <string name="conflict_detail_local_removed">Удалён с этого телефона — вероятно, перемещён в корзину.</string>
+    <string name="conflict_dialog_local_removed">Этот контакт исчез с этого телефона, вероятно, в корзину приложения «Контакты». Удалить его и из Proton или вернуть на этот телефон?</string>
+    <string name="conflict_delete_on_proton">Удалить из Proton</string>
+    <string name="conflict_put_back">Вернуть</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d приложение может читать ваши контакты</item>
@@ -174,7 +178,7 @@
     <string name="linked_import_bulk_done">Создано в Proton: %1$d, дополнено данными: %2$d, с ошибкой: %3$d. Они будут отправлены в Proton при следующей синхронизации.</string>
     <string name="sync_state_overdue">Синхронизация просрочена</string>
     <string name="sync_state_attention">Некоторые изменения не удались</string>
-    <string name="sync_state_conflict">Изменено с обеих сторон — выберите версию</string>
+    <string name="sync_state_conflict">Контакт ждёт вашего решения</string>
     <string name="sync_state_pending">Изменения ожидают синхронизации</string>
     <plurals name="sync_interval_every">
         <item quantity="one">Каждый %d час</item>

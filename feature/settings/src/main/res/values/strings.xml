@@ -72,6 +72,10 @@
     <string name="conflict_use_server">Use Proton version</string>
     <string name="conflict_detail_server_deleted">Deleted on Proton after it was changed on this phone.</string>
     <string name="conflict_dialog_server_deleted">This contact was deleted on Proton after it was changed on this phone. The phone version creates it on Proton again; the Proton version deletes it here too.</string>
+    <string name="conflict_detail_local_removed">Removed from this phone — probably moved to the Recycle bin.</string>
+    <string name="conflict_dialog_local_removed">This contact disappeared from this phone, probably into the Recycle bin of the Contacts app. Delete it from Proton too, or put it back on this phone?</string>
+    <string name="conflict_delete_on_proton">Delete from Proton</string>
+    <string name="conflict_put_back">Put it back</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d app can read your contacts</item>
@@ -152,7 +156,7 @@
     <string name="linked_import_bulk_done">%1$d created in Proton, %2$d given new details, %3$d failed. They will be sent to Proton on the next sync.</string>
     <string name="sync_state_overdue">Sync overdue</string>
     <string name="sync_state_attention">Some changes failed</string>
-    <string name="sync_state_conflict">Edited on both sides — choose a version</string>
+    <string name="sync_state_conflict">A contact needs your decision</string>
     <string name="sync_state_pending">Changes waiting to sync</string>
     <plurals name="sync_interval_every">
         <item quantity="one">Every %d hour</item>

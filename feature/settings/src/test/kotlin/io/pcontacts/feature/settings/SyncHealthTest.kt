@@ -92,4 +92,20 @@ class SyncHealthTest {
             runningHeadlineRes(SyncProgress(done = 0, total = 0, stage = SyncStage.SAVING))
         )
     }
+
+    @Test fun a_contact_removed_on_this_phone_asks_delete_on_proton_or_put_back() {
+        val removed = ConflictInfo("c1", null, "removed on this phone", localRemoved = true)
+        val edited = ConflictInfo("c2", null, "fullName")
+        assertEquals(
+            ConflictDialogTexts(
+                R.string.conflict_dialog_local_removed,
+                R.string.conflict_delete_on_proton,
+                R.string.conflict_put_back
+            ),
+            conflictDialogTexts(removed)
+        )
+        assertEquals(R.string.conflict_use_local, conflictDialogTexts(edited).useLocal)
+        assertEquals(R.string.conflict_detail_local_removed, conflictDetailRes(listOf(edited, removed)))
+        assertEquals(R.string.conflict_detail, conflictDetailRes(listOf(edited)))
+    }
 }

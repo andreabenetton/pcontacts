@@ -29,7 +29,7 @@ fun syncHealth(
     nowMillis: Long,
     /** Both of Android's sync switches on; off means no automatic run is expected, so nothing is overdue. */
     syncEnabled: Boolean = true,
-    /** Contacts edited on both sides and waiting for the user's choice; no run settles them. */
+    /** Contacts waiting for the user's choice (edited on both sides, deleted on one); no run settles them. */
     conflicts: Int = 0
 ): SyncHealth {
     val syncedAt = lastSync?.lastRunAtMillis ?: lastSync?.syncedAtMillis

@@ -72,6 +72,10 @@
     <string name="conflict_use_server">Proton-Version verwenden</string>
     <string name="conflict_detail_server_deleted">Auf Proton gelöscht, nachdem es auf diesem Telefon geändert wurde.</string>
     <string name="conflict_dialog_server_deleted">Dieser Kontakt wurde auf Proton gelöscht, nachdem er auf diesem Telefon geändert wurde. Die Telefon-Version legt ihn auf Proton neu an; die Proton-Version löscht ihn auch hier.</string>
+    <string name="conflict_detail_local_removed">Von diesem Telefon entfernt – vermutlich in den Papierkorb verschoben.</string>
+    <string name="conflict_dialog_local_removed">Dieser Kontakt ist von diesem Telefon verschwunden, vermutlich in den Papierkorb der Kontakte-App. Auch bei Proton löschen oder auf diesem Telefon wiederherstellen?</string>
+    <string name="conflict_delete_on_proton">Bei Proton löschen</string>
+    <string name="conflict_put_back">Wiederherstellen</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d App kann Ihre Kontakte lesen</item>
@@ -152,7 +156,7 @@
     <string name="linked_import_bulk_done">%1$d in Proton angelegt, %2$d um Details ergänzt, %3$d fehlgeschlagen. Sie werden bei der nächsten Synchronisierung an Proton gesendet.</string>
     <string name="sync_state_overdue">Synchronisierung überfällig</string>
     <string name="sync_state_attention">Einige Änderungen sind fehlgeschlagen</string>
-    <string name="sync_state_conflict">Auf beiden Seiten bearbeitet – wählen Sie eine Version</string>
+    <string name="sync_state_conflict">Ein Kontakt wartet auf Ihre Entscheidung</string>
     <string name="sync_state_pending">Änderungen warten auf die Synchronisierung</string>
     <plurals name="sync_interval_every">
         <item quantity="one">Alle %d Stunde</item>

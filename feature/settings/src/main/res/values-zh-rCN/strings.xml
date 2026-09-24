@@ -67,6 +67,10 @@
     <string name="conflict_use_server">使用 Proton 版本</string>
     <string name="conflict_detail_server_deleted">在此手机上更改后已在 Proton 上被删除。</string>
     <string name="conflict_dialog_server_deleted">此联系人在此手机上更改后已在 Proton 上被删除。手机版本会在 Proton 上重新创建它；Proton 版本会在此处也将其删除。</string>
+    <string name="conflict_detail_local_removed">已从此手机移除——可能已移到回收站。</string>
+    <string name="conflict_dialog_local_removed">此联系人已从此手机消失，可能进入了通讯录应用的回收站。要同时从 Proton 删除，还是恢复到此手机？</string>
+    <string name="conflict_delete_on_proton">从 Proton 删除</string>
+    <string name="conflict_put_back">恢复</string>
 
     <plurals name="contacts_access_count">
         <item quantity="other">%d 个应用可以读取您的联系人</item>
@@ -141,7 +145,7 @@
     <string name="linked_import_bulk_done">已在 Proton 中创建 %1$d 个，已为 %2$d 个添加详情，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
     <string name="sync_state_overdue">同步已逾期</string>
     <string name="sync_state_attention">部分更改失败</string>
-    <string name="sync_state_conflict">两端均已编辑——请选择一个版本</string>
+    <string name="sync_state_conflict">有联系人需要您决定</string>
     <string name="sync_state_pending">有更改等待同步</string>
     <plurals name="sync_interval_every">
         <item quantity="other">每 %d 小时</item>

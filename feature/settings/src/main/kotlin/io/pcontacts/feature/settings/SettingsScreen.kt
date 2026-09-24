@@ -505,9 +505,7 @@ private fun ConflictRows(conflicts: List<ConflictInfo>, onResolve: (String, Conf
             color = MaterialTheme.colorScheme.error
         )
         Text(
-            text = stringResource(
-                if (conflicts.any { it.serverDeleted }) R.string.conflict_detail_server_deleted else R.string.conflict_detail
-            ),
+            text = stringResource(conflictDetailRes(conflicts)),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -860,6 +858,7 @@ private fun ConflictResolutionDialog(
     onResolve: (ConflictResolution) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val texts = conflictDialogTexts(conflict)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.conflict_dialog_title)) },
@@ -869,7 +868,7 @@ private fun ConflictResolutionDialog(
                     text = conflict.displayName ?: stringResource(R.string.unverified_no_name),
                     style = MaterialTheme.typography.titleSmall
                 )
-                if (conflict.conflictFields != null && !conflict.serverDeleted) {
+                if (conflict.conflictFields != null && !conflict.serverDeleted && !conflict.localRemoved) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.conflict_dialog_fields, conflict.conflictFields),
@@ -878,24 +877,51 @@ private fun ConflictResolutionDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(
-                        if (conflict.serverDeleted) R.string.conflict_dialog_server_deleted else R.string.conflict_dialog_prompt
-                    ),
+                    text = stringResource(texts.prompt),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = { onResolve(ConflictResolution.USE_LOCAL) }) {
-                Text(stringResource(R.string.conflict_use_local))
+                Text(stringResource(texts.useLocal))
             }
         },
         dismissButton = {
             TextButton(onClick = { onResolve(ConflictResolution.USE_SERVER) }) {
-                Text(stringResource(R.string.conflict_use_server))
+                Text(stringResource(texts.useServer))
             }
         }
     )
+}
+
+/** The conflict dialog's prompt and the labels of its two choices. */
+internal data class ConflictDialogTexts(val prompt: Int, val useLocal: Int, val useServer: Int)
+
+/** A removed contact asks "delete from Proton or put it back"; the others pick a version. */
+internal fun conflictDialogTexts(conflict: ConflictInfo): ConflictDialogTexts = when {
+    conflict.localRemoved -> ConflictDialogTexts(
+        R.string.conflict_dialog_local_removed,
+        R.string.conflict_delete_on_proton,
+        R.string.conflict_put_back
+    )
+    conflict.serverDeleted -> ConflictDialogTexts(
+        R.string.conflict_dialog_server_deleted,
+        R.string.conflict_use_local,
+        R.string.conflict_use_server
+    )
+    else -> ConflictDialogTexts(
+        R.string.conflict_dialog_prompt,
+        R.string.conflict_use_local,
+        R.string.conflict_use_server
+    )
+}
+
+/** The line under the conflict count: the most specific explanation that applies. */
+internal fun conflictDetailRes(conflicts: List<ConflictInfo>): Int = when {
+    conflicts.any { it.localRemoved } -> R.string.conflict_detail_local_removed
+    conflicts.any { it.serverDeleted } -> R.string.conflict_detail_server_deleted
+    else -> R.string.conflict_detail
 }
 
 /** How often the relative "last sync" time and the overdue check re-evaluate. */
