@@ -229,6 +229,8 @@ object SyncBootstrap {
         logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
     ): Pair<ContactWriteEngine, ContactDetailSyncEngine> {
         val appContext = context.applicationContext
+        // The unlock below takes seconds; the card names it instead of a bare spinner.
+        progressSink(appContext)(SyncPhase.CONNECTING, 0, 0)
         val secretStore = EncryptedSecretStore.create(appContext)
         val session = InMemorySession().apply {
             val uid = secretStore.uid()

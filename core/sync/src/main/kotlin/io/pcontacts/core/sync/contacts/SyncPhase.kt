@@ -9,6 +9,9 @@ package io.pcontacts.core.sync.contacts
  * persisted as `UserPreferences.syncProgressPhase` for the Settings card.
  */
 enum class SyncPhase(val code: String) {
+    /** Opening the session and unlocking the keys; no count. */
+    CONNECTING("connecting"),
+
     /** Pushing the queued local changes to Proton; counted per change. */
     SENDING("sending"),
 
