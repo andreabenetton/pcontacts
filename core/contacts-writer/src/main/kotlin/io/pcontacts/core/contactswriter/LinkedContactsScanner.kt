@@ -24,13 +24,18 @@ import android.provider.ContactsContract.RawContacts
  * copy lacks [newFieldCount] fields that linked rows carry.
  * [sourceAccountTypes] names every linked provider in the aggregate,
  * including ones (Telegram) whose rows hold no importable field.
+ * [movable]: the contact can be moved into Proton instead of copied
+ * (ADR-0026); [moveLoses]: that move would lose a detail Proton does
+ * not keep, so only the review may make it.
  */
 data class LinkedContactSummary(
     val contactId: Long,
     val displayName: String?,
     val sourceAccountTypes: List<String?>,
     val hasProtonCopy: Boolean,
-    val newFieldCount: Int
+    val newFieldCount: Int,
+    val movable: Boolean = false,
+    val moveLoses: Boolean = false
 )
 
 /**
@@ -48,7 +53,30 @@ class LinkedContactsScanner(private val provider: ContentProviderClient) {
         if (aggregates.isEmpty()) return emptyList()
         val wanted = aggregates.values.flatten().mapTo(HashSet()) { it.rawContactId }
         val rows = queryRows().filterKeys { it in wanted }
-        return summarize(account, aggregates, rows)
+        val orphans = aggregates.values.flatten()
+            .filter { OrphanPhoneAccount.matches(it.accountType, it.accountName) }
+            .map { it.rawContactId }
+        return summarize(account, aggregates, rows, lossyOrphans(orphans))
+    }
+
+    /** The orphan rows whose move would lose a detail Proton does not keep (ADR-0026). */
+    private fun lossyOrphans(rawContactIds: List<Long>): Set<Long> {
+        if (rawContactIds.isEmpty()) return emptySet()
+        val cursor = provider.query(
+            Data.CONTENT_URI,
+            arrayOf(Data.RAW_CONTACT_ID, Data.MIMETYPE, Data.DATA2),
+            "${Data.RAW_CONTACT_ID} IN (${rawContactIds.joinToString(",")})",
+            null,
+            null
+        ) ?: return emptySet()
+        val rows = cursor.use { c ->
+            buildList {
+                while (c.moveToNext()) add(c.getLong(0) to (c.getString(1) to if (c.isNull(2)) null else c.getInt(2)))
+            }
+        }
+        return rows.groupBy({ it.first }, { it.second })
+            .filterValues { OrphanContactMover.uncarriedKinds(it).isNotEmpty() }
+            .keys
     }
 
     data class Member(
@@ -123,17 +151,19 @@ class LinkedContactsScanner(private val provider: ContentProviderClient) {
         fun summarize(
             account: Account,
             aggregates: Map<Long, List<Member>>,
-            rows: Map<Long, ContactRow>
+            rows: Map<Long, ContactRow>,
+            lossyOrphans: Set<Long> = emptySet()
         ): List<LinkedContactSummary> =
             aggregates
-                .mapNotNull { (contactId, members) -> summarizeOne(account, contactId, members, rows) }
+                .mapNotNull { (contactId, members) -> summarizeOne(account, contactId, members, rows, lossyOrphans) }
                 .sortedWith(compareBy(nullsLast(String.CASE_INSENSITIVE_ORDER)) { it.displayName })
 
         private fun summarizeOne(
             account: Account,
             contactId: Long,
             members: List<Member>,
-            rows: Map<Long, ContactRow>
+            rows: Map<Long, ContactRow>,
+            lossyOrphans: Set<Long>
         ): LinkedContactSummary? {
             val proton = members
                 .filter { it.accountType == account.type && it.accountName == account.name }
@@ -149,12 +179,21 @@ class LinkedContactsScanner(private val provider: ContentProviderClient) {
             // Every linked provider, not only those that carried a field: a Telegram row has
             // no importable data of its own, but "also on Telegram" is worth showing.
             val providers = members.filter { it.accountType != account.type }.map { it.accountType }.distinct()
+            // ADR-0026: the same orphan row the review would offer to move.
+            val orphan = if (proton != null) {
+                null
+            } else {
+                members.filter { OrphanPhoneAccount.matches(it.accountType, it.accountName) }
+                    .minOfOrNull { it.rawContactId }
+            }
             return LinkedContactSummary(
                 contactId = contactId,
                 displayName = members.firstNotNullOfOrNull { it.displayName },
                 sourceAccountTypes = providers,
                 hasProtonCopy = proton != null,
-                newFieldCount = candidates.size
+                newFieldCount = candidates.size,
+                movable = orphan != null,
+                moveLoses = orphan != null && orphan in lossyOrphans
             )
         }
     }

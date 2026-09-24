@@ -6,6 +6,7 @@ package io.pcontacts.core.contactswriter
 import android.accounts.Account
 import io.pcontacts.core.contactswriter.LinkedContactsScanner.Member
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -94,6 +95,40 @@ class LinkedContactsScannerTest {
         val real = row("+39 333 0000005", note = "met in Milan")
         val listed = LinkedContactsScanner.summarize(account, whatsappOnly, mapOf(50L to real)).single()
         assertEquals(2, listed.newFieldCount)
+    }
+
+    private fun orphan(rawId: Long, contactId: Long, name: String) = Member(
+        rawContactId = rawId,
+        contactId = contactId,
+        accountType = "PHONE",
+        accountName = "PHONE",
+        displayName = name,
+        hasSourceId = false
+    )
+
+    @Test fun an_orphan_phone_contact_without_a_proton_copy_is_movable_and_flagged_when_lossy() {
+        val aggregates = mapOf(
+            1L to listOf(orphan(10, 1, "Ann")),
+            2L to listOf(orphan(20, 2, "Ben")),
+            3L to listOf(member(30, 3, account.type, "Cid", synced = true), orphan(31, 3, "Cid")),
+            4L to listOf(member(40, 4, "vnd.sec.contact.phone", "Dee"))
+        )
+        val rows = mapOf(
+            10L to row("+39 333 0000010"),
+            20L to row("+39 333 0000020"),
+            30L to row(email = "cid@x"),
+            31L to row("+39 333 0000031"),
+            40L to row("+39 333 0000040")
+        )
+
+        val byName = LinkedContactsScanner.summarize(account, aggregates, rows, lossyOrphans = setOf(20L))
+            .associateBy { it.displayName }
+
+        assertTrue(byName.getValue("Ann").movable)
+        assertFalse(byName.getValue("Ann").moveLoses)
+        assertTrue(byName.getValue("Ben").moveLoses)
+        assertFalse("a Proton copy exists", byName.getValue("Cid").movable)
+        assertFalse("not the exact orphan account", byName.getValue("Dee").movable)
     }
 
     @Test fun allowlist_is_exactly_the_adr_0023_list() {
