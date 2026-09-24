@@ -141,6 +141,7 @@
     <string name="linked_import_bulk_done">已在 Proton 中创建 %1$d 个，已为 %2$d 个添加详情，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
     <string name="sync_state_overdue">同步已逾期</string>
     <string name="sync_state_attention">部分更改失败</string>
+    <string name="sync_state_conflict">两端均已编辑——请选择一个版本</string>
     <string name="sync_state_pending">有更改等待同步</string>
     <plurals name="sync_interval_every">
         <item quantity="other">每 %d 小时</item>

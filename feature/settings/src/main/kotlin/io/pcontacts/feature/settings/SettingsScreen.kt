@@ -183,7 +183,8 @@ private class SyncFacts(
     val intervalHours: Long,
     val progress: SyncProgress?,
     val now: Long,
-    val syncEnabled: Boolean
+    val syncEnabled: Boolean,
+    val conflicts: Int
 )
 
 /**
@@ -211,7 +212,8 @@ private fun headline(facts: SyncFacts): Headline {
         outbox = facts.outbox,
         intervalHours = facts.intervalHours,
         nowMillis = facts.now,
-        syncEnabled = facts.syncEnabled
+        syncEnabled = facts.syncEnabled,
+        conflicts = facts.conflicts
     )
     val outbox = facts.outbox
     val lastSync = facts.lastSync
@@ -224,6 +226,7 @@ private fun headline(facts: SyncFacts): Headline {
         SyncHealth.FAILED -> Headline(failureText(state, lastSync), warn)
         // The counts live on the tappable status rows below; the headline only names the state.
         SyncHealth.ATTENTION -> Headline(stringResource(R.string.sync_state_attention), warn)
+        SyncHealth.CONFLICT -> Headline(stringResource(R.string.sync_state_conflict), warn)
         SyncHealth.OFF -> Headline(stringResource(R.string.sync_state_off), info)
         SyncHealth.PENDING -> Headline(stringResource(R.string.sync_state_pending), info)
         SyncHealth.NEVER -> Headline(stringResource(R.string.sync_state_never), info)
@@ -268,6 +271,7 @@ private fun SyncStatusCard(
     val interval by viewModel.syncInterval.collectAsStateWithLifecycle()
     val progress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val stats by viewModel.verificationStats.collectAsStateWithLifecycle()
+    val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -285,7 +289,8 @@ private fun SyncStatusCard(
             interval.hours,
             progress,
             now,
-            syncEnabled = syncSwitch.accountOn && syncSwitch.masterOn
+            syncEnabled = syncSwitch.accountOn && syncSwitch.masterOn,
+            conflicts = conflicts.size
         )
     )
     if (state is SettingsUiState.SignedOut) LaunchedEffect(Unit) { onSignedOut() }

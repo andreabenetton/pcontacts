@@ -18,8 +18,9 @@ class SyncHealthTest {
         lastSync: LastSyncSummary? = LastSyncSummary(syncedAtMillis = now - hour),
         outbox: OutboxStats = quiet,
         intervalHours: Long = 12,
-        syncEnabled: Boolean = true
-    ) = syncHealth(running, failed, lastSync, outbox, intervalHours, now, syncEnabled)
+        syncEnabled: Boolean = true,
+        conflicts: Int = 0
+    ) = syncHealth(running, failed, lastSync, outbox, intervalHours, now, syncEnabled, conflicts)
 
     @Test fun up_to_date_only_when_nothing_is_running_failed_pending_or_stale() {
         assertEquals(SyncHealth.UP_TO_DATE, health())
@@ -57,6 +58,14 @@ class SyncHealthTest {
         assertEquals(SyncHealth.UP_TO_DATE, health(lastSync = convergedLongAgo, intervalHours = 12))
         val ranLongAgo = LastSyncSummary(syncedAtMillis = now - 90 * hour, lastRunAtMillis = now - 30 * hour)
         assertEquals(SyncHealth.OVERDUE, health(lastSync = ranLongAgo, intervalHours = 12))
+    }
+
+    @Test fun an_unresolved_conflict_is_named_whatever_the_run_times() {
+        assertEquals(SyncHealth.CONFLICT, health(conflicts = 1))
+        val convergedLongAgo = LastSyncSummary(syncedAtMillis = now - 90 * hour, lastRunAtMillis = now - hour / 2)
+        assertEquals(SyncHealth.CONFLICT, health(lastSync = convergedLongAgo, conflicts = 2))
+        assertEquals(SyncHealth.CONFLICT, health(outbox = OutboxStats(pending = 1, quarantined = 0), conflicts = 1))
+        assertEquals(SyncHealth.ATTENTION, health(outbox = OutboxStats(pending = 0, quarantined = 1), conflicts = 1))
     }
 
     @Test fun the_running_headline_names_each_stage_and_falls_back_when_it_is_unknown() {
