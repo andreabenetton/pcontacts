@@ -46,6 +46,28 @@ class ConflictResolverTest {
         assertEquals("", live.payloadHash)
     }
 
+    @Test fun removed_on_this_phone_and_use_local_queues_a_proton_delete() = runTest {
+        conflicted()
+        contactMap.markConflict("ct-1", LOCAL_REMOVED_CONFLICT)
+
+        resolveConflict(contactMap, outbox, "ct-1", useLocal = true, now = 10L)
+
+        assertEquals(OutboxEntity.OpType.DELETE, outbox.findLive("ct-1")!!.opType)
+        assertNull(contactMap.findByProtonId("ct-1")!!.lastError)
+    }
+
+    @Test fun removed_on_this_phone_and_use_server_marks_the_contact_for_a_refetch() = runTest {
+        conflicted()
+        contactMap.markConflict("ct-1", LOCAL_REMOVED_CONFLICT)
+
+        resolveConflict(contactMap, outbox, "ct-1", useLocal = false, now = 10L)
+
+        assertNull(outbox.findLive("ct-1"))
+        val mapping = contactMap.findByProtonId("ct-1")!!
+        assertEquals("", mapping.contentHash)
+        assertEquals(ContactMapEntity.Status.CLEAN, mapping.syncStatus)
+    }
+
     @Test fun deleted_on_proton_and_use_local_re_keys_the_row_and_queues_a_create() = runTest {
         conflicted()
         contactMap.markConflict("ct-1", SERVER_DELETED_CONFLICT)

@@ -15,6 +15,13 @@ import io.pcontacts.core.storage.db.entity.OutboxEntity
 const val SERVER_DELETED_CONFLICT = "conflict: deleted on Proton"
 
 /**
+ * The mapping's `lastError` when a synced contact's row vanished on a provider with a recycle
+ * bin: likely the user's deletion, possibly an external purge, so the user decides (ADR-0022,
+ * 2026-09-24 amendment).
+ */
+const val LOCAL_REMOVED_CONFLICT = "conflict: removed on this phone"
+
+/**
  * Settles a conflict the user decided (ADR-0017 §3C). "Use phone
  * version" queues a FORCE_UPDATE — the next push sends the local row
  * as-is, without a merge, and re-captures the base from it; when the
@@ -22,7 +29,9 @@ const val SERVER_DELETED_CONFLICT = "conflict: deleted on Proton"
  * becomes a new Proton contact. "Use Proton version" drops whatever is
  * still queued or quarantined for the contact and makes the next pull
  * rewrite the local row from the server (or, when the Proton copy is
- * gone, delete it).
+ * gone, delete it). For a contact removed on this phone, the phone's
+ * version is the removal: it queues a DELETE (with its grace period);
+ * the Proton version puts the contact back through a refetch.
  */
 internal suspend fun resolveConflict(
     contactMapDao: ContactMapDao,
@@ -33,6 +42,7 @@ internal suspend fun resolveConflict(
 ) {
     val mapping = contactMapDao.findByProtonId(protonContactId)
     val serverDeleted = mapping?.lastError == SERVER_DELETED_CONFLICT
+    val localRemoved = mapping?.lastError == LOCAL_REMOVED_CONFLICT
     contactMapDao.resolveConflict(protonContactId)
     when {
         useLocal && serverDeleted && mapping != null -> {
@@ -53,6 +63,7 @@ internal suspend fun resolveConflict(
             )
             outboxDao.enqueue(localId, OutboxEntity.OpType.CREATE, "", now)
         }
+        useLocal && localRemoved -> outboxDao.enqueue(protonContactId, OutboxEntity.OpType.DELETE, "", now)
         useLocal -> outboxDao.enqueue(protonContactId, OutboxEntity.OpType.FORCE_UPDATE, "", now)
         else -> {
             outboxDao.deleteByContact(protonContactId)

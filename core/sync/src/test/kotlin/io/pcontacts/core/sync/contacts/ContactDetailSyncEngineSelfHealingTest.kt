@@ -5,8 +5,10 @@ package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
 import io.pcontacts.core.contactswriter.RawContactOpIntent
+import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -161,6 +163,78 @@ class ContactDetailSyncEngineSelfHealingTest {
         assertEquals("must not resurrect a pending deletion", 0, report.inserted)
         assertEquals("no fetch for a contact awaiting delete push", fetchesAfterFirstRun, api.getContactCallCount)
         assertTrue(applier.rawIdsFor("c1").isEmpty())
+    }
+
+    // ---- Providers with a recycle bin (ADR-0022, 2026-09-24) ----
+
+    private fun unchangedTwice() = DetailFakeApi(
+        metadataPages = listOf(metaPage(meta("c1", 100L)), metaPage(meta("c1", 100L)), metaPage(meta("c1", 100L))),
+        contacts = mapOf("c1" to contact("c1", 100L, aliceVCard)),
+        repeatContacts = true
+    )
+
+    @Test fun on_a_provider_with_a_recycle_bin_a_vanished_row_is_put_to_the_user_not_recreated() = runTest {
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L).apply { hasRecycleBin = true }
+        val engine = newEngine(unchangedTwice(), dao, applier)
+        engine.sync(account)
+        applier.removeRawContact("c1") // moved to Samsung's bin: no tombstone
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.inserted)
+        assertTrue(applier.rawIdsFor("c1").isEmpty())
+        val mapping = dao.snapshot()["c1"]!!
+        assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
+        assertEquals(LOCAL_REMOVED_CONFLICT, mapping.lastError)
+
+        assertEquals("still waiting on the next run", 0, engine.sync(account).inserted)
+        assertEquals(LOCAL_REMOVED_CONFLICT, dao.snapshot()["c1"]!!.lastError)
+    }
+
+    @Test fun without_a_recycle_bin_a_vanished_row_is_still_recreated() = runTest {
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L)
+        val engine = newEngine(unchangedTwice(), dao, applier)
+        engine.sync(account)
+        applier.removeRawContact("c1")
+
+        assertEquals(1, engine.sync(account).inserted)
+        assertNull(dao.snapshot()["c1"]!!.lastError)
+    }
+
+    @Test fun put_it_back_recreates_the_row_even_with_a_recycle_bin() = runTest {
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L).apply { hasRecycleBin = true }
+        val engine = newEngine(unchangedTwice(), dao, applier)
+        engine.sync(account)
+        applier.removeRawContact("c1")
+        engine.sync(account)
+
+        resolveConflict(dao, WriteFakeOutboxDao(), "c1", useLocal = false, now = 1L)
+        val report = engine.sync(account)
+
+        assertEquals(1, report.inserted)
+        assertEquals(1, applier.rawIdsFor("c1").size)
+        assertEquals(ContactMapEntity.Status.CLEAN, dao.snapshot()["c1"]!!.syncStatus)
+    }
+
+    @Test fun a_row_restored_from_the_bin_drops_the_question() = runTest {
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L).apply { hasRecycleBin = true }
+        val engine = newEngine(unchangedTwice(), dao, applier)
+        engine.sync(account)
+        val rawId = applier.rawIdsFor("c1").single()
+        applier.removeRawContact("c1")
+        engine.sync(account)
+        applier.seedRow("c1", rawId) // restored from the bin, same row
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.inserted)
+        val mapping = dao.snapshot()["c1"]!!
+        assertEquals(ContactMapEntity.Status.CLEAN, mapping.syncStatus)
+        assertNull(mapping.lastError)
     }
 
     @Test fun tombstoned_raw_contact_counts_as_present_and_is_not_recreated() = runTest {

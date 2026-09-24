@@ -231,8 +231,11 @@ internal class DetailFakeApplier(base: Long) {
     /** Thrown after the intents were applied: a later chunk failing while earlier ones are committed. */
     var throwAfterApply: Throwable? = null
 
+    /** A provider that hides deleted rows in a recycle bin (Samsung) instead of leaving tombstones. */
+    var hasRecycleBin = false
+
     fun knownState(): ExistingRawContacts =
-        ExistingRawContacts(rows.mapValues { (_, list) -> list.toList() })
+        ExistingRawContacts(rows.mapValues { (_, list) -> list.toList() }, hasRecycleBin)
 
     fun rawIdsFor(sourceId: String): List<Long> =
         rows[sourceId].orEmpty().map { it.rawContactId }

@@ -218,8 +218,8 @@ class ContactDetailSyncEngine(
         val protectedIds = HashSet<String>()
 
         for ((sourceId, serverModifyTime) in serverModifyTimes) {
-            val stored = storedMappings[sourceId]
             val liveRawId = existing[sourceId]
+            val stored = storedMappings[sourceId]?.let { clearRestoredRemoval(it, liveRawId) }
             val deletePending = stored != null && liveRawId == null &&
                 hasPendingDelete(sourceId)
             if (deletePending) {
@@ -229,6 +229,15 @@ class ContactDetailSyncEngine(
                 // here would resurrect an intentional deletion before it
                 // propagates to Proton.
                 logger.info { "skip: local delete pending push idTag=${sourceId.hashCode()}" }
+                continue
+            }
+            if (stored != null && liveRawId == null && askBeforeRecreate(stored, existingState.hasRecycleBin)) {
+                // The row vanished on a provider with a recycle bin: most likely the user
+                // deleted it there. Not recreated; the user decides (ADR-0022, 2026-09-24).
+                if (stored.lastError != LOCAL_REMOVED_CONFLICT) {
+                    logger.warn { "RawContact missing on a provider with a recycle bin; asking idTag=${sourceId.hashCode()}" }
+                    contactMapDao.markConflict(sourceId, LOCAL_REMOVED_CONFLICT)
+                }
                 continue
             }
             if (liveRawId != null && stored != null && locallyOwned(stored, sourceId)) {
@@ -453,6 +462,22 @@ class ContactDetailSyncEngine(
             unverifiedCount = unverified,
             failed = fetchFailures
         )
+    }
+
+    /**
+     * A vanished row is put to the user instead of recreated when the question is already
+     * open, or when the provider has a recycle bin — unless a refetch was asked for (content
+     * hash cleared: "put it back", or a cancelled deletion), which recreates as before.
+     */
+    private fun askBeforeRecreate(stored: ContactMapEntity, hasRecycleBin: Boolean): Boolean =
+        stored.lastError == LOCAL_REMOVED_CONFLICT || (hasRecycleBin && stored.contentHash.isNotEmpty())
+
+    /** A removed contact whose row is back (restored from the bin) no longer needs the user's choice. */
+    private suspend fun clearRestoredRemoval(stored: ContactMapEntity, liveRawId: Long?): ContactMapEntity {
+        if (stored.lastError != LOCAL_REMOVED_CONFLICT || liveRawId == null) return stored
+        logger.info { "removed contact is back; question dropped idTag=${stored.protonContactId.hashCode()}" }
+        contactMapDao.resolveConflict(stored.protonContactId)
+        return stored.copy(syncStatus = ContactMapEntity.Status.CLEAN, lastError = null)
     }
 
     /** A conflict awaiting the user, or any outbox row (queued or quarantined) for the contact. */
