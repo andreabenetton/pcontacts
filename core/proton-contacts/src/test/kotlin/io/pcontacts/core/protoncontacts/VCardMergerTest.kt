@@ -318,6 +318,53 @@ class VCardMergerTest {
         assertEquals("Principal Engineer", o.title)
     }
 
+    @Test fun birthday_anniversary_nicknames_and_urls_surface_in_android_event_form() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(
+                card(
+                    CardType.ENCRYPTED_AND_SIGNED,
+                    """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice
+                    BDAY:19900312
+                    ANNIVERSARY:--0612
+                    NICKNAME:Ali,Al
+                    NICKNAME:Lissy
+                    URL:https://alice.example
+                    URL:
+                    END:VCARD
+                    """.trimIndent()
+                )
+            )
+        )
+        assertEquals("1990-03-12", out.birthday)
+        assertEquals("--06-12", out.anniversary)
+        assertEquals(listOf("Ali", "Al", "Lissy"), out.nicknames)
+        assertEquals(listOf("https://alice.example"), out.websites)
+    }
+
+    @Test fun a_text_birthday_is_kept_verbatim() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(
+                card(
+                    CardType.ENCRYPTED_AND_SIGNED,
+                    """
+                    BEGIN:VCARD
+                    VERSION:4.0
+                    FN:Alice
+                    BDAY;VALUE=text:circa 1800
+                    END:VCARD
+                    """.trimIndent()
+                )
+            )
+        )
+        assertEquals("circa 1800", out.birthday)
+        assertNull(out.anniversary)
+    }
+
     @Test fun organization_is_null_when_neither_org_nor_title_present() {
         val out = merger.merge(
             protonContactId = "c1",

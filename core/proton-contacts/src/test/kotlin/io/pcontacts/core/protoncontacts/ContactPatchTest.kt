@@ -84,4 +84,17 @@ class ContactPatchTest {
         assertNull(removed.photo?.to)
         assertEquals(byteArrayOf(9).toList(), changed.photo?.to?.data?.toList())
     }
+
+    @Test fun the_new_fields_are_diffed_as_whole_values() {
+        val from = DecryptedContact.empty("c1").copy(birthday = "1990-03-12", websites = listOf("https://a.example"))
+        val to = from.copy(birthday = null, nicknames = listOf("Ali"))
+
+        val patch = ContactPatch.diff(from, to)
+
+        assertEquals(ContactPatch.Change<String?>(null), patch.birthday)
+        assertEquals(ContactPatch.Change(listOf("Ali")), patch.nicknames)
+        assertNull(patch.websites)
+        assertNull(patch.anniversary)
+        assertTrue(ContactPatch.diff(from, from).isEmpty)
+    }
 }

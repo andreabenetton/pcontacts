@@ -26,6 +26,8 @@ import kotlinx.serialization.Transient
  *   ORG + TITLE      → organization
  *   NOTE             → notes
  *   IMPP             → imAccounts
+ *   BDAY / ANNIVERSARY → birthday / anniversary (ADR-0023, 2026-09-24)
+ *   NICKNAME / URL   → nicknames / websites
  *   PHOTO (inline)   → photo
  *
  * Groups (CATEGORIES + Proton LabelIDs → GroupMembership) are
@@ -56,6 +58,11 @@ data class DecryptedContact(
     val organization: DecryptedOrganization? = null,
     val notes: List<String> = emptyList(),
     val imAccounts: List<DecryptedIm> = emptyList(),
+    /** Android Event form: `yyyy-MM-dd`, `--MM-dd` without a year, or free text ([VCardDates]). */
+    val birthday: String? = null,
+    val anniversary: String? = null,
+    val nicknames: List<String> = emptyList(),
+    val websites: List<String> = emptyList(),
     @Transient val photo: DecryptedPhoto? = null,
     val serverPhotoHash: String? = null,
     val localPhotoHash: String? = null,

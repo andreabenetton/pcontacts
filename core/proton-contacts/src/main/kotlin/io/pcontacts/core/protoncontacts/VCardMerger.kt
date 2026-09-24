@@ -102,6 +102,9 @@ internal class VCardMerger(
         val organization = projectOrganization(merged)
         val notes = merged.notes.orEmpty().mapNotNull { n -> n.value?.takeIf { it.isNotBlank() } }
         val imAccounts = projectImAccounts(merged)
+        val nicknames = merged.nicknames.orEmpty().flatMap { it.values.orEmpty() }
+            .mapNotNull { n -> n.trim().takeIf { it.isNotEmpty() } }
+        val websites = merged.urls.orEmpty().mapNotNull { u -> u.value?.trim()?.takeIf { it.isNotEmpty() } }
         val photo = projectPhoto(merged)
 
         // A contact is verified only if every card that should have been
@@ -122,6 +125,10 @@ internal class VCardMerger(
             organization = organization,
             notes = notes,
             imAccounts = imAccounts,
+            birthday = VCardDates.read(merged.birthday),
+            anniversary = VCardDates.read(merged.anniversary),
+            nicknames = nicknames,
+            websites = websites,
             photo = photo,
             serverPhotoHash = photo?.let { PhotoHash.of(it.data) },
             verified = unverified == 0,

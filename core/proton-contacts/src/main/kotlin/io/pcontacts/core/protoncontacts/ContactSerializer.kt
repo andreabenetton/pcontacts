@@ -13,6 +13,7 @@ import ezvcard.property.Address
 import ezvcard.property.Email
 import ezvcard.property.FormattedName
 import ezvcard.property.Impp
+import ezvcard.property.Nickname
 import ezvcard.property.Note
 import ezvcard.property.Organization
 import ezvcard.property.Photo
@@ -20,6 +21,7 @@ import ezvcard.property.StructuredName
 import ezvcard.property.Telephone
 import ezvcard.property.Title
 import ezvcard.property.Uid
+import ezvcard.property.Url
 import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
@@ -139,6 +141,10 @@ class ContactSerializer(
         contact.organization?.title?.let { vcard.addTitle(Title(it)) }
         contact.notes.forEach { n -> vcard.addNote(Note(n)) }
         contact.imAccounts.forEach { im -> buildImpp(im)?.let { vcard.addImpp(it) } }
+        contact.birthday?.let { vcard.birthday = VCardDates.birthday(it) }
+        contact.anniversary?.let { vcard.anniversary = VCardDates.anniversary(it) }
+        contact.nicknames.forEach { n -> vcard.addNickname(Nickname().apply { values.add(n) }) }
+        contact.websites.forEach { u -> vcard.addUrl(Url(u)) }
         buildPhoto(contact.photo)?.let { vcard.addPhoto(it) }
 
         return vcard

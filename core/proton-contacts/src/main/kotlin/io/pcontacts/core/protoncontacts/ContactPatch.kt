@@ -24,6 +24,10 @@ data class ContactPatch(
     val imAccounts: ListPatch<DecryptedIm> = ListPatch(),
     val organization: Change<DecryptedOrganization?>? = null,
     val notes: Change<List<String>>? = null,
+    val birthday: Change<String?>? = null,
+    val anniversary: Change<String?>? = null,
+    val nicknames: Change<List<String>>? = null,
+    val websites: Change<List<String>>? = null,
     /** New photo bytes, or a change to null to remove the inline photo. */
     val photo: Change<DecryptedPhoto?>? = null
 ) {
@@ -39,7 +43,8 @@ data class ContactPatch(
 
     val isEmpty: Boolean
         get() = fullName == null && structuredName == null && organization == null && notes == null &&
-            photo == null && emails.isEmpty && phones.isEmpty && addresses.isEmpty && imAccounts.isEmpty
+            photo == null && emails.isEmpty && phones.isEmpty && addresses.isEmpty && imAccounts.isEmpty &&
+            birthday == null && anniversary == null && nicknames == null && websites == null
 
     companion object {
         fun emailKey(e: DecryptedEmail): String = e.address
@@ -59,6 +64,10 @@ data class ContactPatch(
             imAccounts = list(from.imAccounts, to.imAccounts, ::imKey),
             organization = scalar(from.organization, to.organization),
             notes = scalar(from.notes, to.notes),
+            birthday = scalar(from.birthday, to.birthday),
+            anniversary = scalar(from.anniversary, to.anniversary),
+            nicknames = scalar(from.nicknames, to.nicknames),
+            websites = scalar(from.websites, to.websites),
             photo = if (photoHash(from.photo) == photoHash(to.photo)) null else Change(to.photo)
         )
 

@@ -11,10 +11,12 @@ import ezvcard.parameter.ImageType
 import ezvcard.parameter.TelephoneType
 import ezvcard.property.Address
 import ezvcard.property.Categories
+import ezvcard.property.DateOrTimeProperty
 import ezvcard.property.Email
 import ezvcard.property.FormattedName
 import ezvcard.property.Impp
 import ezvcard.property.Key
+import ezvcard.property.Nickname
 import ezvcard.property.Note
 import ezvcard.property.Organization
 import ezvcard.property.Photo
@@ -24,6 +26,7 @@ import ezvcard.property.StructuredName
 import ezvcard.property.Telephone
 import ezvcard.property.Title
 import ezvcard.property.Uid
+import ezvcard.property.Url
 import ezvcard.property.VCardProperty
 import java.net.URI
 
@@ -118,6 +121,10 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
         patch.organization?.let { applyOrganization(it.to) }
         patch.notes?.let { applyNotes(it.to) }
         patch.photo?.let { applyPhoto(it.to) }
+        patch.birthday?.let { change -> applyDate(change.to, { it.birthdays }, VCardDates::birthday) }
+        patch.anniversary?.let { change -> applyDate(change.to, { it.anniversaries }, VCardDates::anniversary) }
+        patch.nicknames?.let { applyNicknames(it.to) }
+        patch.websites?.let { applyWebsites(it.to) }
     }
 
     /** The cards to upload: the signed card always, the others only while they still say something. */
@@ -193,6 +200,33 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
         existing.filter { (_, n) -> n.value !in wanted }.forEach { (c, n) -> c.vcard.removeProperty(n) }
         val present = existing.map { it.second.value }.toSet()
         wanted.filter { it !in present }.forEach { encrypted.vcard.addNote(Note(it)) }
+    }
+
+    /** At most one `BDAY` / `ANNIVERSARY` (`[V]` vcardProperties.ts); a new one takes the old one's card. */
+    private fun <T : DateOrTimeProperty> applyDate(value: String?, present: (VCard) -> List<T>, build: (String) -> T) {
+        val existing = cards.flatMap { c -> present(c.vcard).map { c to it } }
+        existing.forEach { (c, p) -> c.vcard.removeProperty(p) }
+        value?.let { (existing.firstOrNull()?.first ?: encrypted).vcard.addProperty(build(it)) }
+    }
+
+    /** A `NICKNAME` may hold several values; keep the wanted ones where they are, drop emptied properties. */
+    private fun applyNicknames(wanted: List<String>) {
+        val existing = cards.flatMap { c -> c.vcard.nicknames.map { c to it } }
+        existing.forEach { (c, n) ->
+            n.values.retainAll { it.trim() in wanted }
+            if (n.values.isEmpty()) c.vcard.removeProperty(n)
+        }
+        val present = existing.flatMap { (_, n) -> n.values.map { it.trim() } }.toSet()
+        wanted.filter { it !in present }.forEach { v ->
+            encrypted.vcard.addNickname(Nickname().apply { values.add(v) })
+        }
+    }
+
+    private fun applyWebsites(wanted: List<String>) {
+        val existing = cards.flatMap { it.vcard.urls }
+        existing.filter { it.value?.trim() !in wanted }.forEach(::removeWithGroup)
+        val present = existing.mapNotNull { it.value?.trim() }.toSet()
+        wanted.filter { it !in present }.forEach { encrypted.vcard.addUrl(Url(it)) }
     }
 
     private fun applyPhoto(value: DecryptedPhoto?) {

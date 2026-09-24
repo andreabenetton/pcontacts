@@ -59,6 +59,32 @@ class ContactSerializerTest {
         assertNull(vcard.formattedName)
     }
 
+    @Test fun dates_nicknames_and_websites_go_to_the_encrypted_card_in_proton_web_format() {
+        val contact = contact(fullName = "Alice", emails = listOf(DecryptedEmail("alice@proton.me"))).copy(
+            birthday = "1990-03-12",
+            anniversary = "--06-12",
+            nicknames = listOf("Ali"),
+            websites = listOf("https://alice.example")
+        )
+        val cards = serializer.serialize(contact)
+        val signed = cards[0].data
+        val encrypted = cards[1].data
+
+        // [V] Proton's web client writes a full date as yyyyMMdd; a year-less one goes as text.
+        assertTrue(encrypted, encrypted.lines().contains("BDAY:19900312"))
+        assertTrue(encrypted, encrypted.lines().contains("ANNIVERSARY;VALUE=text:--06-12"))
+        assertTrue(encrypted, encrypted.lines().contains("NICKNAME:Ali"))
+        assertTrue(encrypted, encrypted.lines().contains("URL:https://alice.example"))
+        listOf("BDAY", "ANNIVERSARY", "NICKNAME", "URL").forEach { assertTrue(it !in signed) }
+
+        val back = VCardMerger().merge(
+            "c1",
+            listOf(DecryptedCard(CardType.ENCRYPTED_AND_SIGNED, encrypted, verified = true))
+        )
+        assertEquals("1990-03-12", back.birthday)
+        assertEquals("--06-12", back.anniversary)
+    }
+
     @Test fun signed_card_carries_email_as_proton_does_but_not_tel() {
         val contact = contact(
             fullName = "Bob",

@@ -98,6 +98,35 @@ class CardPatcherTest {
         assertEquals(listOf("Family", "Work"), out.getValue(CardType.CLEAR_TEXT).categories.values)
     }
 
+    @Test fun birthday_is_replaced_in_its_card_and_anniversary_added_to_the_encrypted_one() {
+        val out = rendered(
+            ContactPatch(
+                birthday = ContactPatch.Change("1990-03-12"),
+                anniversary = ContactPatch.Change("2015-06-20")
+            )
+        )
+        val enc = out.getValue(CardType.ENCRYPTED_AND_SIGNED)
+        assertEquals(1, enc.birthdays.size)
+        assertEquals(java.time.LocalDate.of(1990, 3, 12), enc.birthday.date)
+        assertEquals(java.time.LocalDate.of(2015, 6, 20), enc.anniversary.date)
+        assertTrue(out.getValue(CardType.SIGNED).birthdays.isEmpty())
+
+        val removed = rendered(ContactPatch(birthday = ContactPatch.Change(null)))
+        assertTrue(removed.getValue(CardType.ENCRYPTED_AND_SIGNED).birthdays.isEmpty())
+    }
+
+    @Test fun nicknames_and_websites_are_patched_value_by_value() {
+        val out = rendered(
+            ContactPatch(
+                nicknames = ContactPatch.Change(listOf("Lissy")),
+                websites = ContactPatch.Change(listOf("https://alice.example", "https://blog.alice.example"))
+            )
+        )
+        val enc = out.getValue(CardType.ENCRYPTED_AND_SIGNED)
+        assertEquals(listOf("Lissy"), enc.nicknames.flatMap { it.values })
+        assertEquals(listOf("https://alice.example", "https://blog.alice.example"), enc.urls.map { it.value })
+    }
+
     @Test fun an_added_email_lands_in_the_signed_card_with_a_fresh_group() {
         val out = rendered(
             ContactPatch(emails = ContactPatch.ListPatch(added = listOf(DecryptedEmail("third@example.com"))))
