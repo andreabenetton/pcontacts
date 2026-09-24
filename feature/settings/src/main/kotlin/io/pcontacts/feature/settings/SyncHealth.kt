@@ -12,8 +12,10 @@ enum class SyncHealth { RUNNING, OFF, FAILED, ATTENTION, PENDING, NEVER, OVERDUE
  * Decides the headline from observable facts, so "Up to date" is a
  * claim with conditions: nothing running or failed, no change failed
  * permanently, no contact left behind by the last run, nothing waiting
- * in the outbox, and the last converged run not older than
- * [OVERDUE_FACTOR] times the chosen interval.
+ * in the outbox, and the last completed run — the one "Last sync"
+ * shows, converged or not — not older than [OVERDUE_FACTOR] times the
+ * chosen interval. Overdue means runs stopped happening; a run that left
+ * something to settle is reported by the states above it.
  */
 fun syncHealth(
     running: Boolean,
@@ -25,7 +27,7 @@ fun syncHealth(
     /** Both of Android's sync switches on; off means no automatic run is expected, so nothing is overdue. */
     syncEnabled: Boolean = true
 ): SyncHealth {
-    val syncedAt = lastSync?.syncedAtMillis
+    val syncedAt = lastSync?.lastRunAtMillis ?: lastSync?.syncedAtMillis
     return when {
         running -> SyncHealth.RUNNING
         !syncEnabled -> SyncHealth.OFF

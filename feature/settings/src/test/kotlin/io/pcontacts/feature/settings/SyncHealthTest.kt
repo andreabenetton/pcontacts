@@ -52,6 +52,13 @@ class SyncHealthTest {
         assertEquals(SyncHealth.ATTENTION, health(lastSync = LastSyncSummary(now - 90 * hour), outbox = busy))
     }
 
+    @Test fun a_recent_run_that_did_not_converge_is_not_overdue() {
+        val convergedLongAgo = LastSyncSummary(syncedAtMillis = now - 90 * hour, lastRunAtMillis = now - hour / 2)
+        assertEquals(SyncHealth.UP_TO_DATE, health(lastSync = convergedLongAgo, intervalHours = 12))
+        val ranLongAgo = LastSyncSummary(syncedAtMillis = now - 90 * hour, lastRunAtMillis = now - 30 * hour)
+        assertEquals(SyncHealth.OVERDUE, health(lastSync = ranLongAgo, intervalHours = 12))
+    }
+
     @Test fun the_running_headline_names_each_stage_and_falls_back_when_it_is_unknown() {
         assertEquals(R.string.settings_sync_running, runningHeadlineRes(null))
         assertEquals(R.string.settings_sync_running, runningHeadlineRes(SyncProgress(done = 3, total = 7)))
