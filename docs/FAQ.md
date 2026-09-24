@@ -113,6 +113,17 @@ Only from background work, one trigger each:
 - **New advisories**: only with the opt-in osv.dev check on, once per new
   advisory.
 
+## I deleted a contact on a Samsung and pcontacts asks what to do
+
+Samsung Contacts moves a deleted contact into its Recycle bin, where no
+sync app can see it. pcontacts cannot tell that apart from a contact
+another app removed, so it asks instead of guessing: "Delete from
+Proton" removes it on Proton too (after the usual one-hour grace, which
+you can cancel), "Put it back" restores it on the phone. Restoring it
+from the Recycle bin yourself also settles the question. With the
+Recycle bin switched off in Samsung Contacts settings, a deletion goes
+straight to Proton and nothing is asked.
+
 ## The sync interval slider has an "Off" position. What does it do?
 
 "Off" turns Android's Contacts sync off for the Proton account, exactly as

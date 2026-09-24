@@ -26,12 +26,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Contacts deleted on a Samsung came back.** Samsung Contacts moves a
+  deleted contact into its Recycle bin, hidden from sync apps, so the
+  deletion never reached Proton and the next sync recreated the contact.
+  On a phone with such a bin, a synced contact that disappears is now
+  put to the user — delete it from Proton, or put it back — instead of
+  being recreated (ADR-0022 amendment). Found on a Samsung A40
+  (Android 11).
 - **"Overdue" next to a recent "Last sync"**. Overdue was measured from
   the last sync that settled everything, so a contact left in conflict
   kept the card overdue while syncs kept running. It is now measured
   from the last completed sync — the time the card shows — and a
-  conflict gets its own headline: "Edited on both sides — choose a
-  version".
+  contact waiting for a decision gets its own headline: "A contact
+  needs your decision".
 
 ### Added
 
