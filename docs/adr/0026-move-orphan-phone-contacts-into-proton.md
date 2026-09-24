@@ -5,7 +5,7 @@
 
 # ADR-0026: Move orphan "PHONE" contacts into the Proton account
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-24 — the import list labels movable contacts; the bulk import moves the lossless ones)
 - **Date:** 2026-09-24
 - **Deciders:** project owner
 - **Related:** ADR-0010 (ContactsContract write strategy), ADR-0017 (bidirectional sync), ADR-0022 (ContactsProvider authoritative), ADR-0023 (one-way enrichment — narrowed here)
@@ -91,3 +91,25 @@ Contact has no Proton copy. This is the one exception to ADR-0023's
 - Manual (Samsung and Pixel): a `PHONE` probe is moved, keeps `_ID`,
   `contact_id` and star, is created on Proton at the next sync, and the
   dialog named what would not come along.
+
+## Amendment (2026-09-24): the list says it, the bulk import does it
+
+The first live test showed the gap in "the bulk import copies, never
+moves": the owner ticked a doomed contact and pressed Import, and got a
+copy — the list had not said the contact could be moved, nor that the
+two routes differ. The copy is exactly the doomed duplicate this ADR
+exists to avoid.
+
+- **The list labels it.** A contact this ADR can move carries a warning
+  badge in the import list — Android will delete it; it moves to
+  Proton — instead of "Not in Proton"; the Import button counts the
+  moves ("Import 5 contacts (2 moved)").
+- **The bulk import moves it**, when the move loses nothing: the label
+  has said what a tick does, so the tick is the consent.
+- **A lossy move still needs the review.** A contact with a detail
+  Proton does not keep (other dates, relations, SIP addresses) is
+  labelled "open to review" and is copied by the bulk import, never
+  moved; only the per-contact dialog, which names the loss, moves it.
+
+Scope is unchanged: exactly `PHONE`/`PHONE`, only without a Proton copy.
+
