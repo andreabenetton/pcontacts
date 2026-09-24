@@ -11,5 +11,11 @@ What has shipped is recorded in the [CHANGELOG](../CHANGELOG.md).
 
 ## Next
 
+- [ ] Show the "Not affiliated with or endorsed by Proton AG." disclaimer at the
+      bottom of the main screen too, not only on the sign-in screen
+- [ ] When more than one deletion is in its grace period, show one summary row on
+      the sync card that opens a dialog listing them (each with Cancel), instead
+      of one row per contact on the card — the unverified and failed-change rows
+      already work that way
 - [ ] Multi-account support
 - [ ] FIDO2/WebAuthn 2FA
