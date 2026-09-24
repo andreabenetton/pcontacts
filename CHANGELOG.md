@@ -15,11 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **The sync card names each stage of a run with its own count**:
-  "Sending changes to Proton: 2 of 7", "Checking contacts",
+  "Connecting to Proton", "Sending changes to Proton: 2 of 7",
+  "Checking contacts",
   "Downloading contacts: 3 of 7", "Saving to your contacts". The
   download count is the contacts that changed on Proton, not every
   contact on the account — a sync with 7 changes no longer counts to
   902. A stage with nothing to do is not shown.
+- The sync card shows the contact count and "Last sync" on separate
+  lines.
 
 ### Fixed
 
