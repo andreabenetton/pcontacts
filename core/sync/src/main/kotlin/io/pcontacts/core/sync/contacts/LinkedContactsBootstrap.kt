@@ -15,6 +15,7 @@ import io.pcontacts.core.contactswriter.LinkedContactsReader
 import io.pcontacts.core.contactswriter.LinkedContactsScanner
 import io.pcontacts.core.contactswriter.LinkedField
 import io.pcontacts.core.contactswriter.LinkedFieldsWriter
+import io.pcontacts.core.contactswriter.OrphanContactMover
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -45,6 +46,13 @@ object LinkedContactsBootstrap {
         name: LinkedContactName?,
         fields: List<LinkedField>
     ): Long = withContactsProvider(context) { LinkedContactCreator(it).create(account, contactId, name, fields) }
+
+    /**
+     * Moves the orphan `PHONE` RawContact into [account] (ADR-0026); false when it is gone
+     * or no longer in the orphan account. The next sync creates it on Proton.
+     */
+    suspend fun moveContact(context: Context, account: Account, rawContactId: Long): Boolean =
+        withContactsProvider(context) { OrphanContactMover(it).move(account, rawContactId) }
 
     private suspend fun <T> withContactsProvider(context: Context, block: (ContentProviderClient) -> T): T =
         withContext(Dispatchers.IO) {
