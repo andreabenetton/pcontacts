@@ -76,15 +76,17 @@ class LinkedImportBridge(
      */
     suspend fun importMany(contactIds: List<Long>, onProgress: (Int) -> Unit): BulkResult {
         val account = account() ?: return BulkResult(0, 0, contactIds.size)
-        val tally = contactIds.mapIndexed { index, contactId ->
-            importWhole(account, contactId).also { onProgress(index + 1) }
-        }.groupingBy { it }.eachCount()
+        val outcomes = contactIds.mapIndexed { index, contactId ->
+            contactId to importWhole(account, contactId).also { onProgress(index + 1) }
+        }
+        val tally = outcomes.groupingBy { it.second }.eachCount()
         requestSync(account)
         return BulkResult(
             created = tally[WholeImport.CREATED] ?: 0,
             enriched = tally[WholeImport.ENRICHED] ?: 0,
             failed = tally[WholeImport.FAILED] ?: 0,
-            moved = tally[WholeImport.MOVED] ?: 0
+            moved = tally[WholeImport.MOVED] ?: 0,
+            importedIds = outcomes.filter { it.second != WholeImport.FAILED }.mapTo(HashSet()) { it.first }
         )
     }
 
