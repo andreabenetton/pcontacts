@@ -87,6 +87,7 @@ fun LinkedImportScreen(
             if (selected.isNotEmpty()) {
                 SelectionBar(
                     count = selected.size,
+                    moves = visible.count { it.contactId in selected && it.move == RowMove.MOVES },
                     onSelectAll = { listViewModel.selectAll(visible.map { it.contactId } - imported) },
                     onClear = listViewModel::clearSelection,
                     onImport = listViewModel::importSelected
@@ -156,7 +157,11 @@ private fun ImportOutcomes(
         val done = bulk as? BulkImportState.Done ?: return@LaunchedEffect
         val r = done.result
         listViewModel.dismissBulkResult()
-        val message = resources.getString(R.string.linked_import_bulk_done, r.created, r.enriched, r.failed)
+        val message = if (r.moved > 0) {
+            resources.getString(R.string.linked_import_bulk_done_moves, r.moved, r.created, r.enriched, r.failed)
+        } else {
+            resources.getString(R.string.linked_import_bulk_done, r.created, r.enriched, r.failed)
+        }
         snackbarHostState.showSnackbar(message)
     }
 }
@@ -285,6 +290,16 @@ private fun RowBadge(row: LinkedContactRow, status: ImportStatus?) {
         SyncIndicator(tone = tone, text = stringResource(textRes))
         return
     }
+    // ADR-0026: say before any tick that Android deletes this storage and what the import does.
+    val moveRes = when (row.move) {
+        RowMove.MOVES -> R.string.linked_import_row_moves
+        RowMove.NEEDS_REVIEW -> R.string.linked_import_row_move_review
+        RowMove.NONE -> null
+    }
+    if (moveRes != null) {
+        SyncIndicator(tone = SyncTone.WARN, text = stringResource(moveRes))
+        return
+    }
     Text(
         text = if (row.inProton) {
             pluralStringResource(R.plurals.linked_import_new_details, row.newFields, row.newFields)
@@ -298,7 +313,13 @@ private fun RowBadge(row: LinkedContactRow, status: ImportStatus?) {
 
 /** Sticks to the bottom while something is ticked: select all / clear, and the one primary action. */
 @Composable
-private fun SelectionBar(count: Int, onSelectAll: () -> Unit, onClear: () -> Unit, onImport: () -> Unit) {
+private fun SelectionBar(
+    count: Int,
+    moves: Int,
+    onSelectAll: () -> Unit,
+    onClear: () -> Unit,
+    onImport: () -> Unit
+) {
     Surface(tonalElevation = 3.dp) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -308,7 +329,13 @@ private fun SelectionBar(count: Int, onSelectAll: () -> Unit, onClear: () -> Uni
             TextButton(onClick = onClear) { Text(stringResource(R.string.linked_import_clear_selection)) }
             Spacer(Modifier.weight(1f))
             Button(onClick = onImport) {
-                Text(pluralStringResource(R.plurals.linked_import_bulk_button, count, count))
+                Text(
+                    if (moves > 0) {
+                        pluralStringResource(R.plurals.linked_import_bulk_button_moves, count, count, moves)
+                    } else {
+                        pluralStringResource(R.plurals.linked_import_bulk_button, count, count)
+                    }
+                )
             }
         }
     }

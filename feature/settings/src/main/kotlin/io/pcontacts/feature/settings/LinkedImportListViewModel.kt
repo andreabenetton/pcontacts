@@ -29,8 +29,16 @@ data class LinkedContactRow(
     val inProton: Boolean,
     val newFields: Int,
     /** The providers' launcher icons, same order as [sources]; empty for device-only rows. */
-    val sourceIcons: List<Bitmap> = emptyList()
+    val sourceIcons: List<Bitmap> = emptyList(),
+    val move: RowMove = RowMove.NONE
 )
+
+/**
+ * ADR-0026: the contact sits in a storage Android deletes. [MOVES]: the
+ * import moves it into Proton; [NEEDS_REVIEW]: a move would lose a
+ * detail, so the bulk import copies it and only the review moves it.
+ */
+enum class RowMove { NONE, MOVES, NEEDS_REVIEW }
 
 enum class LinkedImportFilter { ALL, NOT_IN_PROTON, NEW_DETAILS }
 
@@ -40,8 +48,8 @@ sealed interface LinkedImportListState {
     data class Failed(val reason: String) : LinkedImportListState
 }
 
-/** Outcome of importing a selection: contacts created in Proton, Proton copies given new details, failures. */
-data class BulkResult(val created: Int, val enriched: Int, val failed: Int)
+/** Outcome of importing a selection: contacts created in Proton, Proton copies given new details, failures, moves. */
+data class BulkResult(val created: Int, val enriched: Int, val failed: Int, val moved: Int = 0)
 
 sealed interface BulkImportState {
     data object Idle : BulkImportState

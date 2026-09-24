@@ -157,6 +157,8 @@
     <string name="linked_import_scanning">Просмотр ваших контактов…</string>
     <string name="linked_import_filter_all">Все</string>
     <string name="linked_import_not_in_proton">Нет в Proton</string>
+    <string name="linked_import_row_moves">Android удалит этот контакт · будет перемещён в Proton</string>
+    <string name="linked_import_row_move_review">Android удалит этот контакт · откройте для проверки</string>
     <string name="linked_import_filter_new_details">Новые данные</string>
     <plurals name="linked_import_new_details">
         <item quantity="one">%d новая запись</item>
@@ -184,8 +186,15 @@
         <item quantity="many">Импортировать %d контактов</item>
         <item quantity="other">Импортировать %d контакта</item>
     </plurals>
+    <plurals name="linked_import_bulk_button_moves">
+        <item quantity="one">Импортировать %1$d контакт (перемещено: %2$d)</item>
+        <item quantity="few">Импортировать %1$d контакта (перемещено: %2$d)</item>
+        <item quantity="many">Импортировать %1$d контактов (перемещено: %2$d)</item>
+        <item quantity="other">Импортировать %1$d контакта (перемещено: %2$d)</item>
+    </plurals>
     <string name="linked_import_bulk_progress">Импорт %1$d из %2$d…</string>
     <string name="linked_import_bulk_done">Создано в Proton: %1$d, дополнено данными: %2$d, с ошибкой: %3$d. Они будут отправлены в Proton при следующей синхронизации.</string>
+    <string name="linked_import_bulk_done_moves">Перемещено в Proton: %1$d, создано в Proton: %2$d, дополнено данными: %3$d, с ошибкой: %4$d. Они будут отправлены в Proton при следующей синхронизации.</string>
     <string name="sync_state_overdue">Синхронизация просрочена</string>
     <string name="sync_state_attention">Некоторые изменения не удались</string>
     <string name="sync_state_conflict">Контакт ждёт вашего решения</string>

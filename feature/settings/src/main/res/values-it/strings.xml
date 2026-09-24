@@ -139,6 +139,8 @@
     <string name="linked_import_scanning">Analisi dei contatti in corso…</string>
     <string name="linked_import_filter_all">Tutti</string>
     <string name="linked_import_not_in_proton">Non in Proton</string>
+    <string name="linked_import_row_moves">Android lo cancellerà · viene spostato in Proton</string>
+    <string name="linked_import_row_move_review">Android lo cancellerà · aprilo per controllare</string>
     <string name="linked_import_filter_new_details">Nuovi dettagli</string>
     <plurals name="linked_import_new_details">
         <item quantity="one">%d nuovo dettaglio</item>
@@ -162,8 +164,13 @@
         <item quantity="one">Importa %d contatto</item>
         <item quantity="other">Importa %d contatti</item>
     </plurals>
+    <plurals name="linked_import_bulk_button_moves">
+        <item quantity="one">Importa %1$d contatto (%2$d spostati)</item>
+        <item quantity="other">Importa %1$d contatti (%2$d spostati)</item>
+    </plurals>
     <string name="linked_import_bulk_progress">Importazione di %1$d su %2$d…</string>
     <string name="linked_import_bulk_done">%1$d creati in Proton, %2$d con nuovi dettagli aggiunti, %3$d non riusciti. Verranno inviati a Proton alla prossima sincronizzazione.</string>
+    <string name="linked_import_bulk_done_moves">%1$d spostati in Proton, %2$d creati in Proton, %3$d con nuovi dettagli aggiunti, %4$d non riusciti. Verranno inviati a Proton alla prossima sincronizzazione.</string>
     <string name="sync_state_overdue">Sincronizzazione in ritardo</string>
     <string name="sync_state_attention">Alcune modifiche non sono riuscite</string>
     <string name="sync_state_conflict">Un contatto attende la tua decisione</string>

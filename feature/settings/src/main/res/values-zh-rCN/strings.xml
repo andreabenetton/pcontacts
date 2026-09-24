@@ -130,6 +130,8 @@
     <string name="linked_import_scanning">正在查看您的联系人…</string>
     <string name="linked_import_filter_all">全部</string>
     <string name="linked_import_not_in_proton">不在 Proton 中</string>
+    <string name="linked_import_row_moves">Android 会删除此联系人 · 将移到 Proton</string>
+    <string name="linked_import_row_move_review">Android 会删除此联系人 · 打开以检查</string>
     <string name="linked_import_filter_new_details">新详情</string>
     <plurals name="linked_import_new_details">
         <item quantity="other">%d 项新详情</item>
@@ -151,8 +153,12 @@
     <plurals name="linked_import_bulk_button">
         <item quantity="other">导入 %d 位联系人</item>
     </plurals>
+    <plurals name="linked_import_bulk_button_moves">
+        <item quantity="other">导入 %1$d 位联系人（移动 %2$d 位）</item>
+    </plurals>
     <string name="linked_import_bulk_progress">正在导入第 %1$d 个，共 %2$d 个…</string>
     <string name="linked_import_bulk_done">已在 Proton 中创建 %1$d 个，已为 %2$d 个添加详情，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
+    <string name="linked_import_bulk_done_moves">已移到 Proton %1$d 个，已在 Proton 中创建 %2$d 个，已为 %3$d 个添加详情，失败 %4$d 个。将在下次同步时发送到 Proton。</string>
     <string name="sync_state_overdue">同步已逾期</string>
     <string name="sync_state_attention">部分更改失败</string>
     <string name="sync_state_conflict">有联系人需要您决定</string>
