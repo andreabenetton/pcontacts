@@ -103,6 +103,10 @@
     <string name="linked_import_kind_organization">Organisation</string>
     <string name="linked_import_kind_note">Note</string>
     <string name="linked_import_kind_im">Compte de messagerie</string>
+    <string name="linked_import_kind_birthday">Anniversaire</string>
+    <string name="linked_import_kind_anniversary">Anniversaire de mariage</string>
+    <string name="linked_import_kind_nickname">Surnom</string>
+    <string name="linked_import_kind_website">Site web</string>
     <string name="linked_import_source">%1$s · depuis %2$s</string>
     <string name="linked_import_confirm">Importer</string>
     <string name="linked_import_cancel">Annuler</string>

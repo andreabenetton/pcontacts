@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class LinkedFieldKind { PHONE, EMAIL, ADDRESS, ORGANIZATION, NOTE, IM }
+enum class LinkedFieldKind { PHONE, EMAIL, ADDRESS, ORGANIZATION, NOTE, IM, BIRTHDAY, ANNIVERSARY, NICKNAME, WEBSITE }
 
 /** Kinds a contact can be reached by; a new Proton contact needs at least one of them. */
 private val CONTACT_KINDS = setOf(

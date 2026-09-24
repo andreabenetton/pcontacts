@@ -190,4 +190,8 @@ private fun kindLabel(kind: LinkedFieldKind): Int = when (kind) {
     LinkedFieldKind.ORGANIZATION -> R.string.linked_import_kind_organization
     LinkedFieldKind.NOTE -> R.string.linked_import_kind_note
     LinkedFieldKind.IM -> R.string.linked_import_kind_im
+    LinkedFieldKind.BIRTHDAY -> R.string.linked_import_kind_birthday
+    LinkedFieldKind.ANNIVERSARY -> R.string.linked_import_kind_anniversary
+    LinkedFieldKind.NICKNAME -> R.string.linked_import_kind_nickname
+    LinkedFieldKind.WEBSITE -> R.string.linked_import_kind_website
 }

@@ -117,6 +117,10 @@
     <string name="linked_import_kind_organization">Организация</string>
     <string name="linked_import_kind_note">Заметка</string>
     <string name="linked_import_kind_im">Чат-аккаунт</string>
+    <string name="linked_import_kind_birthday">День рождения</string>
+    <string name="linked_import_kind_anniversary">Годовщина</string>
+    <string name="linked_import_kind_nickname">Псевдоним</string>
+    <string name="linked_import_kind_website">Веб-сайт</string>
     <string name="linked_import_source">%1$s · из %2$s</string>
     <string name="linked_import_confirm">Импортировать</string>
     <string name="linked_import_cancel">Отмена</string>

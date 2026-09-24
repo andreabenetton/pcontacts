@@ -96,6 +96,10 @@
     <string name="linked_import_kind_organization">组织</string>
     <string name="linked_import_kind_note">备注</string>
     <string name="linked_import_kind_im">聊天账号</string>
+    <string name="linked_import_kind_birthday">生日</string>
+    <string name="linked_import_kind_anniversary">纪念日</string>
+    <string name="linked_import_kind_nickname">昵称</string>
+    <string name="linked_import_kind_website">网站</string>
     <string name="linked_import_source">%1$s · 来自 %2$s</string>
     <string name="linked_import_confirm">导入</string>
     <string name="linked_import_cancel">取消</string>
