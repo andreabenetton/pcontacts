@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contact on the account — a sync with 7 changes no longer counts to
   902. A stage with nothing to do is not shown.
 
+### Added
+
+- **A 3-hour sync interval** on the slider, between 1 and 6 hours.
+
 ## [2.0.0] - 2026-09-22
 
 ### Added
