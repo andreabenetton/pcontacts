@@ -5,7 +5,7 @@
 
 # ADR-0023: One-way contact enrichment — pull linked accounts' fields into Proton
 
-- **Status:** Accepted (amended 2026-09-22 — allowlist narrowed to what ships; consent model stated; amended 2026-09-24 — birthday, anniversary, nickname and website carried)
+- **Status:** Accepted (amended 2026-09-22 — allowlist narrowed to what ships; consent model stated; amended 2026-09-24 — birthday, anniversary, nickname and website carried; narrowed by ADR-0026 — orphan `PHONE` contacts may be moved)
 - **Date:** 2026-09-21
 - **Deciders:** project owner
 - **Related:** ADR-0007 (decrypt/read client-side only), ADR-0010 (ContactsContract write strategy), ADR-0011 (module boundaries), ADR-0017 (bidirectional sync), ADR-0022 (ContactsProvider authoritative)
@@ -38,7 +38,8 @@ syncs to Proton. The flow is strictly one-way into Proton and read-only
 toward every other account.**
 
 pcontacts never writes to, edits, deletes, or re-aggregates a
-non-pcontacts RawContact; never mirrors Proton data back out to another
+non-pcontacts RawContact (one exception: ADR-0026 moves an orphan
+`PHONE`/`PHONE` contact into the Proton account on confirmation); never mirrors Proton data back out to another
 account; and never transmits or persists sibling data anywhere except as
 the specific fields the user chose to import into their own Proton contact.
 
