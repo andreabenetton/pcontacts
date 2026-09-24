@@ -51,4 +51,25 @@ class SyncHealthTest {
         assertEquals(SyncHealth.FAILED, health(failed = true, lastSync = stale, outbox = busy))
         assertEquals(SyncHealth.ATTENTION, health(lastSync = LastSyncSummary(now - 90 * hour), outbox = busy))
     }
+
+    @Test fun the_running_headline_names_each_stage_and_falls_back_when_it_is_unknown() {
+        assertEquals(R.string.settings_sync_running, runningHeadlineRes(null))
+        assertEquals(R.string.settings_sync_running, runningHeadlineRes(SyncProgress(done = 3, total = 7)))
+        assertEquals(
+            R.string.sync_stage_sending,
+            runningHeadlineRes(SyncProgress(done = 1, total = 3, stage = SyncStage.SENDING))
+        )
+        assertEquals(
+            R.string.sync_stage_checking,
+            runningHeadlineRes(SyncProgress(done = 0, total = 0, stage = SyncStage.CHECKING))
+        )
+        assertEquals(
+            R.string.sync_stage_downloading,
+            runningHeadlineRes(SyncProgress(done = 3, total = 7, stage = SyncStage.DOWNLOADING))
+        )
+        assertEquals(
+            R.string.sync_stage_saving,
+            runningHeadlineRes(SyncProgress(done = 0, total = 0, stage = SyncStage.SAVING))
+        )
+    }
 }

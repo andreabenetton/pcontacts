@@ -64,7 +64,7 @@ class SettingsViewModelTest {
             signOut = { error("not used") },
             querySyncProgress = {
                 polls++
-                SyncProgress(done = polls * 10, total = 898)
+                SyncProgress(done = polls * 10, total = 898, stage = SyncStage.DOWNLOADING)
             },
             scope = TestScope(dispatcher),
             workDispatcher = dispatcher
@@ -74,7 +74,7 @@ class SettingsViewModelTest {
 
         vm.updateSyncRunning(true)
         advanceTimeBy(4_500)
-        assertEquals(SyncProgress(done = 30, total = 898), vm.syncProgress.value)
+        assertEquals(SyncProgress(done = 30, total = 898, stage = SyncStage.DOWNLOADING), vm.syncProgress.value)
 
         vm.updateSyncRunning(false)
         advanceTimeBy(10_000)

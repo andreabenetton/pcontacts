@@ -48,8 +48,26 @@ data class LastSyncSummary(
  */
 enum class SyncTone { RUNNING, OK, WARN, INFO }
 
-/** The pull in flight: contacts processed so far out of the server total. */
-data class SyncProgress(val done: Int, val total: Int)
+/**
+ * The run in flight: the [stage] it is in (null when unknown) and that
+ * stage's items done so far out of its total (0 for a stage without a count).
+ */
+data class SyncProgress(val done: Int, val total: Int, val stage: SyncStage? = null)
+
+/** The stages a sync run goes through, in order; each one the card names. */
+enum class SyncStage {
+    /** Local changes going to Proton, counted. */
+    SENDING,
+
+    /** Proton's contact list compared with the phone's. */
+    CHECKING,
+
+    /** The contacts that changed on Proton being fetched, counted. */
+    DOWNLOADING,
+
+    /** The result being written into the phone's contacts. */
+    SAVING
+}
 
 data class OutboxStats(
     val pending: Int,

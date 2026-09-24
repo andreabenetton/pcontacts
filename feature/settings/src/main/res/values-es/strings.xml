@@ -162,7 +162,10 @@
     <string name="sync_state_off">Sincronización automática desactivada</string>
     <string name="sync_master_off">La sincronización automática está desactivada para todo el teléfono en los ajustes de Android: nada se sincroniza solo, solo funciona «Sincronizar ahora».</string>
     <string name="sync_open_settings">Abrir ajustes de sincronización</string>
-    <string name="sync_state_progress">Sincronizando %1$d de %2$d…</string>
+    <string name="sync_stage_sending">Enviando cambios a Proton: %1$d de %2$d…</string>
+    <string name="sync_stage_checking">Comprobando contactos…</string>
+    <string name="sync_stage_downloading">Descargando contactos: %1$d de %2$d…</string>
+    <string name="sync_stage_saving">Guardando en tus contactos…</string>
     <string name="contacts_access_got_it">Entendido</string>
     <string name="contacts_access_view_list">Ver lista</string>
     <plurals name="sync_contacts_count">

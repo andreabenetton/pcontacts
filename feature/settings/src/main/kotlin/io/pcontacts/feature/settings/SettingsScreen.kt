@@ -218,11 +218,7 @@ private fun headline(facts: SyncFacts): Headline {
     val progress = facts.progress
     return when (health) {
         SyncHealth.RUNNING -> Headline(
-            text = if (progress != null && progress.total > 0) {
-                stringResource(R.string.sync_state_progress, progress.done, progress.total)
-            } else {
-                stringResource(R.string.settings_sync_running)
-            },
+            text = stringResource(runningHeadlineRes(progress), progress?.done ?: 0, progress?.total ?: 0),
             tone = running
         )
         SyncHealth.FAILED -> Headline(failureText(state, lastSync), warn)
@@ -234,6 +230,15 @@ private fun headline(facts: SyncFacts): Headline {
         SyncHealth.OVERDUE -> Headline(stringResource(R.string.sync_state_overdue), warn)
         SyncHealth.UP_TO_DATE -> Headline(stringResource(R.string.sync_state_ok), ok)
     }
+}
+
+/** What the running headline says for [progress]; the counted stages take done and total as arguments. */
+internal fun runningHeadlineRes(progress: SyncProgress?): Int = when (progress?.stage) {
+    SyncStage.SENDING -> R.string.sync_stage_sending
+    SyncStage.CHECKING -> R.string.sync_stage_checking
+    SyncStage.DOWNLOADING -> R.string.sync_stage_downloading
+    SyncStage.SAVING -> R.string.sync_stage_saving
+    null -> R.string.settings_sync_running
 }
 
 @Composable
