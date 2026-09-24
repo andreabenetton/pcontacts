@@ -37,10 +37,20 @@ class LinkedContactsReader(private val provider: ContentProviderClient) {
                 dataReader.read(member.rawContactId, sourceId = "")?.let { member.accountType to it }
             }
         val name = if (proton == null) siblings.firstNotNullOfOrNull { (_, row) -> row.linkedName() } else null
+        // ADR-0026: only without a Proton copy, only the exact orphan account.
+        val movable = if (proton != null) {
+            null
+        } else {
+            members
+                .filter { OrphanPhoneAccount.matches(it.accountType, it.accountName) }
+                .minOfOrNull { it.rawContactId }
+        }
         return LinkedContactCandidates(
             protonRawContactId = proton?.rawContactId,
             name = name,
-            candidates = LinkedContactDiff.candidates(protonRow, siblings)
+            candidates = LinkedContactDiff.candidates(protonRow, siblings),
+            movableRawContactId = movable,
+            uncarried = movable?.let { OrphanContactMover(provider).uncarried(it) }.orEmpty()
         )
     }
 

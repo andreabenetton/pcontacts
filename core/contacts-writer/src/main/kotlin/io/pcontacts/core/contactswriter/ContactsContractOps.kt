@@ -113,6 +113,32 @@ object ContactsContractOps {
     }
 
     /**
+     * Moves an orphan `PHONE` RawContact into [target] (ADR-0026). The URI
+     * carries the *source* account: `[V]` the provider appends a URI's
+     * account to a raw-contacts update's selection, so no row outside
+     * `PHONE`/`PHONE` can match. The row loses the orphan account's sync
+     * ids and is marked DIRTY — with no SOURCE_ID the outbox creates it on
+     * Proton, as for any contact made on the phone.
+     */
+    fun buildMoveOrphan(target: Account, rawContactId: Long): ContentProviderOperation =
+        ContentProviderOperation.newUpdate(
+            SyncAdapterUri.decorate(RawContacts.CONTENT_URI, OrphanPhoneAccount.NAME, OrphanPhoneAccount.TYPE)
+        )
+            .withSelection(
+                "${RawContacts._ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+                arrayOf(rawContactId.toString(), OrphanPhoneAccount.TYPE, OrphanPhoneAccount.NAME)
+            )
+            .withValue(RawContacts.ACCOUNT_TYPE, target.type)
+            .withValue(RawContacts.ACCOUNT_NAME, target.name)
+            .withValue(RawContacts.SOURCE_ID, null)
+            .withValue(RawContacts.SYNC1, null)
+            .withValue(RawContacts.SYNC2, null)
+            .withValue(RawContacts.SYNC3, null)
+            .withValue(RawContacts.SYNC4, null)
+            .withValue(RawContacts.DIRTY, 1)
+            .build()
+
+    /**
      * A new RawContact for a contact that exists only in other accounts
      * (ADR-0023 amendment): no SOURCE_ID — the outbox treats the row as
      * a CREATE and stamps the server id afterwards — DIRTY from the

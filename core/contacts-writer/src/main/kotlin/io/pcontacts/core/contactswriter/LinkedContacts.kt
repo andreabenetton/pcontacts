@@ -78,9 +78,15 @@ data class LinkedContactName(
  * [name] is what a new Proton contact would be called. With a Proton
  * copy present, [name] is null and the candidates are only the fields
  * it lacks.
+ *
+ * [movableRawContactId]: without a Proton copy, the aggregate's orphan
+ * `PHONE` row that may be moved instead of copied (ADR-0026), with the
+ * [uncarried] details the move would lose.
  */
 data class LinkedContactCandidates(
     val protonRawContactId: Long?,
     val name: LinkedContactName?,
-    val candidates: List<LinkedFieldCandidate>
+    val candidates: List<LinkedFieldCandidate>,
+    val movableRawContactId: Long? = null,
+    val uncarried: List<UncarriedKind> = emptyList()
 )
