@@ -29,6 +29,7 @@ import io.pcontacts.feature.settings.LinkedFieldKind
 import io.pcontacts.feature.settings.LinkedImportCandidate
 import io.pcontacts.feature.settings.LinkedImportPreview
 import io.pcontacts.feature.settings.MoveOffer
+import io.pcontacts.feature.settings.RowMove
 import io.pcontacts.feature.settings.UncarriedDetail
 
 /**
@@ -61,7 +62,8 @@ class LinkedImportBridge(
                 sources = summary.sourceAccountTypes.map(::sourceLabel).distinct().joinToString(", "),
                 sourceIcons = sourceIcons(summary.sourceAccountTypes),
                 inProton = summary.hasProtonCopy,
-                newFields = summary.newFieldCount
+                newFields = summary.newFieldCount,
+                move = LinkedImportFormat.move(summary.movable, summary.moveLoses)
             )
         }
     }
@@ -74,28 +76,34 @@ class LinkedImportBridge(
      */
     suspend fun importMany(contactIds: List<Long>, onProgress: (Int) -> Unit): BulkResult {
         val account = account() ?: return BulkResult(0, 0, contactIds.size)
-        var created = 0
-        var enriched = 0
-        var failed = 0
-        contactIds.forEachIndexed { index, contactId ->
-            when (importWhole(account, contactId)) {
-                WholeImport.CREATED -> created++
-                WholeImport.ENRICHED -> enriched++
-                WholeImport.FAILED -> failed++
-            }
-            onProgress(index + 1)
-        }
+        val tally = contactIds.mapIndexed { index, contactId ->
+            importWhole(account, contactId).also { onProgress(index + 1) }
+        }.groupingBy { it }.eachCount()
         requestSync(account)
-        return BulkResult(created, enriched, failed)
+        return BulkResult(
+            created = tally[WholeImport.CREATED] ?: 0,
+            enriched = tally[WholeImport.ENRICHED] ?: 0,
+            failed = tally[WholeImport.FAILED] ?: 0,
+            moved = tally[WholeImport.MOVED] ?: 0
+        )
     }
 
-    private enum class WholeImport { CREATED, ENRICHED, FAILED }
+    private enum class WholeImport { CREATED, ENRICHED, MOVED, FAILED }
 
     private suspend fun importWhole(account: Account, contactId: Long): WholeImport {
         val candidates = LinkedContactsBootstrap.loadCandidates(context, account, contactId) ?: return WholeImport.FAILED
         val fields = candidates.candidates.map { it.field }
         if (fields.isEmpty()) return WholeImport.FAILED
         val protonRawContactId = candidates.protonRawContactId
+        // ADR-0026 amendment: a doomed contact the list said moves is moved, unless the move loses a detail.
+        val movable = candidates.movableRawContactId
+        if (movable != null && candidates.uncarried.isEmpty()) {
+            return if (LinkedContactsBootstrap.moveContact(context, account, movable)) {
+                WholeImport.MOVED
+            } else {
+                WholeImport.FAILED
+            }
+        }
         // A new Proton contact is created only from something that reaches the person (ADR-0023).
         if (protonRawContactId == null && fields.none { it.reachesContact }) return WholeImport.FAILED
         return try {
@@ -259,6 +267,13 @@ internal object LinkedImportFormat {
         is LinkedField.Anniversary -> LinkedFieldKind.ANNIVERSARY
         is LinkedField.NicknameText -> LinkedFieldKind.NICKNAME
         is LinkedField.WebsiteUrl -> LinkedFieldKind.WEBSITE
+    }
+
+    /** The list row's move label from the scan (ADR-0026). */
+    fun move(movable: Boolean, moveLoses: Boolean): RowMove = when {
+        !movable -> RowMove.NONE
+        moveLoses -> RowMove.NEEDS_REVIEW
+        else -> RowMove.MOVES
     }
 
     fun uncarried(kind: UncarriedKind): UncarriedDetail = when (kind) {

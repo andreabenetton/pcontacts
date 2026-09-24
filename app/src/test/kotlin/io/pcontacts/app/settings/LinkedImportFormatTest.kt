@@ -11,6 +11,7 @@ import io.pcontacts.core.contactswriter.PhoneEntry
 import io.pcontacts.core.contactswriter.PostalAddress
 import io.pcontacts.core.contactswriter.UncarriedKind
 import io.pcontacts.feature.settings.LinkedFieldKind
+import io.pcontacts.feature.settings.RowMove
 import io.pcontacts.feature.settings.UncarriedDetail
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -48,5 +49,11 @@ class LinkedImportFormatTest {
             listOf(UncarriedDetail.EVENT, UncarriedDetail.RELATION, UncarriedDetail.SIP_ADDRESS),
             UncarriedKind.entries.map(LinkedImportFormat::uncarried)
         )
+    }
+
+    @Test fun a_movable_row_moves_unless_the_move_loses_a_detail() {
+        assertEquals(RowMove.NONE, LinkedImportFormat.move(movable = false, moveLoses = false))
+        assertEquals(RowMove.MOVES, LinkedImportFormat.move(movable = true, moveLoses = false))
+        assertEquals(RowMove.NEEDS_REVIEW, LinkedImportFormat.move(movable = true, moveLoses = true))
     }
 }
