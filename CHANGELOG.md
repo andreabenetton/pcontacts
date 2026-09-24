@@ -54,6 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Move a doomed contact into Proton** (ADR-0026). A contact saved under
+  the bare "PHONE" storage (WhatsApp's save screen does this) is deleted
+  by Android at the next account change. When it has no Proton copy, the
+  import dialog now offers "Move to Proton": the contact itself moves into
+  the Proton account, keeping its favourite star, ringtone and links, and
+  the next sync creates it on Proton. The dialog names anything Proton
+  would not keep; creating a copy is still offered beside it.
 - **A 3-hour sync interval** on the slider, between 1 and 6 hours.
 
 ## [2.0.0] - 2026-09-22

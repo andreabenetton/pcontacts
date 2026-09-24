@@ -34,7 +34,13 @@ as any account change would be.
 
 What to do:
 
-- Move the contact into the Proton account before it is lost: open it in
+- Move it with pcontacts: in *Import details from linked contacts*, open the
+  contact and tap **Move to Proton**. The contact itself moves into the
+  Proton account — star, ringtone and links included — and the next sync
+  creates it on Proton. The dialog names anything Proton would not keep
+  (other dates, relations, SIP addresses); **Create** copies the details
+  instead and leaves the original alone (ADR-0026).
+- Or move the contact yourself before it is lost: open it in
   the Contacts app (Google Contacts, Fossify Contacts, ...) and use "Move to
   another account", choosing the Proton account. pcontacts pushes it at the
   next sync and confirms the create.
