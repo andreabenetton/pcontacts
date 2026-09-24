@@ -48,8 +48,17 @@ sealed interface LinkedImportListState {
     data class Failed(val reason: String) : LinkedImportListState
 }
 
-/** Outcome of importing a selection: contacts created in Proton, Proton copies given new details, failures, moves. */
-data class BulkResult(val created: Int, val enriched: Int, val failed: Int, val moved: Int = 0)
+/**
+ * Outcome of importing a selection: contacts created in Proton, Proton copies given new details,
+ * failures, moves; [importedIds] are the contacts that were written, whatever the way.
+ */
+data class BulkResult(
+    val created: Int,
+    val enriched: Int,
+    val failed: Int,
+    val moved: Int = 0,
+    val importedIds: Set<Long> = emptySet()
+)
 
 sealed interface BulkImportState {
     data object Idle : BulkImportState
@@ -105,12 +114,23 @@ class LinkedImportListViewModel(
         rescan()
     }
 
-    fun rescan() {
+    fun rescan() = rescanKeeping(emptyList())
+
+    /**
+     * Rescans, keeping [imported] rows the scan no longer lists — a moved contact has nothing
+     * left outside Proton, a completed copy no missing field — with a status badge instead of
+     * letting them vanish, as single imports do.
+     */
+    private fun rescanKeeping(imported: List<LinkedContactRow>) {
         _state.value = LinkedImportListState.Scanning
-        _statuses.value = emptyMap()
+        _statuses.value = imported.associate { it.contactId to ImportStatus.QUEUED }
         scope.launch {
             _state.value = try {
-                LinkedImportListState.Ready(withContext(workDispatcher) { scan() })
+                val fresh = withContext(workDispatcher) { scan() }
+                val kept = imported.filter { row -> fresh.none { it.contactId == row.contactId } }
+                LinkedImportListState.Ready(
+                    (fresh + kept).sortedWith(compareBy(nullsLast(String.CASE_INSENSITIVE_ORDER)) { it.name })
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -164,10 +184,11 @@ class LinkedImportListViewModel(
         _selected.value = emptySet()
     }
 
-    /** Imports every selected contact; the list rescans afterwards so imported rows update or vanish. */
+    /** Imports every selected contact; the list rescans afterwards and the imported rows show their status. */
     fun importSelected() {
         val ids = _selected.value.toList()
         if (ids.isEmpty() || _bulk.value is BulkImportState.Running) return
+        val rows = (_state.value as? LinkedImportListState.Ready)?.rows.orEmpty()
         _bulk.value = BulkImportState.Running(0, ids.size)
         scope.launch {
             val result = try {
@@ -181,7 +202,7 @@ class LinkedImportListViewModel(
             }
             _bulk.value = BulkImportState.Done(result)
             _selected.value = emptySet()
-            rescan()
+            rescanKeeping(rows.filter { it.contactId in result.importedIds })
         }
     }
 

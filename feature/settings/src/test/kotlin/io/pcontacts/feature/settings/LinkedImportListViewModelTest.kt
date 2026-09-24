@@ -90,6 +90,30 @@ class LinkedImportListViewModelTest {
         assertEquals(BulkImportState.Idle, vm.bulk.value)
     }
 
+    @Test fun a_moved_contact_stays_listed_with_its_status_after_the_bulk_import() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val doomed = LinkedContactRow(3L, "Bob", "Device", inProton = false, newFields = 1, move = RowMove.MOVES)
+        var scans = 0
+        val vm = LinkedImportListViewModel(
+            // The first scan lists Bob; after the move the scan no longer does.
+            scan = { if (scans++ == 0) rows + doomed else rows },
+            importMany = { _, _ ->
+                BulkResult(created = 0, enriched = 0, failed = 1, moved = 1, importedIds = setOf(3L))
+            },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        advanceUntilIdle()
+        vm.selectAll(listOf(3L, 2L))
+
+        vm.importSelected()
+        advanceUntilIdle()
+
+        val listed = (vm.state.value as LinkedImportListState.Ready).rows
+        assertEquals(listOf("Amy", "Bob", "Zoe"), listed.map { it.name })
+        assertEquals(mapOf(3L to ImportStatus.QUEUED), vm.statuses.value)
+    }
+
     @Test fun an_imported_row_is_added_only_when_the_outbox_says_so_and_a_rescan_forgets_it() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val answers = mutableMapOf(1L to ImportStatus.SYNCED, 2L to ImportStatus.FAILED)
