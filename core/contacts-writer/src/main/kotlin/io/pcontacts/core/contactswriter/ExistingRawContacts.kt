@@ -17,8 +17,15 @@ data class ExistingRawContact(val rawContactId: Long, val deleted: Boolean)
  * can represent the invalid duplicate state (several RawContacts
  * sharing one SOURCE_ID) so the sync engine can detect and repair it
  * instead of silently collapsing it.
+ *
+ * [hasRecycleBin]: the provider hides deleted rows in a recycle bin
+ * (Samsung's `sec_in_trash`) instead of leaving a tombstone, so a row
+ * missing here may be the user's deletion (ADR-0022, 2026-09-24).
  */
-data class ExistingRawContacts(val rowsBySourceId: Map<String, List<ExistingRawContact>>) {
+data class ExistingRawContacts(
+    val rowsBySourceId: Map<String, List<ExistingRawContact>>,
+    val hasRecycleBin: Boolean = false
+) {
 
     fun contains(sourceId: String): Boolean = rowsBySourceId.containsKey(sourceId)
 

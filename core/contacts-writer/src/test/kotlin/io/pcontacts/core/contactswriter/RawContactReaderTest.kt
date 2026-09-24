@@ -6,6 +6,7 @@ package io.pcontacts.core.contactswriter
 import android.database.MatrixCursor
 import android.provider.ContactsContract.RawContacts
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,6 +17,13 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], manifest = Config.NONE)
 class RawContactReaderTest {
+
+    @Test fun a_samsung_trash_column_marks_a_provider_with_a_recycle_bin() {
+        val samsung = MatrixCursor(arrayOf(RawContacts._ID, RawContacts.SOURCE_ID, "sec_in_trash"))
+        val aosp = MatrixCursor(arrayOf(RawContacts._ID, RawContacts.SOURCE_ID, RawContacts.DELETED))
+        assertTrue(RawContactReader.hasRecycleBinColumn(samsung))
+        assertFalse(RawContactReader.hasRecycleBinColumn(aosp))
+    }
 
     @Test fun parse_empty_cursor_returns_empty_state() {
         val out = RawContactReader.parse(cursor())

@@ -34,14 +34,26 @@ class RawContactReader(private val provider: ContentProviderClient) {
             arrayOf(account.type, account.name),
             null
         )
-        return cursor?.use(RawContactReader::parse) ?: ExistingRawContacts(emptyMap())
+        val state = cursor?.use(RawContactReader::parse) ?: ExistingRawContacts(emptyMap())
+        return state.copy(hasRecycleBin = hasRecycleBin())
     }
+
+    /** Asks for no row at all: only the column names are read, never a trashed contact. */
+    private fun hasRecycleBin(): Boolean =
+        provider.query(RawContacts.CONTENT_URI, null, "${RawContacts._ID} = -1", null, null)
+            ?.use(RawContactReader::hasRecycleBinColumn) ?: false
 
     /** Flat SOURCE_ID → canonical RawContacts._ID view of [readExistingState]. */
     fun readExisting(account: Account): Map<String, Long> =
         readExistingState(account).canonicalIds()
 
     companion object {
+        /** Samsung's recycle-bin flag on raw_contacts; its presence is the whole signal. */
+        private const val SAMSUNG_TRASH_COLUMN = "sec_in_trash"
+
+        /** Pure check — visible for tests. */
+        fun hasRecycleBinColumn(cursor: Cursor): Boolean = cursor.getColumnIndex(SAMSUNG_TRASH_COLUMN) >= 0
+
         /** Pure parser — visible for tests so we don't need a live ContentProvider. */
         fun parse(cursor: Cursor): ExistingRawContacts {
             if (cursor.count == 0) return ExistingRawContacts(emptyMap())
