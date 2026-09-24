@@ -5,7 +5,7 @@
 
 # ADR-0023: One-way contact enrichment — pull linked accounts' fields into Proton
 
-- **Status:** Accepted (amended 2026-09-22 — allowlist narrowed to what ships; consent model stated)
+- **Status:** Accepted (amended 2026-09-22 — allowlist narrowed to what ships; consent model stated; amended 2026-09-24 — birthday, anniversary, nickname and website carried)
 - **Date:** 2026-09-21
 - **Deciders:** project owner
 - **Related:** ADR-0007 (decrypt/read client-side only), ADR-0010 (ContactsContract write strategy), ADR-0011 (module boundaries), ADR-0017 (bidirectional sync), ADR-0022 (ContactsProvider authoritative)
@@ -131,4 +131,44 @@ through the per-contact review above.
 - **Selections are matched by field identity**, not by position, and
   the candidates are re-read when the user confirms; if a chosen field
   is gone the user is asked to review again.
+
+## Amendment (2026-09-24): birthday, anniversary, nickname, website
+
+The contact model now carries four more fields end to end — read from
+Proton, written to the phone, read back from the phone and pushed —
+and the import allowlist grows by the same four, from seven mimetypes
+to ten (Event with type birthday or anniversary, Nickname, Website).
+
+Reason: a field outside the model was not merely unsynced. A birthday
+added on the phone to a Proton contact was never pushed (the change
+hash does not see it) and was deleted at the next server-side change,
+because the update path deletes and re-inserts every Data row
+(ADR-0010). Reproduced on a Samsung A40, 2026-09-24.
+
+Formats follow Proton's web client at the commit pinned in
+`docs/API_RESEARCH.md`:
+
+- `[V]` `BDAY` and `ANNIVERSARY` live in the ENCRYPTED_AND_SIGNED card
+  (`constants.ts` SIGNED_FIELDS holds only fn, uid, email and the key
+  fields), at most one each (`vcardProperties.ts`). A full date is
+  written as `yyyyMMdd` with no time part; anything else as
+  `VALUE=text` (`vcard.ts`, `internalValueToIcalValue`).
+- `[V]` `NICKNAME` and `URL` live in the same card and may repeat.
+  Proton's editor offers `URL` but not `NICKNAME`; the server keeps
+  both.
+- `[U]` A date without a year (Android `--MM-dd`) is sent as text: the
+  web client parses date values with `parseISO`, which cannot read
+  `--MMdd`, and would show a wrong date. To be confirmed live, with
+  each new property's acceptance (no Code 2001).
+- `TITLE` was already carried on the Organization row; unchanged.
+
+Adding the fields to the change hash rolls its format, so every
+contact is fetched and rewritten once after the update (the ADR-0022
+format-roll path). That rewrite must not destroy what it is meant to
+save: a phone-side value of a new field (added before this change and
+not yet lost) is compared with the server's first. A value only the
+phone holds is not overwritten — an ordinary UPDATE is queued and the
+next push carries it to Proton; a value both sides hold differently
+becomes a conflict for the user (ADR-0017 §3C). Only a contact with
+neither is rewritten at once.
 

@@ -14,7 +14,11 @@ Primary sources:
   and official clients use.
 - `ProtonMail/WebClients` (GPL-3.0) — the Proton web client, used
   as a specification source for endpoint paths, DTO shapes, and
-  crypto flows.
+  crypto flows. Pinned commit: `37f1e4d13ca5a31fd9d4578bdaae77080f2385fd`
+  (`main`, read 2026-09-24) — the reference for the vCard field set
+  and formats of the 2026-09-24 ADR-0023 amendment. Claims read from
+  an earlier, unrecorded checkout keep their `[V]` markers; re-read
+  them at this commit when they are next touched.
 - Live integration testing against `mail-api.proton.me` (production).
 
 Verification markers: `[V]` verified (source + live test), `[U]`
