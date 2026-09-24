@@ -170,3 +170,9 @@ additions:
   version.
 - The `outbox` table contains no decrypted contact content
   (asserted by a test that inspects the schema + stored rows).
+
+## Amendment (2026-09-24): a 3-hour interval
+
+Clarifies the interval set; the triggers are unchanged (periodic +
+"Sync Now", no `ContentObserver`). The configurable interval is now
+1/3/6/12/24h — a step between the hourly and six-hourly cadences.

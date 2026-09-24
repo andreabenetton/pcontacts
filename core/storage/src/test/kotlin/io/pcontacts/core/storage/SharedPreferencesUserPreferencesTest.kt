@@ -20,6 +20,19 @@ class SharedPreferencesUserPreferencesTest {
         SharedPreferencesUserPreferences(ApplicationProvider.getApplicationContext())
 
     @Test
+    fun every_offered_sync_interval_round_trips() {
+        for (hours in listOf(1L, 3L, 6L, 12L, 24L)) {
+            prefs().syncIntervalHours = hours
+            assertEquals(hours, prefs().syncIntervalHours)
+        }
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun an_interval_that_is_not_offered_is_refused() {
+        prefs().syncIntervalHours = 2L
+    }
+
+    @Test
     fun lastSyncSuccess_defaults_to_zero_and_round_trips() {
         assertEquals(0L, prefs().lastSyncSuccessAtMillis)
         prefs().lastSyncSuccessAtMillis = 1_700_000_000_000L

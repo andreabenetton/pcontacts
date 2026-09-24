@@ -124,6 +124,6 @@ interface UserPreferences {
 
     companion object {
         const val DEFAULT_SYNC_INTERVAL_HOURS = 12L
-        val ALLOWED_INTERVALS_HOURS = listOf(1L, 6L, 12L, 24L)
+        val ALLOWED_INTERVALS_HOURS = listOf(1L, 3L, 6L, 12L, 24L)
     }
 }
