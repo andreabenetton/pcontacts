@@ -354,13 +354,15 @@ private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?) {
             DateUtils.getRelativeTimeSpanString(syncedAt, maxOf(now, syncedAt), DateUtils.MINUTE_IN_MILLIS)
         )
     }
-    val text = if (contacts != null) {
-        pluralStringResource(R.plurals.sync_contacts_count, contacts, contacts) + " · " + syncText
-    } else {
-        syncText
+    if (contacts != null) {
+        Text(
+            text = pluralStringResource(R.plurals.sync_contacts_count, contacts, contacts),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
     Text(
-        text = text,
+        text = syncText,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.clickable { absolute = !absolute }
