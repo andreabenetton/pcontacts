@@ -5,7 +5,7 @@
 
 # ADR-0022: ContactsProvider is authoritative — sync metadata self-heals
 
-- **Status:** Accepted (amended 2026-09-22 — orphan mappings and cancelled deletions)
+- **Status:** Accepted (amended 2026-09-22 — orphan mappings and cancelled deletions; amended 2026-09-24 — providers with a recycle bin)
 - **Date:** 2026-08-29
 - **Deciders:** project owner
 - **Related:** ADR-0008 (Room mapping), ADR-0010 (ContactsContract write strategy), ADR-0017 (bidirectional sync policies)
@@ -92,3 +92,38 @@ Two gaps found by the second v2.0.0 review, both strengthening the
   refetch so the next pull recreates the contact; a sync is requested
   either way.
 
+## Amendment (2026-09-24): providers with a recycle bin
+
+Samsung's contacts provider moves a deleted RawContact into a recycle
+bin (`sec_in_trash`) and hides it from every query — including the
+sync adapter's — unless it also carries `DELETED=1`, which it does not
+for our account. Validated on a Samsung A40 (Android 11, One UI): a
+Proton contact deleted in Samsung Contacts left no tombstone, and rule 1
+recreated it at the next pull, so the user's deletion was silently
+undone and never reached Proton.
+
+On such a provider a vanished row is more likely the user's deletion
+than an external purge, and the two cannot be told apart. Recreating
+it silently overrides the user; deleting it on Proton silently could
+lose a contact another app purged. Neither is decided by the app:
+
+- **Detection.** The provider has a recycle bin when its `raw_contacts`
+  cursor carries the `sec_in_trash` column. The check reads column
+  names only, never a trashed row.
+- **Ask, don't recreate.** On a provider with a recycle bin, a mapped
+  contact whose row has vanished (no live row, no tombstone, no queued
+  DELETE) is not recreated. Its mapping is marked as a conflict
+  ("removed on this phone") and the user chooses: **delete it from
+  Proton** — an ordinary queued DELETE with the grace period and its
+  cancel — or **put it back** — the mapping is marked for a refetch and
+  the next pull recreates the row.
+- **A row that comes back** (restored from the bin) while the question
+  is open clears the conflict; the contact syncs as before.
+- **An explicit refetch is still honoured.** A mapping marked for a
+  refetch (content hash cleared — "put it back", or a cancelled
+  deletion whose tombstone was purged) is recreated without asking.
+- Providers without a recycle bin are unchanged: rule 1 still
+  recreates a vanished row.
+
+This keeps the provider authoritative (the vanished row is not papered
+over) while leaving the one ambiguous case to the user.
