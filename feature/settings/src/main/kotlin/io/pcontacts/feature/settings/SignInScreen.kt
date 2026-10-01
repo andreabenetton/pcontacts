@@ -82,20 +82,16 @@ fun SignInScreen(
 }
 
 /**
- * Why the user is asked to sign in, when there is a reason to say: the 2.0 secret-store upgrade
- * signed the account out, or the user just did. Shared with the sign-in form, which the app
- * opens directly when there is no account.
+ * Why the user is asked to sign in when they did not sign out: the 2.0 secret-store upgrade
+ * signed the account out. Shared with the sign-in form, which the app opens directly when there
+ * is no account.
  */
 @Composable
-fun SignInNotices(storageUpgradeNotice: Boolean, signedOutNotice: Boolean = false) {
-    val res = when {
-        storageUpgradeNotice -> R.string.sign_in_storage_upgrade_notice
-        signedOutNotice -> R.string.settings_signed_out
-        else -> return
-    }
+fun SignInNotices(storageUpgradeNotice: Boolean) {
+    if (!storageUpgradeNotice) return
     Spacer(Modifier.height(12.dp))
     Text(
-        text = stringResource(res),
+        text = stringResource(R.string.sign_in_storage_upgrade_notice),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.tertiary
     )
