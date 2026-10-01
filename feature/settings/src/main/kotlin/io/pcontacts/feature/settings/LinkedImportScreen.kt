@@ -229,6 +229,7 @@ private fun ContactList(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(vertical = 16.dp)
         )
+        NotAffiliated()
         return
     }
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
@@ -243,6 +244,7 @@ private fun ContactList(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
+        item { NotAffiliated(Modifier.padding(vertical = 16.dp)) }
     }
 }
 

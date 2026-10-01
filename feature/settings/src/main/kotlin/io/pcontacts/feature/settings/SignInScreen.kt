@@ -116,10 +116,6 @@ fun SignInFooter(contactsPermissionGranted: Boolean, onOpenDeGoogledRoms: () -> 
         )
         Spacer(Modifier.height(12.dp))
     }
-    Text(
-        text = stringResource(R.string.sign_in_disclaimer),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
+    NotAffiliated()
     Spacer(Modifier.height(16.dp))
 }

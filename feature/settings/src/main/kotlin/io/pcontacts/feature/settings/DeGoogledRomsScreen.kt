@@ -64,7 +64,7 @@ fun DeGoogledRomsScreen(
                 RomCard(rom = rom, onOpenWebsite = open)
                 Spacer(Modifier.height(12.dp))
             }
-            item { Spacer(Modifier.height(8.dp)) }
+            item { NotAffiliated(Modifier.padding(top = 8.dp, bottom = 16.dp)) }
         }
     }
 }

@@ -87,7 +87,7 @@ fun DependenciesScreen(
                     runtimeByKey["${dependency.coordinate}|${cve.id}"]?.let { onMute(it, muted) }
                 }
             }
-            item { Spacer(Modifier.height(16.dp)) }
+            item { NotAffiliated(Modifier.padding(vertical = 16.dp)) }
         }
     }
 }

@@ -65,6 +65,7 @@ fun ContactsAccessScreen(
                 Spacer(Modifier.height(16.dp))
                 AppList(apps)
                 Spacer(Modifier.height(16.dp))
+                NotAffiliated(Modifier.padding(bottom = 16.dp))
             }
             ActionButton(enabled = true, onClick = onOpenPermission, textRes = R.string.contacts_access_open_permission)
             // As everywhere else in the app, the explanation of a button sits under it.

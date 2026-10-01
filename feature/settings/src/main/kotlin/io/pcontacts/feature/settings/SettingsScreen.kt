@@ -126,11 +126,7 @@ fun SettingsScreen(
             ContributeSection()
             Spacer(Modifier.height(24.dp))
             // The same statement the sign-in screen makes, so it is on screen once signed in too.
-            Text(
-                text = stringResource(R.string.sign_in_disclaimer),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            NotAffiliated()
             Spacer(Modifier.height(16.dp))
         }
     }
