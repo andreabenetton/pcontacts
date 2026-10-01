@@ -14,6 +14,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.sync.SyncRunningMonitor
+import io.pcontacts.app.sync.hasNetwork
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.feature.settings.LinkedImportListViewModel
 import io.pcontacts.feature.settings.LinkedImportScreen
@@ -45,7 +46,8 @@ class LinkedImportActivity : ComponentActivity() {
     // Tells the list when the sync an import requested has finished ("Syncing…" → "Added to Proton").
     private val syncRunningMonitor = SyncRunningMonitor(
         account = ::currentAccount,
-        onChange = { listViewModel.updateSyncRunning(it) }
+        onChange = { running, _ -> listViewModel.updateSyncRunning(running) },
+        isOnline = { hasNetwork(this) }
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

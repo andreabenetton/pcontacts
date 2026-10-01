@@ -51,6 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A deletion waiting out its hour no longer makes the card say
   "Changes waiting to sync"** right after a sync: it has its own row, and
   the headline says "Up to date" when nothing else is queued.
+- **Offline, "Sync now" says "Waiting for a connection…"** instead of
+  "Sync in progress" with a moving bar that never ended; the sync starts
+  by itself when the connection is back.
 - **A pending deletion is no longer counted twice** on the sync card, as
   "1 change pending sync" and again in its own deletion row.
 - **Conflicts of different kinds** are no longer all described with the

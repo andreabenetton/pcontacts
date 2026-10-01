@@ -27,6 +27,7 @@ import io.pcontacts.app.advisories.AdvisoryBootstrap
 import io.pcontacts.app.sync.SyncErrorCodes
 import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.sync.SyncScheduler
+import io.pcontacts.app.sync.hasNetwork
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
@@ -104,7 +105,8 @@ class SettingsHost(
 
     private val syncRunningMonitor = SyncRunningMonitor(
         account = ::currentAccount,
-        onChange = { viewModel.updateSyncRunning(it) }
+        onChange = { running, waiting -> viewModel.updateSyncRunning(running, waiting) },
+        isOnline = { hasNetwork(activity) }
     )
 
     fun actions() = SettingsActions(
