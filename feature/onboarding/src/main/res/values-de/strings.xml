@@ -10,6 +10,7 @@
     <string name="login_password_label">Passwort</string>
     <string name="login_password_show">Anzeigen</string>
     <string name="login_password_hide">Ausblenden</string>
+    <string name="login_password_again">Gib dein Passwort erneut ein.</string>
     <string name="login_sign_in">Anmelden</string>
 
     <string name="two_factor_title">Zwei-Faktor-Authentifizierung</string>

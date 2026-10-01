@@ -6,6 +6,7 @@ package io.pcontacts.feature.onboarding
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -147,6 +148,30 @@ class LoginScreenTest {
         composeRule.waitForIdle()
         composeRule.onNode(hasText("Wrong username or password?", substring = true))
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun a_failed_attempt_asks_for_the_wiped_password_again() {
+        val vm = viewModel(attemptLogin = { _, _ -> LoginResult.Failed("auth_failed") })
+        composeRule.setContent {
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
+        }
+        composeRule.onNodeWithText("Email or username").performTextInput("alice")
+        composeRule.onNodeWithText("Password").performTextInput("wrong")
+        composeRule.onNodeWithText("Sign in").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Enter your password again.").assertIsDisplayed()
+    }
+
+    @Test
+    fun the_username_field_has_focus_when_the_form_opens() {
+        val vm = viewModel()
+        composeRule.setContent {
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Email or username").assertIsFocused()
     }
 
     @Test

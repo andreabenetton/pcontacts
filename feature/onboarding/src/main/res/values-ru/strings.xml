@@ -10,6 +10,7 @@
     <string name="login_password_label">Пароль</string>
     <string name="login_password_show">Показать</string>
     <string name="login_password_hide">Скрыть</string>
+    <string name="login_password_again">Введите пароль ещё раз.</string>
     <string name="login_sign_in">Войти</string>
 
     <string name="two_factor_title">Двухфакторная аутентификация</string>

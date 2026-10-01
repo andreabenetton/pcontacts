@@ -62,6 +62,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every screen ends with "Not affiliated with or endorsed by Proton
   AG."**, the two-factor step, Dependencies, Import and the contacts-access
   and de-Googled ROM pages included.
+- **The sign-in form is easier to fill**: password managers (Proton
+  Pass, Bitwarden…) recognise the username and password fields and can
+  save the login, the keyboard opens on the username, a failed attempt
+  marks the fields and asks for the password again, and the form scrolls
+  above the keyboard on small screens.
 - **Sign-out asks first**, saying that the Proton contacts leave this
   phone, nothing is deleted on Proton, and changes not synced yet are
   lost.

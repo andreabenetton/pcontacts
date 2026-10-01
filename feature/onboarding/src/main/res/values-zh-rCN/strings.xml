@@ -10,6 +10,7 @@
     <string name="login_password_label">密码</string>
     <string name="login_password_show">显示</string>
     <string name="login_password_hide">隐藏</string>
+    <string name="login_password_again">请重新输入密码。</string>
     <string name="login_sign_in">登录</string>
 
     <string name="two_factor_title">双重验证</string>
