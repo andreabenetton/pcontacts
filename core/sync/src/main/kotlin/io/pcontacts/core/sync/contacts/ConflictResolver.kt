@@ -40,8 +40,8 @@ const val SERVER_EDITED_CONFLICT = "conflict: edited on Proton after it was dele
  * version is the removal: it queues a DELETE (with its grace period);
  * the Proton version puts the contact back through a refetch. A contact
  * edited on Proton after it was deleted here is the same choice: delete
- * anyway queues the DELETE again, Proton's version drops it (the host
- * restores the tombstone).
+ * anyway queues the DELETE again, already past its grace (the user just
+ * confirmed it), Proton's version drops it (the host restores the tombstone).
  */
 internal suspend fun resolveConflict(
     contactMapDao: ContactMapDao,
@@ -52,7 +52,10 @@ internal suspend fun resolveConflict(
 ) {
     val mapping = contactMapDao.findByProtonId(protonContactId)
     val serverDeleted = mapping?.lastError == SERVER_DELETED_CONFLICT
-    val localRemoved = mapping?.lastError == LOCAL_REMOVED_CONFLICT || mapping?.lastError == SERVER_EDITED_CONFLICT
+    val serverEdited = mapping?.lastError == SERVER_EDITED_CONFLICT
+    val localRemoved = mapping?.lastError == LOCAL_REMOVED_CONFLICT || serverEdited
+    // "Delete anyway" is a confirmed deletion that already had its grace hour: it goes on the next run.
+    val deleteQueuedAt = if (serverEdited) now - ContactWriteEngine.GRACE_PERIOD_MS else now
     contactMapDao.resolveConflict(protonContactId)
     when {
         useLocal && serverDeleted && mapping != null -> {
@@ -73,7 +76,7 @@ internal suspend fun resolveConflict(
             )
             outboxDao.enqueue(localId, OutboxEntity.OpType.CREATE, "", now)
         }
-        useLocal && localRemoved -> outboxDao.enqueue(protonContactId, OutboxEntity.OpType.DELETE, "", now)
+        useLocal && localRemoved -> outboxDao.enqueue(protonContactId, OutboxEntity.OpType.DELETE, "", deleteQueuedAt)
         useLocal -> outboxDao.enqueue(protonContactId, OutboxEntity.OpType.FORCE_UPDATE, "", now)
         else -> {
             outboxDao.deleteByContact(protonContactId)

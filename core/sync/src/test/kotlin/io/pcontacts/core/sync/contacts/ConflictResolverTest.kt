@@ -72,9 +72,13 @@ class ConflictResolverTest {
         conflicted()
         contactMap.markConflict("ct-1", SERVER_EDITED_CONFLICT)
 
-        resolveConflict(contactMap, outbox, "ct-1", useLocal = true, now = 10L)
+        val now = 10 * ContactWriteEngine.GRACE_PERIOD_MS
+        resolveConflict(contactMap, outbox, "ct-1", useLocal = true, now = now)
 
-        assertEquals(OutboxEntity.OpType.DELETE, outbox.findLive("ct-1")!!.opType)
+        val queued = outbox.findLive("ct-1")!!
+        assertEquals(OutboxEntity.OpType.DELETE, queued.opType)
+        // The user has just confirmed it: the delete goes on the next run, no second grace hour.
+        assertTrue(queued.createdAt + ContactWriteEngine.GRACE_PERIOD_MS <= now)
     }
 
     @Test fun edited_on_proton_after_a_delete_here_and_use_server_keeps_it() = runTest {

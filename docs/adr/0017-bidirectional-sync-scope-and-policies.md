@@ -465,3 +465,10 @@ settled, and both outcomes were wrong:
   contact, as a cancel does: the tombstone is restored (or, if the
   provider purged it, the contact is refetched), so the phone and
   Proton agree again.
+- **"Delete anyway" needs no second grace hour** (owner's decision,
+  2026-10-01). The deletion already had its hour before Proton's edit
+  held it back, and the user has just confirmed it in a dialog: the
+  DELETE it queues is past its grace and goes on the next run (which the
+  answer starts). It still passes the check above, so a further edit on
+  Proton holds it back again. "Delete from Proton" for a contact removed
+  on this phone keeps its grace hour.

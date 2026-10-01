@@ -53,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Conflicts of different kinds** are no longer all described with the
   reason of one of them ("Deleted on Proton…" over a notes conflict):
   the line under the list names the reason only when they share it.
+- **"Delete anyway"** (a contact changed on Proton after you deleted it
+  here) deletes it at once instead of waiting another hour.
 - **Resolving a conflict or retrying a failed change starts a sync**, so
   the choice reaches Proton at once instead of waiting for the next
   scheduled run (up to 12 hours away).
