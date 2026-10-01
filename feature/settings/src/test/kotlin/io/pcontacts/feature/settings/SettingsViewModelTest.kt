@@ -82,6 +82,21 @@ class SettingsViewModelTest {
         assertEquals(3, polls)
     }
 
+    @Test fun the_pending_deletions_dialog_opens_and_closes() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+        assertFalse(vm.pendingDeletesDialogOpen.value)
+        vm.showPendingDeletesDialog()
+        assertTrue(vm.pendingDeletesDialogOpen.value)
+        vm.dismissPendingDeletesDialog()
+        assertFalse(vm.pendingDeletesDialogOpen.value)
+    }
+
     @Test fun acknowledging_the_system_notice_persists_it() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         var dismissed = false

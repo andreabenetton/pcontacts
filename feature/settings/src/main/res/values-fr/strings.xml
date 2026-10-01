@@ -57,6 +57,7 @@
         <item quantity="other">%d contacts programmés pour suppression</item>
     </plurals>
     <string name="pending_delete_grace">Les suppressions sont envoyées à Proton après un délai de grâce d\'une heure.</string>
+    <string name="pending_delete_tap_to_review">Envoyées à Proton après un délai de grâce d\'une heure. Touchez pour les voir ou les annuler.</string>
     <string name="pending_delete_cancel">Annuler</string>
 
     <plurals name="conflict_count">

@@ -57,6 +57,7 @@
         <item quantity="other">%d Kontakte zum Löschen vorgemerkt</item>
     </plurals>
     <string name="pending_delete_grace">Löschungen werden nach einer einstündigen Karenzzeit an Proton gesendet.</string>
+    <string name="pending_delete_tap_to_review">Werden nach einer Wartezeit von 1 Stunde an Proton gesendet. Tippen, um sie anzusehen oder abzubrechen.</string>
     <string name="pending_delete_cancel">Abbrechen</string>
 
     <plurals name="conflict_count">

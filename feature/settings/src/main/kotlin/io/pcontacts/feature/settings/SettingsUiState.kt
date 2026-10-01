@@ -79,7 +79,9 @@ data class OutboxStats(
 
 data class PendingDelete(
     val protonContactId: String,
-    val createdAt: Long
+    val createdAt: Long,
+    /** From the deleted row the provider still keeps; null once it is gone. */
+    val displayName: String? = null
 )
 
 /** Which outbound operation a quarantined change was carrying. */

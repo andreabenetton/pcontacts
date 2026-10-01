@@ -57,6 +57,7 @@
         <item quantity="other">%d contacts scheduled for deletion</item>
     </plurals>
     <string name="pending_delete_grace">Deletions are sent to Proton after a 1-hour grace period.</string>
+    <string name="pending_delete_tap_to_review">Sent to Proton after a 1-hour grace period. Tap to see or cancel them.</string>
     <string name="pending_delete_cancel">Cancel</string>
 
     <plurals name="conflict_count">

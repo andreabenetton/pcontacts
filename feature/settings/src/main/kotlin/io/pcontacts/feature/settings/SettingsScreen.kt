@@ -393,6 +393,7 @@ private fun StatusRows(viewModel: SettingsViewModel) {
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
     val quarantinedChanges by viewModel.quarantinedChanges.collectAsStateWithLifecycle()
     val quarantinedDialogOpen by viewModel.quarantinedDialogOpen.collectAsStateWithLifecycle()
+    val pendingDeletesDialogOpen by viewModel.pendingDeletesDialogOpen.collectAsStateWithLifecycle()
 
     verificationStats?.takeIf { it.unverifiedContacts > 0 }?.let { stats ->
         StatusRow(
@@ -418,7 +419,16 @@ private fun StatusRows(viewModel: SettingsViewModel) {
             onClick = viewModel::showQuarantinedChangesDialog
         )
     }
-    if (pendingDeletes.isNotEmpty()) PendingDeleteRows(pendingDeletes, viewModel::cancelPendingDelete)
+    // One deletion is listed on the card; several get a summary row and a dialog, like the other lists.
+    when {
+        pendingDeletes.size == 1 -> PendingDeleteRows(pendingDeletes, viewModel::cancelPendingDelete)
+        pendingDeletes.size > 1 -> StatusRow(
+            text = pluralStringResource(R.plurals.pending_delete_count, pendingDeletes.size, pendingDeletes.size),
+            detail = stringResource(R.string.pending_delete_tap_to_review),
+            error = false,
+            onClick = viewModel::showPendingDeletesDialog
+        )
+    }
     if (conflicts.isNotEmpty()) ConflictRows(conflicts, viewModel::resolveContactConflict)
 
     if (unverifiedDialogOpen) {
@@ -426,6 +436,13 @@ private fun StatusRows(viewModel: SettingsViewModel) {
             contacts = unverifiedContacts,
             onOpenContact = viewModel::openUnverifiedContactInSystem,
             onDismiss = viewModel::dismissUnverifiedContactsDialog
+        )
+    }
+    if (pendingDeletesDialogOpen) {
+        PendingDeletesDialog(
+            deletes = pendingDeletes,
+            onCancel = viewModel::cancelPendingDelete,
+            onDismiss = viewModel::dismissPendingDeletesDialog
         )
     }
     if (quarantinedDialogOpen) {
@@ -460,39 +477,6 @@ private fun StatusRow(text: String, detail: String?, error: Boolean, onClick: ((
                 style = MaterialTheme.typography.bodySmall,
                 color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-@Composable
-private fun PendingDeleteRows(deletes: List<PendingDelete>, onCancel: (String) -> Unit) {
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(
-            text = pluralStringResource(R.plurals.pending_delete_count, deletes.size, deletes.size),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = stringResource(R.string.pending_delete_grace),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        deletes.forEach { del ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = del.protonContactId.take(12) + "...",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = { onCancel(del.protonContactId) }) {
-                    Text(stringResource(R.string.pending_delete_cancel))
-                }
-            }
         }
     }
 }

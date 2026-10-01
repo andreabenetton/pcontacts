@@ -65,6 +65,7 @@
         <item quantity="other">%d контактов ожидают удаления</item>
     </plurals>
     <string name="pending_delete_grace">Удаления отправляются в Proton после часового льготного периода.</string>
+    <string name="pending_delete_tap_to_review">Отправляются в Proton через 1 час ожидания. Нажмите, чтобы посмотреть или отменить.</string>
     <string name="pending_delete_cancel">Отмена</string>
 
     <plurals name="conflict_count">

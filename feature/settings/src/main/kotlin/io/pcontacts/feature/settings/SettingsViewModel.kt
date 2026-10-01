@@ -98,6 +98,9 @@ class SettingsViewModel(
     private val _quarantinedChanges = MutableStateFlow<List<QuarantinedChange>>(emptyList())
     val quarantinedChanges: StateFlow<List<QuarantinedChange>> = _quarantinedChanges.asStateFlow()
 
+    private val _pendingDeletesDialogOpen = MutableStateFlow(false)
+    val pendingDeletesDialogOpen: StateFlow<Boolean> = _pendingDeletesDialogOpen.asStateFlow()
+
     private val _quarantinedDialogOpen = MutableStateFlow(false)
     val quarantinedDialogOpen: StateFlow<Boolean> = _quarantinedDialogOpen.asStateFlow()
 
@@ -245,6 +248,14 @@ class SettingsViewModel(
 
     fun openQuarantinedContactInSystem(rawContactId: Long) {
         openContactInSystem(rawContactId)
+    }
+
+    fun showPendingDeletesDialog() {
+        _pendingDeletesDialogOpen.value = true
+    }
+
+    fun dismissPendingDeletesDialog() {
+        _pendingDeletesDialogOpen.value = false
     }
 
     fun showQuarantinedChangesDialog() {

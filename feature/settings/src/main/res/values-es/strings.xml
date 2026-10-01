@@ -57,6 +57,7 @@
         <item quantity="other">%d contactos programados para eliminación</item>
     </plurals>
     <string name="pending_delete_grace">Las eliminaciones se envían a Proton tras un período de gracia de 1 hora.</string>
+    <string name="pending_delete_tap_to_review">Se envían a Proton tras un periodo de gracia de 1 hora. Toca para verlas o cancelarlas.</string>
     <string name="pending_delete_cancel">Cancelar</string>
 
     <plurals name="conflict_count">

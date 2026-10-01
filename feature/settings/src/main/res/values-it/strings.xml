@@ -57,6 +57,7 @@
         <item quantity="other">%d contatti in attesa di eliminazione</item>
     </plurals>
     <string name="pending_delete_grace">Le eliminazioni vengono inviate a Proton dopo un periodo di grazia di 1 ora.</string>
+    <string name="pending_delete_tap_to_review">Inviate a Proton dopo un periodo di tolleranza di 1 ora. Tocca per vederle o annullarle.</string>
     <string name="pending_delete_cancel">Annulla</string>
 
     <plurals name="conflict_count">

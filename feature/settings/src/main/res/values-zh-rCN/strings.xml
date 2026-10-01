@@ -53,6 +53,7 @@
         <item quantity="other">%d 个联系人已计划删除</item>
     </plurals>
     <string name="pending_delete_grace">删除操作将在 1 小时宽限期后发送到 Proton。</string>
+    <string name="pending_delete_tap_to_review">将在 1 小时宽限期后发送到 Proton。点按可查看或取消。</string>
     <string name="pending_delete_cancel">取消</string>
 
     <plurals name="conflict_count">
