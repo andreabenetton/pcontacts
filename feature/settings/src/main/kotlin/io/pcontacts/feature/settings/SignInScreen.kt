@@ -64,14 +64,7 @@ fun SignInScreen(
                 text = stringResource(R.string.settings_sign_in_detail),
                 style = MaterialTheme.typography.bodyMedium
             )
-            if (storageUpgradeNotice) {
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.sign_in_storage_upgrade_notice),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
+            SignInNotices(storageUpgradeNotice = storageUpgradeNotice)
             Spacer(Modifier.height(16.dp))
             OutlinedButton(
                 enabled = !loading,
@@ -83,21 +76,50 @@ fun SignInScreen(
                 Text(stringResource(R.string.settings_sign_in))
             }
             Spacer(Modifier.weight(1f))
-            if (!contactsPermissionGranted) {
-                LinkedText(
-                    templateRes = R.string.sign_in_rom_notice,
-                    phraseRes = R.string.de_googled_rom_link,
-                    onClick = onOpenDeGoogledRoms,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-            Text(
-                text = stringResource(R.string.sign_in_disclaimer),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(16.dp))
+            SignInFooter(contactsPermissionGranted, onOpenDeGoogledRoms)
         }
     }
+}
+
+/**
+ * Why the user is asked to sign in, when there is a reason to say: the 2.0 secret-store upgrade
+ * signed the account out, or the user just did. Shared with the sign-in form, which the app
+ * opens directly when there is no account.
+ */
+@Composable
+fun SignInNotices(storageUpgradeNotice: Boolean, signedOutNotice: Boolean = false) {
+    val res = when {
+        storageUpgradeNotice -> R.string.sign_in_storage_upgrade_notice
+        signedOutNotice -> R.string.settings_signed_out
+        else -> return
+    }
+    Spacer(Modifier.height(12.dp))
+    Text(
+        text = stringResource(res),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.tertiary
+    )
+}
+
+/**
+ * The bottom of a signed-out screen: before Contacts access, who will be able to read the synced
+ * contacts (with the de-Googled ROM explanation); always, the non-affiliation statement.
+ */
+@Composable
+fun SignInFooter(contactsPermissionGranted: Boolean, onOpenDeGoogledRoms: () -> Unit) {
+    if (!contactsPermissionGranted) {
+        LinkedText(
+            templateRes = R.string.sign_in_rom_notice,
+            phraseRes = R.string.de_googled_rom_link,
+            onClick = onOpenDeGoogledRoms,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(12.dp))
+    }
+    Text(
+        text = stringResource(R.string.sign_in_disclaimer),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(Modifier.height(16.dp))
 }
