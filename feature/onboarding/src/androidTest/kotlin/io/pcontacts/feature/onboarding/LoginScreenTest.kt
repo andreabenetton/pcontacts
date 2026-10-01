@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.onboarding
 
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -49,6 +50,23 @@ class LoginScreenTest {
         composeRule.onNodeWithText("Email or username").assertIsDisplayed()
         composeRule.onNodeWithText("Password").assertIsDisplayed()
         composeRule.onNodeWithText("Sign in").assertIsDisplayed().assertIsNotEnabled()
+    }
+
+    @Test
+    fun the_form_shows_the_account_header_its_notices_and_its_footer() {
+        val vm = viewModel()
+        composeRule.setContent {
+            LoginScreen(
+                vm,
+                onSuccess = { _, _ -> },
+                onTwoFactorRequired = {},
+                notices = { Text("Signed out.") },
+                footer = { Text("Not affiliated") }
+            )
+        }
+        composeRule.onNodeWithText("Account").assertIsDisplayed()
+        composeRule.onNodeWithText("Signed out.").assertIsDisplayed()
+        composeRule.onNodeWithText("Not affiliated").assertIsDisplayed()
     }
 
     @Test

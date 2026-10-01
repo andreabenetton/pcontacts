@@ -55,7 +55,11 @@ fun LoginScreen(
     onSuccess: (uid: String, username: String) -> Unit,
     onTwoFactorRequired: (uid: String) -> Unit,
     onHumanVerificationRequired: (verificationUrl: String?) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Why the user is asked to sign in (signed out, storage upgrade), under the header. */
+    notices: @Composable () -> Unit = {},
+    /** The bottom of the screen, as on the app's signed-out screen (the non-affiliation statement). */
+    footer: @Composable () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -75,6 +79,7 @@ fun LoginScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         FormHeader(titleRes = R.string.login_title, subtitleRes = R.string.login_subtitle)
+        notices()
 
         OutlinedTextField(
             value = username,
@@ -127,6 +132,8 @@ fun LoginScreen(
             onTwoFactorRequired = onTwoFactorRequired,
             onHumanVerificationRequired = onHumanVerificationRequired
         )
+        Spacer(Modifier.weight(1f))
+        footer()
     }
 }
 
