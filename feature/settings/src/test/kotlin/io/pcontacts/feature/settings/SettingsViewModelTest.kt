@@ -421,8 +421,9 @@ class SettingsViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val resolved = mutableListOf<Pair<String, ConflictResolution>>()
         var queryCount = 0
+        var syncs = 0
         val vm = SettingsViewModel(
-            syncNow = { error("not used") },
+            syncNow = { syncs++; SettingsActionResult.Success() },
             signOut = { error("not used") },
             queryConflicts = {
                 queryCount++
@@ -440,6 +441,7 @@ class SettingsViewModelTest {
         advanceUntilIdle()
         assertEquals(listOf("ct-1" to ConflictResolution.USE_LOCAL), resolved)
         assertEquals(0, vm.conflicts.value.size)
+        assertEquals("the choice goes to Proton now, not at the next scheduled run", 1, syncs)
     }
 
     @Test fun outbox_stats_refreshed_after_sync() = runTest {
@@ -561,8 +563,9 @@ class SettingsViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val retried = mutableListOf<Long>()
         var queryCount = 0
+        var syncs = 0
         val vm = SettingsViewModel(
-            syncNow = { error("not used") },
+            syncNow = { syncs++; SettingsActionResult.Success() },
             signOut = { error("not used") },
             queryQuarantinedChanges = {
                 queryCount++
@@ -583,6 +586,7 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(7L), retried)
+        assertEquals("a retry runs now, not at the next scheduled run", 1, syncs)
         assertEquals(listOf(8L), vm.quarantinedChanges.value.map { it.outboxId })
         assertTrue(vm.quarantinedDialogOpen.value)
     }

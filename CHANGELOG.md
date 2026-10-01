@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Resolving a conflict or retrying a failed change starts a sync**, so
+  the choice reaches Proton at once instead of waiting for the next
+  scheduled run (up to 12 hours away).
 - **The sync card gives its status the full width** and puts "Sync now"
   on its own row, so longer translations of the headline and the stage
   texts are no longer squeezed beside the button

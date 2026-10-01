@@ -276,6 +276,8 @@ class SettingsViewModel(
             withContext(workDispatcher) { retryQuarantinedChange(outboxId) }
             refreshSyncStatus()
             closeQuarantinedDialogIfEmpty()
+            // The retried change is queued; send it now, not at the next scheduled run.
+            triggerSyncNow()
         }
     }
 
@@ -350,6 +352,8 @@ class SettingsViewModel(
         scope.launch {
             withContext(workDispatcher) { resolveConflict(protonContactId, resolution) }
             refreshSyncStatus()
+            // The choice is queued (a push, a delete or a refetch); carry it out now.
+            triggerSyncNow()
         }
     }
 
