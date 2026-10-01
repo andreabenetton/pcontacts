@@ -22,6 +22,13 @@ const val SERVER_DELETED_CONFLICT = "conflict: deleted on Proton"
 const val LOCAL_REMOVED_CONFLICT = "conflict: removed on this phone"
 
 /**
+ * The mapping's `lastError` when the push of a local deletion found the contact changed on
+ * Proton since the merge base: the delete was held back and the user decides (ADR-0017,
+ * 2026-10-01 amendment).
+ */
+const val SERVER_EDITED_CONFLICT = "conflict: edited on Proton after it was deleted here"
+
+/**
  * Settles a conflict the user decided (ADR-0017 §3C). "Use phone
  * version" queues a FORCE_UPDATE — the next push sends the local row
  * as-is, without a merge, and re-captures the base from it; when the
@@ -31,7 +38,10 @@ const val LOCAL_REMOVED_CONFLICT = "conflict: removed on this phone"
  * rewrite the local row from the server (or, when the Proton copy is
  * gone, delete it). For a contact removed on this phone, the phone's
  * version is the removal: it queues a DELETE (with its grace period);
- * the Proton version puts the contact back through a refetch.
+ * the Proton version puts the contact back through a refetch. A contact
+ * edited on Proton after it was deleted here is the same choice: delete
+ * anyway queues the DELETE again, Proton's version drops it (the host
+ * restores the tombstone).
  */
 internal suspend fun resolveConflict(
     contactMapDao: ContactMapDao,
@@ -42,7 +52,7 @@ internal suspend fun resolveConflict(
 ) {
     val mapping = contactMapDao.findByProtonId(protonContactId)
     val serverDeleted = mapping?.lastError == SERVER_DELETED_CONFLICT
-    val localRemoved = mapping?.lastError == LOCAL_REMOVED_CONFLICT
+    val localRemoved = mapping?.lastError == LOCAL_REMOVED_CONFLICT || mapping?.lastError == SERVER_EDITED_CONFLICT
     contactMapDao.resolveConflict(protonContactId)
     when {
         useLocal && serverDeleted && mapping != null -> {

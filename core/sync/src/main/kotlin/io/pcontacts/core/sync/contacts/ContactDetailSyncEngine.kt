@@ -124,6 +124,8 @@ class ContactDetailSyncEngine(
     private val readLocalRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     /** Queues an UPDATE for the contact, so the next push carries what only the phone holds. */
     private val queueUpdate: suspend (protonContactId: String) -> Unit = {},
+    /** Drops the contact's queued DELETE: it was deleted on Proton too (ADR-0017, 2026-10-01). */
+    private val dropQueuedDelete: suspend (protonContactId: String) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactDetailSync", sink = NoOpSink)
 ) {
@@ -373,6 +375,13 @@ class ContactDetailSyncEngine(
             .toSet()
         for ((sourceId, rawId) in existing) {
             if (sourceId in serverSourceIds) continue
+            if (hasPendingDelete(sourceId)) {
+                // Deleted here and on Proton: both sides agree. The queued delete goes and the
+                // row is not protected, so the diff below removes the tombstone.
+                logger.info { "deleted on both sides; queued delete dropped idTag=${sourceId.hashCode()}" }
+                dropQueuedDelete(sourceId)
+                continue
+            }
             val stored = storedMappings[sourceId]
             val owned = (stored != null && locallyOwned(stored, sourceId)) || rawId in rawIdsWithQueuedCreate
             if (!owned) continue

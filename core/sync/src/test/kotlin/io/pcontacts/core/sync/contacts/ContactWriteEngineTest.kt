@@ -1377,6 +1377,89 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    // ---- A queued delete meets a change on Proton (ADR-0017, 2026-10-01) ----
+
+    private suspend fun queuedDelete(outbox: WriteFakeOutboxDao) = outbox.insert(
+        OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.DELETE,
+            payloadHash = "",
+            createdAt = 0L
+        )
+    )
+
+    @Test fun a_delete_of_a_contact_already_gone_on_proton_completes_without_a_request() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        queuedDelete(outbox)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            fetchServerContact = { throw HttpException(Response.error<Any>(404, "".toResponseBody())) }
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.deleted)
+        assertEquals(0, report.quarantined)
+        assertNull("nothing is sent for a contact Proton no longer has", api.lastDeleteRequest)
+        assertNull(contactMap.findByProtonId("ct-1"))
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun a_delete_of_a_contact_edited_on_proton_is_held_back_as_a_conflict() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val mergeBases = InMemoryMergeBaseStore()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        queuedDelete(outbox)
+        val base = sampleContact("ct-1")
+        val edited = base.copy(notes = listOf("added on the web"))
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            serverContacts = mapOf("ct-1" to edited),
+            bases = mapOf("ct-1" to base),
+            mergeBases = mergeBases
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.conflicted)
+        assertNull("the delete is not sent", api.lastDeleteRequest)
+        val mapping = contactMap.findByProtonId("ct-1")!!
+        assertEquals(SERVER_EDITED_CONFLICT, mapping.lastError)
+        assertTrue(outbox.entries.isEmpty())
+        val newBase = MergeBaseCodec.load(mergeBases, "ct-1")!!
+        assertEquals("Proton's state is the new base", listOf("added on the web"), newBase.notes)
+    }
+
+    @Test fun a_delete_of_a_contact_unchanged_on_proton_is_sent() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        queuedDelete(outbox)
+        val base = sampleContact("ct-1")
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            serverContacts = mapOf("ct-1" to base),
+            bases = mapOf("ct-1" to base)
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.deleted)
+        assertNotNull(api.lastDeleteRequest)
+    }
+
     @Test fun push_update_of_a_contact_deleted_on_proton_becomes_a_server_deleted_conflict() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()

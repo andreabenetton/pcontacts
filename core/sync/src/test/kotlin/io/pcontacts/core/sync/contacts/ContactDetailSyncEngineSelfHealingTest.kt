@@ -300,6 +300,37 @@ class ContactDetailSyncEngineSelfHealingTest {
         assertEquals("conflict: birthday", mapping.lastError)
     }
 
+    @Test fun deleted_here_and_on_proton_is_agreement_not_a_conflict() = runTest {
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("c1", 100L)), metaPage()),
+            contacts = mapOf("c1" to contact("c1", 100L, aliceVCard)),
+            repeatContacts = true
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L)
+        val dropped = mutableListOf<String>()
+        var deletePending = false
+        val engine = newEngine(
+            api,
+            dao,
+            applier,
+            hasPendingDelete = { deletePending },
+            dropQueuedDelete = { dropped += it }
+        )
+        engine.sync(account)
+        // Deleted on the phone (tombstone, DELETE queued), then on Proton within the grace period.
+        val rawId = applier.rawIdsFor("c1").single()
+        applier.removeRawContact("c1")
+        applier.seedRow("c1", rawId, deleted = true)
+        deletePending = true
+
+        engine.sync(account)
+
+        assertEquals(listOf("c1"), dropped)
+        assertTrue("the tombstone is removed", applier.rawIdsFor("c1").isEmpty())
+        assertNull(dao.snapshot()["c1"])
+    }
+
     @Test fun tombstoned_raw_contact_counts_as_present_and_is_not_recreated() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(

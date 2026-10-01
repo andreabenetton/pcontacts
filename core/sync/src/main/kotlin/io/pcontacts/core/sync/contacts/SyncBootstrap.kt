@@ -211,7 +211,8 @@ object SyncBootstrap {
             readLocalPhotoHash = localPhotoHashReader(dataReader),
             readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { dataReader.readGroupRowIds(rawId) } },
             readLocalRow = { rawId, sourceId -> withContext(Dispatchers.IO) { dataReader.read(rawId, sourceId) } },
-            queueUpdate = queueUpdate(db.outboxDao())
+            queueUpdate = queueUpdate(db.outboxDao()),
+            dropQueuedDelete = dropQueuedDelete(db.outboxDao())
         )
     }
 
@@ -298,6 +299,7 @@ object SyncBootstrap {
             readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { readDataReader.readGroupRowIds(rawId) } },
             readLocalRow = { rawId, sourceId -> withContext(Dispatchers.IO) { readDataReader.read(rawId, sourceId) } },
             queueUpdate = queueUpdate(db.outboxDao()),
+            dropQueuedDelete = dropQueuedDelete(db.outboxDao()),
             // Same production logger as the write engine — the pull path was
             // previously wired to NoOpSink, so read-path failures (fetch /
             // decrypt / parse) were invisible in production logs.
@@ -383,10 +385,21 @@ object SyncBootstrap {
         }
     }
 
-    /** The user's answer to a conflict row (Settings): phone version or Proton version. */
-    suspend fun resolveConflict(context: Context, protonContactId: String, useLocal: Boolean) {
+    /**
+     * The user's answer to a conflict row (Settings): phone version or Proton version. Keeping
+     * Proton's version of a contact deleted here also restores its tombstone, which needs
+     * [account]; without it the refetch alone brings the contact back.
+     */
+    suspend fun resolveConflict(
+        context: Context,
+        protonContactId: String,
+        useLocal: Boolean,
+        account: Account? = null
+    ) {
         val db = DatabaseFactory.create(context.applicationContext)
+        val deletedHere = db.contactMapDao().findByProtonId(protonContactId)?.lastError == SERVER_EDITED_CONFLICT
         resolveConflict(db.contactMapDao(), db.outboxDao(), protonContactId, useLocal, System.currentTimeMillis())
+        if (deletedHere && !useLocal && account != null) cancelPendingDelete(context, account, protonContactId)
     }
 }
 
@@ -401,6 +414,12 @@ private fun hasPendingOutboxDelete(outboxDao: OutboxDao): suspend (String) -> Bo
             !it.quarantined && it.opType == OutboxEntity.OpType.DELETE
         }
     }
+
+/** Drops the contact's queued DELETE, once Proton has deleted it too (ADR-0017, 2026-10-01). */
+private fun dropQueuedDelete(outboxDao: OutboxDao): suspend (String) -> Unit = { protonContactId ->
+    val live = outboxDao.findLive(protonContactId)
+    if (live?.opType == OutboxEntity.OpType.DELETE) outboxDao.deleteById(live.id)
+}
 
 /** An ordinary UPDATE for the contact; the push merges and sends what only the phone holds (ADR-0023). */
 private fun queueUpdate(outboxDao: OutboxDao): suspend (String) -> Unit = { protonContactId ->

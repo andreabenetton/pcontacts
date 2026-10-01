@@ -77,6 +77,7 @@ internal fun newEngine(
     readGroupRowIds: suspend (Long) -> List<Long> = { emptyList() },
     readLocalRow: suspend (Long, String) -> ContactRow? = { _, _ -> null },
     queueUpdate: suspend (String) -> Unit = {},
+    dropQueuedDelete: suspend (String) -> Unit = {},
     onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
@@ -100,6 +101,7 @@ internal fun newEngine(
         onProgress = onProgress,
         readLocalRow = readLocalRow,
         queueUpdate = queueUpdate,
+        dropQueuedDelete = dropQueuedDelete,
         saveMergeBase = saveMergeBase,
         readLocalPhotoHash = readLocalPhotoHash,
         clock = { 1_700_000_000L }

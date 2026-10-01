@@ -68,6 +68,25 @@ class ConflictResolverTest {
         assertEquals(ContactMapEntity.Status.CLEAN, mapping.syncStatus)
     }
 
+    @Test fun edited_on_proton_after_a_delete_here_and_use_local_deletes_anyway() = runTest {
+        conflicted()
+        contactMap.markConflict("ct-1", SERVER_EDITED_CONFLICT)
+
+        resolveConflict(contactMap, outbox, "ct-1", useLocal = true, now = 10L)
+
+        assertEquals(OutboxEntity.OpType.DELETE, outbox.findLive("ct-1")!!.opType)
+    }
+
+    @Test fun edited_on_proton_after_a_delete_here_and_use_server_keeps_it() = runTest {
+        conflicted()
+        contactMap.markConflict("ct-1", SERVER_EDITED_CONFLICT)
+
+        resolveConflict(contactMap, outbox, "ct-1", useLocal = false, now = 10L)
+
+        assertNull(outbox.findLive("ct-1"))
+        assertEquals("", contactMap.findByProtonId("ct-1")!!.contentHash)
+    }
+
     @Test fun deleted_on_proton_and_use_local_re_keys_the_row_and_queues_a_create() = runTest {
         conflicted()
         contactMap.markConflict("ct-1", SERVER_DELETED_CONFLICT)

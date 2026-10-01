@@ -221,11 +221,22 @@ class ContactWriteEngine(
             return WriteReport(skippedGrace = 1)
         }
         return try {
-            val response = contactsApi.deleteContacts(BulkDeleteRequest(ids = listOf(entry.protonContactId)))
-            requireItemAccepted(response, entry.protonContactId)
-            contactMapDao.deleteByProtonId(entry.protonContactId)
-            outboxDao.deleteById(entry.id)
-            WriteReport(pushed = 1, deleted = 1)
+            when (checkBeforeDelete(entry)) {
+                DeleteCheck.GONE -> {
+                    logger.info { "push: already deleted on Proton idTag=${entry.protonContactId.hashCode()}" }
+                    contactMapDao.deleteByProtonId(entry.protonContactId)
+                    outboxDao.deleteById(entry.id)
+                    WriteReport(pushed = 1, deleted = 1)
+                }
+                DeleteCheck.EDITED -> serverEditedConflict(entry)
+                DeleteCheck.UNCHANGED -> {
+                    val response = contactsApi.deleteContacts(BulkDeleteRequest(ids = listOf(entry.protonContactId)))
+                    requireItemAccepted(response, entry.protonContactId)
+                    contactMapDao.deleteByProtonId(entry.protonContactId)
+                    outboxDao.deleteById(entry.id)
+                    WriteReport(pushed = 1, deleted = 1)
+                }
+            }
         } catch (e: HumanVerificationRequiredException) {
             // Don't quarantine the outbox entry — the user just needs to
             // solve captcha and the next push will succeed. Surface to the
@@ -286,6 +297,39 @@ class ContactWriteEngine(
      * leaves the outbox, and the mapping becomes a conflict the user settles (keep the phone's
      * version as a new Proton contact, or delete it here too).
      */
+    private enum class DeleteCheck { GONE, EDITED, UNCHANGED }
+
+    /**
+     * What Proton holds before a local deletion is pushed (ADR-0017, 2026-10-01): the contact
+     * gone (`[A]` HTTP 404), changed since the merge base, or unchanged. Without a server
+     * answer or a base there is nothing to compare, and the delete goes ahead as before.
+     */
+    private suspend fun checkBeforeDelete(entry: OutboxEntity): DeleteCheck {
+        val id = entry.protonContactId
+        val server = try {
+            fetchServerContact(id)
+        } catch (e: HttpException) {
+            if (e.code() == HTTP_NOT_FOUND) return DeleteCheck.GONE
+            throw e
+        } ?: return DeleteCheck.UNCHANGED
+        val base = MergeBaseCodec.load(mergeBases, id)
+        val current = MergeBaseCodec.canonical(server)
+        if (base == null || current == null) return DeleteCheck.UNCHANGED
+        val photoNow = current.serverPhotoHash ?: current.photo?.let { PhotoHash.of(it.data) }
+        val fieldsChanged = !ContactPatch.diff(base, current.copy(photo = null)).isEmpty
+        if (!fieldsChanged && photoNow == base.serverPhotoHash) return DeleteCheck.UNCHANGED
+        // Proton's state becomes the base: "delete anyway" then passes this check unless it changes again.
+        MergeBaseCodec.save(mergeBases, id, server)
+        return DeleteCheck.EDITED
+    }
+
+    private suspend fun serverEditedConflict(entry: OutboxEntity): WriteReport {
+        logger.warn { "pushDelete: edited on Proton meanwhile; kept as a conflict idTag=${entry.protonContactId.hashCode()}" }
+        contactMapDao.markConflict(entry.protonContactId, SERVER_EDITED_CONFLICT)
+        outboxDao.deleteById(entry.id)
+        return WriteReport(conflicted = 1)
+    }
+
     private suspend fun serverDeletedConflict(entry: OutboxEntity): WriteReport {
         logger.warn { "pushUpdate: deleted on Proton meanwhile; kept as a conflict idTag=${entry.protonContactId.hashCode()}" }
         contactMapDao.markConflict(entry.protonContactId, SERVER_DELETED_CONFLICT)
