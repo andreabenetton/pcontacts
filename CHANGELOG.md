@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   was flagged as a conflict ("deleted on Proton after it was changed on
   this phone"), whose "phone version" would even have recreated it. Both
   sides agree, so it is now simply removed.
+- **A contact changed on the phone and deleted on Proton** before the
+  change was sent landed in "failed changes" (Proton code 2501) as well
+  as among the conflicts. Proton's "does not exist" answer is now read
+  as the deletion it is: only the conflict remains, and a pending
+  deletion of such a contact simply completes.
 
 ### Changed
 

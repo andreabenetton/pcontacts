@@ -435,8 +435,11 @@ settled, and both outcomes were wrong:
   alone, and the push then deleted it without looking: the later edit
   on Proton was lost silently. Now the push fetches the contact before
   deleting it:
-  - gone (`[A]` HTTP 404, the same signal `pushUpdate` relies on): the
-    delete is already done; it is completed locally, nothing is sent;
+  - gone (the same signal `pushUpdate` relies on: `[A]` HTTP 404, and
+    HTTP 422 with Proton Code 2501, which is what Proton answered live
+    on 2026-10-01 — before that the 422 quarantined the change as a
+    refusal instead of raising the conflict or completing the delete):
+    the delete is already done; it is completed locally, nothing is sent;
   - changed since the merge base (any owned field, or the photo's
     digest): no delete; the contact becomes a conflict, "edited on
     Proton after it was deleted here". Proton's current state is saved

@@ -1551,6 +1551,77 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    // Live 2026-10-01: Proton answers a fetch of a deleted contact with HTTP 422, Code 2501.
+    private fun contactGone() = http(422, """{"Code":2501,"Error":"Contact does not exist"}""")
+
+    @Test fun push_update_of_a_contact_proton_reports_as_not_existing_becomes_a_server_deleted_conflict() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "ct-1",
+                opType = OutboxEntity.OpType.UPDATE,
+                payloadHash = "h",
+                createdAt = 0L
+            )
+        )
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1")),
+            fetchServerContact = { throw contactGone() }
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.conflicted)
+        assertEquals(0, report.quarantined)
+        assertEquals(SERVER_DELETED_CONFLICT, contactMap.findByProtonId("ct-1")!!.lastError)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun a_delete_of_a_contact_proton_reports_as_not_existing_completes_without_a_request() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        queuedDelete(outbox)
+        val engine = newEngine(api, outbox, contactMap, fetchServerContact = { throw contactGone() })
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.deleted)
+        assertEquals(0, report.quarantined)
+        assertNull(api.lastDeleteRequest)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun another_422_is_still_quarantined_with_its_proton_code() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "ct-1",
+                opType = OutboxEntity.OpType.UPDATE,
+                payloadHash = "h",
+                createdAt = 0L
+            )
+        )
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1")),
+            fetchServerContact = { throw http(422, """{"Code":2001,"Error":"x"}""") }
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.quarantined)
+        assertEquals("HTTP 422, Proton code 2001", outbox.entries.values.single().lastError)
+    }
+
     @Test fun push_delete_without_an_item_acknowledgement_stays_queued() = runTest {
         val api = WriteFakeApi().apply { deleteAckMissing = true }
         val outbox = WriteFakeOutboxDao()

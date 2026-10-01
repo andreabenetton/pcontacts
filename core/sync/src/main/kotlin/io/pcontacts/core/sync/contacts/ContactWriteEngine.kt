@@ -316,7 +316,7 @@ class ContactWriteEngine(
         } catch (e: CancellationException) {
             throw e
         } catch (e: HttpException) {
-            if (e.code() == HTTP_NOT_FOUND) serverDeletedConflict(entry) else handleFailure(entry, e)
+            if (isGoneOnProton(e)) serverDeletedConflict(entry) else handleFailure(entry, e)
         } catch (e: Exception) {
             logger.warn { "pushUpdate: failed ${e.javaClass.simpleName}" }
             handleFailure(entry, e)
@@ -332,7 +332,7 @@ class ContactWriteEngine(
 
     /**
      * What Proton holds before a local deletion is pushed (ADR-0017, 2026-10-01): the contact
-     * gone (`[A]` HTTP 404), changed since the merge base, or unchanged. Without a server
+     * gone (see [isGoneOnProton]), changed since the merge base, or unchanged. Without a server
      * answer or a base there is nothing to compare, and the delete goes ahead as before.
      */
     private suspend fun checkBeforeDelete(entry: OutboxEntity): DeleteCheck {
@@ -340,7 +340,7 @@ class ContactWriteEngine(
         val server = try {
             fetchServerContact(id)
         } catch (e: HttpException) {
-            if (e.code() == HTTP_NOT_FOUND) return DeleteCheck.GONE
+            if (isGoneOnProton(e)) return DeleteCheck.GONE
             throw e
         } ?: return DeleteCheck.UNCHANGED
         val base = MergeBaseCodec.load(mergeBases, id)
@@ -576,11 +576,23 @@ class ContactWriteEngine(
         return WriteReport(quarantined = 1)
     }
 
+    /**
+     * A fetch of a contact deleted on Proton. `[A]` HTTP 404; observed live 2026-10-01: HTTP 422
+     * with Proton Code 2501 ("does not exist") — the answer Proton actually gives.
+     */
+    private fun isGoneOnProton(e: HttpException): Boolean =
+        e.code() == HTTP_NOT_FOUND || (e.code() == HTTP_UNPROCESSABLE && protonCodeOf(e) == PROTON_NOT_EXISTS)
+
+    // Peeks, so a later reader (handleFailure's reason) still sees the body.
     private fun protonCodeOf(e: HttpException): Int? =
-        runCatching { e.response()?.errorBody()?.string() }.getOrNull()?.let(ProtonCodeInterceptor::codeOf)
+        runCatching { e.response()?.errorBody()?.source()?.peek()?.readUtf8() }
+            .getOrNull()
+            ?.let(ProtonCodeInterceptor::codeOf)
 
     companion object {
         private const val HTTP_NOT_FOUND = 404
+        private const val HTTP_UNPROCESSABLE = 422
+        private const val PROTON_NOT_EXISTS = 2501
         const val MAX_CONCURRENT_PUSHES = 4
         const val GRACE_PERIOD_MS = 3_600_000L
         const val MAX_BACKOFF_MS = 3_600_000L
