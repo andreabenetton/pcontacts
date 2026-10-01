@@ -300,6 +300,25 @@ class ContactDetailSyncEngineSelfHealingTest {
         assertEquals("conflict: birthday", mapping.lastError)
     }
 
+    @Test fun a_row_restored_during_the_grace_drops_its_queued_delete() = runTest {
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1000L)
+        val dropped = mutableListOf<String>()
+        val engine = newEngine(
+            unchangedTwice(),
+            dao,
+            applier,
+            hasPendingDelete = { it == "c1" && dropped.isEmpty() },
+            dropQueuedDelete = { dropped += it }
+        )
+        // The first run already sees the live row with a DELETE queued: an undone deletion.
+        engine.sync(account)
+        engine.sync(account)
+
+        assertEquals(listOf("c1"), dropped)
+        assertEquals(1, applier.rawIdsFor("c1").size)
+    }
+
     @Test fun deleted_here_and_on_proton_is_agreement_not_a_conflict() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(metaPage(meta("c1", 100L)), metaPage()),

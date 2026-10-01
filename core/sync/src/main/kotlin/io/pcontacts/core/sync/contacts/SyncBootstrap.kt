@@ -345,6 +345,12 @@ object SyncBootstrap {
             readDirtyContacts = { account ->
                 withContext(Dispatchers.IO) { dirtyReader.readDirty(account) }
             },
+            hasLiveRow = { account, protonContactId ->
+                withContext(Dispatchers.IO) {
+                    RawContactReader(provider).readExistingState(account).rowsBySourceId[protonContactId]
+                        .orEmpty().any { !it.deleted }
+                }
+            },
             readContactRow = { rawContactId, sourceId ->
                 withContext(Dispatchers.IO) { dataReader.read(rawContactId, sourceId) }
             },

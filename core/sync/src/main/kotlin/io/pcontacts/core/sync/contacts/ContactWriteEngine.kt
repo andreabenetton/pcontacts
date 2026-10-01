@@ -82,6 +82,12 @@ class ContactWriteEngine(
     private val contactMapDao: ContactMapDao,
     private val mergeBases: MergeBaseStore = InMemoryMergeBaseStore(),
     private val readDirtyContacts: suspend (Account) -> List<DirtyContact> = { emptyList() },
+    /**
+     * Whether the provider holds a live (not deleted) row for the contact under [Account]: a
+     * deletion undone on the phone. An undo clears DELETED without setting DIRTY, so only the
+     * row itself shows it (ADR-0017, 2026-10-01).
+     */
+    private val hasLiveRow: suspend (Account, String) -> Boolean = { _, _ -> false },
     private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
@@ -211,7 +217,7 @@ class ContactWriteEngine(
     }
 
     private suspend fun pushEntry(entry: OutboxEntity, account: Account?): WriteReport = when (entry.opType) {
-        OutboxEntity.OpType.DELETE -> pushDelete(entry)
+        OutboxEntity.OpType.DELETE -> pushDelete(entry, account)
         OutboxEntity.OpType.UPDATE, OutboxEntity.OpType.FORCE_UPDATE -> pushUpdate(entry)
         OutboxEntity.OpType.CREATE -> pushCreate(entry, account)
         else -> {
@@ -223,9 +229,15 @@ class ContactWriteEngine(
 
     private fun inGrace(entry: OutboxEntity, now: Long): Boolean = entry.createdAt + GRACE_PERIOD_MS > now
 
-    private suspend fun pushDelete(entry: OutboxEntity): WriteReport {
+    private suspend fun pushDelete(entry: OutboxEntity, account: Account?): WriteReport {
         if (inGrace(entry, clock())) {
             return WriteReport(skippedGrace = 1)
+        }
+        if (account != null && hasLiveRow(account, entry.protonContactId)) {
+            // The deletion was undone on the phone (the row is live again): nothing to delete.
+            logger.info { "push: row restored on the phone; delete dropped idTag=${entry.protonContactId.hashCode()}" }
+            outboxDao.deleteById(entry.id)
+            return WriteReport.EMPTY
         }
         return try {
             when (checkBeforeDelete(entry)) {

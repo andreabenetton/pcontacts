@@ -226,6 +226,13 @@ class ContactDetailSyncEngine(
         for ((sourceId, serverModifyTime) in serverModifyTimes) {
             val liveRawId = existing[sourceId]
             val stored = storedMappings[sourceId]?.let { clearRestoredRemoval(it, liveRawId) }
+            // A deletion undone on the phone: the row is live again while its DELETE is queued.
+            // The delete goes, and the contact syncs as any other (ADR-0017, 2026-10-01).
+            val restoredRow = existingState.rowsBySourceId[sourceId].orEmpty().any { !it.deleted }
+            if (restoredRow && hasPendingDelete(sourceId)) {
+                logger.info { "row restored on the phone; queued delete dropped idTag=${sourceId.hashCode()}" }
+                dropQueuedDelete(sourceId)
+            }
             val deletePending = stored != null && liveRawId == null &&
                 hasPendingDelete(sourceId)
             if (deletePending) {

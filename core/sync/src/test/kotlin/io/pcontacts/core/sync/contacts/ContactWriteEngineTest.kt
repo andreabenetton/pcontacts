@@ -1465,6 +1465,23 @@ class ContactWriteEngineTest {
         assertEquals("Proton's state is the new base", listOf("added on the web"), newBase.notes)
     }
 
+    @Test fun a_delete_undone_on_the_phone_is_dropped_without_a_request() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        queuedDelete(outbox)
+        // An undo clears DELETED without DIRTY: only the live row tells.
+        val engine = newEngine(api, outbox, contactMap, hasLiveRow = { _, id -> id == "ct-1" })
+
+        val report = engine.push(testAccount)
+
+        assertNull("nothing is deleted on Proton", api.lastDeleteRequest)
+        assertTrue(outbox.entries.isEmpty())
+        assertNotNull("the contact stays mapped", contactMap.findByProtonId("ct-1"))
+        assertEquals(0, report.deleted)
+    }
+
     @Test fun a_delete_of_a_contact_unchanged_on_proton_is_sent() = runTest {
         val api = WriteFakeApi()
         val outbox = WriteFakeOutboxDao()
@@ -1768,6 +1785,7 @@ class ContactWriteEngineTest {
         bases: Map<String, DecryptedContact> = emptyMap(),
         mergeBases: InMemoryMergeBaseStore = InMemoryMergeBaseStore(),
         fetchServerContact: suspend (String) -> DecryptedContact? = { id -> serverContacts[id] },
+        hasLiveRow: suspend (Account, String) -> Boolean = { _, _ -> false },
         onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
     ): ContactWriteEngine {
         bases.forEach { (id, contact) -> MergeBaseCodec.save(mergeBases, id, contact) }
@@ -1786,6 +1804,7 @@ class ContactWriteEngineTest {
             clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
             writeSourceId = { _, rawId, sourceId -> writtenSourceIds?.add(rawId to sourceId) },
             fetchServerContact = fetchServerContact,
+            hasLiveRow = hasLiveRow,
             onProgress = onProgress,
             clock = clock
         )
