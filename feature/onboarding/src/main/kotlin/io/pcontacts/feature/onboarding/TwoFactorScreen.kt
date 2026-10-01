@@ -49,7 +49,9 @@ fun TwoFactorScreen(
     onSuccess: (uid: String, username: String) -> Unit,
     onCancel: () -> Unit,
     onHumanVerificationRequired: (verificationUrl: String?) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The bottom of the screen, as on the password form (the non-affiliation statement). */
+    footer: @Composable () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -121,5 +123,7 @@ fun TwoFactorScreen(
             )
             is LoginUiState.Success -> LaunchedEffect(s.uid) { onSuccess(s.uid, s.username) }
         }
+        Spacer(Modifier.weight(1f))
+        footer()
     }
 }

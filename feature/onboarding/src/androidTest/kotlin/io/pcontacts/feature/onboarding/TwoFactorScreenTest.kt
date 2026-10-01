@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.onboarding
 
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -45,6 +46,15 @@ class TwoFactorScreenTest {
         }
         composeRule.onNodeWithText("Code").assertIsDisplayed()
         composeRule.onNodeWithText("Verify").assertIsDisplayed().assertIsNotEnabled()
+    }
+
+    @Test
+    fun the_code_screen_shows_its_footer() {
+        val vm = viewModelIn2faState()
+        composeRule.setContent {
+            TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {}, footer = { Text("Not affiliated") })
+        }
+        composeRule.onNodeWithText("Not affiliated").assertIsDisplayed()
     }
 
     @Test
