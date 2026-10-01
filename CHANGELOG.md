@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A contact deleted on the phone and then changed on Proton** within
+  the hour before the deletion is sent was deleted anyway, losing the
+  change made on Proton. The deletion is now held back and you choose:
+  delete it anyway, or keep Proton's version and put it back on the
+  phone (ADR-0017 amendment).
+- **A contact deleted on the phone and also on Proton** in that hour
+  was flagged as a conflict ("deleted on Proton after it was changed on
+  this phone"), whose "phone version" would even have recreated it. Both
+  sides agree, so it is now simply removed.
+
 ### Changed
 
 - **The sync card gives its status the full width** and puts "Sync now"
