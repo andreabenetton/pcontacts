@@ -1004,6 +1004,32 @@ class ContactWriteEngineTest {
         assertEquals(OutboxEntity.OpType.UPDATE, entries[0].opType)
     }
 
+    @Test fun detectChanges_a_restored_row_with_unchanged_content_cancels_its_pending_delete() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val row = sampleRow("ct-1")
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(contentHash = EmailSyncHash.compute(row)))
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "ct-1",
+                opType = OutboxEntity.OpType.DELETE,
+                payloadHash = "",
+                createdAt = 1_000_000L
+            )
+        )
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            // Undone delete: the row is live again and dirty, its content as Proton has it.
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = mapOf(100L to row)
+        )
+
+        engine.detectChanges(testAccount)
+
+        assertTrue("the queued delete is cancelled", outbox.entries.isEmpty())
+    }
+
     @Test fun detectChanges_clears_dirty_flag_when_hash_unchanged() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()

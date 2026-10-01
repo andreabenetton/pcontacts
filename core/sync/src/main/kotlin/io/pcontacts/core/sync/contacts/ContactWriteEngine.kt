@@ -146,6 +146,13 @@ class ContactWriteEngine(
         if (!isCreate) {
             val mapping = contactMapDao.findByProtonId(protonId)
             if (mapping != null && mapping.contentHash == hash) {
+                // A row back from deletion (an undo, a restore) is the user's decision too: its
+                // queued DELETE goes even though nothing else changed (ADR-0017, 2026-10-01).
+                val pendingDelete = outboxDao.findLive(protonId)?.takeIf { it.opType == OutboxEntity.OpType.DELETE }
+                if (pendingDelete != null) {
+                    outboxDao.deleteById(pendingDelete.id)
+                    logger.info { "enqueue: row restored; queued delete cancelled idTag=${protonId.hashCode()}" }
+                }
                 logger.info { "enqueue: hash unchanged, skipping (stored=${mapping.contentHash.take(8)})" }
                 return EnqueueResult.SKIPPED
             }

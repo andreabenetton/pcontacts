@@ -445,4 +445,9 @@ settled, and both outcomes were wrong:
     and "keep Proton's version" cancels the deletion as the user's
     own cancel does — the tombstone is restored and refetched;
   - unchanged, or no base to compare with: deleted as before.
+- **Restored on the phone.** A row brought back during the grace (an
+  undo, a restore from another app) cancels its queued delete even
+  when its content is unchanged — before, only an edit did, and an
+  unchanged restore was skipped as "no change", so the delete still
+  went out and the pull then removed the restored row.
 
