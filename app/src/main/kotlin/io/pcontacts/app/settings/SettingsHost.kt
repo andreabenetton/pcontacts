@@ -278,13 +278,21 @@ class SettingsHost(
         )
     }
 
-    private suspend fun queryPendingDeletes(): List<PendingDelete> =
-        db.outboxDao().listPendingDeletes().map { entry ->
+    /** Names come from the deleted rows the provider still keeps (ADR-0007: never from Room). */
+    private suspend fun queryPendingDeletes(): List<PendingDelete> {
+        val entries = db.outboxDao().listPendingDeletes()
+        val rawIds = entries.associate { entry ->
+            entry.protonContactId to db.contactMapDao().findByProtonId(entry.protonContactId)?.androidRawContactId
+        }
+        val names = resolveDisplayNames(rawIds.values.filterNotNull())
+        return entries.map { entry ->
             PendingDelete(
                 protonContactId = entry.protonContactId,
-                createdAt = entry.createdAt
+                createdAt = entry.createdAt,
+                displayName = rawIds[entry.protonContactId]?.let { names[it] }
             )
         }
+    }
 
     /**
      * Names come from ContactsContract, not from our Room mapping
