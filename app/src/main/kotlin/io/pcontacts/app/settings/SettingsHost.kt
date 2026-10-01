@@ -84,7 +84,7 @@ class SettingsHost(
             queryConflicts = ::queryConflicts,
             queryQuarantinedChanges = ::queryQuarantinedChanges,
             retryQuarantinedChange = { SyncBootstrap.retryQuarantinedChange(context, it) },
-            discardQuarantinedChange = { SyncBootstrap.discardQuarantinedChange(context, it) },
+            discardQuarantinedChange = { SyncBootstrap.discardQuarantinedChange(context, it, currentAccount()) },
             cancelDelete = ::cancelPendingDelete,
             resolveConflict = ::resolveConflict,
             queryContactsAccessApps = { ContactsAccessApps.list(activity, ContactsAccessKind.USER) },
