@@ -65,6 +65,7 @@ import io.pcontacts.feature.settings.AuditIndicator
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SignInScreen
 import kotlinx.coroutines.launch
+import io.pcontacts.feature.settings.R as SettingsR
 
 /**
  * The one screen of the app: the Settings shell reduced to its Account
@@ -82,7 +83,13 @@ class MainActivity : ComponentActivity() {
     private var upgradeSignOutRunning by mutableStateOf(false)
     private var storageUpgradeNotice by mutableStateOf(false)
 
-    private val settingsHost: SettingsHost = SettingsHost(this, ::onSignedOutFromSettings)
+    /** Set by a sign-out the user confirmed in settings; the sign-in screen then says it is done. */
+    private var signedOutNotice by mutableStateOf(false)
+
+    private val settingsHost: SettingsHost = SettingsHost(this) {
+        signedOutNotice = true
+        onSignedOutFromSettings()
+    }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -168,22 +175,37 @@ class MainActivity : ComponentActivity() {
                     showFallbackDialog = handleVerificationIntent(intent)
                 }
 
-                if (notificationDenied) {
-                    notificationDenied = false
-                    val message = getString(R.string.notification_permission_denied)
-                    val action = getString(R.string.notification_permission_settings)
-                    LaunchedEffect(Unit) {
-                        val result = snackbarHostState.showSnackbar(
-                            message = message,
-                            actionLabel = action,
-                            duration = SnackbarDuration.Long
-                        )
-                        if (result == SnackbarResult.ActionPerformed) {
-                            openAppNotificationSettings()
-                        }
-                    }
-                }
+                SignedOutSnackbar(snackbarHostState)
+                NotificationDeniedSnackbar(snackbarHostState)
             }
+        }
+    }
+
+    @Composable
+    private fun NotificationDeniedSnackbar(snackbarHostState: SnackbarHostState) {
+        if (!notificationDenied) return
+        notificationDenied = false
+        val message = getString(R.string.notification_permission_denied)
+        val action = getString(R.string.notification_permission_settings)
+        LaunchedEffect(Unit) {
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = action,
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                openAppNotificationSettings()
+            }
+        }
+    }
+
+    @Composable
+    private fun SignedOutSnackbar(snackbarHostState: SnackbarHostState) {
+        if (!signedOutNotice) return
+        val message = getString(SettingsR.string.settings_signed_out)
+        LaunchedEffect(Unit) {
+            signedOutNotice = false
+            snackbarHostState.showSnackbar(message)
         }
     }
 
