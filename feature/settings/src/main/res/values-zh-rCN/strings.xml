@@ -155,8 +155,8 @@
     <plurals name="linked_import_bulk_button">
         <item quantity="other">导入 %d 位联系人</item>
     </plurals>
-    <plurals name="linked_import_bulk_button_moves">
-        <item quantity="other">导入 %1$d 位联系人（移动 %2$d 位）</item>
+    <plurals name="linked_import_bulk_moves_note">
+        <item quantity="other">%d 个将移到 Proton</item>
     </plurals>
     <string name="linked_import_bulk_progress">正在导入第 %1$d 个，共 %2$d 个…</string>
     <string name="linked_import_bulk_part_moved">已移到 Proton %d 个</string>

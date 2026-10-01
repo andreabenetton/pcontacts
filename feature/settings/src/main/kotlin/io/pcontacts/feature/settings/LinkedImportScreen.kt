@@ -335,21 +335,22 @@ private fun SelectionBar(
     onImport: () -> Unit
 ) {
     Surface(tonalElevation = 3.dp) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
-        ) {
-            TextButton(onClick = onSelectAll) { Text(stringResource(R.string.linked_import_select_all)) }
-            TextButton(onClick = onClear) { Text(stringResource(R.string.linked_import_clear_selection)) }
-            Spacer(Modifier.weight(1f))
-            Button(onClick = onImport) {
-                Text(
-                    if (moves > 0) {
-                        pluralStringResource(R.plurals.linked_import_bulk_button_moves, count, count, moves)
-                    } else {
-                        pluralStringResource(R.plurals.linked_import_bulk_button, count, count)
-                    }
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)) {
+            // The move count gets its own line: inside the button it wrapped the label (ADR-0026).
+            if (moves > 0) {
+                SyncIndicator(
+                    tone = SyncTone.WARN,
+                    text = pluralStringResource(R.plurals.linked_import_bulk_moves_note, moves, moves),
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = onSelectAll) { Text(stringResource(R.string.linked_import_select_all)) }
+                TextButton(onClick = onClear) { Text(stringResource(R.string.linked_import_clear_selection)) }
+                Spacer(Modifier.weight(1f))
+                Button(onClick = onImport) {
+                    Text(pluralStringResource(R.plurals.linked_import_bulk_button, count, count))
+                }
             }
         }
     }

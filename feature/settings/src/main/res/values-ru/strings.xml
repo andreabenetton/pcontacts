@@ -188,11 +188,11 @@
         <item quantity="many">Импортировать %d контактов</item>
         <item quantity="other">Импортировать %d контакта</item>
     </plurals>
-    <plurals name="linked_import_bulk_button_moves">
-        <item quantity="one">Импортировать %1$d контакт (перемещено: %2$d)</item>
-        <item quantity="few">Импортировать %1$d контакта (перемещено: %2$d)</item>
-        <item quantity="many">Импортировать %1$d контактов (перемещено: %2$d)</item>
-        <item quantity="other">Импортировать %1$d контакта (перемещено: %2$d)</item>
+    <plurals name="linked_import_bulk_moves_note">
+        <item quantity="one">%d будет перемещён в Proton</item>
+        <item quantity="few">%d будут перемещены в Proton</item>
+        <item quantity="many">%d будут перемещены в Proton</item>
+        <item quantity="other">%d будут перемещены в Proton</item>
     </plurals>
     <string name="linked_import_bulk_progress">Импорт %1$d из %2$d…</string>
     <string name="linked_import_bulk_part_moved">перемещено в Proton: %d</string>

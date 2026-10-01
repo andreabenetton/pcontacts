@@ -166,9 +166,9 @@
         <item quantity="one">Importar %d contacto</item>
         <item quantity="other">Importar %d contactos</item>
     </plurals>
-    <plurals name="linked_import_bulk_button_moves">
-        <item quantity="one">Importar %1$d contacto (%2$d movidos)</item>
-        <item quantity="other">Importar %1$d contactos (%2$d movidos)</item>
+    <plurals name="linked_import_bulk_moves_note">
+        <item quantity="one">%d se moverá a Proton</item>
+        <item quantity="other">%d se moverán a Proton</item>
     </plurals>
     <string name="linked_import_bulk_progress">Importando %1$d de %2$d…</string>
     <string name="linked_import_bulk_part_moved">%d movidos a Proton</string>
