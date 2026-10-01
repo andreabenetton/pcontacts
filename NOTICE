@@ -140,3 +140,9 @@ Third-party assets
   Used as app/src/main/res/drawable/ic_source_device.xml, to mark a
   contact stored on the device itself in the import list. Android is a
   trademark of Google LLC.
+
+  Material Design Icons — "visibility", "visibility_off"
+  https://github.com/google/material-design-icons
+  License: Apache 2.0 (Copyright Google LLC)
+  Used as feature/onboarding/src/main/res/drawable/ic_visibility.xml and
+  ic_visibility_off.xml, the show/hide switch of the sign-in password.

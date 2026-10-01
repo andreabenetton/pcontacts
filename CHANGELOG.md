@@ -70,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   save the login, the keyboard opens on the username, a failed attempt
   marks the fields and asks for the password again, and the form scrolls
   above the keyboard on small screens.
+- The password field shows and hides the password with the usual eye
+  icon instead of a "Show" text button.
 - **The two-factor step sends the code by itself** at the sixth digit,
   as Proton's web client does, opens with the keyboard up, and lets a
   password manager fill the code.

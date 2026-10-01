@@ -13,11 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +32,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
@@ -182,8 +184,13 @@ private fun PasswordField(
         keyboardActions = KeyboardActions(onDone = { onDone() }),
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            TextButton(onClick = { visible = !visible }) {
-                Text(stringResource(if (visible) R.string.login_password_hide else R.string.login_password_show))
+            IconButton(onClick = { visible = !visible }) {
+                Icon(
+                    painter = painterResource(if (visible) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
+                    contentDescription = stringResource(
+                        if (visible) R.string.login_password_hide else R.string.login_password_show
+                    )
+                )
             }
         },
         // Password managers (Proton Pass, Bitwarden…) recognise the field and offer to fill it.

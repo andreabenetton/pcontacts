@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -162,6 +163,18 @@ class LoginScreenTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Enter your password again.").assertIsDisplayed()
+    }
+
+    @Test
+    fun the_eye_shows_and_hides_the_password() {
+        val vm = viewModel()
+        composeRule.setContent {
+            LoginScreen(vm, onSuccess = { _, _ -> }, onTwoFactorRequired = {})
+        }
+        composeRule.onNodeWithText("Password").performTextInput("secret")
+        composeRule.onNodeWithContentDescription("Show").performClick()
+        composeRule.onNodeWithContentDescription("Hide").assertIsDisplayed().performClick()
+        composeRule.onNodeWithContentDescription("Show").assertIsDisplayed()
     }
 
     @Test
