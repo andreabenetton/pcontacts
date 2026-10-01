@@ -180,4 +180,11 @@ class LinkedImportListViewModelTest {
         assertEquals(SyncTone.WARN to R.string.linked_import_row_conflict, statusBadge(ImportStatus.CONFLICT))
         assertEquals(SyncTone.WARN to R.string.linked_import_row_failed, statusBadge(ImportStatus.FAILED))
     }
+
+    @Test fun a_dialog_offering_a_move_does_not_promise_the_original_stays() {
+        // Seen on the Pixel 2026-10-01: "The originals stay where they are" above "Move to Proton".
+        assertEquals(R.string.linked_import_move_or_copy_detail, importDetailRes(creates = true, moves = true))
+        assertEquals(R.string.linked_import_create_detail, importDetailRes(creates = true, moves = false))
+        assertEquals(R.string.linked_import_review_detail, importDetailRes(creates = false, moves = false))
+    }
 }

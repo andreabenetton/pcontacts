@@ -61,6 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Failed changes say why in plain words** ("Proton refused this
   change", "This contact is no longer on this phone"), with the technical
   code kept below in small print for bug reports.
+- **The import dialog of a contact that can be moved** no longer says
+  "the originals stay where they are" above "Move to Proton": it says
+  that Create copies and leaves the original.
 - **Resolving a conflict or retrying a failed change starts a sync**, so
   the choice reaches Proton at once instead of waiting for the next
   scheduled run (up to 12 hours away).

@@ -153,6 +153,7 @@
     <string name="linked_import_create_title">Создать в Proton</string>
     <string name="linked_import_move_title">Переместить или скопировать в Proton</string>
     <string name="linked_import_create_detail">%s ещё нет в Proton. Выберите данные для нового контакта Proton. Оригиналы останутся без изменений.</string>
+    <string name="linked_import_move_or_copy_detail">%s ещё нет в Proton. Выберите данные для контакта Proton. «Создать» копирует их и оставляет оригинал на месте.</string>
     <string name="linked_import_create_confirm">Создать</string>
     <string name="linked_import_move_detail">%s сохранён в хранилище, которое не принадлежит ни одному приложению и которое Android удалит при следующем изменении аккаунтов. Перемещение в Proton сохранит сам контакт — с отметкой избранного, мелодией и связями — вместо копии.</string>
     <string name="linked_import_move_loses">Proton не сохраняет: %s. Создайте копию, чтобы оставить оригинал без изменений.</string>

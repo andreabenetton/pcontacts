@@ -137,6 +137,7 @@
     <string name="linked_import_create_title">Crea in Proton</string>
     <string name="linked_import_move_title">Sposta o copia in Proton</string>
     <string name="linked_import_create_detail">%s non è ancora in Proton. Seleziona i dettagli per il nuovo contatto Proton. Gli originali restano dove sono.</string>
+    <string name="linked_import_move_or_copy_detail">%s non è ancora in Proton. Seleziona i dettagli per il contatto Proton. Crea li copia e lascia l\'originale dov\'è.</string>
     <string name="linked_import_create_confirm">Crea</string>
     <string name="linked_import_move_detail">%s è salvato in un archivio che non appartiene a nessuna app e che Android cancella al prossimo cambio di account. Spostarlo in Proton mantiene il contatto stesso, con stella dei preferiti, suoneria e collegamenti, invece di farne una copia.</string>
     <string name="linked_import_move_loses">Proton non conserva: %s. Crea invece una copia per lasciare intatto l\'originale.</string>

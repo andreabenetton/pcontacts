@@ -109,7 +109,7 @@ private fun ReviewDialog(
                     val emptyRes = if (creates) R.string.linked_import_create_nothing else R.string.linked_import_nothing
                     Text(stringResource(emptyRes))
                 } else {
-                    val detailRes = if (creates) R.string.linked_import_create_detail else R.string.linked_import_review_detail
+                    val detailRes = importDetailRes(creates, moves = move != null)
                     Text(text = stringResource(detailRes, name), style = MaterialTheme.typography.bodySmall)
                     move?.let { MoveExplanation(name, it) }
                     if (review.changed) {
@@ -194,6 +194,13 @@ internal fun SourceIcons(icons: List<Bitmap>) {
         }
     }
     Spacer(Modifier.width(6.dp))
+}
+
+/** The dialog's first line; with a move on offer it must not promise that the original stays. */
+internal fun importDetailRes(creates: Boolean, moves: Boolean): Int = when {
+    moves -> R.string.linked_import_move_or_copy_detail
+    creates -> R.string.linked_import_create_detail
+    else -> R.string.linked_import_review_detail
 }
 
 /** Why a move beats a copy for this contact, and what Proton would not keep (ADR-0026). */

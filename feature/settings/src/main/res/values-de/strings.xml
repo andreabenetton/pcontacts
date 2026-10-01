@@ -137,6 +137,7 @@
     <string name="linked_import_create_title">In Proton anlegen</string>
     <string name="linked_import_move_title">Zu Proton verschieben oder kopieren</string>
     <string name="linked_import_create_detail">%s ist noch nicht in Proton. Wähle die Details für den neuen Proton-Kontakt. Die Originale bleiben unverändert.</string>
+    <string name="linked_import_move_or_copy_detail">%s ist noch nicht in Proton. Wählen Sie die Details für den Proton-Kontakt. „Anlegen“ kopiert sie und lässt das Original, wo es ist.</string>
     <string name="linked_import_create_confirm">Anlegen</string>
     <string name="linked_import_move_detail">%s ist in einem Speicher abgelegt, der keiner App gehört und den Android beim nächsten Kontowechsel löscht. Wenn Sie ihn zu Proton verschieben, bleibt der Kontakt selbst erhalten, mit Favoritenstern, Klingelton und Verknüpfungen, statt einer Kopie.</string>
     <string name="linked_import_move_loses">Proton speichert nicht: %s. Erstellen Sie stattdessen eine Kopie, um das Original unverändert zu lassen.</string>
