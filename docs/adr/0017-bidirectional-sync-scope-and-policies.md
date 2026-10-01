@@ -5,7 +5,7 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted (amended 2026-09-22 twice — see *Amendments* at the end)
+- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01 — see *Amendments* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
@@ -418,4 +418,31 @@ encrypted card (`[V]` WebClients `constants.ts` keeps only `CATEGORIES`
 clear), and a card the patcher creates is 4.0. Cards that already exist keep
 their own version. Validated live on 2026-09-22 with the refused contact:
 the update returned Code 1000.
+
+## Amendment 2026-10-01 — a queued delete meets a change on Proton
+
+§6 holds a local delete for an hour; what Proton does meanwhile was not
+settled, and both outcomes were wrong:
+
+- **Deleted on Proton too.** The pull saw a contact gone from Proton
+  while the phone owned a change to it and marked the §3C "deleted on
+  Proton while edited here" conflict — although both sides wanted the
+  same thing — whose "phone version" would even recreate the contact.
+  Now a contact gone from Proton whose queued change is a DELETE is
+  agreement: the queued delete is dropped and the pull removes the
+  tombstone. No conflict.
+- **Edited on Proton.** The pull leaves a contact with a queued delete
+  alone, and the push then deleted it without looking: the later edit
+  on Proton was lost silently. Now the push fetches the contact before
+  deleting it:
+  - gone (`[A]` HTTP 404, the same signal `pushUpdate` relies on): the
+    delete is already done; it is completed locally, nothing is sent;
+  - changed since the merge base (any owned field, or the photo's
+    digest): no delete; the contact becomes a conflict, "edited on
+    Proton after it was deleted here". Proton's current state is saved
+    as the merge base, so "delete anyway" queues an ordinary DELETE
+    (with its grace) that goes through unless Proton changes again,
+    and "keep Proton's version" cancels the deletion as the user's
+    own cancel does — the tombstone is restored and refetched;
+  - unchanged, or no base to compare with: deleted as before.
 
