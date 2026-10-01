@@ -113,3 +113,13 @@ exists to avoid.
 
 Scope is unchanged: exactly `PHONE`/`PHONE`, only without a Proton copy.
 
+
+## Amendment (2026-10-01): validated on the Pixel
+
+`[V]` The sync-adapter form of the move is now validated on both test
+phones, as the Mechanism section required before release: on the Pixel 9a
+(Android 17) a `PHONE`/`PHONE` probe moved from its dialog kept `_ID`,
+`contact_id` and the star, was created on Proton at the next sync with
+its id stamped back, and its birthday, nickname and website survived the
+pull that rewrote the row from Proton. The Samsung A40 (Android 11) run
+of 2026-09-24 covered the same path.
