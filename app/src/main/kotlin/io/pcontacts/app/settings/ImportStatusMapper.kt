@@ -13,7 +13,7 @@ internal object ImportStatusMapper {
     fun status(mapping: ContactMapEntity, outboxRows: List<OutboxEntity>): ImportStatus = when {
         outboxRows.any { it.quarantined } -> ImportStatus.FAILED
         outboxRows.any { !it.quarantined } -> ImportStatus.QUEUED
-        mapping.syncStatus == ContactMapEntity.Status.CONFLICT -> ImportStatus.FAILED
+        mapping.syncStatus == ContactMapEntity.Status.CONFLICT -> ImportStatus.CONFLICT
         mapping.protonContactId.startsWith("local-") -> ImportStatus.QUEUED
         else -> ImportStatus.SYNCED
     }

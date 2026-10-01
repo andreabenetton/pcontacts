@@ -41,7 +41,8 @@ class ImportStatusMapperTest {
         assertEquals(ImportStatus.SYNCED, ImportStatusMapper.status(mapping("srv-1"), emptyList()))
         assertEquals(ImportStatus.QUEUED, ImportStatusMapper.status(mapping("local-1"), emptyList()))
         assertEquals(
-            ImportStatus.FAILED,
+            "a conflict waits for the user's choice, listed apart from the failed changes",
+            ImportStatus.CONFLICT,
             ImportStatusMapper.status(mapping("srv-1", ContactMapEntity.Status.CONFLICT), emptyList())
         )
     }

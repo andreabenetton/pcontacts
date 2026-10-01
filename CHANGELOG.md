@@ -42,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **When Proton stops accepting this version** of pcontacts, the
   notification now says the app needs an update, instead of "Proton
   verification required" with a verification screen that could not help.
+- **An imported contact in a sync conflict** says it needs your decision
+  and points to the conflicts, instead of "Not added — see the failed
+  changes", which did not list it.
 - **A pending deletion is no longer counted twice** on the sync card, as
   "1 change pending sync" and again in its own deletion row.
 - **Conflicts of different kinds** are no longer all described with the
