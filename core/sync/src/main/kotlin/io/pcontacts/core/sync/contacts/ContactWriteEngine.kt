@@ -131,15 +131,7 @@ class ContactWriteEngine(
 
     private suspend fun enqueueChange(dc: DirtyContact): EnqueueResult {
         val now = clock()
-        if (dc.isDeleted) {
-            val protonId = dc.sourceId
-            if (protonId == null) {
-                // Never reached Proton: whatever CREATE is queued has nothing to create any more.
-                outboxDao.findLive("$LOCAL_ID_PREFIX${dc.rawContactId}")?.let { outboxDao.deleteById(it.id) }
-                return EnqueueResult.SKIPPED
-            }
-            return outboxDao.enqueue(protonId, OutboxEntity.OpType.DELETE, "", now).toResult()
-        }
+        if (dc.isDeleted) return enqueueDeletion(dc, now)
 
         val isCreate = dc.sourceId == null
         val protonId = dc.sourceId ?: "$LOCAL_ID_PREFIX${dc.rawContactId}"
@@ -166,6 +158,26 @@ class ContactWriteEngine(
         }
         val op = if (isCreate) OutboxEntity.OpType.CREATE else OutboxEntity.OpType.UPDATE
         return outboxDao.enqueue(protonId, op, hash, now).toResult()
+    }
+
+    /** A row deleted on the phone: its DELETE, unless it never reached Proton or awaits a decision. */
+    private suspend fun enqueueDeletion(dc: DirtyContact, now: Long): EnqueueResult {
+        val protonId = dc.sourceId
+        if (protonId == null) {
+            // Never reached Proton: whatever CREATE is queued has nothing to create any more.
+            outboxDao.findLive("$LOCAL_ID_PREFIX${dc.rawContactId}")?.let { outboxDao.deleteById(it.id) }
+            return EnqueueResult.SKIPPED
+        }
+        if (contactMapDao.findByProtonId(protonId)?.lastError == SERVER_EDITED_CONFLICT) {
+            // The tombstone is read again on every run while the user decides whether to delete
+            // a contact Proton changed meanwhile: it is the question, not a new deletion
+            // (ADR-0017, 2026-10-01). A delete queued again by an earlier run goes too.
+            outboxDao.findLive(protonId)
+                ?.takeIf { it.opType == OutboxEntity.OpType.DELETE }
+                ?.let { outboxDao.deleteById(it.id) }
+            return EnqueueResult.SKIPPED
+        }
+        return outboxDao.enqueue(protonId, OutboxEntity.OpType.DELETE, "", now).toResult()
     }
 
     private fun OutboxEnqueue.toResult(): EnqueueResult = when (this) {

@@ -1030,6 +1030,25 @@ class ContactWriteEngineTest {
         assertTrue("the queued delete is cancelled", outbox.entries.isEmpty())
     }
 
+    @Test fun detectChanges_a_deleted_row_awaiting_the_edited_on_proton_decision_queues_no_delete() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        contactMap.markConflict("ct-1", SERVER_EDITED_CONFLICT)
+        // A run before the fix had already queued it again.
+        outbox.enqueue("ct-1", OutboxEntity.OpType.DELETE, "", 1L)
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            // The tombstone is read again on every run (DELETED=1 stays until the user decides).
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = false, isDeleted = true))
+        )
+
+        engine.detectChanges(testAccount)
+
+        assertTrue("no delete while the user has not answered", outbox.entries.isEmpty())
+    }
+
     @Test fun detectChanges_clears_dirty_flag_when_hash_unchanged() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()

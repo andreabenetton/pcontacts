@@ -443,7 +443,10 @@ settled, and both outcomes were wrong:
     as the merge base, so "delete anyway" queues an ordinary DELETE
     (with its grace) that goes through unless Proton changes again,
     and "keep Proton's version" cancels the deletion as the user's
-    own cancel does — the tombstone is restored and refetched;
+    own cancel does — the tombstone is restored and refetched. While
+    the question is open the tombstone, read again on every run, is
+    not a new deletion: it queues no DELETE (otherwise the delete would
+    go out an hour later without an answer — seen live 2026-10-01);
   - unchanged, or no base to compare with: deleted as before.
 - **Restored on the phone.** A row brought back during the grace (an
   undo, a restore from another app) cancels its queued delete even
