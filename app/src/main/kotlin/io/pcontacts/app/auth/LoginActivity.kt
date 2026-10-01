@@ -93,7 +93,6 @@ class LoginActivity : ComponentActivity() {
         response = extractAuthenticatorResponse()
         val audit = signedOutAudit()
         val storageUpgradeNotice = SharedPreferencesUserPreferences(this).secretsStorageUpgraded
-        val signedOutNotice = intent.getBooleanExtra(EXTRA_SIGNED_OUT, false)
         val contactsAccess = ContactsPermissionState.check(this, false) == ContactsPermissionStatus.GRANTED
 
         setContent {
@@ -120,7 +119,7 @@ class LoginActivity : ComponentActivity() {
                             onTwoFactorRequired = { /* handled by state-driven branch */ },
                             onHumanVerificationRequired = { url -> launchHumanVerification(url) },
                             modifier = Modifier.padding(padding),
-                            notices = { SignInNotices(storageUpgradeNotice, signedOutNotice) },
+                            notices = { SignInNotices(storageUpgradeNotice) },
                             footer = { SignInFooter(contactsAccess, ::openDeGoogledRoms) }
                         )
                     }
@@ -195,9 +194,4 @@ class LoginActivity : ComponentActivity() {
         } else {
             intent.getParcelableExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
         }
-
-    companion object {
-        /** Set by the app when the user has just signed out, so the form says so. */
-        const val EXTRA_SIGNED_OUT = "io.pcontacts.EXTRA_SIGNED_OUT"
-    }
 }

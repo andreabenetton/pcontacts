@@ -82,9 +82,6 @@ class MainActivity : ComponentActivity() {
     private var upgradeSignOutRunning by mutableStateOf(false)
     private var storageUpgradeNotice by mutableStateOf(false)
 
-    /** Set by a sign-out the user confirmed in settings; the sign-in form then says it is done. */
-    private var signedOutNotice = false
-
     /** The sign-in form this screen opened is up; it is not opened twice. */
     private var loginOpen = false
 
@@ -94,10 +91,7 @@ class MainActivity : ComponentActivity() {
         if (hasProtonAccount()) viewModel.refresh() else finish()
     }
 
-    private val settingsHost: SettingsHost = SettingsHost(this) {
-        signedOutNotice = true
-        onSignedOutFromSettings()
-    }
+    private val settingsHost: SettingsHost = SettingsHost(this, ::onSignedOutFromSettings)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -210,7 +204,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * With no account the sign-in form opens by itself: it carries what the signed-out screen
-     * said (signed out, the storage upgrade, the ROM notice), so this screen is only a backdrop.
+     * said (the storage upgrade, the ROM notice), so this screen is only a backdrop.
      */
     @Composable
     private fun AutoOpenLogin(state: LauncherUiState) {
@@ -380,10 +374,7 @@ class MainActivity : ComponentActivity() {
     private fun launchLogin() {
         if (loginOpen) return
         loginOpen = true
-        loginLauncher.launch(
-            Intent(this, LoginActivity::class.java).putExtra(LoginActivity.EXTRA_SIGNED_OUT, signedOutNotice)
-        )
-        signedOutNotice = false
+        loginLauncher.launch(Intent(this, LoginActivity::class.java))
     }
 }
 

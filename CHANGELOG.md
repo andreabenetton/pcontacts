@@ -58,8 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Signed out, the app opens on the sign-in form** instead of a page
   with a Sign in button. The form looks like the app's main screen (the
   Account section, the dependency badge, the GitHub link, the "Not
-  affiliated with Proton AG" line) and says "Signed out." after a
-  sign-out; Back closes the app.
+  affiliated with Proton AG" line); Back closes the app.
 - **Every screen ends with "Not affiliated with or endorsed by Proton
   AG."**, the two-factor step, Dependencies, Import and the contacts-access
   and de-Googled ROM pages included.
