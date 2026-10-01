@@ -863,7 +863,8 @@ private fun ConflictResolutionDialog(
                     text = conflict.displayName ?: stringResource(R.string.unverified_no_name),
                     style = MaterialTheme.typography.titleSmall
                 )
-                if (conflict.conflictFields != null && !conflict.serverDeleted && !conflict.localRemoved) {
+                val explained = conflict.serverDeleted || conflict.localRemoved || conflict.serverEdited
+                if (conflict.conflictFields != null && !explained) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.conflict_dialog_fields, conflict.conflictFields),
@@ -899,6 +900,11 @@ internal data class ConflictDialogTexts(val prompt: Int, val useLocal: Int, val 
 
 /** A removed contact asks "delete from Proton or put it back"; the others pick a version. */
 internal fun conflictDialogTexts(conflict: ConflictInfo): ConflictDialogTexts = when {
+    conflict.serverEdited -> ConflictDialogTexts(
+        R.string.conflict_dialog_server_edited,
+        R.string.conflict_delete_anyway,
+        R.string.conflict_keep_proton
+    )
     conflict.localRemoved -> ConflictDialogTexts(
         R.string.conflict_dialog_local_removed,
         R.string.conflict_delete_on_proton,
@@ -918,6 +924,7 @@ internal fun conflictDialogTexts(conflict: ConflictInfo): ConflictDialogTexts = 
 
 /** The line under the conflict count: the most specific explanation that applies. */
 internal fun conflictDetailRes(conflicts: List<ConflictInfo>): Int = when {
+    conflicts.any { it.serverEdited } -> R.string.conflict_detail_server_edited
     conflicts.any { it.localRemoved } -> R.string.conflict_detail_local_removed
     conflicts.any { it.serverDeleted } -> R.string.conflict_detail_server_deleted
     else -> R.string.conflict_detail

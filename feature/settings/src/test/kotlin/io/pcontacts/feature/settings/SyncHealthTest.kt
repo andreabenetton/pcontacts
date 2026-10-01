@@ -114,4 +114,17 @@ class SyncHealthTest {
         assertEquals(4, contactsAfterDeletes(contacts = 6, pendingDeletes = 2))
         assertEquals(0, contactsAfterDeletes(contacts = 1, pendingDeletes = 3))
     }
+
+    @Test fun a_contact_edited_on_proton_after_a_delete_here_asks_delete_anyway_or_keep() {
+        val edited = ConflictInfo("c3", "Bolt", "edited on Proton after it was deleted here", serverEdited = true)
+        assertEquals(
+            ConflictDialogTexts(
+                R.string.conflict_dialog_server_edited,
+                R.string.conflict_delete_anyway,
+                R.string.conflict_keep_proton
+            ),
+            conflictDialogTexts(edited)
+        )
+        assertEquals(R.string.conflict_detail_server_edited, conflictDetailRes(listOf(edited)))
+    }
 }

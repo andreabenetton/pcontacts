@@ -87,6 +87,10 @@
     <string name="conflict_dialog_local_removed">Этот контакт исчез с этого телефона, вероятно, в корзину приложения «Контакты». Удалить его и из Proton или вернуть на этот телефон?</string>
     <string name="conflict_delete_on_proton">Удалить из Proton</string>
     <string name="conflict_put_back">Вернуть</string>
+    <string name="conflict_detail_server_edited">Изменён в Proton после того, как вы удалили его здесь.</string>
+    <string name="conflict_dialog_server_edited">Этот контакт был изменён в Proton после того, как вы удалили его на этом телефоне, поэтому он не удалён. Всё равно удалить или оставить версию Proton и вернуть его сюда?</string>
+    <string name="conflict_delete_anyway">Всё равно удалить</string>
+    <string name="conflict_keep_proton">Оставить версию Proton</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d приложение может читать ваши контакты</item>

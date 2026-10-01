@@ -72,6 +72,10 @@
     <string name="conflict_dialog_local_removed">此联系人已从此手机消失，可能进入了通讯录应用的回收站。要同时从 Proton 删除，还是恢复到此手机？</string>
     <string name="conflict_delete_on_proton">从 Proton 删除</string>
     <string name="conflict_put_back">恢复</string>
+    <string name="conflict_detail_server_edited">在此删除后又在 Proton 中被修改。</string>
+    <string name="conflict_dialog_server_edited">此联系人在您从此手机删除后又在 Proton 中被修改，因此未被删除。仍要删除，还是保留 Proton 版本并恢复到此手机？</string>
+    <string name="conflict_delete_anyway">仍要删除</string>
+    <string name="conflict_keep_proton">保留 Proton 版本</string>
 
     <plurals name="contacts_access_count">
         <item quantity="other">%d 个应用可以读取您的联系人</item>

@@ -77,6 +77,10 @@
     <string name="conflict_dialog_local_removed">This contact disappeared from this phone, probably into the Recycle bin of the Contacts app. Delete it from Proton too, or put it back on this phone?</string>
     <string name="conflict_delete_on_proton">Delete from Proton</string>
     <string name="conflict_put_back">Put it back</string>
+    <string name="conflict_detail_server_edited">Changed on Proton after you deleted it here.</string>
+    <string name="conflict_dialog_server_edited">This contact was changed on Proton after you deleted it on this phone, so it was not deleted. Delete it anyway, or keep Proton\'s version and put it back here?</string>
+    <string name="conflict_delete_anyway">Delete anyway</string>
+    <string name="conflict_keep_proton">Keep Proton\'s version</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d app can read your contacts</item>

@@ -114,7 +114,9 @@ data class ConflictInfo(
     /** The Proton copy was deleted while the phone had a change to it (ADR-0017 §3C). */
     val serverDeleted: Boolean = false,
     /** The row vanished on this phone, likely into the Contacts app's recycle bin (ADR-0022). */
-    val localRemoved: Boolean = false
+    val localRemoved: Boolean = false,
+    /** Deleted on this phone, then changed on Proton before the delete went out (ADR-0017, 2026-10-01). */
+    val serverEdited: Boolean = false
 )
 
 enum class ConflictResolution { USE_LOCAL, USE_SERVER }

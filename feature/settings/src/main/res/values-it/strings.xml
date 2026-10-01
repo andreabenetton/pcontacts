@@ -77,6 +77,10 @@
     <string name="conflict_dialog_local_removed">Questo contatto è sparito da questo telefono, probabilmente nel cestino dell\'app Contatti. Eliminarlo anche da Proton o rimetterlo su questo telefono?</string>
     <string name="conflict_delete_on_proton">Elimina da Proton</string>
     <string name="conflict_put_back">Rimettilo</string>
+    <string name="conflict_detail_server_edited">Modificato in Proton dopo che l\'hai eliminato qui.</string>
+    <string name="conflict_dialog_server_edited">Questo contatto è stato modificato in Proton dopo che l\'hai eliminato su questo telefono, quindi non è stato eliminato. Eliminarlo comunque o tenere la versione di Proton e rimetterlo qui?</string>
+    <string name="conflict_delete_anyway">Elimina comunque</string>
+    <string name="conflict_keep_proton">Tieni la versione di Proton</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d app può leggere i tuoi contatti</item>

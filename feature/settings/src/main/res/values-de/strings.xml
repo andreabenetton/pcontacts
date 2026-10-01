@@ -77,6 +77,10 @@
     <string name="conflict_dialog_local_removed">Dieser Kontakt ist von diesem Telefon verschwunden, vermutlich in den Papierkorb der Kontakte-App. Auch bei Proton löschen oder auf diesem Telefon wiederherstellen?</string>
     <string name="conflict_delete_on_proton">Bei Proton löschen</string>
     <string name="conflict_put_back">Wiederherstellen</string>
+    <string name="conflict_detail_server_edited">Bei Proton geändert, nachdem Sie ihn hier gelöscht haben.</string>
+    <string name="conflict_dialog_server_edited">Dieser Kontakt wurde bei Proton geändert, nachdem Sie ihn auf diesem Telefon gelöscht haben, deshalb wurde er nicht gelöscht. Trotzdem löschen oder die Proton-Version behalten und hier wiederherstellen?</string>
+    <string name="conflict_delete_anyway">Trotzdem löschen</string>
+    <string name="conflict_keep_proton">Proton-Version behalten</string>
 
     <plurals name="contacts_access_count">
         <item quantity="one">%d App kann Ihre Kontakte lesen</item>
