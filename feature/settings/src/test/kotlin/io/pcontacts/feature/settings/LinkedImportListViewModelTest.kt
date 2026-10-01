@@ -175,4 +175,9 @@ class LinkedImportListViewModelTest {
             bulkResultParts(BulkResult(created = 2, enriched = 0, failed = 1))
         )
     }
+
+    @Test fun an_imported_contact_in_conflict_points_to_the_conflicts_not_the_failed_changes() {
+        assertEquals(SyncTone.WARN to R.string.linked_import_row_conflict, statusBadge(ImportStatus.CONFLICT))
+        assertEquals(SyncTone.WARN to R.string.linked_import_row_failed, statusBadge(ImportStatus.FAILED))
+    }
 }

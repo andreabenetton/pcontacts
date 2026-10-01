@@ -76,7 +76,8 @@ sealed interface BulkImportState {
 typealias BulkImporter = suspend (List<Long>, (Int) -> Unit) -> BulkResult
 
 /** Where an imported contact's change to Proton stands, read from the outbox and the mapping. */
-enum class ImportStatus { QUEUED, SYNCING, SYNCED, FAILED }
+/** FAILED: a change Proton refused (failed changes); CONFLICT: a contact waiting for the user's choice (conflicts). */
+enum class ImportStatus { QUEUED, SYNCING, SYNCED, FAILED, CONFLICT }
 
 class LinkedImportListViewModel(
     private val scan: suspend () -> List<LinkedContactRow>,

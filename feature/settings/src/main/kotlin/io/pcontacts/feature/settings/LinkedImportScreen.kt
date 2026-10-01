@@ -290,17 +290,12 @@ private fun ContactRowItem(
 /**
  * "Not in Proton" / "N new details" before an import; afterwards where
  * the change stands: waiting, syncing, added (once the server accepted
- * it) or failed (a quarantined change, listed in Settings).
+ * it), failed (a quarantined change) or in conflict, each pointing to its list in Settings.
  */
 @Composable
 private fun RowBadge(row: LinkedContactRow, status: ImportStatus?) {
     if (status != null) {
-        val (tone, textRes) = when (status) {
-            ImportStatus.QUEUED -> SyncTone.INFO to R.string.linked_import_row_queued
-            ImportStatus.SYNCING -> SyncTone.RUNNING to R.string.linked_import_row_syncing
-            ImportStatus.SYNCED -> SyncTone.OK to R.string.linked_import_row_added
-            ImportStatus.FAILED -> SyncTone.WARN to R.string.linked_import_row_failed
-        }
+        val (tone, textRes) = statusBadge(status)
         SyncIndicator(tone = tone, text = stringResource(textRes))
         return
     }
@@ -384,4 +379,12 @@ private fun filterLabel(filter: LinkedImportFilter): Int = when (filter) {
     LinkedImportFilter.ALL -> R.string.linked_import_filter_all
     LinkedImportFilter.NOT_IN_PROTON -> R.string.linked_import_not_in_proton
     LinkedImportFilter.NEW_DETAILS -> R.string.linked_import_filter_new_details
+}
+
+internal fun statusBadge(status: ImportStatus): Pair<SyncTone, Int> = when (status) {
+    ImportStatus.QUEUED -> SyncTone.INFO to R.string.linked_import_row_queued
+    ImportStatus.SYNCING -> SyncTone.RUNNING to R.string.linked_import_row_syncing
+    ImportStatus.SYNCED -> SyncTone.OK to R.string.linked_import_row_added
+    ImportStatus.FAILED -> SyncTone.WARN to R.string.linked_import_row_failed
+    ImportStatus.CONFLICT -> SyncTone.WARN to R.string.linked_import_row_conflict
 }
