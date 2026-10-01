@@ -410,9 +410,10 @@ private fun StatusRows(viewModel: SettingsViewModel) {
             onClick = viewModel::showUnverifiedContactsDialog
         )
     }
-    if (outboxStats.pending > 0) {
+    val otherPending = otherPendingChanges(outboxStats.pending, pendingDeletes.size)
+    if (otherPending > 0) {
         StatusRow(
-            text = pluralStringResource(R.plurals.outbox_pending, outboxStats.pending, outboxStats.pending),
+            text = pluralStringResource(R.plurals.outbox_pending, otherPending, otherPending),
             detail = null,
             error = false,
             onClick = null
@@ -894,6 +895,9 @@ private fun ConflictResolutionDialog(
 /** How many contacts remain once the queued deletions reach Proton; null when none is queued. */
 internal fun contactsAfterDeletes(contacts: Int, pendingDeletes: Int): Int? =
     if (pendingDeletes > 0) (contacts - pendingDeletes).coerceAtLeast(0) else null
+
+/** Queued changes other than deletions, which the card lists in their own row. */
+internal fun otherPendingChanges(pending: Int, pendingDeletes: Int): Int = (pending - pendingDeletes).coerceAtLeast(0)
 
 /** The conflict dialog's prompt and the labels of its two choices. */
 internal data class ConflictDialogTexts(val prompt: Int, val useLocal: Int, val useServer: Int)

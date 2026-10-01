@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A pending deletion is no longer counted twice** on the sync card, as
+  "1 change pending sync" and again in its own deletion row.
 - **Conflicts of different kinds** are no longer all described with the
   reason of one of them ("Deleted on Proton…" over a notes conflict):
   the line under the list names the reason only when they share it.

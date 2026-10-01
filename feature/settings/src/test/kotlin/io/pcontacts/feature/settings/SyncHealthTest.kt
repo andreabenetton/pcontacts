@@ -129,4 +129,11 @@ class SyncHealthTest {
         )
         assertEquals(R.string.conflict_detail_server_edited, conflictDetailRes(listOf(edited)))
     }
+
+    @Test fun the_pending_row_leaves_out_deletions_which_have_their_own_row() {
+        // Seen live 2026-10-01: one deletion showed as "1 change pending sync" and as a deletion.
+        assertEquals(0, otherPendingChanges(pending = 1, pendingDeletes = 1))
+        assertEquals(2, otherPendingChanges(pending = 3, pendingDeletes = 1))
+        assertEquals(0, otherPendingChanges(pending = 0, pendingDeletes = 2))
+    }
 }
