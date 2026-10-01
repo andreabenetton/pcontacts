@@ -17,9 +17,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
+import io.pcontacts.app.advisories.AdvisoryBootstrap
 import io.pcontacts.app.logging.AndroidLogcatSink
+import io.pcontacts.app.permissions.ContactsPermissionState
+import io.pcontacts.app.permissions.ContactsPermissionStatus
+import io.pcontacts.app.settings.DeGoogledRomsActivity
+import io.pcontacts.app.settings.DependenciesActivity
+import io.pcontacts.app.settings.DependencyAuditAsset
+import io.pcontacts.app.settings.REPOSITORY_URL
+import io.pcontacts.app.settings.startActivityIfAvailable
 import io.pcontacts.app.ui.PcontactsTheme
 import io.pcontacts.app.verification.HumanVerificationActivity
 import io.pcontacts.core.logging.RedactingLogger
@@ -30,6 +39,9 @@ import io.pcontacts.feature.onboarding.LoginUiState
 import io.pcontacts.feature.onboarding.LoginViewModel
 import io.pcontacts.feature.onboarding.TwoFactorScreen
 import io.pcontacts.feature.settings.AppTopBar
+import io.pcontacts.feature.settings.AuditIndicator
+import io.pcontacts.feature.settings.SignInFooter
+import io.pcontacts.feature.settings.SignInNotices
 
 /**
  * AccountAuthenticator's addAccount Intent target. The system Settings →
@@ -77,11 +89,15 @@ class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         response = extractAuthenticatorResponse()
+        val audit = signedOutAudit()
+        val storageUpgradeNotice = SharedPreferencesUserPreferences(this).secretsStorageUpgraded
+        val signedOutNotice = intent.getBooleanExtra(EXTRA_SIGNED_OUT, false)
+        val contactsAccess = ContactsPermissionState.check(this, false) == ContactsPermissionStatus.GRANTED
 
         setContent {
             PcontactsTheme {
-                // The same shell as the Settings root, so signing in looks like the screen that follows.
-                Scaffold(topBar = { AppTopBar() }) { padding ->
+                // The same shell as the app's first screen, so signing in looks like the screen that follows.
+                Scaffold(topBar = { AppTopBar(audit, ::openRepository) }) { padding ->
                     val state by viewModel.uiState.collectAsStateWithLifecycle()
                     when (state) {
                         is LoginUiState.TwoFactorRequired,
@@ -100,12 +116,29 @@ class LoginActivity : ComponentActivity() {
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onTwoFactorRequired = { /* handled by state-driven branch */ },
                             onHumanVerificationRequired = { url -> launchHumanVerification(url) },
-                            modifier = Modifier.padding(padding)
+                            modifier = Modifier.padding(padding),
+                            notices = { SignInNotices(storageUpgradeNotice, signedOutNotice) },
+                            footer = { SignInFooter(contactsAccess, ::openDeGoogledRoms) }
                         )
                     }
                 }
             }
         }
+    }
+
+    /** The dependency audit badge as the signed-out first screen shows it (ADR-0024). */
+    private fun signedOutAudit(): AuditIndicator {
+        val runtime = AdvisoryBootstrap.state(this)
+        val status = if (runtime.enabled) DependencyAuditAsset.load(this).withRuntime(runtime).status else null
+        return AuditIndicator(status) { startActivity(Intent(this, DependenciesActivity::class.java)) }
+    }
+
+    private fun openRepository() {
+        startActivityIfAvailable(Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri()))
+    }
+
+    private fun openDeGoogledRoms() {
+        startActivity(Intent(this, DeGoogledRomsActivity::class.java))
     }
 
     private fun launchHumanVerification(url: String?) {
@@ -159,4 +192,9 @@ class LoginActivity : ComponentActivity() {
         } else {
             intent.getParcelableExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
         }
+
+    companion object {
+        /** Set by the app when the user has just signed out, so the form says so. */
+        const val EXTRA_SIGNED_OUT = "io.pcontacts.EXTRA_SIGNED_OUT"
+    }
 }

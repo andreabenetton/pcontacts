@@ -65,7 +65,6 @@ import io.pcontacts.feature.settings.AuditIndicator
 import io.pcontacts.feature.settings.SettingsScreen
 import io.pcontacts.feature.settings.SignInScreen
 import kotlinx.coroutines.launch
-import io.pcontacts.feature.settings.R as SettingsR
 
 /**
  * The one screen of the app: the Settings shell reduced to its Account
@@ -83,8 +82,17 @@ class MainActivity : ComponentActivity() {
     private var upgradeSignOutRunning by mutableStateOf(false)
     private var storageUpgradeNotice by mutableStateOf(false)
 
-    /** Set by a sign-out the user confirmed in settings; the sign-in screen then says it is done. */
-    private var signedOutNotice by mutableStateOf(false)
+    /** Set by a sign-out the user confirmed in settings; the sign-in form then says it is done. */
+    private var signedOutNotice = false
+
+    /** The sign-in form this screen opened is up; it is not opened twice. */
+    private var loginOpen = false
+
+    // Back from the form without an account closes the app: there is nothing to show behind it.
+    private val loginLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        loginOpen = false
+        if (hasProtonAccount()) viewModel.refresh() else finish()
+    }
 
     private val settingsHost: SettingsHost = SettingsHost(this) {
         signedOutNotice = true
@@ -109,6 +117,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        loginOpen = savedInstanceState?.getBoolean(STATE_LOGIN_OPEN) == true
         viewModel = ViewModelProvider(
             this,
             LauncherViewModel.Factory(
@@ -175,7 +184,7 @@ class MainActivity : ComponentActivity() {
                     showFallbackDialog = handleVerificationIntent(intent)
                 }
 
-                SignedOutSnackbar(snackbarHostState)
+                AutoOpenLogin(state)
                 NotificationDeniedSnackbar(snackbarHostState)
             }
         }
@@ -199,14 +208,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * With no account the sign-in form opens by itself: it carries what the signed-out screen
+     * said (signed out, the storage upgrade, the ROM notice), so this screen is only a backdrop.
+     */
     @Composable
-    private fun SignedOutSnackbar(snackbarHostState: SnackbarHostState) {
-        if (!signedOutNotice) return
-        val message = getString(SettingsR.string.settings_signed_out)
-        LaunchedEffect(Unit) {
-            signedOutNotice = false
-            snackbarHostState.showSnackbar(message)
-        }
+    private fun AutoOpenLogin(state: LauncherUiState) {
+        val noAccount = state is LauncherUiState.NoAccount && !upgradeSignOutRunning
+        LaunchedEffect(noAccount) { if (noAccount) launchLogin() }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_LOGIN_OPEN, loginOpen)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -364,7 +378,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun launchLogin() {
-        startActivity(Intent(this, LoginActivity::class.java))
+        if (loginOpen) return
+        loginOpen = true
+        loginLauncher.launch(
+            Intent(this, LoginActivity::class.java).putExtra(LoginActivity.EXTRA_SIGNED_OUT, signedOutNotice)
+        )
+        signedOutNotice = false
     }
 }
 
@@ -381,3 +400,6 @@ private fun VerificationFallbackDialog(onDismiss: () -> Unit) {
         }
     )
 }
+
+/** Whether the sign-in form this screen opened is still up, kept across a recreation. */
+private const val STATE_LOGIN_OPEN = "login_open"

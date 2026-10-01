@@ -55,6 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the line under the list names the reason only when they share it.
 - **"Delete anyway"** (a contact changed on Proton after you deleted it
   here) deletes it at once instead of waiting another hour.
+- **Signed out, the app opens on the sign-in form** instead of a page
+  with a Sign in button. The form looks like the app's main screen (the
+  Account section, the dependency badge, the GitHub link, the "Not
+  affiliated with Proton AG" line) and says "Signed out." after a
+  sign-out; Back closes the app.
 - **Sign-out asks first**, saying that the Proton contacts leave this
   phone, nothing is deleted on Proton, and changes not synced yet are
   lost.
