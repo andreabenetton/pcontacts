@@ -134,6 +134,36 @@ Neither touches anything F-Droid reads: it keys off the tag existing,
 the version fields in `app/build.gradle.kts`, the fastlane folder at
 the tagged commit and the published release APK.
 
+## Running the test suites
+
+```bash
+# Pure-JVM unit tests (fast, no emulator needed):
+./gradlew :core:crypto:test \
+          :core:proton-api:test \
+          :core:proton-contacts:test \
+          :core:sync:test \
+          :feature:onboarding:test \
+          :feature:settings:test
+
+# Android-library tests via Robolectric (slower first run):
+./gradlew :core:storage:test \
+          :core:contacts-writer:test \
+          :tools:lint:test
+
+# Android lint on the debug build:
+./gradlew :app:lintDebug
+
+# ADR-0015 forbidden-dependency check:
+./gradlew checkForbiddenDependencies
+
+# Instrumented tests (requires connected device or emulator):
+./gradlew :core:contacts-writer:connectedDebugAndroidTest \
+          :feature:onboarding:connectedDebugAndroidTest \
+          :feature:settings:connectedDebugAndroidTest
+```
+
+GitHub Actions runs all of the above plus `:app:assembleRelease` on every push / PR. Instrumented tests run on API 26 and 33 emulators.
+
 ## Vulnerability scanning
 
 Three mechanisms, each with its own job:
