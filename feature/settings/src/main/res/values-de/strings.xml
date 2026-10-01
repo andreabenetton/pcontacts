@@ -6,6 +6,9 @@
 <resources>
     <string name="settings_sync_now">Jetzt synchronisieren</string>
     <string name="settings_sign_out">Abmelden</string>
+    <string name="sign_out_confirm_title">Abmelden?</string>
+    <string name="sign_out_confirm_text">Die Proton-Kontakte auf diesem Telefon werden entfernt. Bei Proton wird nichts gelöscht, aber noch nicht synchronisierte Änderungen gehen verloren.</string>
+    <string name="sign_out_confirm_cancel">Abbrechen</string>
     <string name="settings_signed_out">Abgemeldet.</string>
     <string name="settings_sync_running">Synchronisierung läuft…</string>
     <string name="settings_last_sync">Letzte Synchronisierung: %s</string>

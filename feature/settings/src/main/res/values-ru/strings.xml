@@ -6,6 +6,9 @@
 <resources>
     <string name="settings_sync_now">Синхронизировать сейчас</string>
     <string name="settings_sign_out">Выйти</string>
+    <string name="sign_out_confirm_title">Выйти?</string>
+    <string name="sign_out_confirm_text">Контакты Proton будут удалены с этого телефона. В Proton ничего не удаляется, но ещё не синхронизированные изменения будут потеряны.</string>
+    <string name="sign_out_confirm_cancel">Отмена</string>
     <string name="settings_signed_out">Выход выполнен.</string>
     <string name="settings_sync_running">Выполняется синхронизация…</string>
     <string name="settings_last_sync">Последняя синхронизация: %s</string>

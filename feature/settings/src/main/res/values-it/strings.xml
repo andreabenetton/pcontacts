@@ -6,6 +6,9 @@
 <resources>
     <string name="settings_sync_now">Sincronizza ora</string>
     <string name="settings_sign_out">Esci</string>
+    <string name="sign_out_confirm_title">Uscire?</string>
+    <string name="sign_out_confirm_text">I contatti Proton su questo telefono verranno rimossi. Su Proton non viene eliminato nulla, ma le modifiche non ancora sincronizzate vanno perse.</string>
+    <string name="sign_out_confirm_cancel">Annulla</string>
     <string name="settings_signed_out">Disconnesso.</string>
     <string name="settings_sync_running">Sincronizzazione in corso…</string>
     <string name="settings_last_sync">Ultima sincronizzazione: %s</string>

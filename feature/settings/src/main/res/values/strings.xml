@@ -6,6 +6,9 @@
 <resources>
     <string name="settings_sync_now">Sync now</string>
     <string name="settings_sign_out">Sign out</string>
+    <string name="sign_out_confirm_title">Sign out?</string>
+    <string name="sign_out_confirm_text">The Proton contacts on this phone will be removed. Nothing is deleted on Proton, but changes not synced yet are lost.</string>
+    <string name="sign_out_confirm_cancel">Cancel</string>
     <string name="settings_signed_out">Signed out.</string>
     <string name="settings_sync_running">Sync in progress…</string>
     <string name="settings_last_sync">Last sync: %s</string>

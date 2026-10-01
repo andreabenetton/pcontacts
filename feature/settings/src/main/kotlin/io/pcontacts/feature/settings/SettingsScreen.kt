@@ -5,7 +5,6 @@ package io.pcontacts.feature.settings
 
 import android.text.format.DateUtils
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,13 +21,11 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -125,15 +122,7 @@ fun SettingsScreen(
             AdvisoryCheckSection(viewModel, actions)
 
             SectionHeader(R.string.settings_section_account)
-            OutlinedButton(
-                enabled = !busy,
-                onClick = viewModel::triggerSignOut,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.error),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.settings_sign_out))
-            }
+            SignOutButton(enabled = !busy, onSignOut = viewModel::triggerSignOut)
             ContributeSection()
             Spacer(Modifier.height(24.dp))
             // The same statement the sign-in screen makes, so it is on screen once signed in too.

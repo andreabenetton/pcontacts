@@ -6,7 +6,9 @@ package io.pcontacts.feature.settings
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -131,6 +133,7 @@ class SettingsScreenTest {
             SettingsScreen(vm, SettingsActions(onSignedOut = { signedOutCalled = true }))
         }
         composeRule.onNodeWithText("Sign out").performScrollTo().performClick()
+        confirmSignOut()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Sign out").assertIsNotEnabled()
@@ -139,6 +142,32 @@ class SettingsScreenTest {
         composeRule.waitForIdle()
 
         assertTrue(signedOutCalled)
+    }
+
+    private fun confirmSignOut() {
+        composeRule.onNode(hasText("Sign out") and hasAnyAncestor(isDialog())).performClick()
+    }
+
+    @Test
+    fun sign_out_asks_first_and_cancel_keeps_the_account() {
+        var signOuts = 0
+        val vm = viewModel(
+            signOut = {
+                signOuts++
+                SettingsActionResult.Success()
+            }
+        )
+
+        composeRule.setContent {
+            SettingsScreen(vm, SettingsActions(onSignedOut = {}))
+        }
+        composeRule.onNodeWithText("Sign out").performScrollTo().performClick()
+        composeRule.onNodeWithText("Sign out?").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(0, signOuts)
+        composeRule.onNodeWithText("Sign out?").assertDoesNotExist()
     }
 
     @Test
@@ -151,6 +180,7 @@ class SettingsScreenTest {
             SettingsScreen(vm, SettingsActions(onSignedOut = {}))
         }
         composeRule.onNodeWithText("Sign out").performScrollTo().performClick()
+        confirmSignOut()
         composeRule.waitForIdle()
 
         composeRule.onNode(hasText("missing_contacts_permission", substring = true))
