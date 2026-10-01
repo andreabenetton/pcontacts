@@ -28,3 +28,21 @@ internal suspend fun cancelPendingDelete(
     if (restored == 0) contactMapDao.forceRefetch(protonContactId)
     return restored > 0
 }
+
+/**
+ * Drops a change Proton refused (Settings, "Discard"). A discarded deletion keeps the contact,
+ * as a cancelled one does: the tombstone, left in place, would otherwise queue the delete again
+ * on the next run, and the phone and Proton would disagree for good (ADR-0017, 2026-10-01).
+ */
+internal suspend fun discardQuarantinedChange(
+    contactMapDao: ContactMapDao,
+    outboxDao: OutboxDao,
+    outboxId: Long,
+    restoreTombstones: suspend (protonContactId: String) -> Int
+) {
+    val entry = outboxDao.listQuarantined().firstOrNull { it.id == outboxId } ?: return
+    outboxDao.deleteById(entry.id)
+    if (entry.opType != OutboxEntity.OpType.DELETE) return
+    val restored = restoreTombstones(entry.protonContactId)
+    if (restored == 0) contactMapDao.forceRefetch(entry.protonContactId)
+}

@@ -177,6 +177,11 @@ class ContactWriteEngine(
                 ?.let { outboxDao.deleteById(it.id) }
             return EnqueueResult.SKIPPED
         }
+        // A refused delete stays in "failed changes" until Retry or Discard; the tombstone,
+        // read again on every run, is not a second deletion (ADR-0017, 2026-10-01).
+        val failedDelete = outboxDao.findByContact(protonId)
+            .any { it.quarantined && it.opType == OutboxEntity.OpType.DELETE }
+        if (failedDelete) return EnqueueResult.SKIPPED
         return outboxDao.enqueue(protonId, OutboxEntity.OpType.DELETE, "", now).toResult()
     }
 

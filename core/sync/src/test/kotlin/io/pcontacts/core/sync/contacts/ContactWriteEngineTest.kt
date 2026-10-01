@@ -647,32 +647,6 @@ class ContactWriteEngineTest {
         assertEquals(hash, nonQuarantined.single().payloadHash)
     }
 
-    @Test fun detectChanges_re_enqueues_delete_when_prior_entry_quarantined() = runTest {
-        val outbox = WriteFakeOutboxDao()
-        val contactMap = WriteFakeContactMapDao()
-        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
-
-        val id = outbox.insert(OutboxEntity(
-            protonContactId = "ct-1",
-            opType = OutboxEntity.OpType.DELETE,
-            payloadHash = "",
-            createdAt = 1_000_000L
-        ))
-        outbox.quarantine(id, "HttpException: 400")
-
-        val engine = newEngine(
-            outbox = outbox,
-            contactMap = contactMap,
-            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = false, isDeleted = true))
-        )
-        val count = engine.detectChanges(testAccount)
-
-        assertEquals(1, count)
-        val nonQuarantined = outbox.entries.values.filter { !it.quarantined }
-        assertEquals(1, nonQuarantined.size)
-        assertEquals(OutboxEntity.OpType.DELETE, nonQuarantined.single().opType)
-    }
-
     @Test fun detectChanges_skips_when_contact_row_unreadable() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
@@ -1047,6 +1021,24 @@ class ContactWriteEngineTest {
         engine.detectChanges(testAccount)
 
         assertTrue("no delete while the user has not answered", outbox.entries.isEmpty())
+    }
+
+    @Test fun detectChanges_a_deleted_row_whose_delete_failed_queues_no_second_delete() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.DELETE, "", 1L)
+        outbox.quarantine(outbox.findLive("ct-1")!!.id, "HTTP 422, Proton code 2001")
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = false, isDeleted = true))
+        )
+
+        engine.detectChanges(testAccount)
+
+        assertNull("the failed delete waits for Retry or Discard", outbox.findLive("ct-1"))
+        assertEquals(1, outbox.findByContact("ct-1").size)
     }
 
     @Test fun detectChanges_clears_dirty_flag_when_hash_unchanged() = runTest {

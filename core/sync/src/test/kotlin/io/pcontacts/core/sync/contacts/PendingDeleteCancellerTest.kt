@@ -65,4 +65,37 @@ class PendingDeleteCancellerTest {
 
         assertEquals(OutboxEntity.OpType.UPDATE, outbox.findLive("ct-1")!!.opType)
     }
+
+    @Test fun discarding_a_failed_deletion_keeps_the_contact() = runTest {
+        pendingDelete()
+        val failed = outbox.findLive("ct-1")!!
+        outbox.quarantine(failed.id, "HTTP 422, Proton code 2001")
+        val restoredFor = mutableListOf<String>()
+
+        discardQuarantinedChange(contactMap, outbox, failed.id) {
+            restoredFor += it
+            1
+        }
+
+        assertTrue(outbox.findByContact("ct-1").isEmpty())
+        assertEquals("the tombstone comes back, or it would queue the delete again", listOf("ct-1"), restoredFor)
+    }
+
+    @Test fun discarding_a_failed_edit_restores_nothing() = runTest {
+        pendingDelete()
+        val failed = outbox.findLive("ct-1")!!
+        outbox.deleteById(failed.id)
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 6L)
+        val edit = outbox.findLive("ct-1")!!
+        outbox.quarantine(edit.id, "HTTP 422, Proton code 2001")
+        val restoredFor = mutableListOf<String>()
+
+        discardQuarantinedChange(contactMap, outbox, edit.id) {
+            restoredFor += it
+            1
+        }
+
+        assertTrue(outbox.findByContact("ct-1").isEmpty())
+        assertTrue(restoredFor.isEmpty())
+    }
 }

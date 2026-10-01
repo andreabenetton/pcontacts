@@ -121,8 +121,13 @@ object SyncBootstrap {
      * Drops one quarantined entry for good. The local contact keeps
      * whatever state it has; only the pending push is abandoned.
      */
-    suspend fun discardQuarantinedChange(context: Context, outboxId: Long) {
-        DatabaseFactory.create(context.applicationContext).outboxDao().deleteById(outboxId)
+    /** A discarded deletion restores its tombstone, which needs [account]; without it the refetch brings it back. */
+    suspend fun discardQuarantinedChange(context: Context, outboxId: Long, account: Account? = null) {
+        val appContext = context.applicationContext
+        val db = DatabaseFactory.create(appContext)
+        discardQuarantinedChange(db.contactMapDao(), db.outboxDao(), outboxId) { id ->
+            if (account == null) 0 else restoreTombstone(appContext, account, id)
+        }
     }
 
     suspend fun loadLauncherStatus(context: Context): LauncherStatus {
@@ -378,18 +383,21 @@ object SyncBootstrap {
         val appContext = context.applicationContext
         val db = DatabaseFactory.create(appContext)
         return cancelPendingDelete(db.contactMapDao(), db.outboxDao(), protonContactId) { id ->
-            withContext(Dispatchers.IO) {
-                val provider = appContext.contentResolver.acquireContentProviderClient(ContactsContract.AUTHORITY)
-                    ?: return@withContext 0
-                try {
-                    TombstoneRestorer(provider).restore(account, id)
-                } finally {
-                    @Suppress("DEPRECATION")
-                    provider.release()
-                }
-            }
+            restoreTombstone(appContext, account, id)
         }
     }
+
+    private suspend fun restoreTombstone(appContext: Context, account: Account, protonContactId: String): Int =
+        withContext(Dispatchers.IO) {
+            val provider = appContext.contentResolver.acquireContentProviderClient(ContactsContract.AUTHORITY)
+                ?: return@withContext 0
+            try {
+                TombstoneRestorer(provider).restore(account, protonContactId)
+            } finally {
+                @Suppress("DEPRECATION")
+                provider.release()
+            }
+        }
 
     /**
      * The user's answer to a conflict row (Settings): phone version or Proton version. Keeping

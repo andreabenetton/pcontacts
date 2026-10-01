@@ -457,3 +457,11 @@ settled, and both outcomes were wrong:
   unchanged restore was skipped as "no change", so the delete still
   went out and the pull then removed the restored row.
 
+- **Refused.** A DELETE Proton refuses is quarantined ("failed
+  changes"), and its tombstone, read again on every run, is not a new
+  deletion: it queues no second DELETE (before, each run past a refusal
+  added one, and Discard never stuck, since the tombstone queued the
+  delete again). Retry sends the same DELETE again; Discard keeps the
+  contact, as a cancel does: the tombstone is restored (or, if the
+  provider purged it, the contact is refetched), so the phone and
+  Proton agree again.
