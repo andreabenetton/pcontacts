@@ -105,7 +105,9 @@ class SyncHealthTest {
             conflictDialogTexts(removed)
         )
         assertEquals(R.string.conflict_use_local, conflictDialogTexts(edited).useLocal)
-        assertEquals(R.string.conflict_detail_local_removed, conflictDetailRes(listOf(edited, removed)))
+        assertEquals(R.string.conflict_detail_local_removed, conflictDetailRes(listOf(removed)))
+        // Seen live 2026-10-01: one reason under a mixed list misdescribes the others.
+        assertEquals(R.string.conflict_detail_mixed, conflictDetailRes(listOf(edited, removed)))
         assertEquals(R.string.conflict_detail, conflictDetailRes(listOf(edited)))
     }
 

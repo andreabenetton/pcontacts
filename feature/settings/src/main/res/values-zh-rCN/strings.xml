@@ -60,6 +60,7 @@
         <item quantity="other">%d 个联系人存在同步冲突</item>
     </plurals>
     <string name="conflict_detail">手机和 Proton 对相同字段都有更改。</string>
+    <string name="conflict_detail_mixed">这些联系人的冲突原因各不相同：点按各自的“解决”查看原因。</string>
     <string name="conflict_resolve">解决</string>
     <string name="conflict_dialog_title">解决冲突</string>
     <string name="conflict_dialog_fields">冲突字段：%s</string>

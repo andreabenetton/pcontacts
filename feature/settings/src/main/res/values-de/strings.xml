@@ -65,6 +65,7 @@
         <item quantity="other">%d Kontakte mit Synchronisierungskonflikten</item>
     </plurals>
     <string name="conflict_detail">Sowohl das Telefon als auch Proton haben Änderungen an denselben Feldern.</string>
+    <string name="conflict_detail_mixed">Diese Kontakte stehen aus unterschiedlichen Gründen in Konflikt: Tippen Sie jeweils auf „Beheben“, um den Grund zu sehen.</string>
     <string name="conflict_resolve">Beheben</string>
     <string name="conflict_dialog_title">Konflikt beheben</string>
     <string name="conflict_dialog_fields">Betroffene Felder: %s</string>

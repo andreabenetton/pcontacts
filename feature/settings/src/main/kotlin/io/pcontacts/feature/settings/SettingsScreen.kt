@@ -923,10 +923,13 @@ internal fun conflictDialogTexts(conflict: ConflictInfo): ConflictDialogTexts = 
 }
 
 /** The line under the conflict count: the most specific explanation that applies. */
-internal fun conflictDetailRes(conflicts: List<ConflictInfo>): Int = when {
-    conflicts.any { it.serverEdited } -> R.string.conflict_detail_server_edited
-    conflicts.any { it.localRemoved } -> R.string.conflict_detail_local_removed
-    conflicts.any { it.serverDeleted } -> R.string.conflict_detail_server_deleted
+internal fun conflictDetailRes(conflicts: List<ConflictInfo>): Int =
+    conflicts.map(::conflictReasonRes).distinct().singleOrNull() ?: R.string.conflict_detail_mixed
+
+private fun conflictReasonRes(conflict: ConflictInfo): Int = when {
+    conflict.serverEdited -> R.string.conflict_detail_server_edited
+    conflict.localRemoved -> R.string.conflict_detail_local_removed
+    conflict.serverDeleted -> R.string.conflict_detail_server_deleted
     else -> R.string.conflict_detail
 }
 

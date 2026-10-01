@@ -65,6 +65,7 @@
         <item quantity="other">%d contacts with sync conflicts</item>
     </plurals>
     <string name="conflict_detail">Both the phone and Proton have changes to the same fields.</string>
+    <string name="conflict_detail_mixed">These contacts conflict for different reasons: tap Resolve on each to see why.</string>
     <string name="conflict_resolve">Resolve</string>
     <string name="conflict_dialog_title">Resolve conflict</string>
     <string name="conflict_dialog_fields">Conflicting fields: %s</string>

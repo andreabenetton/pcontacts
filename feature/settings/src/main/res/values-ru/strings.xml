@@ -75,6 +75,7 @@
         <item quantity="other">%d контактов с конфликтами синхронизации</item>
     </plurals>
     <string name="conflict_detail">И телефон, и Proton содержат изменения одних и тех же полей.</string>
+    <string name="conflict_detail_mixed">У этих контактов разные причины конфликта: нажмите «Разрешить» у каждого, чтобы увидеть причину.</string>
     <string name="conflict_resolve">Разрешить</string>
     <string name="conflict_dialog_title">Разрешить конфликт</string>
     <string name="conflict_dialog_fields">Конфликтующие поля: %s</string>

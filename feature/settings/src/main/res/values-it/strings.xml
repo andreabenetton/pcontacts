@@ -65,6 +65,7 @@
         <item quantity="other">%d contatti con conflitti di sincronizzazione</item>
     </plurals>
     <string name="conflict_detail">Sia il telefono che Proton hanno modifiche agli stessi campi.</string>
+    <string name="conflict_detail_mixed">Questi contatti sono in conflitto per motivi diversi: tocca Risolvi su ognuno per vedere perché.</string>
     <string name="conflict_resolve">Risolvi</string>
     <string name="conflict_dialog_title">Risolvi conflitto</string>
     <string name="conflict_dialog_fields">Campi in conflitto: %s</string>
