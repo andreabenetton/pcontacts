@@ -18,6 +18,10 @@
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Verify</string>
     <string name="two_factor_cancel">Cancel sign-in</string>
+    <string name="two_factor_recovery_subtitle">Enter one of the recovery codes you saved when you set up two-factor authentication. Each code works once.</string>
+    <string name="two_factor_recovery_label">Recovery code</string>
+    <string name="two_factor_use_recovery">Use a recovery code</string>
+    <string name="two_factor_use_code">Use the authenticator code</string>
 
     <!-- Login failure messages (keyed off LoginResult.Failed reason codes) -->
     <string name="login_error_unreachable">Could not reach Proton. Check your connection and try again.</string>

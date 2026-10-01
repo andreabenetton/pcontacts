@@ -18,6 +18,10 @@
     <string name="two_factor_code_label">验证码</string>
     <string name="two_factor_verify">验证</string>
     <string name="two_factor_cancel">取消登录</string>
+    <string name="two_factor_recovery_subtitle">输入您在设置双重身份验证时保存的恢复码之一。每个代码只能使用一次。</string>
+    <string name="two_factor_recovery_label">恢复码</string>
+    <string name="two_factor_use_recovery">使用恢复码</string>
+    <string name="two_factor_use_code">使用身份验证器代码</string>
 
     <!-- 登录错误信息 -->
     <string name="login_error_unreachable">无法连接到 Proton。请检查网络连接后重试。</string>

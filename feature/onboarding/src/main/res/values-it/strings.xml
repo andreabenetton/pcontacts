@@ -18,6 +18,10 @@
     <string name="two_factor_code_label">Codice</string>
     <string name="two_factor_verify">Verifica</string>
     <string name="two_factor_cancel">Annulla accesso</string>
+    <string name="two_factor_recovery_subtitle">Inserisci uno dei codici di recupero salvati quando hai attivato l\'autenticazione a due fattori. Ogni codice funziona una sola volta.</string>
+    <string name="two_factor_recovery_label">Codice di recupero</string>
+    <string name="two_factor_use_recovery">Usa un codice di recupero</string>
+    <string name="two_factor_use_code">Usa il codice dell\'app di autenticazione</string>
 
     <!-- Messaggi di errore di accesso -->
     <string name="login_error_unreachable">Impossibile raggiungere Proton. Controlla la tua connessione e riprova.</string>

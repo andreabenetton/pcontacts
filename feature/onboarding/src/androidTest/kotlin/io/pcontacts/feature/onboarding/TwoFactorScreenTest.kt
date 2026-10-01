@@ -16,6 +16,7 @@ import io.pcontacts.core.sync.auth.LoginResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -58,13 +59,46 @@ class TwoFactorScreenTest {
     }
 
     @Test
-    fun six_digit_code_enables_verify_button() {
-        val vm = viewModelIn2faState()
+    fun the_sixth_digit_sends_the_code_by_itself_once() {
+        val sent = mutableListOf<String>()
+        val vm = viewModelIn2faState(
+            submitTotp = {
+                sent += it
+                LoginResult.Failed("two_factor_rejected")
+            }
+        )
         composeRule.setContent {
             TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
         }
         composeRule.onNodeWithText("Code").performTextInput("123456")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Code").performTextInput("654321")
+        composeRule.waitForIdle()
+
+        assertEquals("as in Proton's web client, only the first code goes by itself", listOf("123456"), sent)
         composeRule.onNodeWithText("Verify").assertIsEnabled()
+    }
+
+    @Test
+    fun a_recovery_code_takes_letters_and_waits_for_verify() {
+        val sent = mutableListOf<String>()
+        val vm = viewModelIn2faState(
+            submitTotp = {
+                sent += it
+                LoginResult.Success("uid-2fa", "testuser")
+            }
+        )
+        composeRule.setContent {
+            TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
+        }
+        composeRule.onNodeWithText("Use a recovery code").performClick()
+        composeRule.onNodeWithText("Recovery code").performTextInput("ab12 cd34")
+        composeRule.waitForIdle()
+        assertTrue(sent.isEmpty())
+
+        composeRule.onNodeWithText("Verify").performClick()
+        composeRule.waitForIdle()
+        assertEquals(listOf("ab12cd34"), sent)
     }
 
     @Test
@@ -76,7 +110,6 @@ class TwoFactorScreenTest {
             TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
         }
         composeRule.onNodeWithText("Code").performTextInput("123456")
-        composeRule.onNodeWithText("Verify").performClick()
 
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Code").assertIsNotEnabled()
@@ -93,7 +126,6 @@ class TwoFactorScreenTest {
             TwoFactorScreen(vm, onSuccess = { _, _ -> }, onCancel = {})
         }
         composeRule.onNodeWithText("Code").performTextInput("000000")
-        composeRule.onNodeWithText("Verify").performClick()
 
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Code").assertIsEnabled()

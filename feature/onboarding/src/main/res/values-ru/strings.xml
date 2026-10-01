@@ -18,6 +18,10 @@
     <string name="two_factor_code_label">Код</string>
     <string name="two_factor_verify">Подтвердить</string>
     <string name="two_factor_cancel">Отменить вход</string>
+    <string name="two_factor_recovery_subtitle">Введите один из кодов восстановления, сохранённых при настройке двухфакторной аутентификации. Каждый код действует один раз.</string>
+    <string name="two_factor_recovery_label">Код восстановления</string>
+    <string name="two_factor_use_recovery">Использовать код восстановления</string>
+    <string name="two_factor_use_code">Использовать код из приложения-аутентификатора</string>
 
     <!-- Сообщения об ошибках входа -->
     <string name="login_error_unreachable">Не удалось связаться с Proton. Проверьте подключение и повторите попытку.</string>

@@ -18,6 +18,10 @@
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Bestätigen</string>
     <string name="two_factor_cancel">Anmeldung abbrechen</string>
+    <string name="two_factor_recovery_subtitle">Gib einen der Wiederherstellungscodes ein, die du beim Einrichten der Zwei-Faktor-Authentifizierung gespeichert hast. Jeder Code funktioniert nur einmal.</string>
+    <string name="two_factor_recovery_label">Wiederherstellungscode</string>
+    <string name="two_factor_use_recovery">Wiederherstellungscode verwenden</string>
+    <string name="two_factor_use_code">Code aus der Authenticator-App verwenden</string>
 
     <!-- Fehlermeldungen bei der Anmeldung -->
     <string name="login_error_unreachable">Proton konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>

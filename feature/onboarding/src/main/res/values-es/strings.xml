@@ -18,6 +18,10 @@
     <string name="two_factor_code_label">Código</string>
     <string name="two_factor_verify">Verificar</string>
     <string name="two_factor_cancel">Cancelar inicio de sesión</string>
+    <string name="two_factor_recovery_subtitle">Introduce uno de los códigos de recuperación que guardaste al configurar la autenticación en dos pasos. Cada código solo sirve una vez.</string>
+    <string name="two_factor_recovery_label">Código de recuperación</string>
+    <string name="two_factor_use_recovery">Usar un código de recuperación</string>
+    <string name="two_factor_use_code">Usar el código del autenticador</string>
 
     <!-- Mensajes de error de inicio de sesión -->
     <string name="login_error_unreachable">No se pudo conectar con Proton. Comprueba tu conexión y vuelve a intentarlo.</string>

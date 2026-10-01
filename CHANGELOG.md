@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   up beside the failed one, and "Discard" could not make it stop.
   The failed deletion now waits for Retry or Discard, and Discard keeps
   the contact on the phone, as cancelling a deletion does.
+- **Two-factor recovery codes** could not be typed: the code box took
+  digits only. "Use a recovery code" now switches to a box that takes
+  them as Proton's web client does.
 - **A contact changed on the phone and deleted on Proton** before the
   change was sent landed in "failed changes" (Proton code 2501) as well
   as among the conflicts. Proton's "does not exist" answer is now read
@@ -67,6 +70,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   save the login, the keyboard opens on the username, a failed attempt
   marks the fields and asks for the password again, and the form scrolls
   above the keyboard on small screens.
+- **The two-factor step sends the code by itself** at the sixth digit,
+  as Proton's web client does, opens with the keyboard up, and lets a
+  password manager fill the code.
 - **Sign-out asks first**, saying that the Proton contacts leave this
   phone, nothing is deleted on Proton, and changes not synced yet are
   lost.
