@@ -1,0 +1,6 @@
+Version 2.2.0.
+
+* Öffnet direkt mit dem Anmeldeformular; Passwortmanager können es ausfüllen, Wiederherstellungscodes funktionieren.
+* Sichereres Löschen: Ein in der Wartestunde bei Proton geänderter oder am Telefon wiederhergestellter Kontakt wird nicht mehr gelöscht.
+* Klarere Sync-Karte: „Warten auf eine Verbindung“ ohne Netz, verständliche Gründe für Fehler; Abmelden fragt nach.
+* „Nicht mit Proton AG verbunden“ auf jedem Bildschirm.

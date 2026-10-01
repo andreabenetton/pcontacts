@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0] - 2026-10-02
 
 ### Fixed
 
@@ -101,8 +101,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Several pending deletions** show as one row on the card that opens a
   dialog listing them, each with Cancel; a deletion shows the contact's
   name instead of its Proton id where the phone still has it.
-- The main screen ends with the same "Not affiliated with or endorsed by
-  Proton AG." statement as the sign-in screen.
 - Import details: the dialog is titled "Move or copy to Proton" when it
   offers the move; the bulk result names only the counts above zero; the
   number of contacts to be moved has its own line instead of wrapping
@@ -815,6 +813,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[2.2.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.2.0
 [2.1.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.1.0
 [2.0.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.0.0
 [1.7.2]: https://github.com/andreabenetton/pcontacts/releases/tag/v1.7.2

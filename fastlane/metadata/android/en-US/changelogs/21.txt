@@ -1,0 +1,6 @@
+Version 2.2.0.
+
+* Opens straight on the sign-in form; password managers can fill it, and two-factor recovery codes work.
+* Safer deletions: a contact changed on Proton or restored on the phone during the grace hour is no longer deleted.
+* Clearer sync card: "Waiting for a connection" when offline, plain reasons for failed changes; sign-out asks first.
+* "Not affiliated with Proton AG" on every screen.

@@ -1,0 +1,6 @@
+Versión 2.2.0.
+
+* Se abre directamente en el formulario de inicio de sesión; los gestores de contraseñas pueden rellenarlo y los códigos de recuperación funcionan.
+* Eliminaciones más seguras: un contacto modificado en Proton o restaurado en el teléfono durante la hora de espera ya no se elimina.
+* Tarjeta de sincronización más clara: «Esperando conexión» sin red, motivos claros de los errores; cerrar sesión pide confirmación.
+* «Sin afiliación con Proton AG» en todas las pantallas.

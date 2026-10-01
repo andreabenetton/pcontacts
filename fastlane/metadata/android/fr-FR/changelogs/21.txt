@@ -1,0 +1,6 @@
+Version 2.2.0.
+
+* S'ouvre directement sur le formulaire de connexion ; les gestionnaires de mots de passe peuvent le remplir et les codes de récupération fonctionnent.
+* Suppressions plus sûres : un contact modifié dans Proton ou restauré sur le téléphone pendant l'heure d'attente n'est plus supprimé.
+* Carte de synchronisation plus claire : « En attente de connexion » hors ligne, raisons claires des échecs ; la déconnexion demande confirmation.
+* « Non affilié à Proton AG » sur chaque écran.

@@ -1,0 +1,6 @@
+Versione 2.2.0.
+
+* Si apre direttamente sul modulo di accesso; i gestori di password possono compilarlo e i codici di recupero funzionano.
+* Eliminazioni più sicure: un contatto modificato in Proton o ripristinato sul telefono durante l'ora di attesa non viene più eliminato.
+* Scheda di sincronizzazione più chiara: «In attesa di connessione» senza rete, motivi chiari degli errori; l'uscita chiede conferma.
+* «Non affiliato a Proton AG» su ogni schermata.
