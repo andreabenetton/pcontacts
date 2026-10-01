@@ -102,3 +102,17 @@ graph TD
   `:core:logging` are **pure-JVM** modules (testable without an emulator).
 - `:tools:lint` is consumed via `lintChecks` by every Android module; it
   enforces the `pcontacts.SensitiveLog` rule (ADR-0015).
+
+## Key decisions
+
+The load-bearing calls; [`docs/adr/README.md`](adr/README.md) indexes every ADR.
+
+- **Native Kotlin crypto** in `:core:crypto`: BouncyCastle for OpenPGP, ported Proton SRP (go-srp variant) + bcrypt-SHA-512. No embedded JS engine. (ADR 0002)
+- **F-Droid first**, sideload-friendly. No Google Play Services, no telemetry, no closed-source binaries. Enforced by a `checkForbiddenDependencies` Gradle task that fails CI on any forbidden group landing in a release classpath. (ADRs 0003, 0015)
+- **The dependency audit ships in the app.** A "Dependencies" chip next to the version opens a screen listing every shipped artifact with version, license and known advisories linked to osv.dev. The list is a snapshot generated at build time from one osv.dev query and committed to the repo; CI fails when it no longer matches the resolved classpath or when osv.dev or the weekly Dependency-Check scan reports an open advisory it does not list. (ADR 0024)
+- **Optional runtime check, off by default.** A switch in Privacy sends the same artifact list (public in this repo) once a day to osv.dev, which then sees the device's address and can infer the app from the artifacts asked; the switch says so and calls it a privacy-versus-security trade-off left to the user. Only while it is on does the chip carry a verdict ("Dependencies OK"; assessed, amber; vulnerability, red), from osv.dev alone; new advisories are announced once and can be muted, which counts as assessed until the artifact changes version. Nothing else in the app depends on the answer. (ADR 0025)
+- **`AbstractAccountAuthenticator` + `SyncAdapter`** for system integration; `WorkManager` as the belt-and-suspenders periodic scheduler. (ADR 0004)
+- **Client-side decrypt only.** The app never calls the server-side decrypting export endpoint; a CI grep fails on its path. (ADR 0007)
+- **Bidirectional sync** with persistent outbox, per-field three-way merge, soft-delete with 1-hour grace, and push-before-pull ordering. Supersedes the read-only MVP scope. (ADRs 0017, 0018; supersedes ADR 0006)
+- **Delete-and-reinsert child Data rows on update**, never the parent RawContact (preserves user-owned aggregate state — starred, custom ringtone, custom photo). (ADR 0010)
+- **Modulus signature verification** against a pinned Proton SRP signing key. Verified against live API. (ADR 0014)
