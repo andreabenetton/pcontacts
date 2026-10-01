@@ -337,6 +337,7 @@ private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?, pendi
     val syncedAt = info.lastRunAtMillis ?: info.syncedAtMillis
     var absolute by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val locale = currentLocale()
     val syncText = when {
         syncedAt == null -> stringResource(R.string.settings_last_sync_never)
         absolute -> stringResource(
@@ -344,10 +345,7 @@ private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?, pendi
             DateUtils.formatDateTime(context, syncedAt, ABSOLUTE_FLAGS)
         )
         // [now] ticks every 30 s, so a sync that just finished can be ahead of it; never say "In 0 minutes".
-        else -> stringResource(
-            R.string.settings_last_sync,
-            DateUtils.getRelativeTimeSpanString(syncedAt, maxOf(now, syncedAt), DateUtils.MINUTE_IN_MILLIS)
-        )
+        else -> stringResource(R.string.settings_last_sync, agoInSentence(syncedAt, maxOf(now, syncedAt), locale))
     }
     if (contacts != null) {
         val count = pluralStringResource(R.plurals.sync_contacts_count, contacts, contacts)
@@ -987,7 +985,7 @@ private fun AdvisoryCheckSection(viewModel: SettingsViewModel, actions: Settings
 internal fun AdvisoryCheckStatusLine(state: AdvisoryCheckState, checking: Boolean) {
     val open = state.advisories.count { !it.muted }
     val muted = state.advisories.size - open
-    val ago = DateUtils.getRelativeTimeSpanString(state.lastCheckedAtMillis).toString()
+    val ago = agoInSentence(state.lastCheckedAtMillis, System.currentTimeMillis(), currentLocale())
     val text = when {
         checking -> stringResource(R.string.advisory_check_running)
         state.lastCheckedAtMillis == 0L -> stringResource(R.string.advisory_check_never)

@@ -76,6 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The two-factor step sends the code by itself** at the sixth digit,
   as Proton's web client does, opens with the keyboard up, and lets a
   password manager fill the code.
+- **German:** the app says "Sie" throughout (the sign-in screens said
+  "du"), and "last check" / "last sync" times read "vor 2 Stunden"
+  instead of "Vor 2 Stunden" mid-sentence.
 - **Sign-out asks first**, saying that the Proton contacts leave this
   phone, nothing is deleted on Proton, and changes not synced yet are
   lost.
