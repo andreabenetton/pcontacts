@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   change made on Proton. The deletion is now held back and you choose:
   delete it anyway, or keep Proton's version and put it back on the
   phone (ADR-0017 amendment).
+- **A contact restored on the phone** within that hour (an undo in the
+  Contacts app, a restore by another app) was still deleted on Proton
+  when the hour ran out, and then removed from the phone again. The
+  restored contact now cancels its pending deletion.
 - **A contact deleted on the phone and also on Proton** in that hour
   was flagged as a conflict ("deleted on Proton after it was changed on
   this phone"), whose "phone version" would even have recreated it. Both
