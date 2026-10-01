@@ -119,7 +119,7 @@ class ProtonSyncAdapter(
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync stopped — app version rejected (Code ${e.protonCode}), update required" }
             userPreferences.lastSyncErrorCode = SyncErrorCodes.APP_VERSION
-            notifier.notifyHumanVerification(account, null)
+            notifier.notifyUpdateRequired()
         } catch (e: IOException) {
             // A genuine network/transport failure — the connection really is
             // the problem (this includes cert-pinning rejections).

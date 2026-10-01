@@ -19,6 +19,8 @@
     <string name="channel_sign_in_required_description">Оповещения, когда нужно войти снова, чтобы синхронизация контактов продолжилась</string>
     <string name="notification_verification_title">Требуется проверка Proton</string>
     <string name="notification_verification_text">Нажмите, чтобы завершить проверку и возобновить синхронизацию контактов.</string>
+    <string name="notification_update_required_title">pcontacts нужно обновить</string>
+    <string name="notification_update_required_text">Proton больше не принимает эту версию pcontacts, поэтому контакты не синхронизируются. Обновите приложение, чтобы возобновить синхронизацию.</string>
     <string name="notification_reauth_title">Требуется вход</string>
     <string name="notification_reauth_text">Ваша сессия истекла. Войдите снова, чтобы возобновить синхронизацию контактов.</string>
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 хранит сессию с более надёжным шифрованием, привязанным к устройству. Войдите снова один раз; синхронизированные контакты удаляются с этого телефона и полностью загружаются заново при первой синхронизации.</string>

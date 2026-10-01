@@ -19,6 +19,8 @@
     <string name="channel_sign_in_required_description">需要重新登录才能继续同步联系人时的提醒</string>
     <string name="notification_verification_title">需要 Proton 验证</string>
     <string name="notification_verification_text">点按以完成验证，恢复联系人同步。</string>
+    <string name="notification_update_required_title">pcontacts 需要更新</string>
+    <string name="notification_update_required_text">Proton 不再接受此版本的 pcontacts，因此联系人未同步。请更新应用以恢复同步。</string>
     <string name="notification_reauth_title">需要登录</string>
     <string name="notification_reauth_text">会话已过期。请重新登录以恢复联系人同步。</string>
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 以更安全、与设备绑定的加密方式保存会话。请重新登录一次；已同步的联系人会从此手机移除，并在首次同步时完整重新下载。</string>

@@ -13,12 +13,16 @@ import android.content.ContentResolver
 import android.content.SyncResult
 import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
+import io.pcontacts.app.R
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.notifications.NotificationChannels
+import io.pcontacts.app.notifications.SyncNotifier
+import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.storage.InMemoryUserPreferences
 import io.pcontacts.core.sync.contacts.SyncReport
 import io.pcontacts.core.sync.contacts.WriteReport
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -81,5 +85,26 @@ class ProtonSyncAdapterProblemNoticeTest {
         run(adapter(readFailed = 2), manual = true)
         assertTrue(notifications().isEmpty())
         assertEquals(0, prefs.syncProblemsNotified)
+    }
+
+    @Test fun a_rejected_app_version_asks_for_an_update_not_a_verification() {
+        val rejected = ProtonSyncAdapter(
+            app,
+            syncRunner = { _, _, _ -> throw AppVersionRejectedException(5003) },
+            userPreferences = prefs,
+            settingsInitializer = { _, _, _ -> true }
+        )
+
+        run(rejected)
+
+        val posted = notifications().single()
+        assertEquals(
+            app.getString(R.string.notification_update_required_title),
+            posted.extras.getCharSequence(Notification.EXTRA_TITLE).toString()
+        )
+        assertFalse(
+            "no captcha fallback behind it",
+            shadowOf(posted.contentIntent).savedIntent.hasExtra(SyncNotifier.EXTRA_VERIFICATION_NEEDED)
+        )
     }
 }

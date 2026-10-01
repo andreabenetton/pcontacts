@@ -19,6 +19,8 @@
     <string name="channel_sign_in_required_description">Hinweise, wenn Sie sich erneut anmelden müssen, damit die Kontaktsynchronisierung weiterläuft</string>
     <string name="notification_verification_title">Proton-Verifizierung erforderlich</string>
     <string name="notification_verification_text">Tippen Sie hier, um die Verifizierung abzuschließen, damit die Kontaktsynchronisierung fortgesetzt werden kann.</string>
+    <string name="notification_update_required_title">pcontacts braucht ein Update</string>
+    <string name="notification_update_required_text">Proton akzeptiert diese Version von pcontacts nicht mehr, deshalb werden keine Kontakte synchronisiert. Aktualisieren Sie die App, um fortzufahren.</string>
     <string name="notification_reauth_title">Anmeldung erforderlich</string>
     <string name="notification_reauth_text">Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an, um die Kontaktsynchronisierung fortzusetzen.</string>
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 speichert Ihre Sitzung mit stärkerer, gerätegebundener Verschlüsselung. Melden Sie sich einmal erneut an; Ihre synchronisierten Kontakte werden von diesem Telefon entfernt und bei der ersten Synchronisierung vollständig neu geladen.</string>

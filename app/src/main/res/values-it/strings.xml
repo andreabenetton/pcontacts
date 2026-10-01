@@ -19,6 +19,8 @@
     <string name="channel_sign_in_required_description">Avvisi quando devi accedere di nuovo perché la sincronizzazione dei contatti continui</string>
     <string name="notification_verification_title">Verifica Proton richiesta</string>
     <string name="notification_verification_text">Tocca per completare la verifica e riprendere la sincronizzazione dei contatti.</string>
+    <string name="notification_update_required_title">pcontacts va aggiornato</string>
+    <string name="notification_update_required_text">Proton non accetta più questa versione di pcontacts, quindi i contatti non si sincronizzano. Aggiorna l\'app per riprendere.</string>
     <string name="notification_reauth_title">Accesso richiesto</string>
     <string name="notification_reauth_text">La sessione è scaduta. Accedi di nuovo per riprendere la sincronizzazione dei contatti.</string>
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 conserva la sessione con una cifratura più robusta e legata al dispositivo. Accedi di nuovo una sola volta; i contatti sincronizzati vengono rimossi da questo telefono e scaricati di nuovo per intero alla prima sincronizzazione.</string>

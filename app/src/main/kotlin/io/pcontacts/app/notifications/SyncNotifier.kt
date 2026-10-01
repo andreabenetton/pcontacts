@@ -56,6 +56,19 @@ class SyncNotifier(private val context: Context) {
         )
     }
 
+    /**
+     * Proton refused this app version (Code 5003/5004): no sign-in or verification helps, only
+     * an update does, and every sync stops until then — a heads-up, once.
+     */
+    fun notifyUpdateRequired() {
+        post(
+            id = NOTIFICATION_ID_UPDATE_REQUIRED,
+            title = R.string.notification_update_required_title,
+            text = R.string.notification_update_required_text,
+            headsUp = true
+        )
+    }
+
     /** The shipped dependency audit lists an open CVE (ADR-0024); tapping opens the Dependencies screen. */
     fun notifyOpenVulnerability() {
         post(
@@ -160,5 +173,6 @@ class SyncNotifier(private val context: Context) {
         private const val NOTIFICATION_ID_VULNERABILITY = 9004
         private const val NOTIFICATION_ID_ADVISORY = 9005
         private const val NOTIFICATION_ID_CONTACT_PROBLEMS = 9006
+        private const val NOTIFICATION_ID_UPDATE_REQUIRED = 9007
     }
 }

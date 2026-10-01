@@ -19,6 +19,8 @@
     <string name="channel_sign_in_required_description">Alertes lorsque vous devez vous reconnecter pour que la synchronisation des contacts continue</string>
     <string name="notification_verification_title">Vérification Proton requise</string>
     <string name="notification_verification_text">Appuyez pour terminer la vérification et reprendre la synchronisation des contacts.</string>
+    <string name="notification_update_required_title">pcontacts doit être mis à jour</string>
+    <string name="notification_update_required_text">Proton n\'accepte plus cette version de pcontacts, les contacts ne sont donc plus synchronisés. Mettez l\'application à jour pour reprendre.</string>
     <string name="notification_reauth_title">Connexion requise</string>
     <string name="notification_reauth_text">Votre session a expiré. Reconnectez-vous pour reprendre la synchronisation des contacts.</string>
     <string name="notification_reauth_storage_upgrade_text">pcontacts 2.0 conserve votre session avec un chiffrement plus robuste et lié à l’appareil. Reconnectez-vous une seule fois ; vos contacts synchronisés sont retirés de ce téléphone et retéléchargés en totalité à la première synchronisation.</string>

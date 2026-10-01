@@ -39,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **When Proton stops accepting this version** of pcontacts, the
+  notification now says the app needs an update, instead of "Proton
+  verification required" with a verification screen that could not help.
 - **A pending deletion is no longer counted twice** on the sync card, as
   "1 change pending sync" and again in its own deletion row.
 - **Conflicts of different kinds** are no longer all described with the
