@@ -233,6 +233,7 @@ internal fun runningHeadlineRes(progress: SyncProgress?): Int = when (progress?.
     SyncStage.CHECKING -> R.string.sync_stage_checking
     SyncStage.DOWNLOADING -> R.string.sync_stage_downloading
     SyncStage.SAVING -> R.string.sync_stage_saving
+    SyncStage.WAITING_FOR_NETWORK -> R.string.sync_stage_waiting_for_network
     null -> R.string.settings_sync_running
 }
 
@@ -261,7 +262,10 @@ private fun SyncStatusCard(
     val lastSync by viewModel.lastSync.collectAsStateWithLifecycle()
     val outbox by viewModel.outboxStats.collectAsStateWithLifecycle()
     val interval by viewModel.syncInterval.collectAsStateWithLifecycle()
-    val progress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val polledProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val waitingForNetwork by viewModel.waitingForNetwork.collectAsStateWithLifecycle()
+    // Seen live 2026-10-02: offline, "Sync now" showed "Sync in progress" and a moving bar for good.
+    val progress = if (waitingForNetwork) SyncProgress(0, 0, SyncStage.WAITING_FOR_NETWORK) else polledProgress
     val stats by viewModel.verificationStats.collectAsStateWithLifecycle()
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
     val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
@@ -302,7 +306,8 @@ private fun SyncStatusCard(
                 glyphSize = 24.dp
             )
             lastSync?.let { LastSyncLine(it, now, stats?.totalContacts, pendingDeletes.size) }
-            if (headline.tone == SyncTone.RUNNING) {
+            // Nothing moves while the sync waits for a connection, so no bar either.
+            if (headline.tone == SyncTone.RUNNING && progress?.stage != SyncStage.WAITING_FOR_NETWORK) {
                 Spacer(Modifier.height(12.dp))
                 val p = progress
                 if (p != null && p.total > 0) {

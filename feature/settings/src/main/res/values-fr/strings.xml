@@ -208,6 +208,7 @@
     <string name="sync_stage_checking">Vérification des contacts…</string>
     <string name="sync_stage_downloading">Téléchargement des contacts : %1$d sur %2$d…</string>
     <string name="sync_stage_saving">Enregistrement dans vos contacts…</string>
+    <string name="sync_stage_waiting_for_network">En attente de connexion…</string>
     <string name="contacts_access_got_it">Compris</string>
     <string name="contacts_access_view_list">Voir la liste</string>
     <plurals name="sync_contacts_count">

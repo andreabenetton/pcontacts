@@ -56,6 +56,26 @@ class SettingsViewModelTest {
         assertEquals(SettingsUiState.Idle, vm.uiState.value)
     }
 
+    @Test fun a_requested_sync_without_a_connection_is_waiting_not_running() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val vm = SettingsViewModel(
+            syncNow = { error("not used") },
+            signOut = { error("not used") },
+            scope = TestScope(dispatcher),
+            workDispatcher = dispatcher
+        )
+
+        vm.updateSyncRunning(running = true, waitingForNetwork = true)
+        assertTrue(vm.waitingForNetwork.value)
+
+        vm.updateSyncRunning(running = true, waitingForNetwork = false)
+        assertFalse("the connection came back and the sync started", vm.waitingForNetwork.value)
+
+        vm.updateSyncRunning(running = false, waitingForNetwork = true)
+        assertFalse("nothing requested, nothing waiting", vm.waitingForNetwork.value)
+        advanceUntilIdle()
+    }
+
     @Test fun progress_is_polled_only_while_a_sync_runs() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         var polls = 0

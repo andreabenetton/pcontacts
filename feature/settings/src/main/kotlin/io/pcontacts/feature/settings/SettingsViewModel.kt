@@ -77,6 +77,11 @@ class SettingsViewModel(
     private val _syncRunning = MutableStateFlow(false)
     val syncRunning: StateFlow<Boolean> = _syncRunning.asStateFlow()
 
+    private val _waitingForNetwork = MutableStateFlow(false)
+
+    /** The requested sync has not started because there is no connection; the card says so. */
+    val waitingForNetwork: StateFlow<Boolean> = _waitingForNetwork.asStateFlow()
+
     private val _verificationStats = MutableStateFlow<VerificationStats?>(null)
     val verificationStats: StateFlow<VerificationStats?> = _verificationStats.asStateFlow()
 
@@ -301,8 +306,9 @@ class SettingsViewModel(
      * result replaces the previous one; until then [lastSync] keeps
      * showing the previous run's outcome.
      */
-    fun updateSyncRunning(running: Boolean) {
+    fun updateSyncRunning(running: Boolean, waitingForNetwork: Boolean = false) {
         val wasRunning = _syncRunning.value
+        _waitingForNetwork.value = running && waitingForNetwork
         setRunning(running)
         if (wasRunning && !running) {
             scope.launch { refreshSyncStatus() }

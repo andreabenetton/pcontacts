@@ -69,7 +69,10 @@ enum class SyncStage {
     DOWNLOADING,
 
     /** The result being written into the phone's contacts. */
-    SAVING
+    SAVING,
+
+    /** Requested, but Android holds it until there is a connection (offline, or the app's data blocked). */
+    WAITING_FOR_NETWORK
 }
 
 data class OutboxStats(

@@ -78,6 +78,10 @@ class SyncHealthTest {
 
     @Test fun the_running_headline_names_each_stage_and_falls_back_when_it_is_unknown() {
         assertEquals(R.string.settings_sync_running, runningHeadlineRes(null))
+        assertEquals(
+            R.string.sync_stage_waiting_for_network,
+            runningHeadlineRes(SyncProgress(0, 0, SyncStage.WAITING_FOR_NETWORK))
+        )
         assertEquals(R.string.settings_sync_running, runningHeadlineRes(SyncProgress(done = 3, total = 7)))
         assertEquals(
             R.string.sync_stage_connecting,
