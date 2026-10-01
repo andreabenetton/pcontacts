@@ -195,8 +195,12 @@
         <item quantity="other">Импортировать %1$d контакта (перемещено: %2$d)</item>
     </plurals>
     <string name="linked_import_bulk_progress">Импорт %1$d из %2$d…</string>
-    <string name="linked_import_bulk_done">Создано в Proton: %1$d, дополнено данными: %2$d, с ошибкой: %3$d. Они будут отправлены в Proton при следующей синхронизации.</string>
-    <string name="linked_import_bulk_done_moves">Перемещено в Proton: %1$d, создано в Proton: %2$d, дополнено данными: %3$d, с ошибкой: %4$d. Они будут отправлены в Proton при следующей синхронизации.</string>
+    <string name="linked_import_bulk_part_moved">перемещено в Proton: %d</string>
+    <string name="linked_import_bulk_part_created">создано в Proton: %d</string>
+    <string name="linked_import_bulk_part_enriched">дополнено данными: %d</string>
+    <string name="linked_import_bulk_part_failed">с ошибкой: %d</string>
+    <string name="linked_import_bulk_separator">", "</string>
+    <string name="linked_import_bulk_summary">%1$s. Они будут отправлены в Proton при следующей синхронизации.</string>
     <string name="sync_state_overdue">Синхронизация просрочена</string>
     <string name="sync_state_attention">Некоторые изменения не удались</string>
     <string name="sync_state_conflict">Контакт ждёт вашего решения</string>

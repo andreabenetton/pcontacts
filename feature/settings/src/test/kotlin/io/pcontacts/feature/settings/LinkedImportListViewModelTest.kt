@@ -164,4 +164,15 @@ class LinkedImportListViewModelTest {
         advanceUntilIdle()
         assertEquals(LinkedImportListState.Failed("IllegalStateException"), vm.state.value)
     }
+
+    @Test fun the_bulk_message_names_only_the_counts_above_zero() {
+        assertEquals(
+            listOf(R.string.linked_import_bulk_part_moved to 1),
+            bulkResultParts(BulkResult(created = 0, enriched = 0, failed = 0, moved = 1))
+        )
+        assertEquals(
+            listOf(R.string.linked_import_bulk_part_created to 2, R.string.linked_import_bulk_part_failed to 1),
+            bulkResultParts(BulkResult(created = 2, enriched = 0, failed = 1))
+        )
+    }
 }

@@ -171,8 +171,12 @@
         <item quantity="other">Import %1$d contacts (%2$d moved)</item>
     </plurals>
     <string name="linked_import_bulk_progress">Importing %1$d of %2$d…</string>
-    <string name="linked_import_bulk_done">%1$d created in Proton, %2$d given new details, %3$d failed. They will be sent to Proton on the next sync.</string>
-    <string name="linked_import_bulk_done_moves">%1$d moved into Proton, %2$d created in Proton, %3$d given new details, %4$d failed. They will be sent to Proton on the next sync.</string>
+    <string name="linked_import_bulk_part_moved">%d moved into Proton</string>
+    <string name="linked_import_bulk_part_created">%d created in Proton</string>
+    <string name="linked_import_bulk_part_enriched">%d given new details</string>
+    <string name="linked_import_bulk_part_failed">%d failed</string>
+    <string name="linked_import_bulk_separator">", "</string>
+    <string name="linked_import_bulk_summary">%1$s. They will be sent to Proton on the next sync.</string>
     <string name="sync_state_overdue">Sync overdue</string>
     <string name="sync_state_attention">Some changes failed</string>
     <string name="sync_state_conflict">A contact needs your decision</string>

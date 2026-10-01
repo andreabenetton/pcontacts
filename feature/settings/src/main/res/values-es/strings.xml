@@ -171,8 +171,12 @@
         <item quantity="other">Importar %1$d contactos (%2$d movidos)</item>
     </plurals>
     <string name="linked_import_bulk_progress">Importando %1$d de %2$d…</string>
-    <string name="linked_import_bulk_done">%1$d creados en Proton, %2$d con detalles añadidos, %3$d con error. Se enviarán a Proton en la próxima sincronización.</string>
-    <string name="linked_import_bulk_done_moves">%1$d movidos a Proton, %2$d creados en Proton, %3$d con detalles añadidos, %4$d con error. Se enviarán a Proton en la próxima sincronización.</string>
+    <string name="linked_import_bulk_part_moved">%d movidos a Proton</string>
+    <string name="linked_import_bulk_part_created">%d creados en Proton</string>
+    <string name="linked_import_bulk_part_enriched">%d con detalles añadidos</string>
+    <string name="linked_import_bulk_part_failed">%d con error</string>
+    <string name="linked_import_bulk_separator">", "</string>
+    <string name="linked_import_bulk_summary">%1$s. Se enviarán a Proton en la próxima sincronización.</string>
     <string name="sync_state_overdue">Sincronización atrasada</string>
     <string name="sync_state_attention">Algunos cambios han fallado</string>
     <string name="sync_state_conflict">Un contacto necesita tu decisión</string>

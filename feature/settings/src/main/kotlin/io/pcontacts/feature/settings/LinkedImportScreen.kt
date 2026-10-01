@@ -43,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -138,6 +139,7 @@ private fun ImportOutcomes(
     val importState by importViewModel.state.collectAsStateWithLifecycle()
     val bulk by listViewModel.bulk.collectAsStateWithLifecycle()
     val resources = LocalContext.current.resources
+    val locale = LocalConfiguration.current.locales[0]
     // The effects reset the state they are keyed on, which restarts them: a snackbar shown from
     // their own coroutine was cancelled at once. It runs in the screen's scope instead.
     val snackbarScope = rememberCoroutineScope()
@@ -162,14 +164,21 @@ private fun ImportOutcomes(
         val done = bulk as? BulkImportState.Done ?: return@LaunchedEffect
         val r = done.result
         listViewModel.dismissBulkResult()
-        val message = if (r.moved > 0) {
-            resources.getString(R.string.linked_import_bulk_done_moves, r.moved, r.created, r.enriched, r.failed)
-        } else {
-            resources.getString(R.string.linked_import_bulk_done, r.created, r.enriched, r.failed)
-        }
+        val separator = resources.getString(R.string.linked_import_bulk_separator)
+        val parts = bulkResultParts(r).joinToString(separator) { (res, count) -> resources.getString(res, count) }
+        val message = resources.getString(R.string.linked_import_bulk_summary, parts)
+            .replaceFirstChar { it.titlecase(locale) }
         snackbarScope.launch { snackbarHostState.showSnackbar(message) }
     }
 }
+
+/** The bulk result's non-zero counts as (string, count), in the order the message names them. */
+internal fun bulkResultParts(result: BulkResult): List<Pair<Int, Int>> = listOf(
+    R.string.linked_import_bulk_part_moved to result.moved,
+    R.string.linked_import_bulk_part_created to result.created,
+    R.string.linked_import_bulk_part_enriched to result.enriched,
+    R.string.linked_import_bulk_part_failed to result.failed
+).filter { it.second > 0 }
 
 @Composable
 private fun FilterRow(selected: LinkedImportFilter, onSelect: (LinkedImportFilter) -> Unit) {

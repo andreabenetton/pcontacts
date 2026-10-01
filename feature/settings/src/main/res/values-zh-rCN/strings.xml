@@ -159,8 +159,12 @@
         <item quantity="other">导入 %1$d 位联系人（移动 %2$d 位）</item>
     </plurals>
     <string name="linked_import_bulk_progress">正在导入第 %1$d 个，共 %2$d 个…</string>
-    <string name="linked_import_bulk_done">已在 Proton 中创建 %1$d 个，已为 %2$d 个添加详情，失败 %3$d 个。将在下次同步时发送到 Proton。</string>
-    <string name="linked_import_bulk_done_moves">已移到 Proton %1$d 个，已在 Proton 中创建 %2$d 个，已为 %3$d 个添加详情，失败 %4$d 个。将在下次同步时发送到 Proton。</string>
+    <string name="linked_import_bulk_part_moved">已移到 Proton %d 个</string>
+    <string name="linked_import_bulk_part_created">已在 Proton 中创建 %d 个</string>
+    <string name="linked_import_bulk_part_enriched">已为 %d 个添加详情</string>
+    <string name="linked_import_bulk_part_failed">失败 %d 个</string>
+    <string name="linked_import_bulk_separator">，</string>
+    <string name="linked_import_bulk_summary">%1$s。将在下次同步时发送到 Proton。</string>
     <string name="sync_state_overdue">同步已逾期</string>
     <string name="sync_state_attention">部分更改失败</string>
     <string name="sync_state_conflict">有联系人需要您决定</string>
