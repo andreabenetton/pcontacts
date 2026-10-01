@@ -316,17 +316,21 @@ class SettingsHost(
         }
     }
 
-    private suspend fun queryConflicts(): List<ConflictInfo> =
-        db.contactMapDao().listConflicts().map { entity ->
+    /** Names come from the provider rows, deleted ones included (ADR-0007: never from Room). */
+    private suspend fun queryConflicts(): List<ConflictInfo> {
+        val conflicts = db.contactMapDao().listConflicts()
+        val names = resolveDisplayNames(conflicts.map { it.androidRawContactId })
+        return conflicts.map { entity ->
             ConflictInfo(
                 protonContactId = entity.protonContactId,
-                displayName = null,
+                displayName = names[entity.androidRawContactId],
                 conflictFields = entity.lastError?.removePrefix("conflict: "),
                 serverDeleted = entity.lastError == SERVER_DELETED_CONFLICT,
                 localRemoved = entity.lastError == LOCAL_REMOVED_CONFLICT,
                 serverEdited = entity.lastError == SERVER_EDITED_CONFLICT
             )
         }
+    }
 
     /** Undoes a local deletion (ADR-0022): the row comes back, and a sync settles the rest. */
     private suspend fun cancelPendingDelete(protonContactId: String) {
