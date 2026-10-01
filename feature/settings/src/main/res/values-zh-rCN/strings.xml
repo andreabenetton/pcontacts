@@ -51,6 +51,10 @@
     <string name="quarantined_op_unknown">无法识别的更改</string>
     <string name="quarantined_retry">重试</string>
     <string name="quarantined_discard">放弃</string>
+    <string name="quarantined_reason_refused">Proton 拒绝了此更改。</string>
+    <string name="quarantined_reason_not_on_phone">此联系人已不在此手机上。</string>
+    <string name="quarantined_reason_network">无法连接到 Proton。</string>
+    <string name="quarantined_reason_other">此手机上出现了问题。</string>
 
     <plurals name="pending_delete_count">
         <item quantity="other">%d 个联系人已计划删除</item>

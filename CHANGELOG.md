@@ -58,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sign-out asks first**, saying that the Proton contacts leave this
   phone, nothing is deleted on Proton, and changes not synced yet are
   lost.
+- **Failed changes say why in plain words** ("Proton refused this
+  change", "This contact is no longer on this phone"), with the technical
+  code kept below in small print for bug reports.
 - **Resolving a conflict or retrying a failed change starts a sync**, so
   the choice reaches Proton at once instead of waiting for the next
   scheduled run (up to 12 hours away).

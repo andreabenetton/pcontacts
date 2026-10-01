@@ -54,6 +54,10 @@
     <string name="quarantined_op_unknown">Unbekannte Änderung</string>
     <string name="quarantined_retry">Wiederholen</string>
     <string name="quarantined_discard">Verwerfen</string>
+    <string name="quarantined_reason_refused">Proton hat diese Änderung abgelehnt.</string>
+    <string name="quarantined_reason_not_on_phone">Dieser Kontakt ist nicht mehr auf diesem Telefon.</string>
+    <string name="quarantined_reason_network">Proton war nicht erreichbar.</string>
+    <string name="quarantined_reason_other">Auf diesem Telefon ist etwas schiefgegangen.</string>
 
     <plurals name="pending_delete_count">
         <item quantity="one">%d Kontakt zum Löschen vorgemerkt</item>

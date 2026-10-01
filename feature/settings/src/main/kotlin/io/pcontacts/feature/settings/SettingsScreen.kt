@@ -813,9 +813,14 @@ private fun QuarantinedChangeRow(
             )
             change.reason?.takeIf { it.isNotBlank() }?.let { reason ->
                 Text(
-                    text = reason,
+                    text = stringResource(quarantineReasonRes(reason)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = reason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

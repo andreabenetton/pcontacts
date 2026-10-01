@@ -54,6 +54,10 @@
     <string name="quarantined_op_unknown">Unrecognised change</string>
     <string name="quarantined_retry">Retry</string>
     <string name="quarantined_discard">Discard</string>
+    <string name="quarantined_reason_refused">Proton refused this change.</string>
+    <string name="quarantined_reason_not_on_phone">This contact is no longer on this phone.</string>
+    <string name="quarantined_reason_network">Proton could not be reached.</string>
+    <string name="quarantined_reason_other">Something went wrong on this phone.</string>
 
     <plurals name="pending_delete_count">
         <item quantity="one">%d contact scheduled for deletion</item>

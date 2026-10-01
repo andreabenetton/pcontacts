@@ -54,6 +54,10 @@
     <string name="quarantined_op_unknown">Modification non reconnue</string>
     <string name="quarantined_retry">Réessayer</string>
     <string name="quarantined_discard">Abandonner</string>
+    <string name="quarantined_reason_refused">Proton a refusé cette modification.</string>
+    <string name="quarantined_reason_not_on_phone">Ce contact n\'est plus sur ce téléphone.</string>
+    <string name="quarantined_reason_network">Proton n\'a pas pu être joint.</string>
+    <string name="quarantined_reason_other">Un problème est survenu sur ce téléphone.</string>
 
     <plurals name="pending_delete_count">
         <item quantity="one">%d contact programmé pour suppression</item>
