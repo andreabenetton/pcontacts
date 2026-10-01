@@ -13,6 +13,7 @@ import android.util.AndroidRuntimeException
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
@@ -115,12 +116,23 @@ class HumanVerificationActivityTest {
         activity.secretStoreSetter = { { _, _ -> } }
         controller.setup()
         assertFalse(activity.isFinishing)
-        val content = activity.findViewById<ViewGroup>(android.R.id.content)
-        val webView = content.getChildAt(0) as WebView
+        val webView = webViewOf(activity)
         assertTrue(webView.settings.javaScriptEnabled)
         assertFalse(webView.settings.allowFileAccess)
         assertFalse(webView.settings.allowContentAccess)
         assertEquals(url, shadowOf(webView).lastLoadedUrl)
+    }
+
+    @Test
+    fun the_page_is_followed_by_the_non_affiliation_line() {
+        ShadowWebView.setCurrentWebViewPackage(PackageInfo())
+        val controller = Robolectric.buildActivity(HumanVerificationActivity::class.java, intentWithUrl())
+        val activity = controller.get()
+        activity.secretStoreSetter = { { _, _ -> } }
+        controller.setup()
+        val layout = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0) as ViewGroup
+        val line = layout.getChildAt(1) as TextView
+        assertEquals("Not affiliated with or endorsed by Proton AG.", line.text.toString())
     }
 
     @Test
@@ -157,6 +169,12 @@ class HumanVerificationActivityTest {
         assertTrue(blocksResource("http://verify.proton.me/x.js"))
     }
 
+    // The WebView sits above the non-affiliation line, inside the content's layout.
+    private fun webViewOf(activity: HumanVerificationActivity): WebView {
+        val layout = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0) as ViewGroup
+        return layout.getChildAt(0) as WebView
+    }
+
     private fun setUpWithBridge(): Triple<HumanVerificationActivity, WebView, MutableList<Pair<String, String>>> {
         ShadowWebView.setCurrentWebViewPackage(PackageInfo())
         val controller = Robolectric.buildActivity(HumanVerificationActivity::class.java, intentWithUrl())
@@ -164,7 +182,7 @@ class HumanVerificationActivityTest {
         val delivered = mutableListOf<Pair<String, String>>()
         activity.secretStoreSetter = { { token, type -> delivered += token to type } }
         controller.setup()
-        val webView = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0) as WebView
+        val webView = webViewOf(activity)
         return Triple(activity, webView, delivered)
     }
 

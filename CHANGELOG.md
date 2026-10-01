@@ -64,7 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   affiliated with Proton AG" line); Back closes the app.
 - **Every screen ends with "Not affiliated with or endorsed by Proton
   AG."**, the two-factor step, Dependencies, Import and the contacts-access
-  and de-Googled ROM pages included.
+  and de-Googled ROM pages included, and Proton's captcha page when
+  sign-in asks for one.
 - **The sign-in form is easier to fill**: password managers (Proton
   Pass, Bitwarden…) recognise the username and password fields and can
   save the login, the keyboard opens on the username, a failed attempt

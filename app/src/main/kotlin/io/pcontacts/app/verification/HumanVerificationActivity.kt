@@ -7,11 +7,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import io.pcontacts.app.logging.AndroidLogcatSink
 import io.pcontacts.core.logging.Logger
@@ -20,6 +23,7 @@ import io.pcontacts.core.storage.EncryptedSecretStore
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.util.concurrent.atomic.AtomicBoolean
+import io.pcontacts.feature.settings.R as SettingsR
 
 /**
  * In-app WebView that hosts Proton's hosted captcha page
@@ -95,8 +99,26 @@ class HumanVerificationActivity : ComponentActivity() {
             return
         }
 
-        setContentView(webView)
+        setContentView(withDisclaimer(webView))
         webView.loadUrl(url)
+    }
+
+    /**
+     * Proton's page above the statement every pcontacts screen ends with, so a captcha shown by
+     * this app is not mistaken for Proton's own app. The WebView's configuration is untouched.
+     */
+    private fun withDisclaimer(webView: WebView): View {
+        val padding = (DISCLAIMER_PADDING_DP * resources.displayMetrics.density).toInt()
+        val disclaimer = TextView(this).apply {
+            setText(SettingsR.string.sign_in_disclaimer)
+            setTextAppearance(android.R.style.TextAppearance_Material_Small)
+            setPadding(padding, padding, padding, padding)
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(webView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(disclaimer)
+        }
     }
 
     /**
@@ -181,6 +203,7 @@ class HumanVerificationActivity : ComponentActivity() {
     }
 
     companion object {
+        private const val DISCLAIMER_PADDING_DP = 16
         const val EXTRA_URL = "io.pcontacts.EXTRA_HV_URL"
         const val JS_INTERFACE_NAME = "AndroidInterface"
         const val PROTON_HOST_SUFFIX = "proton.me"
