@@ -5,12 +5,12 @@
 -->
 <resources>
     <string name="login_title">Konto</string>
-    <string name="login_subtitle">Melde dich mit deinem Proton-Konto an, um Kontakte zu synchronisieren.</string>
+    <string name="login_subtitle">Melden Sie sich mit Ihrem Proton-Konto an, um Kontakte zu synchronisieren.</string>
     <string name="login_username_label">E-Mail oder Benutzername</string>
     <string name="login_password_label">Passwort</string>
     <string name="login_password_show">Anzeigen</string>
     <string name="login_password_hide">Ausblenden</string>
-    <string name="login_password_again">Gib dein Passwort erneut ein.</string>
+    <string name="login_password_again">Geben Sie Ihr Passwort erneut ein.</string>
     <string name="login_sign_in">Anmelden</string>
 
     <string name="two_factor_title">Zwei-Faktor-Authentifizierung</string>
@@ -18,7 +18,7 @@
     <string name="two_factor_code_label">Code</string>
     <string name="two_factor_verify">Bestätigen</string>
     <string name="two_factor_cancel">Anmeldung abbrechen</string>
-    <string name="two_factor_recovery_subtitle">Gib einen der Wiederherstellungscodes ein, die du beim Einrichten der Zwei-Faktor-Authentifizierung gespeichert hast. Jeder Code funktioniert nur einmal.</string>
+    <string name="two_factor_recovery_subtitle">Geben Sie einen der Wiederherstellungscodes ein, die Sie beim Einrichten der Zwei-Faktor-Authentifizierung gespeichert haben. Jeder Code funktioniert nur einmal.</string>
     <string name="two_factor_recovery_label">Wiederherstellungscode</string>
     <string name="two_factor_use_recovery">Wiederherstellungscode verwenden</string>
     <string name="two_factor_use_code">Code aus der Authenticator-App verwenden</string>
