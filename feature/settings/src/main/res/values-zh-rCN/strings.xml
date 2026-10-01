@@ -115,6 +115,7 @@
     <string name="contacts_access_hint_privacy_settings">然后找到“权限管理器”并打开“通讯录”。</string>
     <string name="linked_import_not_found">找不到该联系人了。</string>
     <string name="linked_import_create_title">在 Proton 中创建</string>
+    <string name="linked_import_move_title">移到或复制到 Proton</string>
     <string name="linked_import_create_detail">%s 尚未在 Proton 中。请选择新 Proton 联系人的详情。原始联系人不会被修改。</string>
     <string name="linked_import_create_confirm">创建</string>
     <string name="linked_import_move_detail">%s 保存在一个不属于任何应用的存储中，Android 会在下次账户变更时将其删除。将它移到 Proton 可保留联系人本身，包括收藏星标、铃声和关联，而不是创建副本。</string>

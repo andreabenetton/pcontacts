@@ -95,7 +95,11 @@ private fun ReviewDialog(
     val creates = review.preview.createsNewContact
     val move = review.preview.move
     val name = review.preview.contactName ?: stringResource(R.string.unverified_no_name)
-    val titleRes = if (creates) R.string.linked_import_create_title else R.string.linked_import_dialog_title
+    val titleRes = when {
+        move != null -> R.string.linked_import_move_title
+        creates -> R.string.linked_import_create_title
+        else -> R.string.linked_import_dialog_title
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(titleRes)) },

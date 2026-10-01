@@ -123,6 +123,7 @@
     <string name="contacts_access_hint_privacy_settings">Then find Permission manager and open Contacts.</string>
     <string name="linked_import_not_found">The contact could not be found any more.</string>
     <string name="linked_import_create_title">Create in Proton</string>
+    <string name="linked_import_move_title">Move or copy to Proton</string>
     <string name="linked_import_create_detail">%s is not in Proton yet. Select the details for the new Proton contact. The originals stay where they are.</string>
     <string name="linked_import_create_confirm">Create</string>
     <string name="linked_import_move_detail">%s is saved in a storage no app owns, which Android deletes at the next account change. Moving it into Proton keeps the contact itself, with its favourite star, ringtone and links, instead of making a copy.</string>

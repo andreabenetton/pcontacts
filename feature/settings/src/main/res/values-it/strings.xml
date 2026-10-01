@@ -123,6 +123,7 @@
     <string name="contacts_access_hint_privacy_settings">Poi cerca Gestione autorizzazioni e apri Contatti.</string>
     <string name="linked_import_not_found">Il contatto non è più disponibile.</string>
     <string name="linked_import_create_title">Crea in Proton</string>
+    <string name="linked_import_move_title">Sposta o copia in Proton</string>
     <string name="linked_import_create_detail">%s non è ancora in Proton. Seleziona i dettagli per il nuovo contatto Proton. Gli originali restano dove sono.</string>
     <string name="linked_import_create_confirm">Crea</string>
     <string name="linked_import_move_detail">%s è salvato in un archivio che non appartiene a nessuna app e che Android cancella al prossimo cambio di account. Spostarlo in Proton mantiene il contatto stesso, con stella dei preferiti, suoneria e collegamenti, invece di farne una copia.</string>

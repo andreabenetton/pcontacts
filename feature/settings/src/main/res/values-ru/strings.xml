@@ -139,6 +139,7 @@
     <string name="contacts_access_hint_privacy_settings">Затем найдите «Диспетчер разрешений» и откройте «Контакты».</string>
     <string name="linked_import_not_found">Контакт больше не найден.</string>
     <string name="linked_import_create_title">Создать в Proton</string>
+    <string name="linked_import_move_title">Переместить или скопировать в Proton</string>
     <string name="linked_import_create_detail">%s ещё нет в Proton. Выберите данные для нового контакта Proton. Оригиналы останутся без изменений.</string>
     <string name="linked_import_create_confirm">Создать</string>
     <string name="linked_import_move_detail">%s сохранён в хранилище, которое не принадлежит ни одному приложению и которое Android удалит при следующем изменении аккаунтов. Перемещение в Proton сохранит сам контакт — с отметкой избранного, мелодией и связями — вместо копии.</string>

@@ -123,6 +123,7 @@
     <string name="contacts_access_hint_privacy_settings">Suche dann den Berechtigungsmanager und öffne Kontakte.</string>
     <string name="linked_import_not_found">Der Kontakt wurde nicht mehr gefunden.</string>
     <string name="linked_import_create_title">In Proton anlegen</string>
+    <string name="linked_import_move_title">Zu Proton verschieben oder kopieren</string>
     <string name="linked_import_create_detail">%s ist noch nicht in Proton. Wähle die Details für den neuen Proton-Kontakt. Die Originale bleiben unverändert.</string>
     <string name="linked_import_create_confirm">Anlegen</string>
     <string name="linked_import_move_detail">%s ist in einem Speicher abgelegt, der keiner App gehört und den Android beim nächsten Kontowechsel löscht. Wenn Sie ihn zu Proton verschieben, bleibt der Kontakt selbst erhalten, mit Favoritenstern, Klingelton und Verknüpfungen, statt einer Kopie.</string>
