@@ -60,6 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Account section, the dependency badge, the GitHub link, the "Not
   affiliated with Proton AG" line) and says "Signed out." after a
   sign-out; Back closes the app.
+- **Every screen ends with "Not affiliated with or endorsed by Proton
+  AG."**, the two-factor step, Dependencies, Import and the contacts-access
+  and de-Googled ROM pages included.
 - **Sign-out asks first**, saying that the Proton contacts leave this
   phone, nothing is deleted on Proton, and changes not synced yet are
   lost.

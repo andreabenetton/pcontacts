@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
@@ -40,6 +41,7 @@ import io.pcontacts.feature.onboarding.LoginViewModel
 import io.pcontacts.feature.onboarding.TwoFactorScreen
 import io.pcontacts.feature.settings.AppTopBar
 import io.pcontacts.feature.settings.AuditIndicator
+import io.pcontacts.feature.settings.NotAffiliated
 import io.pcontacts.feature.settings.SignInFooter
 import io.pcontacts.feature.settings.SignInNotices
 
@@ -109,7 +111,8 @@ class LoginActivity : ComponentActivity() {
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onCancel = { viewModel.reset() },
                             onHumanVerificationRequired = { url -> launchHumanVerification(url) },
-                            modifier = Modifier.padding(padding)
+                            modifier = Modifier.padding(padding),
+                            footer = { NotAffiliated(Modifier.padding(bottom = 16.dp)) }
                         )
                         else -> LoginScreen(
                             viewModel = viewModel,
