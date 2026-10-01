@@ -10,6 +10,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The sync card gives its status the full width** and puts "Sync now"
+  on its own row, so longer translations of the headline and the stage
+  texts are no longer squeezed beside the button
+  ([#61](https://github.com/andreabenetton/pcontacts/issues/61)).
+- **Several pending deletions** show as one row on the card that opens a
+  dialog listing them, each with Cancel; a deletion shows the contact's
+  name instead of its Proton id where the phone still has it.
+- The main screen ends with the same "Not affiliated with or endorsed by
+  Proton AG." statement as the sign-in screen.
+- Import details: the dialog is titled "Move or copy to Proton" when it
+  offers the move; the bulk result names only the counts above zero; the
+  number of contacts to be moved has its own line instead of wrapping
+  the Import button.
+
 ## [2.1.0] - 2026-09-24
 
 ### Changed
