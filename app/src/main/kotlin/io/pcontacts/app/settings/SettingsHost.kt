@@ -33,6 +33,7 @@ import io.pcontacts.core.sync.auth.LogoutOrchestrator
 import io.pcontacts.core.sync.contacts.ChangeOp
 import io.pcontacts.core.sync.contacts.LOCAL_REMOVED_CONFLICT
 import io.pcontacts.core.sync.contacts.SERVER_DELETED_CONFLICT
+import io.pcontacts.core.sync.contacts.SERVER_EDITED_CONFLICT
 import io.pcontacts.core.sync.contacts.SyncBootstrap
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
@@ -322,7 +323,8 @@ class SettingsHost(
                 displayName = null,
                 conflictFields = entity.lastError?.removePrefix("conflict: "),
                 serverDeleted = entity.lastError == SERVER_DELETED_CONFLICT,
-                localRemoved = entity.lastError == LOCAL_REMOVED_CONFLICT
+                localRemoved = entity.lastError == LOCAL_REMOVED_CONFLICT,
+                serverEdited = entity.lastError == SERVER_EDITED_CONFLICT
             )
         }
 
@@ -334,7 +336,12 @@ class SettingsHost(
     }
 
     private suspend fun resolveConflict(protonContactId: String, resolution: ConflictResolution) {
-        SyncBootstrap.resolveConflict(activity, protonContactId, useLocal = resolution == ConflictResolution.USE_LOCAL)
+        SyncBootstrap.resolveConflict(
+            activity,
+            protonContactId,
+            useLocal = resolution == ConflictResolution.USE_LOCAL,
+            account = currentAccount()
+        )
     }
 
     /**
