@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -301,22 +300,16 @@ private fun SyncStatusCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
+        // The status takes the card's full width; the button has its own row below, so long
+        // translations of the headline and stage texts are not squeezed beside it (#61).
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    SyncIndicator(
-                        tone = headline.tone,
-                        text = headline.text,
-                        style = MaterialTheme.typography.titleMedium,
-                        glyphSize = 24.dp
-                    )
-                    lastSync?.let { LastSyncLine(it, now, stats?.totalContacts, pendingDeletes.size) }
-                }
-                Spacer(Modifier.width(12.dp))
-                Button(enabled = syncEnabled, onClick = viewModel::triggerSyncNow) {
-                    Text(stringResource(R.string.settings_sync_now))
-                }
-            }
+            SyncIndicator(
+                tone = headline.tone,
+                text = headline.text,
+                style = MaterialTheme.typography.titleMedium,
+                glyphSize = 24.dp
+            )
+            lastSync?.let { LastSyncLine(it, now, stats?.totalContacts, pendingDeletes.size) }
             if (headline.tone == SyncTone.RUNNING) {
                 Spacer(Modifier.height(12.dp))
                 val p = progress
@@ -328,6 +321,14 @@ private fun SyncStatusCard(
                 } else {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+            }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                enabled = syncEnabled,
+                onClick = viewModel::triggerSyncNow,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.settings_sync_now))
             }
         }
         StatusRows(viewModel)
