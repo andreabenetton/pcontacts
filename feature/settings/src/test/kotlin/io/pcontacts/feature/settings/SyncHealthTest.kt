@@ -34,6 +34,14 @@ class SyncHealthTest {
         assertEquals(SyncHealth.NEVER, health(lastSync = LastSyncSummary(syncedAtMillis = null)))
     }
 
+    @Test fun a_deletion_in_its_grace_hour_is_not_a_change_waiting_to_sync() {
+        // Seen live 2026-10-01: "Changes waiting to sync" right after a run, for a deletion in grace.
+        val deletionOnly = OutboxStats(pending = 1, quarantined = 0)
+        assertEquals(SyncHealth.UP_TO_DATE, health(outbox = headlineOutbox(deletionOnly, pendingDeletes = 1)))
+        val withAnEdit = OutboxStats(pending = 2, quarantined = 0)
+        assertEquals(SyncHealth.PENDING, health(outbox = headlineOutbox(withAnEdit, pendingDeletes = 1)))
+    }
+
     @Test fun sync_switched_off_is_its_own_state_and_never_overdue() {
         assertEquals(SyncHealth.OFF, health(lastSync = LastSyncSummary(now - 100 * hour), syncEnabled = false))
         assertEquals(SyncHealth.RUNNING, health(running = true, lastSync = null, syncEnabled = false))

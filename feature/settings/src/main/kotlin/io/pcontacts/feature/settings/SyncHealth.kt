@@ -46,5 +46,12 @@ fun syncHealth(
     }
 }
 
+/**
+ * The outbox as the headline weighs it: a queued deletion waits for its grace hour, not for a
+ * run, and has its own row, so it alone does not make the card say "waiting to sync".
+ */
+internal fun headlineOutbox(outbox: OutboxStats, pendingDeletes: Int): OutboxStats =
+    outbox.copy(pending = otherPendingChanges(outbox.pending, pendingDeletes))
+
 /** A periodic run may legitimately slip by one interval (Doze, no network); two is overdue. */
 private const val OVERDUE_FACTOR = 2

@@ -293,7 +293,7 @@ private fun SyncStatusCard(
             state,
             syncRunning,
             lastSync,
-            outbox,
+            headlineOutbox(outbox, pendingDeletes.size),
             interval.hours,
             progress,
             now,
