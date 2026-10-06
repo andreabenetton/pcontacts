@@ -5,15 +5,16 @@
 
 # pcontacts threat model
 
-Date: 2026-05-24 (amended for ADR-0017/0018). Owners: project owner (single-maintainer at this
+Date: 2026-05-24 (amended for ADR-0017/0018, and on 2026-10-06 for
+two-password mode and revoked sessions). Owners: project owner (single-maintainer at this
 stage). This document is the STRIDE pass plan §15 / §17 task 20
 calls for. It is **deliberately conservative**: when in doubt we
 assume the threat exists, document the mitigation we have today,
 and call out the residual risk explicitly.
 
-If you find a security issue, please open a private GitHub issue
-or contact the maintainer directly — do NOT file it as a public
-PR.
+If you find a security issue, report it privately as described in
+§7 and [`SECURITY.md`](../SECURITY.md) — do NOT file it as a public
+issue or PR.
 
 ---
 
@@ -27,7 +28,8 @@ PR.
 - The data path: Proton REST API ↔ this app ↔ Android
   `ContactsContract` provider ↔ system Contacts UI.
 - All secrets the app holds: Proton session UID, AccessToken,
-  RefreshToken, the bcrypt-SHA-512 mailbox `keyPassword`, the
+  RefreshToken, the bcrypt-SHA-512 `keyPassword` (from the login
+  password, or from the second password in two-password mode), the
   unlocked PGP user key (in-memory, sync-run-scoped), decrypted
   vCard plaintext (in-memory, sync-run-scoped).
 
@@ -37,10 +39,16 @@ PR.
   installed. Proton's own infrastructure, the Android OS, the
   user's choice of lockscreen / disk encryption — we assume they
   do their job.
-- The user's Proton password itself. We never persist it; we
-  derive `keyPassword` from it during the SRP login flow and let
-  the password go out of scope. Our threat model starts AFTER
-  that derivation.
+- The user's Proton passwords themselves — the login password and,
+  in two-password mode, the second password. We never persist
+  either: the login password is held on the heap only while the
+  sign-in is in progress (for the 2FA step or a captcha retry) and
+  zeroed afterwards, and `keyPassword` is derived with the key
+  salt and stored only once it has opened the primary key. A
+  primary key without a salt, which Proton's web client opens
+  with the password itself `[V]`, is refused at sign-in, so what
+  is stored is never a password (ADR-0009 amendment 2026-10-06).
+  Our threat model starts AFTER that derivation.
 - Browser-based attackers on Proton's web client. Out of scope —
   that's Proton's threat model.
 - Physical attackers with the unlocked device in hand and the
@@ -67,7 +75,7 @@ PR.
 | **AccessToken** | ~24h (Proton's `ExpiresIn`) | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | `Authorization: Bearer …` header | Full read+write access to Proton REST API as the user until expiry. |
 | **RefreshToken** | until revoked | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | request body to `/auth/refresh` only | Long-lived foothold; equivalent to password-less re-login indefinitely. |
 | **HumanVerificationToken** + **TokenType** (ADR-0019) | until cleared (next 9001 with stale token, or `SecretStore.logout()`) | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | `x-pm-human-verification-token` + `x-pm-human-verification-token-type` headers on every request after a captcha solve | Allows an attacker to bypass Proton's captcha gate as this user; does NOT grant API access on its own — the bearer token is still required. |
-| **keyPassword** (bcrypt-SHA-512 string) | indefinite (until logout) | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | never on the wire | Offline decrypt of every Proton-encrypted Card on the device. |
+| **keyPassword** (bcrypt-SHA-512 of the login password, or of the second password in two-password mode, with the key salt; written only after it opens the primary key) | indefinite (until logout) | AES-256-GCM under `pcontacts.kekv1` in `pcontacts_auth_v2` | never on the wire | Offline decrypt of every Proton-encrypted Card on the device. |
 | Unlocked **PGP user private key** | sync-run lifetime (seconds); re-unlocked for outbox push retries (ADR-0017/0018) | NEVER persisted; constructed from armored block + keyPassword on demand | never on the wire | As above. |
 | Decrypted **vCard plaintext** | sync-run lifetime (seconds, per-contact) | NEVER persisted; lives only on the heap during ContactDecryptBootstrap → VCardMerger | never on the wire | Discloses contact list, emails, phones, addresses, notes. |
 | Local **Room mapping** (`contact_map`, `group_map`, `sync_state`) | until logout / data wipe | plaintext SQLite (IDs, timestamps, content hashes; no decrypted content) except the sealed merge-base column below | never on the wire | Discloses contact IDs + sync timestamps; no plaintext content. |
@@ -167,16 +175,17 @@ write-side artefacts are ContactsContract rows owned by us
 
 | # | Threat | Mitigation today | Residual risk |
 |---|---|---|---|
-| I1 | Decrypted contact content lands in `Log.*` / `println` / `System.out.*` and gets harvested via `logcat`. | Custom `PcontactsSensitiveLog` Lint rule fails the build on direct `Log.*` calls outside `:core:logging` / `:app.logging`; production logger sink (`RedactingLogger`) strips fields named `token`, `password`, `passphrase`, etc.; the `:app` `AndroidLogcatSink` is the single sanctioned bridge to `android.util.Log`. | Low — Lint is mechanical; the per-field redaction list is the soft spot (a misnamed field could slip through). |
+| I1 | Decrypted contact content lands in `Log.*` / `println` / `System.out.*` and gets harvested via `logcat`. | Custom `PcontactsSensitiveLog` Lint rule fails the build on direct `Log.*` calls outside `:core:logging` / `:app.logging`; production logger sink (`RedactingLogger`) strips fields named `token`, `password`, `passphrase`, etc.; the `:app` `AndroidLogcatSink` is the single sanctioned bridge to `android.util.Log`. A key that does not open is logged with its Proton key ID and public metadata only — packet version, algorithm, S2K usage and type (issue #65) — never key material, a passphrase or contact content. | Low — Lint is mechanical; the per-field redaction list is the soft spot (a misnamed field could slip through). |
 | I2 | Decrypted vCard plaintext is persisted to disk (Room, SharedPreferences, file cache). | ADR-0007 — explicit "never persisted" rule. Engine holds plaintext only on the heap during a sync run. No file caches. | Low. |
 | I3 | Tokens / keyPassword end up in a crash dump / process memory dump. | Values are opened on read and held only as long as needed; we attempt to zero the temporary `CharArray` passphrase after key unlock (ADR-0009). The JVM cannot guarantee memory zeroization — the GC may have copied the array elsewhere. | **Medium.** A heap dump of a running process exposes the unlocked key. Defending against this requires native memory the JVM doesn't manage; out of scope. |
 | I4 | Android auto-backup exfiltrates the secrets file `pcontacts_auth_v2` to Google Drive. | `android:allowBackup="false"` in the manifest + a `data_extraction_rules` XML that excludes the secret-bearing prefs. Asserted by `:app:verifyManifestInvariants`, run on every `assembleRelease`. | Low. |
 | I5 | Sync log + ContactsContract rows exfiltrated by another app holding `READ_CONTACTS`. | Standard Android permission model — user grants `READ_CONTACTS` to the apps they trust. We don't have a stronger boundary. | **Medium by design.** This is the whole *point* — pcontacts puts contacts in the system address book so other apps (SMS, Phone, Mail) can use them. The user opts in when they grant READ_CONTACTS to a given app. |
 | I6 | Contact photo bytes (the inline `Photo.PHOTO` column) leak via `READ_CONTACTS` to other apps. | Same as I5 — by design. The photo is downscaled to ≤96KB JPEG before storing. | Acceptable. |
-| I8 | The opt-in runtime advisory check reveals to osv.dev (run by Google) the device's IP address and the time of the request, and lets it infer from the artifact list which app is asking. | Off by default (ADR-0025); the Privacy switch states exactly this before it can be turned on; the request carries only the artifact coordinates, which are public in this repository; its own HTTP client resolves `api.osv.dev` and nothing else; the answer changes only what the app shows. | **Accepted by the user who turns it on** — the default install still talks to Proton only. |
 | I7 | The merge base (the last-known server state of each contact, needed for the three-way merge) is decrypted contact content at rest. | It is stored — `contact_map.last_known_server_payload` — but sealed under the Keystore AEAD KEK (`pcontacts.kekv1`) before the row is written, opened only on the heap during a push, without photo bytes (digests only), and wiped at logout together with the KEK (ADR-0018). | **Low** — same protection level as `keyPassword`. |
 | I8 | Unlocked signing key lingers in heap between outbox push retries. | The key is re-unlocked from `keyPassword` on demand for each push attempt; it is not held between retries. The per-attempt window is the same as a sync run (seconds). | Low — same exposure as I3, no worse. |
 | I9 | Sign-out leaves secrets on disk: the wipe was an asynchronous `apply()`, and a read after logout re-provisioned the Keystore key. | `SecretStore.logout()` commits the wipe synchronously, deletes the alias and verifies it is gone, and throws otherwise; `LogoutOrchestrator` then keeps the Android account and reports the failure instead of pretending. `unwrap` never creates a key, so stale ciphertext reads as absent. Covered by `EncryptedSecretStoreTest` (including a fresh store over the same file after logout) and the Keystore instrumented test. | Low — Keystore honesty (A1). |
+| I10 | The opt-in runtime advisory check reveals to osv.dev (run by Google) the device's IP address and the time of the request, and lets it infer from the artifact list which app is asking. | Off by default (ADR-0025); the Privacy switch states exactly this before it can be turned on; the request carries only the artifact coordinates, which are public in this repository; its own HTTP client resolves `api.osv.dev` and nothing else; the answer changes only what the app shows. | **Accepted by the user who turns it on** — the default install still talks to Proton only. |
+| I11 | A password manager (the device's autofill service) receives the Proton credentials. | Only the username and login-password fields are tagged for autofill, so the user's chosen password manager can fill them and offer to save them once Proton has accepted the password; the second password of two-password mode is deliberately untagged and never offered for saving; the authenticator-code field is tagged as a one-time code only. All password fields use the password keyboard type. | **Accepted** — the autofill service is one the user installed and selected; it is trusted with every other login on the device too. |
 
 ### Denial of service
 
@@ -188,6 +197,7 @@ write-side artefacts are ContactsContract rows owned by us
 | D4 | Photo bytes that aren't actually an image crash `BitmapFactory`. | `PhotoDownscaler.downscale()` returns null on decode failure; the contact still writes without a photo. | Low. |
 | D5 | A `ContactsContract.applyBatch` call exceeds the binder transaction limit. | `BatchPlanner` chunks at 450 ops + re-anchors back-references at chunk boundaries (ADR-0010). | Low — verified by `BatchPlannerTest`. |
 | D6 | An attacker controlling the network drops the SPKI pin → handshake fails forever. | DNS guard rejects non-Proton hosts, so the handshake is to the real Proton anyway. Pinning failure is the right outcome (refuse to talk to an unverified peer). | Acceptable. |
+| D7 | A session revoked on the web (signed out of all devices, password or two-password mode changed) makes every sync fail; before 2.2.1 each failure was retried about every half minute, indefinitely, with the card stuck on "Sync in progress". | Proton refuses a revoked session's `/auth/refresh` with 400, 401 or 422 `[V]` (WebClients `SESSION_INVALID_REFRESH_STATUSES`; 422 observed live on 2026-10-06). `TokenRefresher` raises `SessionRevokedException`, the sync adapter reports it as an auth error (`numAuthExceptions`) so the sync framework stops retrying, and a notification asks the user to sign in again. | Low. |
 
 ### Elevation of privilege
 
@@ -270,11 +280,15 @@ User loses a locked, screen-locked device:
 - Bypass: a fingerprint / face-unlock spoof. We don't defend
   against that — the threat model is the device's lockscreen.
 
-**Mitigation hook**: the user can sign out remotely via the
-Proton web UI (Sessions → Revoke). Our `/auth/refresh` token
-becomes invalid immediately; subsequent sync attempts fail with
-401, the `numAuthExceptions` counter trips, and the sync
-framework stops trying.
+**Mitigation hook**: the user can sign out remotely from the
+Proton web UI (revoke the session, or sign out of all devices).
+The device's tokens stop working: the next refresh is refused
+(400/401/422 `[V]`), the sync reports an auth error so the sync
+framework stops trying, and a notification asks to sign in again
+(D7; since 2.2.1 — earlier versions kept retrying). Revocation
+cuts access to Proton only: `keyPassword` and the synced
+contacts stay on the device, sealed and in the Contacts provider
+respectively, until the app signs out or is uninstalled.
 
 ---
 
@@ -333,9 +347,12 @@ Accepted residual risks:
 
 ## 7. Reporting a security issue
 
-For now: open a private GitHub issue with the `security` label,
-or email the maintainer at **andrea.benetton@blueteam.ee** (also
-listed in the top-level `NOTICE` file). Do NOT file as a public PR.
+Report privately, through either channel in
+[`SECURITY.md`](../SECURITY.md): a GitHub security advisory
+("Report a vulnerability" under the repository's **Security** tab,
+visible only to the maintainer), or email to the maintainer at
+**andrea.benetton@blueteam.ee** (also listed in the top-level
+`NOTICE` file). Do NOT file a public issue or PR.
 
 If a fix requires a coordinated disclosure, expect a 30-day
 embargo from first acknowledgement; longer if multiple parties
