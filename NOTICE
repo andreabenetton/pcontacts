@@ -46,6 +46,11 @@ specification for this project's contacts, auth, and crypto layers
   packages/shared/lib/contacts/constants.ts
   packages/shared/lib/interfaces/contacts/Contact.ts
   packages/shared/lib/interfaces/contacts/VCard.ts
+  packages/shared/lib/constants.ts (PASSWORD_MODE)
+  packages/components/containers/login/loginActions.ts
+  packages/components/containers/login/loginHelper.ts
+  packages/components/containers/login/MinimalLoginContainer.tsx
+  packages/components/containers/account/totp/TotpInputs.tsx
 
 Any file in this repository whose implementation is materially
 derived from a file in ProtonMail/WebClients carries an SPDX header
