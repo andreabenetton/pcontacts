@@ -22,6 +22,12 @@
     <string name="two_factor_recovery_label">Wiederherstellungscode</string>
     <string name="two_factor_use_recovery">Wiederherstellungscode verwenden</string>
     <string name="two_factor_use_code">Code aus der Authenticator-App verwenden</string>
+    <string name="second_password_title">Zwei-Passwort-Modus</string>
+    <string name="second_password_subtitle">Ihr Proton-Konto verwendet den Zwei-Passwort-Modus. Geben Sie Ihr zweites Passwort (das Postfach-Passwort) ein, um Ihre Kontakte zu entsperren.</string>
+    <string name="second_password_label">Zweites Passwort</string>
+    <string name="second_password_unlock">Entsperren</string>
+    <string name="second_password_error_rejected">Falsches zweites Passwort. Bitte versuchen Sie es erneut.</string>
+    <string name="login_error_key_unlock">Angemeldet, aber dieses Passwort öffnet die Schlüssel Ihres Kontos nicht. Melden Sie sich einmal auf proton.me an und versuchen Sie es dann erneut.</string>
 
     <!-- Fehlermeldungen bei der Anmeldung -->
     <string name="login_error_unreachable">Proton konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>

@@ -22,6 +22,12 @@
     <string name="two_factor_recovery_label">Recovery code</string>
     <string name="two_factor_use_recovery">Use a recovery code</string>
     <string name="two_factor_use_code">Use the authenticator code</string>
+    <string name="second_password_title">Two-password mode</string>
+    <string name="second_password_subtitle">Your Proton account uses two-password mode. Enter your second password (the mailbox password) to unlock your contacts.</string>
+    <string name="second_password_label">Second password</string>
+    <string name="second_password_unlock">Unlock</string>
+    <string name="second_password_error_rejected">Incorrect second password. Please try again.</string>
+    <string name="login_error_key_unlock">Signed in, but this password does not open your account\'s encryption keys. Sign in once at proton.me, then try again.</string>
 
     <!-- Login failure messages (keyed off LoginResult.Failed reason codes) -->
     <string name="login_error_unreachable">Could not reach Proton. Check your connection and try again.</string>

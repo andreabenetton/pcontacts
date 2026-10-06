@@ -22,6 +22,12 @@
     <string name="two_factor_recovery_label">Codice di recupero</string>
     <string name="two_factor_use_recovery">Usa un codice di recupero</string>
     <string name="two_factor_use_code">Usa il codice dell\'app di autenticazione</string>
+    <string name="second_password_title">Modalità a due password</string>
+    <string name="second_password_subtitle">Il tuo account Proton usa la modalità a due password. Inserisci la seconda password (quella della casella di posta) per sbloccare i contatti.</string>
+    <string name="second_password_label">Seconda password</string>
+    <string name="second_password_unlock">Sblocca</string>
+    <string name="second_password_error_rejected">Seconda password errata. Riprova.</string>
+    <string name="login_error_key_unlock">Accesso eseguito, ma questa password non apre le chiavi del tuo account. Accedi una volta su proton.me, poi riprova.</string>
 
     <!-- Messaggi di errore di accesso -->
     <string name="login_error_unreachable">Impossibile raggiungere Proton. Controlla la tua connessione e riprova.</string>

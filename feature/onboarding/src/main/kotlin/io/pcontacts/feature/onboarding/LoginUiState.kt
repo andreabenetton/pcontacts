@@ -25,6 +25,11 @@ package io.pcontacts.feature.onboarding
  *       └─(a second 9001 on the resubmit)→ TwoFactorFailed("verification_rejected")   // fail closed
  *
  *   TwoFactorFailed ─(submitTwoFactor)→ TwoFactorSubmitting   // retry path
+ *
+ *   Two-password mode (after the login password, and after the code when 2FA is on):
+ *   SecondPasswordRequired ─(submitSecondPassword)→ SecondPasswordSubmitting
+ *       └→ Success | SecondPasswordFailed | KeyDerivationHumanVerificationRequired
+ *   SecondPasswordFailed ─(submitSecondPassword)→ SecondPasswordSubmitting   // retry path
  */
 sealed interface LoginUiState {
     data object Idle : LoginUiState
@@ -33,6 +38,11 @@ sealed interface LoginUiState {
     data class TwoFactorRequired(val uid: String, val username: String) : LoginUiState
     data class TwoFactorSubmitting(val uid: String, val username: String) : LoginUiState
     data class TwoFactorFailed(val uid: String, val username: String, val reason: String) : LoginUiState
+
+    /** The account is in two-password mode: its keys open with the second (mailbox) password. */
+    data class SecondPasswordRequired(val uid: String, val username: String) : LoginUiState
+    data class SecondPasswordSubmitting(val uid: String, val username: String) : LoginUiState
+    data class SecondPasswordFailed(val uid: String, val username: String, val reason: String) : LoginUiState
 
     /**
      * Proton demanded a captcha (Code 9001) at `/auth` before issuing

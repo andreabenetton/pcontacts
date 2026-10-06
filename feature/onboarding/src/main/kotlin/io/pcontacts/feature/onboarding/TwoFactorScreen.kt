@@ -187,7 +187,10 @@ private fun TwoFactorStatusView(
         LoginUiState.Submitting,
         is LoginUiState.Failed,
         is LoginUiState.TwoFactorRequired,
-        is LoginUiState.HumanVerificationRequired -> Unit
+        is LoginUiState.HumanVerificationRequired,
+        is LoginUiState.SecondPasswordRequired,
+        is LoginUiState.SecondPasswordSubmitting,
+        is LoginUiState.SecondPasswordFailed -> Unit
         is LoginUiState.TwoFactorSubmitting ->
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         is LoginUiState.TwoFactorHumanVerificationRequired -> {

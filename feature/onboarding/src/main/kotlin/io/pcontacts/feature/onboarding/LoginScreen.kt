@@ -155,19 +155,23 @@ fun LoginScreen(
 // One parameter per input the field reflects; the screen owns the state.
 @Suppress("LongParameterList")
 @Composable
-private fun PasswordField(
+internal fun PasswordField(
     value: String,
     onValueChange: (String) -> Unit,
     editable: Boolean,
     wrongCredentials: Boolean,
     failed: Boolean,
-    onDone: () -> Unit
+    onDone: () -> Unit,
+    labelRes: Int = R.string.login_password_label,
+    /** Off for the second password: a password manager would take it for the login one. */
+    autofill: Boolean = true,
+    focusRequester: FocusRequester? = null
 ) {
     var visible by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(stringResource(R.string.login_password_label)) },
+        label = { Text(stringResource(labelRes)) },
         singleLine = true,
         enabled = editable,
         isError = wrongCredentials,
@@ -196,7 +200,8 @@ private fun PasswordField(
         // Password managers (Proton Pass, Bitwarden…) recognise the field and offer to fill it.
         modifier = Modifier
             .fillMaxWidth()
-            .semantics { contentType = ContentType.Password }
+            .then(if (autofill) Modifier.semantics { contentType = ContentType.Password } else Modifier)
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
     )
 }
 
@@ -231,7 +236,10 @@ private fun LoginStatusView(
         is LoginUiState.TwoFactorSubmitting,
         is LoginUiState.TwoFactorHumanVerificationRequired,
         is LoginUiState.KeyDerivationHumanVerificationRequired,
-        is LoginUiState.TwoFactorFailed -> Unit
+        is LoginUiState.TwoFactorFailed,
+        is LoginUiState.SecondPasswordRequired,
+        is LoginUiState.SecondPasswordSubmitting,
+        is LoginUiState.SecondPasswordFailed -> Unit
         is LoginUiState.Failed -> Text(
             text = friendlyError(state.reason),
             color = MaterialTheme.colorScheme.error,
@@ -252,6 +260,7 @@ private fun friendlyError(reason: String): String = when (reason) {
     "modulus_signature_invalid",
     "modulus_pin_missing" -> stringResource(R.string.login_error_modulus)
     "key_derivation_failed" -> stringResource(R.string.login_error_key_derivation)
+    "key_unlock_failed" -> stringResource(R.string.login_error_key_unlock)
     else -> stringResource(R.string.login_error_generic)
 }
 

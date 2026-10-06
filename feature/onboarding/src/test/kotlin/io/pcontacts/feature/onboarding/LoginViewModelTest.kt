@@ -462,4 +462,104 @@ class LoginViewModelTest {
         assertEquals(LoginUiState.Idle, vm.uiState.value)
         assertEquals(false, totpCalled)
     }
+
+    // --- Two-password mode (issue #65) ---
+
+    private fun secondPasswordVm(
+        attempt: LoginResult = LoginResult.SecondPasswordRequired("uid-2p", "u"),
+        submitSecondPassword: suspend (CharArray) -> LoginResult,
+        retry: suspend () -> LoginResult = { error("not used") }
+    ) = LoginViewModel(
+        attemptLogin = { _, _ -> attempt },
+        submitTotp = { LoginResult.SecondPasswordRequired("uid-2p", "u") },
+        retryKeyDerivation = retry,
+        submitSecondPassword = submitSecondPassword,
+        workDispatcher = testDispatcher
+    )
+
+    @Test fun two_password_mode_asks_for_the_second_password_after_the_login_one() = runTest {
+        val vm = secondPasswordVm(submitSecondPassword = { error("not yet") })
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.SecondPasswordRequired("uid-2p", "u"), vm.uiState.value)
+    }
+
+    @Test fun two_password_mode_with_two_factor_asks_for_it_after_the_code() = runTest {
+        val vm = secondPasswordVm(
+            attempt = LoginResult.TwoFactorRequired("uid-2p", "u"),
+            submitSecondPassword = { error("not yet") }
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitTwoFactor("123456")
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.SecondPasswordRequired("uid-2p", "u"), vm.uiState.value)
+    }
+
+    @Test fun the_second_password_finishes_the_sign_in() = runTest {
+        val received = mutableListOf<String>()
+        val vm = secondPasswordVm(
+            submitSecondPassword = {
+                received += String(it)
+                LoginResult.Success("uid-2p", "u")
+            }
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+
+        vm.submitSecondPassword("second".toCharArray())
+        assertEquals(LoginUiState.SecondPasswordSubmitting("uid-2p", "u"), vm.uiState.value)
+        advanceUntilIdle()
+
+        assertEquals(listOf("second"), received)
+        assertEquals(LoginUiState.Success("uid-2p", "u"), vm.uiState.value)
+    }
+
+    @Test fun a_wrong_second_password_stays_on_the_step_and_can_be_retried() = runTest {
+        var tries = 0
+        val vm = secondPasswordVm(
+            submitSecondPassword = {
+                tries++
+                if (tries == 1) {
+                    LoginResult.Failed("second_password_rejected", "uid-2p", "u")
+                } else {
+                    LoginResult.Success("uid-2p", "u")
+                }
+            }
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+
+        vm.submitSecondPassword("wrong".toCharArray())
+        advanceUntilIdle()
+        assertEquals(LoginUiState.SecondPasswordFailed("uid-2p", "u", "second_password_rejected"), vm.uiState.value)
+
+        vm.submitSecondPassword("right".toCharArray())
+        advanceUntilIdle()
+        assertEquals(LoginUiState.Success("uid-2p", "u"), vm.uiState.value)
+    }
+
+    @Test fun a_captcha_on_the_second_password_step_resumes_on_that_step() = runTest {
+        val vm = secondPasswordVm(
+            submitSecondPassword = {
+                LoginResult.HumanVerificationRequired("url", "uid-2p", "u", stage = LoginResult.HvStage.KEY_DERIVATION)
+            },
+            retry = { LoginResult.Failed("second_password_rejected", "uid-2p", "u") }
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        vm.submitSecondPassword("second".toCharArray())
+        advanceUntilIdle()
+        assertEquals(
+            LoginUiState.KeyDerivationHumanVerificationRequired("uid-2p", "u", "url"),
+            vm.uiState.value
+        )
+
+        vm.retryAfterVerification()
+        advanceUntilIdle()
+
+        assertEquals(LoginUiState.SecondPasswordFailed("uid-2p", "u", "second_password_rejected"), vm.uiState.value)
+    }
 }
