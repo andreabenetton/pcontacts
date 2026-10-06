@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A password that cannot open the account's keys is refused at
   sign-in**, with an explanation, instead of letting sign-in succeed and
   every sync fail afterwards.
+- **A session revoked on the web** (signed out of all devices, password
+  or two-password mode changed) now asks you to sign in again. Before,
+  every sync failed and was retried every half minute, the card stayed on
+  "Sync in progress" and Sign out was greyed out.
 - **An extra encryption key that does not open** (for example one from
   before a password reset) no longer stops the sync; it is skipped, as
   on the web.

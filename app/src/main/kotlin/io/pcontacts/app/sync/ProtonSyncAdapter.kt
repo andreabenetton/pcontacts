@@ -17,6 +17,7 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.proton.api.http.SessionRevokedException
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.UserPreferences
 import io.pcontacts.core.sync.contacts.SyncBootstrap
@@ -110,6 +111,13 @@ class ProtonSyncAdapter(
             // because of the storage upgrade, not an expired session (the app signs the
             // stale account out on its next start and the sign-in screen explains it).
             notifier.notifyReauthRequired(account, storageUpgrade = userPreferences.secretsStorageUpgraded)
+        } catch (e: SessionRevokedException) {
+            // Before the IOException branch: a revoked session (signed out everywhere, password or
+            // password mode changed on the web) needs a sign-in, not Android's retries.
+            syncResult.stats.numAuthExceptions += 1
+            logger.warn { "sync requires re-auth: session revoked (HTTP ${e.httpStatus})" }
+            userPreferences.lastSyncErrorCode = SyncErrorCodes.REAUTH
+            notifier.notifyReauthRequired(account)
         } catch (e: HumanVerificationRequiredException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync paused — human verification required (Code 9001)" }

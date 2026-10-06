@@ -18,6 +18,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.pcontacts.app.R
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.proton.api.http.SessionRevokedException
 import io.pcontacts.core.storage.InMemoryUserPreferences
 import io.pcontacts.core.storage.UserPreferences
 import io.pcontacts.core.sync.contacts.SyncReport
@@ -145,6 +146,19 @@ class ProtonSyncAdapterErrorPropagationTest {
         adapter.onPerformSync(account, extras, authority, provider, syncResult)
         assertEquals(1L, syncResult.stats.numAuthExceptions)
         assertEquals(0L, syncResult.stats.numIoExceptions)
+    }
+
+    @Test
+    fun a_revoked_session_asks_to_sign_in_again_instead_of_retrying() {
+        // Seen live 2026-10-06: two-password mode turned on on the web revoked the session; the
+        // 401 went to the generic branch, which Android retried every 30 s with the card stuck.
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> throw SessionRevokedException(httpStatus = 422) }
+        val syncResult = SyncResult()
+        adapter.onPerformSync(account, extras, authority, provider, syncResult)
+        assertEquals(1L, syncResult.stats.numAuthExceptions)
+        assertEquals("an auth exception, not an I/O one Android would retry", 0L, syncResult.stats.numIoExceptions)
+        assertEquals(SyncErrorCodes.REAUTH, prefs.lastSyncErrorCode)
     }
 
     @Test
