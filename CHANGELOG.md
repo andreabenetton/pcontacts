@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sealed — the account password itself as the key password; pcontacts
   never stores a password.
 
+### Fixed
+
+- **A password that does not open the account's keys** is explained
+  after the 2FA code too; before, that step showed only a generic error.
+
 ## [2.2.1] - 2026-10-06
 
 ### Fixed
