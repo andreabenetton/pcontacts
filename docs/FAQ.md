@@ -79,7 +79,8 @@ older Android the button says so, and the choice is made in the Contacts
 app when you create a contact. Samsung Contacts has a "Save contact to"
 list at the top of the new-contact screen, where the account appears as
 "PContacts" (pcontacts 2.2.1 and earlier were missing from that list).
-Fossify Contacts has it under "Source", at the bottom of its editor.
+Fossify Contacts has it under "Source", at the bottom of its editor, and
+preselects the account chosen last time.
 
 A contact saved in the Proton account is pushed at the next sync. Apps
 that write contacts themselves, WhatsApp included, may still pick their
