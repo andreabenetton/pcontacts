@@ -158,6 +158,34 @@ class ContactDecryptBootstrapTest {
         }
     }
 
+    @Test fun an_extra_user_key_that_does_not_open_is_skipped_not_fatal() = runTest {
+        // [V] WebClients getDecryptedUserKeys: the primary key must open; the others that fail
+        // are filtered out. Before, any one of them aborted every sync with KEY_UNLOCK_FAILED.
+        val passphrase = "P4ss-Z73-correct".toCharArray()
+        val primary = TestKeys.armoredKey(passphrase)
+        val stale = TestKeys.armoredKey("P4ss-Z73-old-password".toCharArray())
+        val secretStore = { InMemorySecretStore().apply { setKeyPassword(String(passphrase).toByteArray()) } }
+        val alone = ContactDecryptBootstrap.unlockAllKeys(
+            secretStore(),
+            FakeUsersApi(armoredPrivateKey = primary),
+            FakeAddressesApi.empty(),
+            openPgp
+        )
+
+        val withStale = ContactDecryptBootstrap.unlockAllKeys(
+            secretStore(),
+            FakeUsersApi(
+                armoredPrivateKey = primary,
+                extraKeys = listOf(UserKeyDto(id = "key-old", primary = 0, active = 1, privateKey = stale))
+            ),
+            FakeAddressesApi.empty(),
+            openPgp
+        )
+
+        assertEquals(alone.decryptionKeys.size, withStale.decryptionKeys.size)
+        assertEquals(1, withStale.verificationKeys.size)
+    }
+
     @Test fun decrypts_card_encrypted_only_to_address_key_end_to_end() = runTest {
         // Regression for the field bug: a real Proton mailbox encrypts
         // contacts to ADDRESS keys, not user keys. Before Phase 11 the
@@ -371,7 +399,8 @@ class ContactDecryptBootstrapTest {
 
     private class FakeUsersApi(
         private val armoredPrivateKey: String,
-        private val primaryFlag: Int = 1
+        private val primaryFlag: Int = 1,
+        private val extraKeys: List<UserKeyDto> = emptyList()
     ) : ProtonUsersApi {
         override suspend fun getUser(): GetUserResponse = GetUserResponse(
             code = 1000,
@@ -384,7 +413,7 @@ class ContactDecryptBootstrapTest {
                         active = 1,
                         privateKey = armoredPrivateKey
                     )
-                )
+                ) + extraKeys
             )
         )
         override suspend fun getKeySalts(): GetKeySaltsResponse =

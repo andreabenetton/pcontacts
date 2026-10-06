@@ -61,8 +61,9 @@ data class UnlockedKeySet(
  *   - `NO_PRIMARY_KEY`        → /users returned no Primary+Active key;
  *     server-side anomaly, surfaced for support.
  *   - `KEY_UNLOCK_FAILED`     → wrong passphrase or corrupted key
- *     material on a user key; almost certainly stale keyPassword
- *     (user changed their Proton password). Re-login required.
+ *     material on the primary user key; almost certainly stale keyPassword
+ *     (user changed their Proton password). Re-login required. Another
+ *     user key that does not open is skipped, as address keys are.
  *
  * Address keys that fail to unlock (corrupt Token, missing
  * recipient, future format) are **skipped** and counted in a
@@ -117,9 +118,11 @@ object ContactDecryptBootstrap {
                 ?: throw DecryptUnavailableException("NO_PRIMARY_KEY")
 
             val primaryUnlocked = unlockUserKey(primaryDto, keyPasswordBytes)
+            // [V] WebClients getDecryptedUserKeys: only the primary key must open; another one
+            // that does not (e.g. from before a password reset) is left out, not fatal (#65).
             val nonPrimaryUnlocked = user.keys
                 .filter { it.active == 1 && it.id != primaryDto.id }
-                .map { unlockUserKey(it, keyPasswordBytes) }
+                .mapNotNull { tryUnlockUserKey(it, keyPasswordBytes, logger) }
             val allUserUnlocked = listOf(primaryUnlocked) + nonPrimaryUnlocked
 
             val addresses = fetchAddressesOrEmpty(addressesApi, logger)
@@ -150,6 +153,13 @@ object ContactDecryptBootstrap {
         } finally {
             keyPasswordBytes.fill(0)
         }
+    }
+
+    private fun tryUnlockUserKey(uk: UserKeyDto, keyPasswordBytes: ByteArray, logger: Logger): UnlockedKey? = try {
+        unlockUserKey(uk, keyPasswordBytes)
+    } catch (e: DecryptUnavailableException) {
+        logger.warn { "skipped user key ${uk.id}: ${e.cause?.javaClass?.simpleName}" }
+        null
     }
 
     private fun unlockUserKey(uk: UserKeyDto, keyPasswordBytes: ByteArray): UnlockedKey {
