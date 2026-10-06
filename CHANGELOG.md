@@ -10,6 +10,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **A Proton account whose key has no salt** (a very old account Proton
+  never upgraded) is refused at sign-in, with a message to sign in once
+  at proton.me, which upgrades it. 2.2.1 would have used — and stored,
+  sealed — the account password itself as the key password; pcontacts
+  never stores a password.
+
 ## [2.2.1] - 2026-10-06
 
 ### Fixed

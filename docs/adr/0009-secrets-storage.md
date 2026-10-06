@@ -148,11 +148,16 @@ never help. Strengthened as follows:
   second password"); in one-password mode a key password that does not
   open the key fails the sign-in and wipes the half-made session. No
   unusable `keyPassword` is ever stored.
-- **No salt.** `[V]` a primary key without a `KeySalt` ("old auth
-  versions") opens with the password itself, as the web client accepts;
-  it used to fail the sign-in.
+- **No salt: refused.** `[V]` the web client opens a primary key
+  without a `KeySalt` ("old auth versions") with the password itself.
+  Stored here, that value would be the user's password, so pcontacts
+  fails the sign-in instead ("key_salt_missing") and never persists a
+  password; signing in once on proton.me upgrades such keys
+  (`loginActions.handleKeyUpgrade`). (2.2.1 briefly accepted the web
+  client's fallback; corrected 2026-10-06, before any report of such an
+  account.)
 
 Validation: `SrpLoginOrchestratorTest` (second-password request with and
 without 2FA, derivation from the second password, wrong second password
-retried on the same session, one-password key that does not open, no
-salt); `LoginViewModelTest` and `SecondPasswordScreenTest` for the step.
+retried on the same session, one-password key that does not open, a
+key without a salt refused); `LoginViewModelTest` and `SecondPasswordScreenTest` for the step.

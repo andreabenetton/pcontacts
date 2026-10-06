@@ -762,7 +762,7 @@ class SrpLoginOrchestratorTest {
         assertNull(secretStore.accessToken())
     }
 
-    @Test fun a_key_without_a_salt_opens_with_the_password_itself() = runTest {
+    @Test fun a_key_without_a_salt_is_refused_so_no_password_is_ever_stored() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-nosalt", twoFactor = 0)
         enqueueUserResponse(primaryKeyId = "kp-1")
@@ -770,9 +770,12 @@ class SrpLoginOrchestratorTest {
 
         val result = newOrchestrator().login("frank", "plain".toCharArray())
 
-        // [V] WebClients loginHelper.handleUnlockKey: "Support for versions without a key salt".
-        assertEquals(LoginResult.Success(uid = "uid-nosalt", username = "frank"), result)
-        assertEquals("plain", String(secretStore.keyPassword()!!, Charsets.UTF_8))
+        // The web client would use the password itself as the key password ("old auth
+        // versions"); stored, that would be the user's password. Fail closed instead: signing in
+        // once on proton.me upgrades such keys (loginActions.handleKeyUpgrade).
+        assertEquals(LoginResult.Failed(reason = "key_salt_missing", uid = "uid-nosalt", username = "frank"), result)
+        assertNull("no password stored as the key password", secretStore.keyPassword())
+        assertNull("no half session left behind", secretStore.uid())
     }
 
     @Test fun submitSecondPassword_outside_two_password_mode_is_refused() = runTest {

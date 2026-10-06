@@ -194,6 +194,10 @@ class SrpLoginOrchestrator(
         throw e
     } catch (expected: KeyPasswordRejectedException) {
         keyPasswordRejected(uid, username)
+    } catch (expected: KeySaltMissingException) {
+        logger.warn { "primary key has no KeySalt — refused rather than storing the password" }
+        clearHalfSession()
+        LoginResult.Failed(reason = "key_salt_missing", uid = uid, username = username)
     } catch (t: Throwable) {
         val code = t.httpStatusCode()
         logger.error(t) { "key-derivation step failed http=$code" }
@@ -219,10 +223,14 @@ class SrpLoginOrchestrator(
             return LoginResult.Failed(reason = "second_password_rejected", uid = uid, username = username)
         }
         logger.warn { "login password does not open the primary key" }
+        clearHalfSession()
+        return LoginResult.Failed(reason = "key_unlock_failed", uid = uid, username = username)
+    }
+
+    private fun clearHalfSession() {
         secretStore.setUid(null)
         secretStore.setTokens(null, null)
         session.update(uid = null, accessToken = null)
-        return LoginResult.Failed(reason = "key_unlock_failed", uid = uid, username = username)
     }
 
     private fun clearPendingTwoFactorPassword() {
@@ -452,9 +460,11 @@ class SrpLoginOrchestrator(
         val saltDto = usersApi.getKeySalts().keySalts
             .firstOrNull { it.keyId == primary.id }
             ?: error("no /keys/salts entry for primary key id (hash-redacted)")
-        // [V] loginHelper.handleUnlockKey: a key without a salt ("old auth versions") opens
-        // with the password itself.
-        val keyPassword = saltDto.keySalt?.let { ComputeKeyPassword.derive(password, it) } ?: String(password)
+        // [V] loginHelper.handleUnlockKey opens a key without a salt ("old auth versions") with the
+        // password itself; stored, that would be the user's password. Fail closed: signing in once
+        // on proton.me upgrades such keys (loginActions.handleKeyUpgrade). Threat model §1.
+        val saltB64 = saltDto.keySalt ?: throw KeySaltMissingException()
+        val keyPassword = ComputeKeyPassword.derive(password, saltB64)
         val keyPasswordChars = keyPassword.toCharArray()
         try {
             if (!primaryKeyOpens(primary.privateKey, keyPasswordChars)) throw KeyPasswordRejectedException()
@@ -577,6 +587,8 @@ class SrpLoginOrchestrator(
     }
 
     private class KeyPasswordRejectedException : Exception()
+
+    private class KeySaltMissingException : Exception()
 
     private companion object {
         const val TWO_FACTOR_TOTP_BIT = 1
