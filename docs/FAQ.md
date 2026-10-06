@@ -121,8 +121,9 @@ Only from background work, one trigger each:
 
 - **Sign in required**: a sync finds the session unusable, or the 2.0
   update needs the one-time sign-in.
-- **Verification required**: Proton demands a captcha (code 9001), or
-  rejects the app version.
+- **Verification required**: Proton demands a captcha (code 9001).
+- **pcontacts needs an update**: Proton no longer accepts this version of
+  the app; only an update helps.
 - **Sync keeps failing**: a network or internal error persisted through
   Android's own retries. A single failed run never notifies.
 - **Contacts with problems**: a background sync left failed, quarantined
