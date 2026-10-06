@@ -562,4 +562,8 @@ class LoginViewModelTest {
 
         assertEquals(LoginUiState.SecondPasswordFailed("uid-2p", "u", "second_password_rejected"), vm.uiState.value)
     }
+
+    @Test fun a_key_without_a_salt_on_the_second_password_step_says_to_sign_in_on_proton_me() {
+        assertEquals(R.string.login_error_key_salt, secondPasswordErrorRes("key_salt_missing"))
+    }
 }

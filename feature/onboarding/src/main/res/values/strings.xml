@@ -28,6 +28,7 @@
     <string name="second_password_unlock">Unlock</string>
     <string name="second_password_error_rejected">Incorrect second password. Please try again.</string>
     <string name="login_error_key_unlock">Signed in, but this password does not open your account\'s encryption keys. Sign in once at proton.me, then try again.</string>
+    <string name="login_error_key_salt">Signed in, but your account\'s keys use an old format that pcontacts does not accept. Sign in once at proton.me, which updates them, then try again.</string>
 
     <!-- Login failure messages (keyed off LoginResult.Failed reason codes) -->
     <string name="login_error_unreachable">Could not reach Proton. Check your connection and try again.</string>

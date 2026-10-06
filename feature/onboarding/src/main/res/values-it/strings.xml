@@ -28,6 +28,7 @@
     <string name="second_password_unlock">Sblocca</string>
     <string name="second_password_error_rejected">Seconda password errata. Riprova.</string>
     <string name="login_error_key_unlock">Accesso eseguito, ma questa password non apre le chiavi del tuo account. Accedi una volta su proton.me, poi riprova.</string>
+    <string name="login_error_key_salt">Accesso eseguito, ma le chiavi del tuo account usano un vecchio formato che pcontacts non accetta. Accedi una volta su proton.me, che le aggiorna, poi riprova.</string>
 
     <!-- Messaggi di errore di accesso -->
     <string name="login_error_unreachable">Impossibile raggiungere Proton. Controlla la tua connessione e riprova.</string>

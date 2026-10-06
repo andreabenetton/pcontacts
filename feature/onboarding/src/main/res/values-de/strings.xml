@@ -28,6 +28,7 @@
     <string name="second_password_unlock">Entsperren</string>
     <string name="second_password_error_rejected">Falsches zweites Passwort. Bitte versuchen Sie es erneut.</string>
     <string name="login_error_key_unlock">Angemeldet, aber dieses Passwort öffnet die Schlüssel Ihres Kontos nicht. Melden Sie sich einmal auf proton.me an und versuchen Sie es dann erneut.</string>
+    <string name="login_error_key_salt">Angemeldet, aber die Schlüssel Ihres Kontos haben ein altes Format, das pcontacts nicht annimmt. Melden Sie sich einmal auf proton.me an, um sie zu aktualisieren, und versuchen Sie es dann erneut.</string>
 
     <!-- Fehlermeldungen bei der Anmeldung -->
     <string name="login_error_unreachable">Proton konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>

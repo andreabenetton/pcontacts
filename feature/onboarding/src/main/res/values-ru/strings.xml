@@ -28,6 +28,7 @@
     <string name="second_password_unlock">Разблокировать</string>
     <string name="second_password_error_rejected">Неверный второй пароль. Попробуйте ещё раз.</string>
     <string name="login_error_key_unlock">Вход выполнен, но этот пароль не открывает ключи вашего аккаунта. Войдите один раз на proton.me и попробуйте снова.</string>
+    <string name="login_error_key_salt">Вход выполнен, но ключи вашего аккаунта в старом формате, который pcontacts не принимает. Войдите один раз на proton.me — это обновит их — и попробуйте снова.</string>
 
     <!-- Сообщения об ошибках входа -->
     <string name="login_error_unreachable">Не удалось связаться с Proton. Проверьте подключение и повторите попытку.</string>

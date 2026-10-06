@@ -261,6 +261,7 @@ private fun friendlyError(reason: String): String = when (reason) {
     "modulus_pin_missing" -> stringResource(R.string.login_error_modulus)
     "key_derivation_failed" -> stringResource(R.string.login_error_key_derivation)
     "key_unlock_failed" -> stringResource(R.string.login_error_key_unlock)
+    "key_salt_missing" -> stringResource(R.string.login_error_key_salt)
     else -> stringResource(R.string.login_error_generic)
 }
 
@@ -271,5 +272,6 @@ internal fun friendlyTotpError(reason: String): String = when (reason) {
     "no_session" -> stringResource(R.string.two_factor_error_session_expired)
     "verification_rejected" -> stringResource(R.string.two_factor_error_verification_rejected)
     "unexpected_state" -> stringResource(R.string.two_factor_error_unexpected)
+    "key_salt_missing" -> stringResource(R.string.login_error_key_salt)
     else -> stringResource(R.string.two_factor_error_generic)
 }

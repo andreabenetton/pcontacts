@@ -28,6 +28,7 @@
     <string name="second_password_unlock">Desbloquear</string>
     <string name="second_password_error_rejected">Segunda contraseña incorrecta. Inténtalo de nuevo.</string>
     <string name="login_error_key_unlock">Sesión iniciada, pero esta contraseña no abre las claves de tu cuenta. Inicia sesión una vez en proton.me y vuelve a intentarlo.</string>
+    <string name="login_error_key_salt">Sesión iniciada, pero las claves de tu cuenta usan un formato antiguo que pcontacts no acepta. Inicia sesión una vez en proton.me, que las actualiza, y vuelve a intentarlo.</string>
 
     <!-- Mensajes de error de inicio de sesión -->
     <string name="login_error_unreachable">No se pudo conectar con Proton. Comprueba tu conexión y vuelve a intentarlo.</string>

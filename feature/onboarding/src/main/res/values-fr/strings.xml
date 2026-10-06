@@ -28,6 +28,7 @@
     <string name="second_password_unlock">Déverrouiller</string>
     <string name="second_password_error_rejected">Deuxième mot de passe incorrect. Veuillez réessayer.</string>
     <string name="login_error_key_unlock">Connecté, mais ce mot de passe n\'ouvre pas les clés de votre compte. Connectez-vous une fois sur proton.me, puis réessayez.</string>
+    <string name="login_error_key_salt">Connecté, mais les clés de votre compte utilisent un ancien format que pcontacts n\'accepte pas. Connectez-vous une fois sur proton.me, qui les met à jour, puis réessayez.</string>
 
     <!-- Messages d'erreur de connexion -->
     <string name="login_error_unreachable">Impossible de joindre Proton. Vérifiez votre connexion et réessayez.</string>

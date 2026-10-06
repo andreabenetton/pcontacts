@@ -124,5 +124,6 @@ internal fun secondPasswordErrorRes(reason: String): Int = when (reason) {
     "no_session" -> R.string.two_factor_error_session_expired
     "verification_rejected" -> R.string.two_factor_error_verification_rejected
     "unexpected_state" -> R.string.two_factor_error_unexpected
+    "key_salt_missing" -> R.string.login_error_key_salt
     else -> R.string.login_error_generic
 }
