@@ -12,7 +12,8 @@ local account of its own type.
 
 ## Issue 1 — a contact deleted in Samsung Contacts came back
 
-Samsung Contacts moves a deleted contact into its Recycle bin. The
+Samsung Contacts moves a deleted contact into its Recycle bin (called
+"Trash" in the One UI version on the A40). The
 provider marks the row with extra `raw_contacts` columns
 (`sec_in_trash`, `sec_trash_timestamp`, `sec_trash_caller_package`) and
 hides it from every query, the sync adapter's included, unless the row
@@ -41,12 +42,17 @@ whose row disappears is not recreated; pcontacts asks instead
 The user-facing explanation is in the FAQ:
 [I deleted a contact on a Samsung and pcontacts asks what to do](../FAQ.md#i-deleted-a-contact-on-a-samsung-and-pcontacts-asks-what-to-do).
 
-Not observed on the device: Samsung Contacts has a setting that switches
-the Recycle bin off (`contact_setting_trash_bin_on` in the provider).
-The provider's own visibility rule
-(`sec_in_trash = 0 OR sec_in_trash = 4 OR (sec_in_trash > 0 AND deleted = 1)`)
-suggests a deletion then leaves an ordinary tombstone, which pcontacts
-sends to Proton without asking. That path has not been run on the A40.
+**With the Trash switched off** (Samsung Contacts → Settings → Trash),
+a deletion leaves an ordinary tombstone and nothing is asked. Observed on
+2026-10-06: switching the Trash off first permanently deletes whatever
+the Trash holds (Samsung asks before doing it). A synced contact deleted
+in Samsung Contacts then stayed visible to the sync as `DELETED=1`,
+`DIRTY=1`, with `sec_in_trash=3` (Samsung's "kept for sync" state); the
+next sync queued its deletion, the app listed it under "scheduled for
+deletion" with Cancel, and the pull left the contact alone while the
+deletion was pending. After the grace hour the next sync deleted it on
+Proton (`deleted=1`, the server went from 5 contacts to 4) and the
+provider purged the tombstone.
 
 ## Issue 2 — which "phone" contacts Android deletes
 

@@ -143,8 +143,10 @@ another app removed, so it asks instead of guessing: "Delete from
 Proton" removes it on Proton too (after the usual one-hour grace, which
 you can cancel), "Put it back" restores it on the phone. Restoring it
 from the Recycle bin yourself also settles the question. With the
-Recycle bin switched off in Samsung Contacts settings, a deletion goes
-straight to Proton and nothing is asked.
+Recycle bin switched off in Samsung Contacts settings (called "Trash" on
+some versions), nothing is asked: a deletion reaches Proton as on any other
+phone, after the usual grace hour. Switching it off permanently deletes
+whatever the bin holds; Samsung asks first.
 
 ## The sync interval slider has an "Off" position. What does it do?
 
