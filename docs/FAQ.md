@@ -75,11 +75,15 @@ way described above.
 
 The main screen has "Default account for new contacts". On Android 15 and
 later it opens the system page where the Proton account can be chosen; on
-older Android the button says so and the choice is made in the Contacts
-app's settings instead. After that, a contact saved from the Contacts app,
-or handed to it by another app, lands in the Proton account and is pushed
-at the next sync. Apps that write contacts themselves, WhatsApp included,
-may still pick their own storage.
+older Android the button says so, and the choice is made in the Contacts
+app when you create a contact. Samsung Contacts has a "Save contact to"
+list at the top of the new-contact screen, where the account appears as
+"PContacts" (pcontacts 2.2.1 and earlier were missing from that list).
+Fossify Contacts has it under "Source", at the bottom of its editor.
+
+A contact saved in the Proton account is pushed at the next sync. Apps
+that write contacts themselves, WhatsApp included, may still pick their
+own storage.
 
 ## What does sign-out delete, and what does it keep?
 

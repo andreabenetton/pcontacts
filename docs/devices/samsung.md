@@ -72,6 +72,31 @@ The move was validated on this phone on 2026-09-24 with the equivalent
 shell update: `_ID`, `contact_id`, the star and the Data rows survived,
 and the next sync created the contact on Proton without a duplicate.
 
+## Issue 3 — Proton missing from "Save contact to"
+
+Samsung Contacts picks the storage of a new contact at the top of the
+new-contact screen ("Save contact to"); its settings have no default
+storage option. Up to 2.2.1 the list offered Phone, SIM and Google, but
+not the Proton account, so a contact could not be created in Proton from
+Samsung Contacts. Editing an existing Proton contact did work: on
+2026-10-06 an edit saved in Samsung Contacts landed in the pcontacts row
+and was pushed to Proton.
+
+`[V]` AOSP Contacts counts a third-party account as writable only when
+its `contacts.xml` declares an `EditSchema`
+(`ExternalAccountType.areContactsWritable()` returns `mHasEditSchema`),
+and leaves read-only accounts out of the "Save contact to" list. Adding
+one made the account appear in Samsung's list too.
+
+**Fix (cross-device, unreleased):** `contacts.xml` declares an
+`EditSchema` limited to the fields pcontacts carries both ways. Tested on
+the A40 on 2026-10-06: "PContacts" appeared in the list, a contact saved
+there was created on Proton at the next sync, with its name and number.
+
+Fossify Contacts offered the Proton account already before the fix
+(under "Source" at the bottom of its editor); a contact created there was
+created on Proton too.
+
 ## Earlier validation on this phone
 
 On 2026-08-05 the same A40 confirmed that contacts in no group were

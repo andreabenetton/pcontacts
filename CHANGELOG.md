@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A password that does not open the account's keys** is explained
   after the 2FA code too; before, that step showed only a generic error.
+- **New contacts can be saved to Proton from the phone's Contacts app.**
+  The account now declares which fields can be edited, which contacts
+  editors require before they count an account as writable. Samsung
+  Contacts did not list it under "Save contact to"; it now does, as
+  "PContacts". Android's own Contacts app (AOSP, GrapheneOS) treated the
+  account as read-only for the same reason. The editors offer only the
+  fields pcontacts syncs, plus phonetic names, which Android requires
+  and which stay on the phone.
 
 ## [2.2.1] - 2026-10-06
 

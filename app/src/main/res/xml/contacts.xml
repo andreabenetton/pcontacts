@@ -7,50 +7,67 @@
   supports. Referenced from AndroidManifest.xml via
   android.provider.CONTACTS_STRUCTURE on the SyncAdapter service.
 
-  This makes the account appear in the system Contacts app's
-  "Save contact to" picker, allowing users to create new contacts
-  directly under the pcontacts account (bidirectional sync pushes
-  them to Proton).
+  The EditSchema makes the account writable for contacts editors:
+  AOSP Contacts treats an external account as read-only without one
+  (ExternalAccountType.areContactsWritable() returns mHasEditSchema)
+  and leaves it out of the "Save contact to" picker. It lists only
+  the kinds and types pcontacts carries both ways (ContactRow);
+  group membership is left out because it is pull-only. AOSP
+  requires every name attribute, phonetic ones included, to be true,
+  and nickname, organization, note and photo to have maxOccurs="1".
 -->
 <ContactsAccountType xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/name"
-        android:summaryColumn="data1"
-        android:detailColumn="data2" />
-
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/email_v2"
-        android:summaryColumn="data1"
-        android:detailColumn="data2" />
-
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/phone_v2"
-        android:summaryColumn="data1"
-        android:detailColumn="data2" />
-
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/postal-address_v2"
-        android:summaryColumn="data1"
-        android:detailColumn="data2" />
-
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/organization"
-        android:summaryColumn="data1"
-        android:detailColumn="data4" />
-
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/note"
-        android:summaryColumn="data1" />
-
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/im"
-        android:summaryColumn="data1"
-        android:detailColumn="data2" />
-
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/photo"
-        android:summaryColumn="data15" />
+    <EditSchema>
+        <DataKind
+            kind="name"
+            maxOccurs="1"
+            supportsDisplayName="true"
+            supportsPrefix="true"
+            supportsMiddleName="true"
+            supportsSuffix="true"
+            supportsPhoneticFamilyName="true"
+            supportsPhoneticMiddleName="true"
+            supportsPhoneticGivenName="true" />
+        <DataKind kind="photo" maxOccurs="1" />
+        <DataKind kind="phone">
+            <Type type="mobile" />
+            <Type type="home" />
+            <Type type="work" />
+            <Type type="main" />
+            <Type type="fax_work" />
+            <Type type="fax_home" />
+            <Type type="pager" />
+            <Type type="other" />
+        </DataKind>
+        <DataKind kind="email">
+            <Type type="other" />
+        </DataKind>
+        <DataKind kind="postal" needsStructured="true">
+            <Type type="home" />
+            <Type type="work" />
+            <Type type="other" />
+        </DataKind>
+        <DataKind kind="organization" maxOccurs="1" />
+        <DataKind kind="event" dateWithTime="false">
+            <Type type="birthday" maxOccurs="1" yearOptional="true" />
+            <Type type="anniversary" maxOccurs="1" yearOptional="true" />
+        </DataKind>
+        <DataKind kind="nickname" maxOccurs="1" />
+        <DataKind kind="website" />
+        <DataKind kind="im">
+            <Type type="jabber" />
+            <Type type="skype" />
+            <Type type="aim" />
+            <Type type="msn" />
+            <Type type="yahoo" />
+            <Type type="qq" />
+            <Type type="google_talk" />
+            <Type type="icq" />
+            <Type type="custom" />
+        </DataKind>
+        <DataKind kind="note" maxOccurs="1" />
+    </EditSchema>
 
     <!--
         ADR-0021: "Send via Proton Mail" per-email action chip. The
