@@ -4,6 +4,8 @@
 package io.pcontacts.core.sync.auth
 
 import io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword
+import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
+import io.pcontacts.core.crypto.openpgp.KeyUnlockException
 import io.pcontacts.core.crypto.srp.BouncyCastleProtonModulusVerifier
 import io.pcontacts.core.crypto.srp.ProtonModulusEnvelope
 import io.pcontacts.core.crypto.srp.ProtonModulusVerification
@@ -69,7 +71,14 @@ class SrpLoginOrchestrator(
     private val modulusVerifier: ProtonModulusVerifier = BouncyCastleProtonModulusVerifier(
         pinnedPublicKeyArmored = BouncyCastleProtonModulusVerifier.loadPinnedKeyFromClasspath()
     ),
-    private val logger: Logger = RedactingLogger(tag = "SrpLogin", sink = NoOpSink)
+    private val logger: Logger = RedactingLogger(tag = "SrpLogin", sink = NoOpSink),
+    /**
+     * Whether the derived key password opens the primary user key (armored). Checked before it
+     * is stored, as the web client does at sign-in (`[V]` loginHelper.handleUnlockKey); without
+     * it a wrong key password only showed as KEY_UNLOCK_FAILED on every sync (issue #65).
+     * Tests that fake the key pass `{ _, _ -> true }`.
+     */
+    private val primaryKeyOpens: (armoredKey: String, keyPassword: CharArray) -> Boolean = ::opensWithBouncyCastle
 ) {
 
     @Volatile private var lastUsername: String? = null
@@ -88,6 +97,9 @@ class SrpLoginOrchestrator(
      * (acceptable — process memory is wiped).
      */
     @Volatile private var pendingTwoFactorPassword: CharArray? = null
+
+    /** `/auth` said PasswordMode 2: the key password comes from the second password. */
+    @Volatile private var twoPasswordMode = false
 
     /** True once keyPassword is persisted: [abort] then keeps the persisted session. */
     @Volatile private var completed = false
@@ -121,6 +133,7 @@ class SrpLoginOrchestrator(
         logger.info { "login: getInfo user=<redacted>" }
         lastUsername = username
         completed = false
+        twoPasswordMode = false
         clearPendingTwoFactorPassword()   // drop any stash from a prior attempt
 
         val info = fetchInfo(username).orReturn { return it }
@@ -132,15 +145,19 @@ class SrpLoginOrchestrator(
         secretStore.setTokens(authResp.accessToken, authResp.refreshToken)
         session.update(uid = authResp.uid, accessToken = authResp.accessToken)
 
+        // [V] PASSWORD_MODE.TWO_PASSWORD = 2 (packages/shared/lib/constants.ts).
+        twoPasswordMode = authResp.passwordMode == PASSWORD_MODE_TWO_PASSWORD
         // [V] TwoFactor bit semantics from packages/shared/lib/authentication/twoFactor.ts.
         val needsTwoFactor = authResp.twoFactor and TWO_FACTOR_TOTP_BIT != 0
         if (needsTwoFactor) {
             // Stash a private copy of the password; submitTwoFactorCode will
             // consume it to finish keyPassword derivation once /auth/2fa has
-            // promoted the access token from scope=self to scope=full.
-            pendingTwoFactorPassword = password.copyOf()
+            // promoted the access token from scope=self to scope=full. In
+            // two-password mode the login password opens nothing: no stash.
+            if (!twoPasswordMode) pendingTwoFactorPassword = password.copyOf()
             return LoginResult.TwoFactorRequired(uid = authResp.uid, username = username)
         }
+        if (twoPasswordMode) return LoginResult.SecondPasswordRequired(uid = authResp.uid, username = username)
 
         // No 2FA — access token already carries scope=full; derive now. A 9001
         // here is resumed by re-running login: the caller still holds the password.
@@ -173,6 +190,8 @@ class SrpLoginOrchestrator(
         )
     } catch (e: CancellationException) {
         throw e
+    } catch (expected: KeyPasswordRejectedException) {
+        keyPasswordRejected(uid, username)
     } catch (t: Throwable) {
         val code = t.httpStatusCode()
         logger.error(t) { "key-derivation step failed http=$code" }
@@ -184,6 +203,24 @@ class SrpLoginOrchestrator(
             uid = uid,
             username = username
         )
+    }
+
+    /**
+     * The derived key password does not open the primary key. In two-password mode the second
+     * password was wrong: the session stays and the user tries again (`[V]` the web client stays
+     * on its unlock step, "Incorrect second password"). Otherwise the login password signed in
+     * but cannot open the keys; the half session goes, as for any failed key derivation.
+     */
+    private fun keyPasswordRejected(uid: String, username: String): LoginResult.Failed {
+        if (twoPasswordMode) {
+            logger.warn { "second password does not open the primary key" }
+            return LoginResult.Failed(reason = "second_password_rejected", uid = uid, username = username)
+        }
+        logger.warn { "login password does not open the primary key" }
+        secretStore.setUid(null)
+        secretStore.setTokens(null, null)
+        session.update(uid = null, accessToken = null)
+        return LoginResult.Failed(reason = "key_unlock_failed", uid = uid, username = username)
     }
 
     private fun clearPendingTwoFactorPassword() {
@@ -413,11 +450,40 @@ class SrpLoginOrchestrator(
         val saltDto = usersApi.getKeySalts().keySalts
             .firstOrNull { it.keyId == primary.id }
             ?: error("no /keys/salts entry for primary key id (hash-redacted)")
-        val saltB64 = saltDto.keySalt
-            ?: error("primary key has null KeySalt — key activation pending")
+        // [V] loginHelper.handleUnlockKey: a key without a salt ("old auth versions") opens
+        // with the password itself.
+        val keyPassword = saltDto.keySalt?.let { ComputeKeyPassword.derive(password, it) } ?: String(password)
+        val keyPasswordChars = keyPassword.toCharArray()
+        try {
+            if (!primaryKeyOpens(primary.privateKey, keyPasswordChars)) throw KeyPasswordRejectedException()
+        } finally {
+            keyPasswordChars.fill('\u0000')
+        }
+        secretStore.setKeyPassword(keyPassword.toByteArray(Charsets.UTF_8))
+    }
 
-        val bcryptString = ComputeKeyPassword.derive(password, saltB64)
-        secretStore.setKeyPassword(bcryptString.toByteArray(Charsets.UTF_8))
+    /**
+     * Second stage in two-password mode, after `/auth` (and `/auth/2fa` when 2FA is on): derives
+     * the key password from the second password, as the web client's unlock step does. A wrong
+     * one leaves the session for another try; a 9001 is resumed by [retryKeyDerivation].
+     */
+    suspend fun submitSecondPassword(password: CharArray): LoginResult = try {
+        val uid = session.uid()
+        val username = lastUsername ?: ""
+        when {
+            uid.isNullOrBlank() -> LoginResult.Failed(reason = "no_session")
+            !twoPasswordMode -> LoginResult.Failed(reason = "unexpected_state", uid = uid, username = username)
+            else -> {
+                // The stash lets retryKeyDerivation() finish after a captcha without asking again.
+                clearPendingTwoFactorPassword()
+                val pending = password.copyOf().also { pendingTwoFactorPassword = it }
+                val result = finishKeyDerivation(pending, uid, username, LoginResult.HvStage.KEY_DERIVATION)
+                if (result !is LoginResult.HumanVerificationRequired) clearPendingTwoFactorPassword()
+                result
+            }
+        }
+    } finally {
+        password.fill('\u0000')
     }
 
     /**
@@ -475,7 +541,9 @@ class SrpLoginOrchestrator(
 
         // 2FA accepted — the access token has been promoted from scope=self
         // to scope=full, so /users and /keys/salts are now reachable. Finish
-        // the keyPassword derivation deferred by loginInternal.
+        // the keyPassword derivation deferred by loginInternal; in two-password
+        // mode it waits for the second password.
+        if (twoPasswordMode) return LoginResult.SecondPasswordRequired(uid = uid, username = username)
         val pending = pendingTwoFactorPassword
         if (pending == null) {
             logger.warn { "submitTwoFactorCode success but no stashed password — login flow corrupted" }
@@ -506,8 +574,18 @@ class SrpLoginOrchestrator(
         return padded
     }
 
+    private class KeyPasswordRejectedException : Exception()
+
     private companion object {
         const val TWO_FACTOR_TOTP_BIT = 1
         const val PROTON_SUCCESS_CODE = 1000
+        const val PASSWORD_MODE_TWO_PASSWORD = 2
+
+        fun opensWithBouncyCastle(armoredKey: String, keyPassword: CharArray): Boolean = try {
+            BouncyCastleKeyUnlock.unlock(armoredKey, keyPassword)
+            true
+        } catch (expected: KeyUnlockException) {
+            false
+        }
     }
 }

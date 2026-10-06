@@ -93,8 +93,9 @@ class LiveProtonLoginTest {
                     println("  logout: ${t.message}")
                 }
             }
-            is LoginResult.TwoFactorRequired -> {
-                println("TWO_FACTOR_REQUIRED — SRP handshake accepted, 2FA gate hit")
+            // A further step (2FA code, or the second password of two-password mode) is required.
+            is LoginResult.TwoFactorRequired, is LoginResult.SecondPasswordRequired -> {
+                println("${result.javaClass.simpleName} — SRP handshake accepted, a further step is required")
                 println("  UID: ${result.uid}")
                 println("  accessToken stored: ${secretStore.accessToken() != null}")
                 println("  This still validates: modulus sig, SRP math, DTO shapes, ChallengePayload")

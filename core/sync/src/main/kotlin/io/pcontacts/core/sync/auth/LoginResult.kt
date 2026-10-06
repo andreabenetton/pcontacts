@@ -31,6 +31,14 @@ sealed interface LoginResult {
     data class TwoFactorRequired(override val uid: String, override val username: String) : LoginResult
 
     /**
+     * The account is in two-password mode: its keys open with a second password (Proton's
+     * "mailbox password"), not the login one. The caller asks for it and calls
+     * `submitSecondPassword(...)`; the session is kept. `[V]` WebClients
+     * `loginHelper.getAuthTypes` (PasswordMode TWO_PASSWORD → the unlock step).
+     */
+    data class SecondPasswordRequired(override val uid: String, override val username: String) : LoginResult
+
+    /**
      * Proton returned Code:9001 on `/auth/info`, `/auth`, `/auth/2fa` or
      * a key-derivation call. The user solves the captcha in the in-app
      * WebView (ADR-0019); the token it stores makes every following

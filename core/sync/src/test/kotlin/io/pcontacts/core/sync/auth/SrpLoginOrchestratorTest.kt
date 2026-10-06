@@ -26,6 +26,8 @@ import java.math.BigInteger
 import java.security.SecureRandom
 import java.util.Base64
 
+// One test per orchestrator path over one shared MockWebServer fixture; splitting it would copy the fixture.
+@Suppress("LargeClass")
 class SrpLoginOrchestratorTest {
 
     // 1024-bit MODP group from RFC 3526 §2 — small enough for fast tests
@@ -663,20 +665,144 @@ class SrpLoginOrchestratorTest {
         assertNull(secretStore.keyPassword())
     }
 
+    // --- Two-password mode and the key check at sign-in (issue #65) ---
+
+    private fun keyPasswordFor(password: String): String =
+        io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword.derive(password.toCharArray(), SAMPLE_SALT_B64)
+
+    @Test fun two_password_mode_asks_for_the_second_password_instead_of_deriving_from_the_login_one() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2p", twoFactor = 0, passwordMode = 2)
+
+        val result = newOrchestrator().login("carol@proton.test", "login-pass".toCharArray())
+
+        // [V] WebClients loginHelper.getAuthTypes: PasswordMode TWO_PASSWORD -> an unlock step.
+        assertEquals(LoginResult.SecondPasswordRequired(uid = "uid-2p", username = "carol@proton.test"), result)
+        assertNull("no key password from the login password", secretStore.keyPassword())
+        assertEquals("the session stays for the unlock step", "uid-2p", secretStore.uid())
+    }
+
+    @Test fun the_second_password_derives_the_key_password() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2p", twoFactor = 0, passwordMode = 2)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
+        val tried = mutableListOf<String>()
+        val orchestrator = newOrchestrator { _, pass ->
+            tried += String(pass)
+            true
+        }
+        orchestrator.login("carol", "login-pass".toCharArray())
+
+        val second = "second-pass".toCharArray()
+        val result = orchestrator.submitSecondPassword(second)
+
+        assertEquals(LoginResult.Success(uid = "uid-2p", username = "carol"), result)
+        assertEquals(keyPasswordFor("second-pass"), String(secretStore.keyPassword()!!, Charsets.UTF_8))
+        assertEquals(listOf(keyPasswordFor("second-pass")), tried)
+        assertTrue("the second password is zeroed", second.all { it == '\u0000' })
+    }
+
+    @Test fun a_wrong_second_password_is_rejected_and_the_session_kept_for_another_try() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2p", twoFactor = 0, passwordMode = 2)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
+        val right = keyPasswordFor("right")
+        val orchestrator = newOrchestrator { _, pass -> String(pass) == right }
+        orchestrator.login("carol", "login-pass".toCharArray())
+
+        val wrong = orchestrator.submitSecondPassword("wrong".toCharArray())
+
+        assertEquals(
+            LoginResult.Failed(reason = "second_password_rejected", uid = "uid-2p", username = "carol"),
+            wrong
+        )
+        assertNull(secretStore.keyPassword())
+        assertEquals("uid-2p", secretStore.uid())
+        assertEquals(
+            LoginResult.Success(uid = "uid-2p", username = "carol"),
+            orchestrator.submitSecondPassword("right".toCharArray())
+        )
+    }
+
+    @Test fun with_two_factor_the_second_password_comes_after_the_code() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2p2f", twoFactor = 1, passwordMode = 2)
+        server.enqueue(MockResponse().setBody("""{"Code":1000,"Scopes":["full"]}"""))
+        val orchestrator = newOrchestrator()
+
+        assertEquals(
+            LoginResult.TwoFactorRequired(uid = "uid-2p2f", username = "dave"),
+            orchestrator.login("dave", "login-pass".toCharArray())
+        )
+        assertEquals(
+            LoginResult.SecondPasswordRequired(uid = "uid-2p2f", username = "dave"),
+            orchestrator.submitTwoFactorCode("123456")
+        )
+        assertNull(secretStore.keyPassword())
+    }
+
+    @Test fun one_password_mode_whose_key_does_not_open_fails_at_sign_in_not_at_every_sync() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-locked", twoFactor = 0)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
+
+        val result = newOrchestrator { _, _ -> false }.login("erin", "p".toCharArray())
+
+        assertEquals(
+            LoginResult.Failed(reason = "key_unlock_failed", uid = "uid-locked", username = "erin"),
+            result
+        )
+        assertNull(secretStore.keyPassword())
+        assertNull("no half session left behind", secretStore.uid())
+        assertNull(secretStore.accessToken())
+    }
+
+    @Test fun a_key_without_a_salt_opens_with_the_password_itself() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-nosalt", twoFactor = 0)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = null)
+
+        val result = newOrchestrator().login("frank", "plain".toCharArray())
+
+        // [V] WebClients loginHelper.handleUnlockKey: "Support for versions without a key salt".
+        assertEquals(LoginResult.Success(uid = "uid-nosalt", username = "frank"), result)
+        assertEquals("plain", String(secretStore.keyPassword()!!, Charsets.UTF_8))
+    }
+
+    @Test fun submitSecondPassword_outside_two_password_mode_is_refused() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-x", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("gina", "p".toCharArray())
+
+        val result = orchestrator.submitSecondPassword("s".toCharArray())
+
+        assertEquals(LoginResult.Failed(reason = "unexpected_state", uid = "uid-x", username = "gina"), result)
+    }
+
     // --- helpers ---
 
     private val acceptAllModulus = object : ProtonModulusVerifier {
         override fun verify(cleartext: String, armoredSignature: String) = ProtonModulusVerification.VALID
     }
 
-    private fun newOrchestrator(): SrpLoginOrchestrator = SrpLoginOrchestrator(
+    private fun newOrchestrator(
+        primaryKeyOpens: (String, CharArray) -> Boolean = { _, _ -> true }
+    ): SrpLoginOrchestrator = SrpLoginOrchestrator(
         api = api(),
         usersApi = usersApi(),
         srp = SrpClient(random = seededRandom()),
         secretStore = secretStore,
         session = session,
         serverProofVerifier = { _, _ -> true },
-        modulusVerifier = acceptAllModulus
+        modulusVerifier = acceptAllModulus,
+        primaryKeyOpens = primaryKeyOpens
     )
 
     private fun apiFactory() = ProtonApiFactory(
@@ -708,13 +834,14 @@ class SrpLoginOrchestratorTest {
         ))
     }
 
-    private fun enqueueKeySaltsResponse(primaryKeyId: String, saltB64: String) {
+    private fun enqueueKeySaltsResponse(primaryKeyId: String, saltB64: String?) {
+        val salt = if (saltB64 == null) "null" else "\"$saltB64\""
         server.enqueue(MockResponse().setBody(
             """
             {
                 "Code":1000,
                 "KeySalts":[
-                    {"ID":"$primaryKeyId","KeySalt":"$saltB64"}
+                    {"ID":"$primaryKeyId","KeySalt":$salt}
                 ]
             }
             """.trimIndent()
@@ -765,7 +892,7 @@ class SrpLoginOrchestratorTest {
         ))
     }
 
-    private fun enqueueAuthResponse(uid: String, twoFactor: Int) {
+    private fun enqueueAuthResponse(uid: String, twoFactor: Int, passwordMode: Int = 1) {
         server.enqueue(MockResponse().setBody(
             """
             {
@@ -775,7 +902,7 @@ class SrpLoginOrchestratorTest {
                 "ExpiresIn":86400,
                 "UID":"$uid",
                 "UserID":"user-1",
-                "PasswordMode":1,
+                "PasswordMode":$passwordMode,
                 "TwoFactor":$twoFactor,
                 "ServerProof":"${Base64.getEncoder().encodeToString(ByteArray(64) { 0x42 })}",
                 "Code":1000
