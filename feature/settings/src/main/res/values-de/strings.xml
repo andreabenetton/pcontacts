@@ -219,7 +219,7 @@
     <string name="settings_sign_in">Anmelden</string>
     <string name="settings_sign_in_detail">Melden Sie sich mit Ihrem Proton-Konto an, um Kontakte zu synchronisieren.</string>
     <string name="sign_in_storage_upgrade_notice">Sie wurden abgemeldet, weil Version 2.0 Ihre Sitzung in einem stärkeren, gerätegebundenen verschlüsselten Speicher hält und die alte nicht übernommen werden konnte. Ihre synchronisierten Kontakte wurden von diesem Telefon entfernt. Melden Sie sich einmal erneut an: Die erste Synchronisierung lädt alle Kontakte erneut von Proton (vollständige Neusynchronisierung). Noch nicht an Proton gesendete Änderungen gehen verloren; Sterne, Klingeltöne oder Verknüpfungen, die auf diesem Telefon an diesen Kontakten gesetzt waren, bleiben nicht erhalten. Ihre Einstellungen bleiben erhalten.</string>
-    <string name="settings_contacts_storage_unavailable">Auf dieser Android-Version nicht verfügbar — wählen Sie es stattdessen in den Einstellungen Ihrer Kontakte-App.</string>
+    <string name="settings_contacts_storage_unavailable">Auf dieser Android-Version nicht verfügbar — wählen Sie das Proton-Konto in Ihrer Kontakte-App, wenn Sie einen Kontakt anlegen.</string>
     <string name="linked_import_row_added">Zu Proton hinzugefügt</string>
     <string name="linked_import_select_a11y">%1$s auswählen</string>
     <string name="linked_import_row_syncing">Wird synchronisiert…</string>
