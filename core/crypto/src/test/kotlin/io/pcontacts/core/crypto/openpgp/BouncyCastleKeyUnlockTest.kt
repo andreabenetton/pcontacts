@@ -69,6 +69,22 @@ class BouncyCastleKeyUnlockTest {
         assertNotNull(ex.cause)
     }
 
+    @Test fun a_key_that_does_not_open_says_which_key_and_protection_it_is() {
+        // Issue #65: a log line of only KEY_UNLOCK_FAILED cannot tell a wrong passphrase from a
+        // protection BouncyCastle does not support. Key metadata is public and safe to log.
+        val armored = TestKeyGen.rsa2048Armored(passphrase = "P4ss-Z73-correct-horse".toCharArray())
+
+        val ex = assertThrows(KeyUnlockException::class.java) {
+            BouncyCastleKeyUnlock.unlock(armored, passphrase = "P4ss-Z73-NOT-the-key".toCharArray())
+        }
+
+        val message = ex.message!!
+        assertTrue(message, message.contains("key v4"))
+        assertTrue(message, message.contains("algorithm "))
+        assertTrue(message, message.contains("s2k usage "))
+        assertTrue(message, !message.contains("P4ss-Z73"))
+    }
+
     @Test fun unlock_with_malformed_armored_throws_KeyUnlockException() {
         val ex = assertThrows(KeyUnlockException::class.java) {
             BouncyCastleKeyUnlock.unlock(

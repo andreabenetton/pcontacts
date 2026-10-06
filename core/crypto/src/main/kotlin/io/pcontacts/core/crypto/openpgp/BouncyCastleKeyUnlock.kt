@@ -3,13 +3,14 @@
 
 package io.pcontacts.core.crypto.openpgp
 
-import java.io.ByteArrayInputStream
 import org.bouncycastle.openpgp.PGPException
+import org.bouncycastle.openpgp.PGPSecretKey
 import org.bouncycastle.openpgp.PGPSecretKeyRing
 import org.bouncycastle.openpgp.PGPUtil
 import org.bouncycastle.openpgp.bc.BcPGPObjectFactory
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
+import java.io.ByteArrayInputStream
 
 /**
  * Bundle of an unlocked private key + its matching public key. Per
@@ -76,7 +77,7 @@ object BouncyCastleKeyUnlock {
         val decryptor = try {
             BcPBESecretKeyDecryptorBuilder(BcPGPDigestCalculatorProvider()).build(passphrase)
         } catch (pgp: PGPException) {
-            throw KeyUnlockException("wrong passphrase or corrupted key material", pgp)
+            throw KeyUnlockException(notOpened(ring.secretKey, pgp), pgp)
         }
 
         val allKeys = mutableListOf<PgpPrivateKeyHandle>()
@@ -84,7 +85,7 @@ object BouncyCastleKeyUnlock {
             val priv = try {
                 sk.extractPrivateKey(decryptor)
             } catch (pgp: PGPException) {
-                throw KeyUnlockException("wrong passphrase or corrupted key material", pgp)
+                throw KeyUnlockException(notOpened(sk, pgp), pgp)
             }
             allKeys += PgpPrivateKeyHandle(raw = priv, pubKey = sk.publicKey)
         }
@@ -104,4 +105,14 @@ object BouncyCastleKeyUnlock {
             encryptionPublicKeys = encPubKeys
         )
     }
+
+    /**
+     * Why a key did not open, for a log line (issue #65): the reason BouncyCastle gives plus the
+     * key's public metadata — packet version, public-key algorithm, S2K usage and type — which
+     * tells a wrong passphrase from a protection this BouncyCastle cannot open. Nothing secret.
+     */
+    private fun notOpened(key: PGPSecretKey, cause: PGPException): String =
+        "wrong passphrase or unsupported key protection (key v${key.publicKey.version}, " +
+            "algorithm ${key.publicKey.algorithm}, s2k usage ${key.s2KUsage}, " +
+            "s2k type ${key.s2K?.type ?: "none"}): ${cause.message}"
 }
