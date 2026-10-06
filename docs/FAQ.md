@@ -100,6 +100,21 @@ and a fresh sign-in downloads all contacts again. Contacts already on
 Proton come back unchanged. Local edits that had not been sent are lost,
 as with any sign-out.
 
+## I turned on two-password mode (or changed my password) and pcontacts asks me to sign in again
+
+Turning Proton's **two-password mode** on or off, changing your password,
+or signing out of all devices on proton.me ends every session, the one
+pcontacts uses included. The next sync stops and pcontacts shows **Sign
+in required**: sign out in the app and sign in again. In two-password
+mode, sign-in asks for your second password after the login password (and
+after the 2FA code), as Proton's own apps do.
+
+Expect a full resync: signing out removes the Proton contacts from the
+phone and the new sign-in downloads all of them again. Contacts already
+on Proton come back unchanged; local edits that had not been sent yet are
+lost, as with any sign-out — let a sync finish before changing these
+settings.
+
 ## When does pcontacts show a notification?
 
 Only from background work, one trigger each:
