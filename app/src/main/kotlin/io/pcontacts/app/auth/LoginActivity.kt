@@ -38,6 +38,7 @@ import io.pcontacts.core.sync.AuthBootstrap
 import io.pcontacts.feature.onboarding.LoginScreen
 import io.pcontacts.feature.onboarding.LoginUiState
 import io.pcontacts.feature.onboarding.LoginViewModel
+import io.pcontacts.feature.onboarding.SecondPasswordScreen
 import io.pcontacts.feature.onboarding.TwoFactorScreen
 import io.pcontacts.feature.settings.AppTopBar
 import io.pcontacts.feature.settings.AuditIndicator
@@ -67,7 +68,8 @@ class LoginActivity : ComponentActivity() {
             attemptLogin = orchestrator::login,
             submitTotp = orchestrator::submitTwoFactorCode,
             retryKeyDerivation = orchestrator::retryKeyDerivation,
-            abortLogin = orchestrator::abort
+            abortLogin = orchestrator::abort,
+            submitSecondPassword = orchestrator::submitSecondPassword
         )
     }
     private var response: AccountAuthenticatorResponse? = null
@@ -100,12 +102,16 @@ class LoginActivity : ComponentActivity() {
                 // The same shell as the app's first screen, so signing in looks like the screen that follows.
                 Scaffold(topBar = { AppTopBar(audit, ::openRepository) }) { padding ->
                     val state by viewModel.uiState.collectAsStateWithLifecycle()
-                    when (state) {
-                        is LoginUiState.TwoFactorRequired,
-                        is LoginUiState.TwoFactorSubmitting,
-                        is LoginUiState.TwoFactorHumanVerificationRequired,
-                        is LoginUiState.KeyDerivationHumanVerificationRequired,
-                        is LoginUiState.TwoFactorFailed -> TwoFactorScreen(
+                    when {
+                        isSecondPasswordStep(state, viewModel.onSecondPasswordStep) -> SecondPasswordScreen(
+                            viewModel = viewModel,
+                            onSuccess = { uid, username -> finishWithAccount(uid, username) },
+                            onCancel = { viewModel.reset() },
+                            onHumanVerificationRequired = { url -> launchHumanVerification(url) },
+                            modifier = Modifier.padding(padding),
+                            footer = { NotAffiliated(Modifier.padding(bottom = 16.dp)) }
+                        )
+                        isTwoFactorStep(state) -> TwoFactorScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onCancel = { viewModel.reset() },
@@ -194,4 +200,22 @@ class LoginActivity : ComponentActivity() {
         } else {
             intent.getParcelableExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
         }
+}
+
+/** The second-password step of two-password mode; a captcha raised there resumes on it. */
+private fun isSecondPasswordStep(state: LoginUiState, onSecondPasswordStep: Boolean): Boolean = when (state) {
+    is LoginUiState.SecondPasswordRequired,
+    is LoginUiState.SecondPasswordSubmitting,
+    is LoginUiState.SecondPasswordFailed -> true
+    is LoginUiState.KeyDerivationHumanVerificationRequired -> onSecondPasswordStep
+    else -> false
+}
+
+private fun isTwoFactorStep(state: LoginUiState): Boolean = when (state) {
+    is LoginUiState.TwoFactorRequired,
+    is LoginUiState.TwoFactorSubmitting,
+    is LoginUiState.TwoFactorHumanVerificationRequired,
+    is LoginUiState.KeyDerivationHumanVerificationRequired,
+    is LoginUiState.TwoFactorFailed -> true
+    else -> false
 }
