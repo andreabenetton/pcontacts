@@ -13,3 +13,5 @@ Android APIs — never device detection (manufacturer/model/brand checks).
 | Device | File |
 |---|---|
 | Mudita Kompakt (MuditaOS K) | [mudita.md](mudita.md) |
+| Samsung (One UI) | [samsung.md](samsung.md) |
+| Google Pixel (stock Android) | [pixel.md](pixel.md) |
