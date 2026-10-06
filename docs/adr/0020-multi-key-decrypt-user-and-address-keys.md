@@ -178,3 +178,13 @@ Validation: `ContactDecryptBootstrapTest` covers a valid signature
 (key used), an invalid signature on a decryptable Token (key skipped,
 its cards not verified) and a missing signature (key skipped).
 
+
+## Amendment (2026-10-06): extra user keys that do not open are skipped
+
+`[V]` WebClients `getDecryptedUserKeys.ts`: the primary user key must
+open with `keyPassword` — if it does not, nothing can be decrypted and
+the run stops with `KEY_UNLOCK_FAILED` (re-authentication). Any other
+active user key that does not open (e.g. one from before a password
+reset) is now **skipped** and logged with its id only, as address keys
+already were; before, one such key stopped every sync (issue #65).
+Validation: `ContactDecryptBootstrapTest.an_extra_user_key_that_does_not_open_is_skipped_not_fatal`.

@@ -10,6 +10,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Accounts in Proton's two-password mode can sync**
+  ([#65](https://github.com/andreabenetton/pcontacts/issues/65)). Sign-in
+  now asks for the second (mailbox) password after the login password and
+  the 2FA code, as Proton's web client does; before, every sync failed
+  with "sign in again", which never helped.
+- **A password that cannot open the account's keys is refused at
+  sign-in**, with an explanation, instead of letting sign-in succeed and
+  every sync fail afterwards.
+- **An extra encryption key that does not open** (for example one from
+  before a password reset) no longer stops the sync; it is skipped, as
+  on the web.
+
 ## [2.2.0] - 2026-10-02
 
 ### Fixed

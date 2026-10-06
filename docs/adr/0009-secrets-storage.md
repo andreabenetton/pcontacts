@@ -126,3 +126,33 @@ Strengthens the decision; nothing below permits less than before.
 - **Backup.** Unchanged: `allowBackup="false"` and the extraction
   rules exclude every `sharedpref`, asserted by
   `verifyManifestInvariants`.
+
+## Amendment (2026-10-06): which password the key password comes from, and when it is stored
+
+Issue #65: on an account in Proton's **two-password mode** sign-in derived
+`keyPassword` from the login password, stored it, and every sync then
+failed with `KEY_UNLOCK_FAILED` and a "sign in again" notice that could
+never help. Strengthened as follows:
+
+- **Two-password mode.** `[V]` `/auth`'s `PasswordMode == 2`
+  (`PASSWORD_MODE.TWO_PASSWORD`, WebClients `constants.ts`;
+  `loginHelper.getAuthTypes`) means the keys open with the second
+  ("mailbox") password. Sign-in then asks for it after the login
+  password (and after the 2FA code) and derives `keyPassword` from it,
+  as the web client's unlock step does (`loginActions.handleUnlock`).
+  The login password is not kept for derivation in that mode.
+- **Stored only once it opens the primary key.** `[V]`
+  `loginHelper.handleUnlockKey`: the derived `keyPassword` must unlock
+  the primary user key before it is written to the `SecretStore`. A
+  wrong second password keeps the session for another try ("Incorrect
+  second password"); in one-password mode a key password that does not
+  open the key fails the sign-in and wipes the half-made session. No
+  unusable `keyPassword` is ever stored.
+- **No salt.** `[V]` a primary key without a `KeySalt` ("old auth
+  versions") opens with the password itself, as the web client accepts;
+  it used to fail the sign-in.
+
+Validation: `SrpLoginOrchestratorTest` (second-password request with and
+without 2FA, derivation from the second password, wrong second password
+retried on the same session, one-password key that does not open, no
+salt); `LoginViewModelTest` and `SecondPasswordScreenTest` for the step.
