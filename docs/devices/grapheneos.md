@@ -3,16 +3,16 @@
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 -->
 
-# Google Pixel (stock Android)
+# GrapheneOS (Pixel)
 
-Tested on a Pixel 9a, Android 17. Stock Android uses AOSP's contacts
-provider: no recycle bin, and the device's local account is the one with
-no name and no type.
+Tested on a Pixel 9a running GrapheneOS (Android 17 base). GrapheneOS
+keeps AOSP's contacts provider: no recycle bin, and the device's local
+account is the one with no name and no type.
 
 ## Issue 1 — contacts saved by WhatsApp disappeared
 
 WhatsApp's "save contact" screen offers a storage called "Phone". On this
-Pixel it wrote the contact under the account `PHONE`/`PHONE`, which no
+phone it wrote the contact under the account `PHONE`/`PHONE`, which no
 app registers and which is not the local account (null/null here).
 Android's contacts provider hard-deletes the rows of such an account
 every time the list of accounts changes, so the contact vanished at a
@@ -32,7 +32,7 @@ The user-facing explanation is in the FAQ:
 
 ## Testing on this device
 
-The instrumented UI tests do not run on Android 17: the Espresso version
+The instrumented UI tests do not run on this Android 17 base: the Espresso version
 in use calls `InputManager.getInstance`, which Android 17 no longer has.
 Run them on an older Android until Espresso is updated. Unit tests and
 manual checks are unaffected.
