@@ -9,9 +9,11 @@ import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.InMemorySession
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.proton.api.auth.RefreshRequest
+import kotlinx.coroutines.runBlocking
+import retrofit2.HttpException
+import java.io.IOException
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlinx.coroutines.runBlocking
 
 /**
  * Drives the `/auth/refresh` half of the 401 → refresh → replay
@@ -64,6 +66,15 @@ class TokenRefresher(
             // refresh-failed silent retry that would loop or trigger logout.
             logger.warn { "auth/refresh returned 9001 — human verification required" }
             throw e
+        } catch (e: HttpException) {
+            // [V] WebClients refreshHandlers.ts: 400/401/422 rule the session invalid (revoked on
+            // the web, password or password mode changed); 409/429/5xx mean retry later.
+            if (e.code() in SESSION_INVALID_REFRESH_STATUSES) {
+                logger.warn { "auth/refresh refused with HTTP ${e.code()} — session revoked" }
+                throw SessionRevokedException(e.code(), e)
+            }
+            logger.error(e) { "auth/refresh call failed" }
+            return@withLock false
         } catch (t: Throwable) {
             logger.error(t) { "auth/refresh call failed" }
             return@withLock false
@@ -73,3 +84,14 @@ class TokenRefresher(
         true
     }
 }
+
+/**
+ * Proton refused `/auth/refresh` with a status that rules the session invalid: it was revoked
+ * (signed out of all devices, password or password mode changed on the web). Only a new
+ * sign-in helps; the sync asks for it instead of retrying. An [IOException] so it leaves the
+ * OkHttp authenticator the way [HumanVerificationRequiredException] does.
+ */
+class SessionRevokedException(val httpStatus: Int, cause: Throwable? = null) :
+    IOException("Proton revoked the session (auth/refresh HTTP $httpStatus)", cause)
+
+private val SESSION_INVALID_REFRESH_STATUSES = setOf(400, 401, 422)

@@ -75,6 +75,37 @@ class TokenRefresherTest {
         assertEquals("stale", session.accessToken())
     }
 
+    private fun refresherAnswering(status: Int) = TokenRefresher(
+        refreshOnlyAuthApi = object : NoOpAuthApi() {
+            override suspend fun refresh(request: RefreshRequest): RefreshResponse =
+                throw retrofit2.HttpException(
+                    retrofit2.Response.error<Any>(status, okhttp3.ResponseBody.Companion.run { "{}".toResponseBody() })
+                )
+        },
+        mutableSession = InMemorySession(uid = "uid-1", accessToken = "stale"),
+        getRefreshToken = { "stored-refresh" },
+        onTokensRefreshed = { _, _ -> error("must not persist") }
+    )
+
+    @Test fun a_refresh_refused_with_400_401_or_422_means_the_session_was_revoked() {
+        // [V] WebClients refreshHandlers.ts SESSION_INVALID_REFRESH_STATUSES. Seen live 2026-10-06:
+        // turning on two-password mode on the web revoked the phone's session, and the sync
+        // retried the 401 for good instead of asking to sign in again.
+        for (status in listOf(400, 401, 422)) {
+            val thrown = runCatching { refresherAnswering(status).refreshIfStillStale("stale") }.exceptionOrNull()
+            assertTrue(
+                "status $status: expected SessionRevokedException, was $thrown",
+                thrown is SessionRevokedException
+            )
+        }
+    }
+
+    @Test fun a_refresh_answered_429_or_5xx_is_retried_later_not_a_revoked_session() {
+        for (status in listOf(409, 429, 500, 503)) {
+            assertFalse("status $status", refresherAnswering(status).refreshIfStillStale("stale"))
+        }
+    }
+
     @Test fun no_stored_refresh_token_returns_false_without_calling_the_api() {
         val session = InMemorySession(uid = "uid-1", accessToken = "stale")
         val fake = SuccessRefreshApi(newAccessToken = "x", newRefreshToken = "y")
