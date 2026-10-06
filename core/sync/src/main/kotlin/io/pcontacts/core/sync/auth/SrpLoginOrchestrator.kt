@@ -78,7 +78,9 @@ class SrpLoginOrchestrator(
      * it a wrong key password only showed as KEY_UNLOCK_FAILED on every sync (issue #65).
      * Tests that fake the key pass `{ _, _ -> true }`.
      */
-    private val primaryKeyOpens: (armoredKey: String, keyPassword: CharArray) -> Boolean = ::opensWithBouncyCastle
+    private val primaryKeyOpens: (armoredKey: String, keyPassword: CharArray) -> Boolean = { key, keyPassword ->
+        opensWithBouncyCastle(key, keyPassword, logger)
+    }
 ) {
 
     @Volatile private var lastUsername: String? = null
@@ -581,10 +583,12 @@ class SrpLoginOrchestrator(
         const val PROTON_SUCCESS_CODE = 1000
         const val PASSWORD_MODE_TWO_PASSWORD = 2
 
-        fun opensWithBouncyCastle(armoredKey: String, keyPassword: CharArray): Boolean = try {
+        // The reason (wrong passphrase, or a protection this build cannot open) goes to the log (#65).
+        fun opensWithBouncyCastle(armoredKey: String, keyPassword: CharArray, logger: Logger): Boolean = try {
             BouncyCastleKeyUnlock.unlock(armoredKey, keyPassword)
             true
-        } catch (expected: KeyUnlockException) {
+        } catch (e: KeyUnlockException) {
+            logger.warn { "primary user key did not open at sign-in: ${e.message}" }
             false
         }
     }

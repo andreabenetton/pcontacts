@@ -117,7 +117,7 @@ object ContactDecryptBootstrap {
             val primaryDto = user.keys.firstOrNull { it.primary == 1 && it.active == 1 }
                 ?: throw DecryptUnavailableException("NO_PRIMARY_KEY")
 
-            val primaryUnlocked = unlockUserKey(primaryDto, keyPasswordBytes)
+            val primaryUnlocked = unlockPrimaryUserKey(primaryDto, keyPasswordBytes, logger)
             // [V] WebClients getDecryptedUserKeys: only the primary key must open; another one
             // that does not (e.g. from before a password reset) is left out, not fatal (#65).
             val nonPrimaryUnlocked = user.keys
@@ -155,10 +155,19 @@ object ContactDecryptBootstrap {
         }
     }
 
+    /** The primary key must open; when it does not, the log says why, without secrets (#65). */
+    private fun unlockPrimaryUserKey(uk: UserKeyDto, keyPasswordBytes: ByteArray, logger: Logger): UnlockedKey = try {
+        unlockUserKey(uk, keyPasswordBytes)
+    } catch (e: DecryptUnavailableException) {
+        // A wrong passphrase, or a key protection this build cannot open.
+        logger.warn { "primary user key ${uk.id} did not open: ${e.cause?.message}" }
+        throw e
+    }
+
     private fun tryUnlockUserKey(uk: UserKeyDto, keyPasswordBytes: ByteArray, logger: Logger): UnlockedKey? = try {
         unlockUserKey(uk, keyPasswordBytes)
     } catch (e: DecryptUnavailableException) {
-        logger.warn { "skipped user key ${uk.id}: ${e.cause?.javaClass?.simpleName}" }
+        logger.warn { "skipped user key ${uk.id}: ${e.cause?.message}" }
         null
     }
 

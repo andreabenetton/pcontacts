@@ -158,6 +158,29 @@ class ContactDecryptBootstrapTest {
         }
     }
 
+    @Test fun a_primary_key_that_does_not_open_logs_why_before_asking_to_sign_in_again() = runTest {
+        // Issue #65: the reporter's log said only KEY_UNLOCK_FAILED. The reason (wrong passphrase or
+        // a protection BouncyCastle cannot open, with the key's public metadata) is now logged.
+        val armored = TestKeys.armoredKey("P4ss-Z73-correct".toCharArray())
+        val secretStore = InMemorySecretStore().apply { setKeyPassword("P4ss-Z73-stale".toByteArray()) }
+        val lines = mutableListOf<String>()
+        val logger = io.pcontacts.core.logging.RedactingLogger(tag = "t", sink = { _, _, msg, _ -> lines += msg })
+
+        runCatching {
+            ContactDecryptBootstrap.unlockAllKeys(
+                secretStore,
+                FakeUsersApi(armoredPrivateKey = armored),
+                FakeAddressesApi.empty(),
+                openPgp,
+                logger
+            )
+        }
+
+        val line = lines.single { it.contains("did not open") }
+        assertTrue(line, line.contains("s2k usage"))
+        assertFalse(line, line.contains("P4ss-Z73"))
+    }
+
     @Test fun an_extra_user_key_that_does_not_open_is_skipped_not_fatal() = runTest {
         // [V] WebClients getDecryptedUserKeys: the primary key must open; the others that fail
         // are filtered out. Before, any one of them aborted every sync with KEY_UNLOCK_FAILED.
