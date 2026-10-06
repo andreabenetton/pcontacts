@@ -96,7 +96,8 @@ there was created on Proton at the next sync, with its name and number.
 Fossify Contacts offered the Proton account already before the fix
 (under "Source" at the bottom of its editor); a contact created there was
 created on Proton too, and the next new contact started with the Proton
-account preselected.
+account preselected. Editing an existing Proton contact in Fossify also
+changed the pcontacts row in place, and the edit reached Proton.
 
 ## Settings shortcuts
 
