@@ -97,6 +97,27 @@ Fossify Contacts offered the Proton account already before the fix
 (under "Source" at the bottom of its editor); a contact created there was
 created on Proton too.
 
+## Settings shortcuts
+
+Checked on 2026-10-06 from the app's buttons:
+
+- **Default account for new contacts.** Android 11 has no system
+  "Contacts storage" page (`android.provider.action.SET_DEFAULT_ACCOUNT`
+  resolves to nothing; it arrived in Android 15), so the button is
+  disabled with a hint. The choice is made in "Save contact to" when
+  creating a contact (Issue 3).
+- **Manage Contacts permission.** The per-permission app list
+  (`android.intent.action.MANAGE_PERMISSION_APPS`) exists but is guarded
+  by `GRANT_RUNTIME_PERMISSIONS`, which only system apps hold, and
+  "Privacy controls" does not exist on Android 11. The button therefore
+  opens Settings → Privacy, and its hint ("Then find Permission manager
+  and open Contacts") matches the screen: Permission manager is the first
+  entry, Contacts is inside it.
+- **App counts differ, by design.** Permission manager showed "10 of 24
+  apps allowed" while pcontacts listed 1 user-installed and 45
+  OS-installed apps: Permission manager hides system apps until ⋮ →
+  "Show system" is chosen.
+
 ## Earlier validation on this phone
 
 On 2026-08-05 the same A40 confirmed that contacts in no group were
