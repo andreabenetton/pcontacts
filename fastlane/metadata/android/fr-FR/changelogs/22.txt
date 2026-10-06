@@ -1,0 +1,5 @@
+Version 2.2.1.
+
+* Les comptes en mode à deux mots de passe de Proton se synchronisent : la connexion demande le deuxième mot de passe après le mot de passe et le code 2FA.
+* Une session fermée sur le web (mot de passe ou mode changé, déconnexion partout) demande désormais de se reconnecter, au lieu de réessayer sans fin.
+* Un mot de passe qui n'ouvre pas vos clés est refusé à la connexion, avec une explication.

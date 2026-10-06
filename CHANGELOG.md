@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.1] - 2026-10-06
 
 ### Fixed
 
@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **An extra encryption key that does not open** (for example one from
   before a password reset) no longer stops the sync; it is skipped, as
   on the web.
+
+### Changed
+
+- **When the account's encryption key does not open**, the log now says
+  why — a wrong password, or a key protection this version cannot read —
+  instead of only `KEY_UNLOCK_FAILED`, so a report can name its cause.
 
 ## [2.2.0] - 2026-10-02
 
@@ -833,6 +839,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[2.2.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.2.1
 [2.2.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.2.0
 [2.1.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.1.0
 [2.0.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.0.0

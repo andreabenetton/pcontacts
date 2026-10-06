@@ -1,0 +1,5 @@
+Version 2.2.1.
+
+* Accounts in Proton's two-password mode can sync: sign-in asks for the second password after the login password and the 2FA code.
+* A session ended on the web (password or two-password mode changed, signed out of all devices) now asks you to sign in again, instead of retrying forever.
+* A password that cannot open your keys is refused at sign-in, with an explanation.

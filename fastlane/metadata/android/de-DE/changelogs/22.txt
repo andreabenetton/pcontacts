@@ -1,0 +1,5 @@
+Version 2.2.1.
+
+* Konten im Zwei-Passwort-Modus von Proton werden synchronisiert: Die Anmeldung fragt nach Passwort und 2FA-Code nach dem zweiten Passwort.
+* Eine im Web beendete Sitzung (Passwort oder Zwei-Passwort-Modus geändert, überall abgemeldet) fordert nun zur erneuten Anmeldung auf, statt endlos neu zu versuchen.
+* Ein Passwort, das Ihre Schlüssel nicht öffnet, wird bei der Anmeldung mit einer Erklärung abgelehnt.

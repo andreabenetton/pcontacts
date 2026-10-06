@@ -1,0 +1,5 @@
+Versione 2.2.1.
+
+* Gli account in modalità a due password di Proton si sincronizzano: l'accesso chiede la seconda password dopo la password e il codice 2FA.
+* Una sessione chiusa sul web (password o modalità cambiata, disconnessione da tutti i dispositivi) ora chiede di accedere di nuovo, invece di riprovare all'infinito.
+* Una password che non apre le tue chiavi viene rifiutata all'accesso, con una spiegazione.

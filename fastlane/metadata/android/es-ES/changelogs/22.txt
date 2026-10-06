@@ -1,0 +1,5 @@
+Versión 2.2.1.
+
+* Las cuentas en modo de dos contraseñas de Proton se sincronizan: el inicio de sesión pide la segunda contraseña tras la contraseña y el código 2FA.
+* Una sesión cerrada en la web (contraseña o modo cambiados, sesión cerrada en todos los dispositivos) ahora pide iniciar sesión de nuevo, en lugar de reintentar sin fin.
+* Una contraseña que no abre tus claves se rechaza al iniciar sesión, con una explicación.
