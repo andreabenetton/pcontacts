@@ -29,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   editors require before they count an account as writable. Samsung
   Contacts did not list it under "Save contact to"; it now does, as
   "PContacts". Android's own Contacts app (AOSP, GrapheneOS) treated the
-  account as read-only for the same reason. The editors offer only the
+  account as read-only for the same reason; there, new contacts can now be
+  saved to Proton and Proton contacts edited in place. The editors offer only the
   fields pcontacts syncs, plus phonetic names, which Android requires
   and which stay on the phone.
 

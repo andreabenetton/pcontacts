@@ -30,6 +30,28 @@ nickname and website survived the pull that rewrote it from Proton.
 The user-facing explanation is in the FAQ:
 [A contact I saved from WhatsApp disappeared after signing out, or after the 2.0 update](../FAQ.md#a-contact-i-saved-from-whatsapp-disappeared-after-signing-out-or-after-the-20-update).
 
+## Issue 2 — the Contacts app treated the Proton account as read-only
+
+GrapheneOS ships AOSP's Contacts app, which counts a third-party account
+as writable only when its `contacts.xml` declares an `EditSchema`
+(`ExternalAccountType.areContactsWritable()` returns `mHasEditSchema`).
+Up to 2.2.1 pcontacts declared none. Observed with 2.2.0 on 2026-10-07:
+"Create new contact" offered only the Google account (the "Saving to"
+row opened no chooser), although the phone held 914 Proton contacts.
+
+**Fix (cross-device, unreleased):** the `EditSchema` described in
+[samsung.md — Issue 3](samsung.md#issue-3--proton-missing-from-save-contact-to).
+Checked on this phone the same day with the fixed build, without saving
+anything: "Create new contact" preselected the Proton account, and
+editing an existing Proton contact opened "Edit contact — Saving to" the
+Proton account with its own fields, so an edit goes to the pcontacts row.
+
+The "Send via Proton Mail" rows (ADR-0021) still show. With a document
+reader installed that declares a catch-all `VIEW` filter, the Contacts
+app shows that reader's icon on those rows instead of the pcontacts
+envelope, because both apps resolve the row's intent. Not caused by the
+fix; not tapped during the check.
+
 ## Testing on this device
 
 The instrumented UI tests do not run on this Android 17 base: the Espresso version
