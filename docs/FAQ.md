@@ -166,3 +166,16 @@ to the system page: nothing syncs on its own then, only "Sync now" works.
 Fossify Contacts shows the source under each entry. Google Contacts shows
 the account below the name when a contact is opened. The Proton account
 appears under the e-mail address you signed in with.
+
+## "Send via Proton Mail" shows another app's icon, or asks which app to open
+
+Another installed app claims to open every file and link, so Android
+offers both it and pcontacts for that row. OpenDocument Reader does this
+when its "Offer to open any file" setting is on. Android's own Contacts
+app then shows the icon of whichever app it lists first, and a tap asks
+"Open with". The other app cannot read the contact: the Contacts app does
+not give it access.
+
+Tap the row once, choose pcontacts and then **Always**. From then on the
+row goes straight to Proton Mail, and the Contacts app shows pcontacts'
+icon. Turning the other app's catch-all setting off works too.

@@ -46,11 +46,15 @@ anything: "Create new contact" preselected the Proton account, and
 editing an existing Proton contact opened "Edit contact — Saving to" the
 Proton account with its own fields, so an edit goes to the pcontacts row.
 
-The "Send via Proton Mail" rows (ADR-0021) still show. With a document
-reader installed that declares a catch-all `VIEW` filter, the Contacts
-app shows that reader's icon on those rows instead of the pcontacts
-envelope, because both apps resolve the row's intent. Not caused by the
-fix; not tapped during the check.
+The "Send via Proton Mail" rows (ADR-0021) still show. With OpenDocument
+Reader's "Offer to open any file" on (a catch-all `VIEW` filter on every
+`content:` URI), the Contacts app showed the reader's icon on those rows:
+`[V]` AOSP `ResolveCache.getBestResolve` takes the user's default when
+one is set, otherwise the first system app, otherwise the first match,
+and neither app is a system app. Not caused by the fix. Choosing
+pcontacts → Always makes it the default, which that code then returns, so
+the icon follows; the default itself was tested on the Samsung, see
+[samsung.md — "Send via Proton Mail" with a catch-all app](samsung.md#send-via-proton-mail-with-a-catch-all-app).
 
 ## Testing on this device
 

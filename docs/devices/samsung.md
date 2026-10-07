@@ -99,6 +99,19 @@ created on Proton too, and the next new contact started with the Proton
 account preselected. Editing an existing Proton contact in Fossify also
 changed the pcontacts row in place, and the edit reached Proton.
 
+## "Send via Proton Mail" with a catch-all app
+
+Samsung Contacts lists the action under a "PContacts" row at the bottom
+of a contact; tapping it shows the email to send to. With OpenDocument
+Reader installed and its "Offer to open any file" setting on (2026-10-07,
+reproducing what was seen on the GrapheneOS Pixel), that tap opened
+Android's "Open with" chooser: OpenDocument Reader or "pcontacts — Send
+via Proton Mail". Choosing pcontacts → Always opened Proton Mail's
+compose with the address filled in (the draft was discarded), and
+Android then resolved the row's intent to pcontacts directly, with
+pcontacts stored as the preferred activity for the row's type. Without
+that setting the reader does not compete for the row.
+
 ## Settings shortcuts
 
 Checked on 2026-10-06 from the app's buttons:
