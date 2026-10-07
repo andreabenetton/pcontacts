@@ -369,6 +369,9 @@ object SyncBootstrap {
             fetchServerContact = { protonContactId ->
                 processor.process(apis.contacts.getContact(protonContactId).contact)
             },
+            groupLabelIds = { account ->
+                withContext(Dispatchers.IO) { LocalGroupsWriter(provider).labelIdsByRowId(account) }
+            },
             onProgress = onProgress
         )
     }

@@ -93,11 +93,15 @@ class ContactWriteEngine(
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
     /** Server-current contact; throws on transport failure (handled like any push failure), null if there is none. */
     private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
+    /** `Groups._ID → Proton label ID` for the account's groups (ADR-0027); empty when unreadable. */
+    private val groupLabelIds: suspend (Account) -> Map<Long, String> = { emptyMap() },
     /** ([SyncPhase.SENDING], changes sent, changes to send) — a delete still in its grace period is not one. */
     private val onProgress: (phase: SyncPhase, done: Int, total: Int) -> Unit = { _, _, _ -> },
     private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "ContactWrite", sink = NoOpSink)
 ) {
+
+    private val groups = GroupMembershipPusher(contactsApi, logger)
 
     /**
      * Scans for locally-modified contacts (DIRTY=1 or DELETED=1) and
@@ -235,7 +239,7 @@ class ContactWriteEngine(
 
     private suspend fun pushEntry(entry: OutboxEntity, account: Account?): WriteReport = when (entry.opType) {
         OutboxEntity.OpType.DELETE -> pushDelete(entry, account)
-        OutboxEntity.OpType.UPDATE, OutboxEntity.OpType.FORCE_UPDATE -> pushUpdate(entry)
+        OutboxEntity.OpType.UPDATE, OutboxEntity.OpType.FORCE_UPDATE -> pushUpdate(entry, account)
         OutboxEntity.OpType.CREATE -> pushCreate(entry, account)
         else -> {
             logger.warn { "unknown outbox op_type=${entry.opType}, quarantining" }
@@ -285,7 +289,7 @@ class ContactWriteEngine(
         }
     }
 
-    private suspend fun pushUpdate(entry: OutboxEntity): WriteReport {
+    private suspend fun pushUpdate(entry: OutboxEntity, account: Account?): WriteReport {
         val id = entry.protonContactId
         val mapping = contactMapDao.findByProtonId(id)
         val row = mapping?.let { readContactRow(it.androidRawContactId, id) }
@@ -308,6 +312,10 @@ class ContactWriteEngine(
                 } else {
                     contactsApi.updateContact(id, UpdateContactRequest(cards = cards))
                 }
+                val base = GroupMembershipPusher.split(mapping.serverLabelIds)
+                if (groups.push(id, base, localLabels(account, row)) == GroupMembershipPusher.Outcome.NEEDS_EMAIL) {
+                    return refuseGroupsWithoutEmail(entry, payload, row)
+                }
                 // [A] Proton stores exactly the cards it accepted, so the payload is the
                 // server state until the next pull re-captures it. Column updates only:
                 // an upsert here would overwrite the sealed base.
@@ -326,6 +334,65 @@ class ContactWriteEngine(
             logger.warn { "pushUpdate: failed ${e.javaClass.simpleName}" }
             handleFailure(entry, e)
         }
+    }
+
+    /**
+     * The Proton labels of the phone contact's groups; null when not known (no account, or the
+     * account's groups unreadable), and then no group change is pushed. Groups created on the
+     * phone have no label and are left out (ADR-0027).
+     */
+    private suspend fun localLabels(account: Account?, row: ContactRow): Set<String>? {
+        if (account == null) return null
+        if (row.groupRowIds.isEmpty()) return emptySet()
+        val labelOf = groupLabelIds(account)
+        if (labelOf.isEmpty()) return null
+        return row.groupRowIds.mapNotNullTo(HashSet()) { labelOf[it] }
+    }
+
+    /**
+     * A contact without an email cannot be in a Proton group (ADR-0027). The card change, if
+     * any, went through; the group change is listed as refused, and the contact is marked for
+     * a refetch so that, once the user discards it, the next pull puts Proton's groups back.
+     */
+    private suspend fun refuseGroupsWithoutEmail(
+        entry: OutboxEntity,
+        payload: DecryptedContact,
+        row: ContactRow
+    ): WriteReport {
+        val id = entry.protonContactId
+        MergeBaseCodec.save(mergeBases, id, payload, localPhotoHash = row.photo?.data?.let(PhotoHash::of))
+        contactMapDao.forceRefetch(id)
+        logger.warn { "push refused ($GROUP_NEEDS_EMAIL), quarantined idTag=${id.hashCode()}" }
+        outboxDao.quarantine(entry.id, GROUP_NEEDS_EMAIL)
+        return WriteReport(quarantined = 1)
+    }
+
+    /**
+     * A contact created on the phone already in a group: Proton has it in none, so the base is
+     * empty, and an UPDATE carries the groups straight away (ADR-0027).
+     */
+    private suspend fun queueGroupsOfNewContact(server: ContactDto, rawContactId: Long, account: Account): WriteReport {
+        if (contactMapDao.findByProtonId(server.id) == null) {
+            contactMapDao.upsert(
+                ContactMapEntity(
+                    protonContactId = server.id,
+                    protonUid = server.uid,
+                    androidRawContactId = rawContactId,
+                    modifyTime = 0L,
+                    contentHash = "",
+                    isVerified = true,
+                    deleted = false,
+                    syncStatus = ContactMapEntity.Status.CLEAN,
+                    lastError = null,
+                    lastSyncedAt = clock()
+                )
+            )
+        }
+        contactMapDao.setServerLabelIds(server.id, GroupMembershipPusher.joined(emptyList()))
+        val hash = readContactRow(rawContactId, server.id)?.let(EmailSyncHash::compute) ?: return WriteReport.EMPTY
+        outboxDao.enqueue(server.id, OutboxEntity.OpType.UPDATE, hash, clock())
+        val entry = outboxDao.findLive(server.id) ?: return WriteReport.EMPTY
+        return pushUpdate(entry, account)
     }
 
     /**
@@ -484,7 +551,12 @@ class ContactWriteEngine(
             if (nowHash != null && nowHash != pushedHash) {
                 outboxDao.enqueue(serverContact.id, OutboxEntity.OpType.UPDATE, nowHash, clock())
             }
-            WriteReport(pushed = 1, created = 1)
+            val groupReport = if (account != null && row.groupRowIds.isNotEmpty()) {
+                queueGroupsOfNewContact(serverContact, rawContactId, account)
+            } else {
+                WriteReport.EMPTY
+            }
+            WriteReport(pushed = 1, created = 1) + groupReport
         } catch (e: HumanVerificationRequiredException) {
             throw e
         } catch (e: CancellationException) {

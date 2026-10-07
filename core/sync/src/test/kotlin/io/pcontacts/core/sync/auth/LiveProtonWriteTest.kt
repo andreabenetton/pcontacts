@@ -12,7 +12,9 @@ import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
 import io.pcontacts.core.proton.api.contacts.ContactCardBundle
 import io.pcontacts.core.proton.api.contacts.ContactCardDto
 import io.pcontacts.core.proton.api.contacts.CreateContactsRequest
+import io.pcontacts.core.proton.api.contacts.LabelContactEmailsRequest
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
+import io.pcontacts.core.proton.api.labels.LabelType
 import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
 import io.pcontacts.core.protoncontacts.CardEncryptOp
 import io.pcontacts.core.protoncontacts.CardEncryptRequest
@@ -92,6 +94,7 @@ class LiveProtonWriteTest {
             val decrypted = fetchAndDecrypt(apiFactory, processor, createdId)
             assertRoundTrip(testContact, decrypted, marker)
             assertListedAmongContactEmails(apiFactory, "canary-$marker@example.com", createdId)
+            assertGroupMembershipRoundTrip(apiFactory, createdId)
 
             val richId = createRichContact(apiFactory, encryptOp, marker)
             created += richId
@@ -139,7 +142,7 @@ class LiveProtonWriteTest {
         } else {
             first
         }
-        println("  login result: ${result.javaClass.simpleName}")
+        println("  login result: $result")
         // Mirror LiveProtonLoginTest's policy: the canary tests Proton-API
         // shape (DTOs, endpoints, x-pm-appversion window). A non-Success
         // outcome — HumanVerificationRequired, TwoFactorRequired, etc. —
@@ -172,6 +175,34 @@ class LiveProtonWriteTest {
                 signingKey = unlockedKey.private
             )
         )
+    }
+
+    /**
+     * ADR-0027: membership lives on ContactEmails; label then unlabel the canary's email with
+     * an existing contact group and read it back. Skipped when the account has no group.
+     */
+    private suspend fun assertGroupMembershipRoundTrip(apiFactory: ProtonApiFactory, id: String) {
+        val group = apiFactory.labels.listLabels(LabelType.CONTACT_GROUP).labels.firstOrNull()
+        if (group == null) {
+            println("  groups: none on this account, label round trip skipped")
+            return
+        }
+        val before = apiFactory.contacts.getContact(id).contact
+        val emailIds = before.contactEmails.map { it.id }
+        assertTrue("the canary must have a ContactEmail", emailIds.isNotEmpty())
+
+        val labelled = apiFactory.contacts.labelContactEmails(LabelContactEmailsRequest(group.id, emailIds))
+        println("  label: Code ${labelled.code}, ${labelled.responses.size} item responses")
+        val afterLabel = apiFactory.contacts.getContact(id).contact
+        println("  label: ModifyTime moved ${afterLabel.modifyTime != before.modifyTime}")
+        assertTrue(afterLabel.contactEmails.all { group.id in it.labelIds })
+        assertTrue("the contact's LabelIDs follow its emails", group.id in afterLabel.labelIds)
+
+        apiFactory.contacts.unlabelContactEmails(LabelContactEmailsRequest(group.id, emailIds))
+        val afterUnlabel = apiFactory.contacts.getContact(id).contact
+        assertTrue(afterUnlabel.contactEmails.none { group.id in it.labelIds })
+        assertTrue(group.id !in afterUnlabel.labelIds)
+        println("  unlabel: OK")
     }
 
     /** `[A]` Proton indexes ContactEmails from the signed card, where the create now puts EMAIL. */

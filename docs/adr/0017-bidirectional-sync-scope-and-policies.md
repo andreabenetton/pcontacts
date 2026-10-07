@@ -472,3 +472,9 @@ settled, and both outcomes were wrong:
   answer starts). It still passes the check above, so a further edit on
   Proton holds it back again. "Delete from Proton" for a contact removed
   on this phone keeps its grace hour.
+
+## Amendment (2026-10-07): group membership
+
+§8's deferral is lifted for **membership**: adding a contact to an existing Proton group, or
+removing it, on the phone is pushed to Proton (ADR-0027). Creating, renaming and deleting
+groups on the phone stay out of scope, as §8 says.

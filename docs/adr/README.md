@@ -36,6 +36,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0024](0024-dependency-audit-snapshot-in-the-app.md) | The app ships a build-time dependency audit snapshot; no runtime lookup by default | Accepted |
 | [0025](0025-opt-in-runtime-advisory-check.md) | Opt-in runtime advisory check of the shipped artifacts against osv.dev | Accepted |
 | [0026](0026-move-orphan-phone-contacts-into-proton.md) | Orphan "PHONE" contacts may be moved into the Proton account, per contact, on confirmation | Accepted |
+| [0027](0027-group-membership-write-back.md) | Group membership changed on the phone is pushed to Proton | Accepted |
 
 ## Template
 

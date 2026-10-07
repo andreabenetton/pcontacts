@@ -166,6 +166,7 @@ class ContactDetailSyncEngine(
         val serverLabelIds: Map<String, List<String>> =
             metadata.associate { it.id to it.labelIds }
         val serverSourceIds = serverModifyTimes.keys
+        val labelOfRow: Map<Long, String> = labelMap?.entries?.associate { (label, row) -> row to label }.orEmpty()
 
         // 2. Local state. ContactsProvider is authoritative for which
         //    RawContacts exist; the Room mapping is only sync metadata
@@ -267,7 +268,8 @@ class ContactDetailSyncEngine(
                 stored.modifyTime >= serverModifyTime
             val baseKnown = stored?.lastKnownServerPayload != null
             val skipEligible = serverUnchanged && storedFormatCurrent && baseKnown
-            if (skipEligible && liveRawId != null) {
+            val labelBase = labelBaseOf(serverLabelIds[sourceId], labelMap, stored)
+            if (skipEligible && liveRawId != null && labelsSettled(stored, liveRawId, labelBase, labelOfRow)) {
                 // Cheap-skip: server says unchanged AND the stored hash
                 // is in the current writer format AND the merge base is
                 // stored AND the provider still holds the row. If the
@@ -279,7 +281,8 @@ class ContactDetailSyncEngine(
                 // (external app deleted it), we fall through so the
                 // contact is recreated.
                 modifyTimeSkips += 1
-                contactMapDao.upsert(repairMapping(stored, liveRawId).copy(lastSyncedAt = now))
+                val skipped = repairMapping(stored, liveRawId).copy(lastSyncedAt = now, serverLabelIds = labelBase)
+                contactMapDao.upsert(skipped)
                 continue
             }
             if (stored != null && liveRawId == null) {
@@ -332,7 +335,7 @@ class ContactDetailSyncEngine(
             // LabelIDs → local Groups._ID via the reconciled labelMap); with
             // the label state unknown, keep what the provider holds.
             val groupRowIds = if (labelMap != null) {
-                serverLabelIds[sourceId].orEmpty().mapNotNull { labelId -> labelMap[labelId] }
+                serverLabelIds[sourceId].orEmpty().mapNotNull { labelId -> labelMap[labelId] }.sorted()
             } else {
                 liveRawId?.let { readGroupRowIds(it) }.orEmpty()
             }
@@ -345,7 +348,8 @@ class ContactDetailSyncEngine(
                 verified = decrypted.verified,
                 protonUid = decrypted.protonUid,
                 hash = newHash,
-                decrypted = decrypted
+                decrypted = decrypted,
+                labelBase = labelBaseOf(serverLabelIds[sourceId], labelMap, stored)
             )
             perContactMeta[sourceId] = meta
 
@@ -362,7 +366,8 @@ class ContactDetailSyncEngine(
                         protonUid = meta.protonUid,
                         syncStatus = ContactMapEntity.Status.CLEAN,
                         lastError = null,
-                        lastSyncedAt = now
+                        lastSyncedAt = now,
+                        serverLabelIds = meta.labelBase
                     )
                 )
                 saveMergeBase(sourceId, decrypted.copy(localPhotoHash = readLocalPhotoHash(liveRawId)))
@@ -459,7 +464,8 @@ class ContactDetailSyncEngine(
                     deleted = false,
                     syncStatus = ContactMapEntity.Status.CLEAN,
                     lastError = null,
-                    lastSyncedAt = now
+                    lastSyncedAt = now,
+                    serverLabelIds = meta.labelBase
                 )
             )
             saveMergeBase(row.sourceId, meta.decrypted.copy(localPhotoHash = readLocalPhotoHash(rawId)))
@@ -486,6 +492,34 @@ class ContactDetailSyncEngine(
             unverifiedCount = unverified,
             failed = fetchFailures
         )
+    }
+
+    /**
+     * The group base to store for a contact (ADR-0027): Proton's labels when they were read
+     * this run, else whatever is stored (the label state is unknown).
+     */
+    private fun labelBaseOf(
+        serverLabels: List<String>?,
+        labelMap: Map<String, Long>?,
+        stored: ContactMapEntity?
+    ): String? = if (labelMap != null) GroupMembershipPusher.joined(serverLabels.orEmpty()) else stored?.serverLabelIds
+
+    /**
+     * Whether skipping the contact leaves its groups right (ADR-0027): the stored base already
+     * matches Proton's labels, or it is still unknown (the first pull after the upgrade) while
+     * the phone shows exactly Proton's groups. Otherwise the contact is fetched and rewritten:
+     * a group changed on the web does not always move ModifyTime (`[U]`).
+     */
+    private suspend fun labelsSettled(
+        stored: ContactMapEntity,
+        liveRawId: Long,
+        labelBase: String?,
+        labelOfRow: Map<Long, String>
+    ): Boolean {
+        if (stored.serverLabelIds == labelBase) return true
+        if (stored.serverLabelIds != null) return false
+        val phone = GroupMembershipPusher.joined(readGroupRowIds(liveRawId).mapNotNull { labelOfRow[it] })
+        return phone == labelBase
     }
 
     /**
@@ -567,6 +601,8 @@ class ContactDetailSyncEngine(
         val protonUid: String?,
         val hash: String,
         /** Heap only, same lifetime as the target row; becomes the sealed merge base after the write. */
-        val decrypted: DecryptedContact
+        val decrypted: DecryptedContact,
+        /** The group base to store (ADR-0027). */
+        val labelBase: String?
     )
 }

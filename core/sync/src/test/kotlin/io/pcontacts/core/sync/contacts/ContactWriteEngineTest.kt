@@ -24,6 +24,7 @@ import io.pcontacts.core.proton.api.contacts.DeleteResponseItem
 import io.pcontacts.core.proton.api.contacts.GetContactResponse
 import io.pcontacts.core.proton.api.contacts.LabelContactEmailsRequest
 import io.pcontacts.core.proton.api.contacts.LabelContactEmailsResponse
+import io.pcontacts.core.proton.api.contacts.LabelResponseItem
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.contacts.UpdateContactResponse
@@ -1853,6 +1854,173 @@ class ContactWriteEngineTest {
         assertEquals(0, row.attempts)
     }
 
+    // --- Contact groups (ADR-0027) ---
+
+    private val groupLabels = mapOf(7L to "L-friends", 8L to "L-work")
+
+    private fun email(id: String, vararg labels: String) =
+        ContactEmailDto(id = id, email = "$id@proton.me", contactId = "ct-1", labelIds = labels.toList())
+
+    /** An UPDATE whose cards match Proton's: only the phone's groups ([rowGroups]) can differ. */
+    private suspend fun groupPush(
+        api: WriteFakeApi,
+        rowGroups: List<Long>,
+        base: String?,
+        outbox: WriteFakeOutboxDao = WriteFakeOutboxDao(),
+        contactMap: WriteFakeContactMapDao = WriteFakeContactMapDao(),
+        labelIds: Map<Long, String> = groupLabels
+    ): WriteReport {
+        val contacts = mapOf("ct-1" to sampleContact("ct-1"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(serverLabelIds = base))
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "ct-1",
+                opType = OutboxEntity.OpType.UPDATE,
+                payloadHash = "h",
+                createdAt = 1L
+            )
+        )
+        val row = DecryptedContactToRow.convert(sampleContact("ct-1"))!!
+            .copy(sourceId = "ct-1", groupRowIds = rowGroups)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contactRows = mapOf(100L to row),
+            serverContacts = contacts,
+            bases = contacts,
+            groupLabelIds = labelIds
+        )
+        return engine.push(testAccount)
+    }
+
+    @Test fun a_group_joined_on_the_phone_labels_every_email_of_the_contact() = runTest {
+        val api = WriteFakeApi().apply { serverEmails = listOf(email("e1", "L-work"), email("e2")) }
+        val outbox = WriteFakeOutboxDao()
+
+        val report = groupPush(api, rowGroups = listOf(7L, 8L), base = "L-work", outbox = outbox)
+
+        assertEquals(listOf(LabelContactEmailsRequest("L-friends", listOf("e1", "e2"))), api.labelled)
+        assertTrue(api.unlabelled.isEmpty())
+        assertNull("the cards did not change, so nothing is PUT", api.lastUpdateRequest)
+        assertEquals(1, report.pushed)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun a_group_left_on_the_phone_unlabels_only_the_emails_that_carry_it() = runTest {
+        val api = WriteFakeApi().apply { serverEmails = listOf(email("e1", "L-friends", "L-work"), email("e2", "L-work")) }
+
+        groupPush(api, rowGroups = listOf(8L), base = "L-friends,L-work")
+
+        assertEquals(listOf(LabelContactEmailsRequest("L-friends", listOf("e1"))), api.unlabelled)
+        assertTrue(api.labelled.isEmpty())
+    }
+
+    @Test fun groups_changed_on_proton_since_the_base_are_left_alone() = runTest {
+        // Proton added L-other since the base; the phone only joined L-friends.
+        val api = WriteFakeApi().apply { serverEmails = listOf(email("e1", "L-work", "L-other")) }
+
+        groupPush(api, rowGroups = listOf(7L, 8L), base = "L-work")
+
+        assertEquals(listOf("L-friends"), api.labelled.map { it.labelId })
+        assertTrue(api.unlabelled.isEmpty())
+    }
+
+    @Test fun an_unknown_base_pushes_no_group_change() = runTest {
+        val api = WriteFakeApi().apply { serverEmails = listOf(email("e1")) }
+        val outbox = WriteFakeOutboxDao()
+
+        groupPush(api, rowGroups = listOf(7L), base = null, outbox = outbox)
+
+        assertTrue(api.labelled.isEmpty() && api.unlabelled.isEmpty())
+        assertTrue("the rest of the update completes", outbox.entries.isEmpty())
+    }
+
+    @Test fun unreadable_phone_groups_never_read_as_leaving_every_group() = runTest {
+        val api = WriteFakeApi().apply { serverEmails = listOf(email("e1", "L-work")) }
+
+        groupPush(api, rowGroups = listOf(8L), base = "L-work", labelIds = emptyMap())
+
+        assertTrue(api.unlabelled.isEmpty())
+    }
+
+    @Test fun joining_a_group_without_an_email_is_refused_and_the_contact_refetched() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+
+        val report = groupPush(api, rowGroups = listOf(7L), base = "", outbox = outbox, contactMap = contactMap)
+
+        assertEquals(1, report.quarantined)
+        assertTrue(api.labelled.isEmpty())
+        val entry = outbox.entries.values.single()
+        assertTrue(entry.quarantined)
+        assertEquals(GROUP_NEEDS_EMAIL, entry.lastError)
+        val mapping = contactMap.findByProtonId("ct-1")!!
+        assertEquals("marked for a refetch", 0L, mapping.modifyTime)
+        assertEquals("", mapping.contentHash)
+    }
+
+    @Test fun a_refused_label_is_listed_with_protons_code() = runTest {
+        val api = WriteFakeApi().apply {
+            serverEmails = listOf(email("e1"))
+            labelItemCode = 2001
+        }
+        val outbox = WriteFakeOutboxDao()
+
+        groupPush(api, rowGroups = listOf(7L), base = "", outbox = outbox)
+
+        val entry = outbox.entries.values.single()
+        assertTrue(entry.quarantined)
+        assertEquals("Proton code 2001", entry.lastError)
+    }
+
+    @Test fun a_contact_created_in_a_group_is_labelled_right_after_the_create() = runTest {
+        val api = WriteFakeApi().apply {
+            createResponse = CreateContactsResponse(
+                code = 1000,
+                responses = listOf(
+                    CreateContactResponseItem(
+                        index = 0,
+                        response = CreateContactResponseBody(
+                            code = 1000,
+                            contact = ContactDto(id = "server-ct-1", uid = "server-uid-1")
+                        )
+                    )
+                )
+            )
+            serverEmails = listOf(email("e1"))
+        }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        // A phone-created contact: its local id names the raw contact (local-1 → raw 1), no mapping yet.
+        outbox.insert(
+            OutboxEntity(
+                protonContactId = "local-1",
+                opType = OutboxEntity.OpType.CREATE,
+                payloadHash = "h",
+                createdAt = 1L
+            )
+        )
+        val row = DecryptedContactToRow.convert(sampleContact("local-1"))!!
+            .copy(sourceId = "local-1", groupRowIds = listOf(7L))
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contactRows = mapOf(1L to row),
+            serverContacts = mapOf("server-ct-1" to sampleContact("server-ct-1")),
+            groupLabelIds = groupLabels
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.created)
+        assertEquals(listOf(LabelContactEmailsRequest("L-friends", listOf("e1"))), api.labelled)
+        assertTrue(outbox.entries.isEmpty())
+        assertEquals("", contactMap.findByProtonId("server-ct-1")!!.serverLabelIds)
+    }
+
     // Test factory: all seams optional, so the parameter count is by design.
     @Suppress("LongParameterList")
     private suspend fun newEngine(
@@ -1870,7 +2038,8 @@ class ContactWriteEngineTest {
         mergeBases: InMemoryMergeBaseStore = InMemoryMergeBaseStore(),
         fetchServerContact: suspend (String) -> DecryptedContact? = { id -> serverContacts[id] },
         hasLiveRow: suspend (Account, String) -> Boolean = { _, _ -> false },
-        onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
+        onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> },
+        groupLabelIds: Map<Long, String> = emptyMap()
     ): ContactWriteEngine {
         bases.forEach { (id, contact) -> MergeBaseCodec.save(mergeBases, id, contact) }
         return ContactWriteEngine(
@@ -1890,6 +2059,7 @@ class ContactWriteEngineTest {
             fetchServerContact = fetchServerContact,
             hasLiveRow = hasLiveRow,
             onProgress = onProgress,
+            groupLabelIds = { groupLabelIds },
             clock = clock
         )
     }
@@ -1948,8 +2118,17 @@ private class WriteFakeApi : ProtonContactsApi {
 
     override suspend fun listContactEmails(page: Int, pageSize: Int, emailFilter: String?, labelIdFilter: String?) =
         ContactEmailsPageResponse(code = 1000)
+
+    /** The ContactEmails `getContact` reports — the group push reads their IDs and labels. */
+    var serverEmails: List<ContactEmailDto> = emptyList()
+    val labelled = mutableListOf<LabelContactEmailsRequest>()
+    val unlabelled = mutableListOf<LabelContactEmailsRequest>()
+
+    /** The per-email Code the label calls answer with. */
+    var labelItemCode: Int = 1000
+
     override suspend fun getContact(id: String) =
-        error("not used in write engine tests")
+        GetContactResponse(code = 1000, contact = ContactDto(id = id, contactEmails = serverEmails))
     override suspend fun listContacts(page: Int, pageSize: Int, labelIdFilter: String?) =
         ContactsPageResponse(code = 1000, contacts = listedContacts, total = listedContacts.size)
 
@@ -1982,11 +2161,20 @@ private class WriteFakeApi : ProtonContactsApi {
         )
     }
 
-    override suspend fun labelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse =
-        error("not used yet")
+    override suspend fun labelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse {
+        labelled += request
+        return labelAnswer(request)
+    }
 
-    override suspend fun unlabelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse =
-        error("not used yet")
+    override suspend fun unlabelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse {
+        unlabelled += request
+        return labelAnswer(request)
+    }
+
+    private fun labelAnswer(request: LabelContactEmailsRequest) = LabelContactEmailsResponse(
+        code = 1001,
+        responses = request.contactEmailIds.map { LabelResponseItem(it, DeleteResponseBody(code = labelItemCode)) }
+    )
 }
 
 internal class WriteFakeOutboxDao : OutboxDao {

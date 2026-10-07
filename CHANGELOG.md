@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A password that does not open the account's keys** is explained
   after the 2FA code too; before, that step showed only a generic error.
+- **Groups changed on the phone reach Proton.** Adding a contact to a Proton
+  group, or removing it, in the phone's Contacts app is sent to Proton at the
+  next sync; before, the next sync undid it. Proton keeps groups on email
+  addresses, so a contact without an email cannot join one: the change is
+  listed as refused, and discarding it puts Proton's groups back. Creating,
+  renaming or deleting groups still happens on Proton's web app (ADR-0027).
 - **New contacts can be saved to Proton from the phone's Contacts app.**
   The account now declares which fields can be edited, which contacts
   editors require before they count an account as writable. Samsung
