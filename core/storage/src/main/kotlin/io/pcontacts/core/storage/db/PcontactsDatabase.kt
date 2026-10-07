@@ -33,7 +33,7 @@ import io.pcontacts.core.storage.db.entity.SyncStateEntity
         SyncStateEntity::class,
         OutboxEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class PcontactsDatabase : RoomDatabase() {
@@ -87,6 +87,13 @@ abstract class PcontactsDatabase : RoomDatabase() {
                         SELECT MAX(id) FROM outbox WHERE quarantined = 0 GROUP BY proton_contact_id
                     )"""
                 )
+            }
+        }
+
+        /** ADR-0027: the base for pushing contact-group changes; NULL until the next pull fills it. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contact_map ADD COLUMN server_label_ids TEXT DEFAULT NULL")
             }
         }
     }

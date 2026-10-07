@@ -130,6 +130,32 @@ class MigrationTest {
         migratedDb.close()
     }
 
+    @Test fun migrate_3_to_4_adds_an_unknown_group_base() {
+        helper.createDatabase(TEST_DB, 3).apply {
+            execSQL(
+                """INSERT INTO contact_map (
+                    proton_contact_id, proton_uid, android_raw_contact_id,
+                    modify_time, content_hash, is_verified, deleted,
+                    sync_status, last_error, last_synced_at, last_known_server_payload
+                ) VALUES ('ct-1', 'uid-1', 100, 1700000000, 'hash-v3', 1, 0, 0, NULL, 1700000001, X'0102')"""
+            )
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(TEST_DB, 4, true, PcontactsDatabase.MIGRATION_3_4)
+
+        migratedDb.query(
+            "SELECT server_label_ids, content_hash, last_known_server_payload FROM contact_map " +
+                "WHERE proton_contact_id = 'ct-1'"
+        ).use { cursor ->
+            assertTrue("contact_map row should survive migration", cursor.moveToFirst())
+            assertTrue("the group base starts unknown", cursor.isNull(0))
+            assertEquals("hash-v3", cursor.getString(1))
+            assertEquals(2, cursor.getBlob(2).size)
+        }
+        migratedDb.close()
+    }
+
     private fun outboxRow(contactId: String, opType: Int, hash: String, quarantined: Int): String =
         """INSERT INTO outbox (
             proton_contact_id, op_type, payload_hash, attempts, last_error, next_attempt_at, created_at, quarantined

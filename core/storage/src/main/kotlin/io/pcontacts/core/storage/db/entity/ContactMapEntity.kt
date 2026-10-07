@@ -48,7 +48,15 @@ data class ContactMapEntity(
      * a `ByteArray` compares by reference, so tests use `contentEquals`.
      */
     @ColumnInfo(name = "last_known_server_payload", typeAffinity = ColumnInfo.BLOB, defaultValue = "NULL")
-    val lastKnownServerPayload: ByteArray? = null
+    val lastKnownServerPayload: ByteArray? = null,
+    /**
+     * The contact-group label IDs Proton last reported for the contact, sorted and
+     * comma-joined (ADR-0027): the base the push compares the phone's groups against.
+     * Opaque IDs, no contact content. NULL means not known yet, and then no group change
+     * is pushed for the contact.
+     */
+    @ColumnInfo(name = "server_label_ids", defaultValue = "NULL")
+    val serverLabelIds: String? = null
 ) {
     /**
      * `sync_status` is stored as an Int rather than an enum so future

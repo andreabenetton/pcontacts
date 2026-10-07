@@ -76,6 +76,9 @@ interface ContactMapDao {
     @Query("SELECT last_known_server_payload FROM contact_map WHERE proton_contact_id = :id")
     suspend fun mergeBase(id: String): ByteArray?
 
+    @Query("UPDATE contact_map SET server_label_ids = :labelIds WHERE proton_contact_id = :id")
+    suspend fun setServerLabelIds(id: String, labelIds: String?)
+
     @Query(
         "UPDATE contact_map SET sync_status = 0, last_error = NULL, last_synced_at = :now " +
             "WHERE proton_contact_id = :id"

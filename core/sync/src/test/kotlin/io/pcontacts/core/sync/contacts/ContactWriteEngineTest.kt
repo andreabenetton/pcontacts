@@ -2097,6 +2097,9 @@ internal class WriteFakeContactMapDao : ContactMapDao {
         rows[id]?.let { rows[id] = it.copy(lastKnownServerPayload = sealed) }
     }
     override suspend fun mergeBase(id: String): ByteArray? = rows[id]?.lastKnownServerPayload
+    override suspend fun setServerLabelIds(id: String, labelIds: String?) {
+        rows[id]?.let { rows[id] = it.copy(serverLabelIds = labelIds) }
+    }
     override suspend fun markClean(id: String, now: Long) {
         rows[id]?.let {
             rows[id] = it.copy(syncStatus = ContactMapEntity.Status.CLEAN, lastError = null, lastSyncedAt = now)
