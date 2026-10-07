@@ -15,7 +15,8 @@ import io.pcontacts.feature.settings.ContactsPermissionRoute
  * Deepest reachable page for revoking READ_CONTACTS, in order: the
  * permission controller's per-permission list ("Contacts and
  * accounts"; the `Intent.ACTION_MANAGE_PERMISSION_APPS` contract,
- * guarded by a signature permission on recent Pixels), then Settings'
+ * guarded by the signature permission GRANT_RUNTIME_PERMISSIONS on recent
+ * Pixels and on Android 11 alike, so third-party apps rarely reach it), then Settings'
  * "Privacy controls" (one tap from Permission manager), then the
  * privacy hub.
  */
