@@ -6,6 +6,7 @@ package io.pcontacts.core.contactswriter
 import android.database.MatrixCursor
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Event
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.CommonDataKinds.Im
 import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
@@ -144,6 +145,25 @@ class RawContactDataReaderTest {
         assertTrue(rows.getValue(3L).emails.isEmpty())
         assertEquals(listOf("alice@proton.me"), rows.getValue(1L).emails)
         assertEquals("+39 333", rows.getValue(2L).phones.single().number)
+    }
+
+    @Test fun parse_reads_group_memberships_sorted_and_once() {
+        val cursor = MatrixCursor(columns).apply {
+            addRow(structuredNameRow("Alice"))
+            addRow(valueRow(GroupMembership.CONTENT_ITEM_TYPE, "12"))
+            addRow(valueRow(GroupMembership.CONTENT_ITEM_TYPE, "7"))
+            addRow(valueRow(GroupMembership.CONTENT_ITEM_TYPE, "12"))
+        }
+        assertEquals(listOf(7L, 12L), RawContactDataReader.parse(cursor, "ct-1")!!.groupRowIds)
+    }
+
+    @Test fun parse_by_raw_contact_leaves_other_accounts_groups_out() {
+        val grouped = arrayOf(Data.RAW_CONTACT_ID, *columns)
+        val cursor = MatrixCursor(grouped).apply {
+            addRow(arrayOf<Any?>(1L, *structuredNameRow("Alice")))
+            addRow(arrayOf<Any?>(1L, *valueRow(GroupMembership.CONTENT_ITEM_TYPE, "5")))
+        }
+        assertTrue(RawContactDataReader.parseByRawContact(cursor).getValue(1L).groupRowIds.isEmpty())
     }
 
     @Test fun parse_empty_cursor_returns_null() {

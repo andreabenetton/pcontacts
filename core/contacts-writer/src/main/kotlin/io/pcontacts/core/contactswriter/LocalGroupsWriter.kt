@@ -72,6 +72,14 @@ class LocalGroupsWriter(private val provider: ContentProviderClient) {
         return readExistingMap(account)
     }
 
+    /**
+     * `Groups._ID → Proton label ID` for the account's groups, so the push can name the
+     * groups a phone contact is in (ADR-0027). Groups created on the phone have no label
+     * ID and are absent.
+     */
+    fun labelIdsByRowId(account: Account): Map<Long, String> =
+        readExistingMap(account).entries.associate { (labelId, rowId) -> rowId to labelId }
+
     private fun readExistingMap(account: Account): Map<String, Long> {
         val cursor: Cursor? = provider.query(
             Groups.CONTENT_URI,

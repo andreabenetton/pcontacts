@@ -27,6 +27,10 @@ import android.provider.ContactsContract.CommonDataKinds.StructuredName as CCStr
  * query for MatrixCursor-based testing, mirroring [RawContactReader].
  * [parseByRawContact] does the same for a cursor spanning many
  * RawContacts (the ADR-0023 scan), one [ContactRow] per raw.
+ *
+ * Group memberships are read only for our own RawContact ([parse]), sorted, so the
+ * content hash matches the pull's (ADR-0027); the scan of other accounts leaves them out,
+ * since their Groups rows belong to those accounts.
  */
 class RawContactDataReader(private val provider: ContentProviderClient) {
 
@@ -69,7 +73,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
         fun parse(cursor: Cursor, sourceId: String): ContactRow? {
             if (cursor.count == 0) return null
             val columns = Columns(cursor)
-            val row = Accumulator()
+            val row = Accumulator(readsGroups = true)
             while (cursor.moveToNext()) row.add(cursor, columns)
             return row.build(sourceId)
         }
@@ -85,7 +89,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
             val rawIdx = cursor.getColumnIndexOrThrow(Data.RAW_CONTACT_ID)
             val rows = LinkedHashMap<Long, Accumulator>()
             while (cursor.moveToNext()) {
-                rows.getOrPut(cursor.getLong(rawIdx)) { Accumulator() }.add(cursor, columns)
+                rows.getOrPut(cursor.getLong(rawIdx)) { Accumulator(readsGroups = false) }.add(cursor, columns)
             }
             return rows.mapNotNull { (id, row) -> row.build(sourceId = "")?.let { id to it } }.toMap()
         }
@@ -108,7 +112,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
     }
 
     /** Collects one RawContact's Data rows; [build] applies the ContactRow guard. */
-    private class Accumulator {
+    private class Accumulator(private val readsGroups: Boolean) {
         private var displayName: String? = null
         private var structuredName: StructuredName? = null
         private val emails = mutableListOf<Pair<String, Boolean>>()
@@ -122,6 +126,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
         private val nicknames = mutableListOf<String>()
         private val websites = mutableListOf<String>()
         private var photo: ContactPhoto? = null
+        private val groupRowIds = mutableListOf<Long>()
 
         fun add(cursor: Cursor, c: Columns) {
             val isPrimary = cursor.getInt(c.primary) == 1
@@ -166,7 +171,12 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
                     val blob = cursor.getBlob(c.d15)
                     if (blob != null && blob.isNotEmpty()) photo = ContactPhoto(blob)
                 }
+                GroupMembership.CONTENT_ITEM_TYPE -> addGroup(cursor, c)
             }
+        }
+
+        private fun addGroup(cursor: Cursor, c: Columns) {
+            if (readsGroups && !cursor.isNull(c.d1)) groupRowIds += cursor.getLong(c.d1)
         }
 
         /**
@@ -224,7 +234,8 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
                 anniversary = anniversary,
                 nicknames = nicknames,
                 websites = websites,
-                photo = photo
+                photo = photo,
+                groupRowIds = groupRowIds.distinct().sorted()
             )
         }
     }

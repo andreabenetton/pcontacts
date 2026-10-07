@@ -471,6 +471,27 @@ class ContactsContractInstrumentedTest {
     }
 
     @Test
+    fun full_read_returns_the_groups_and_the_reverse_map_names_their_labels() {
+        val groupMap = LocalGroupsWriter(testProvider).reconcile(
+            testAccount,
+            listOf(ProtonLabel("label-r1", "ReadOne"), ProtonLabel("label-r2", "ReadTwo"))
+        )
+        val row = ContactRow(
+            sourceId = "proton-gr2",
+            displayName = "GroupFullRead",
+            emails = listOf("gr2@proton.me"),
+            groupRowIds = groupMap.values.sorted()
+        )
+        BatchApplier(testProvider).apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
+        val rawId = findRawContactBySourceId("proton-gr2")!!
+
+        val read = RawContactDataReader(testProvider).read(rawId, "proton-gr2")!!
+        assertEquals(groupMap.values.sorted(), read.groupRowIds)
+        val labels = LocalGroupsWriter(testProvider).labelIdsByRowId(testAccount)
+        assertEquals(setOf("label-r1", "label-r2"), read.groupRowIds.map { labels.getValue(it) }.toSet())
+    }
+
+    @Test
     fun tombstone_restorer_makes_a_deleted_raw_contact_live_again_with_its_data() {
         val row = ContactRow(sourceId = "proton-tomb", displayName = "Tomb Stone", emails = listOf("t@proton.me"))
         BatchApplier(testProvider).apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
