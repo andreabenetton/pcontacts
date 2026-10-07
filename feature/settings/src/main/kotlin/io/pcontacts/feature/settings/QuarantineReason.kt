@@ -14,5 +14,7 @@ internal fun quarantineReasonRes(reason: String): Int = when {
     reason.startsWith("HttpException") -> R.string.quarantined_reason_refused
     reason == "contact not found locally" -> R.string.quarantined_reason_not_on_phone
     reason == "network error" -> R.string.quarantined_reason_network
+    // ADR-0027: a contact without an email cannot be in a Proton group.
+    reason == "group needs an email" -> R.string.quarantined_reason_group_needs_email
     else -> R.string.quarantined_reason_other
 }

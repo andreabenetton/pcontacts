@@ -64,6 +64,7 @@
     <string name="quarantined_reason_not_on_phone">Этого контакта больше нет на этом телефоне.</string>
     <string name="quarantined_reason_network">Не удалось связаться с Proton.</string>
     <string name="quarantined_reason_other">На этом телефоне что-то пошло не так.</string>
+    <string name="quarantined_reason_group_needs_email">Группам Proton нужен адрес электронной почты, а у этого контакта его нет. Нажмите «Отклонить», чтобы вернуть группы Proton.</string>
 
     <plurals name="pending_delete_count">
         <item quantity="one">%d контакт ожидает удаления</item>

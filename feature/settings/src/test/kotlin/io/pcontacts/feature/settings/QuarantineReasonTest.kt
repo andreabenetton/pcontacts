@@ -15,6 +15,7 @@ class QuarantineReasonTest {
         assertEquals(R.string.quarantined_reason_refused, quarantineReasonRes("HttpException: 404"))
         assertEquals(R.string.quarantined_reason_not_on_phone, quarantineReasonRes("contact not found locally"))
         assertEquals(R.string.quarantined_reason_network, quarantineReasonRes("network error"))
+        assertEquals(R.string.quarantined_reason_group_needs_email, quarantineReasonRes("group needs an email"))
         assertEquals(R.string.quarantined_reason_other, quarantineReasonRes("internal error"))
         assertEquals(R.string.quarantined_reason_other, quarantineReasonRes("unknown op_type=9"))
     }

@@ -58,6 +58,7 @@
     <string name="quarantined_reason_not_on_phone">Questo contatto non è più su questo telefono.</string>
     <string name="quarantined_reason_network">Impossibile raggiungere Proton.</string>
     <string name="quarantined_reason_other">Qualcosa è andato storto su questo telefono.</string>
+    <string name="quarantined_reason_group_needs_email">I gruppi di Proton richiedono un indirizzo email e questo contatto non ne ha. Tocca «Scarta» per ripristinare i gruppi di Proton.</string>
 
     <plurals name="pending_delete_count">
         <item quantity="one">%d contatto in attesa di eliminazione</item>
