@@ -201,3 +201,29 @@ data class BulkDeleteResponse(
     @SerialName("Code") val code: Int = 0,
     @SerialName("Responses") val responses: List<DeleteResponseItem> = emptyList()
 )
+
+/**
+ * Request body for `PUT contacts/v4/contacts/emails/label` and `.../unlabel`.
+ * [V] packages/shared/lib/api/contacts.ts `labelContactEmails` / `unLabelContactEmails`.
+ */
+@Serializable
+data class LabelContactEmailsRequest(
+    @SerialName("LabelID") val labelId: String,
+    @SerialName("ContactEmailIDs") val contactEmailIds: List<String>
+)
+
+@Serializable
+data class LabelResponseItem(
+    @SerialName("ID") val id: String,
+    @SerialName("Response") val response: DeleteResponseBody
+)
+
+/**
+ * `[U]` The web client ignores this response; modelled like the bulk delete — a top-level
+ * `Code` and, for a 1001 multi-status answer, one `Responses` item per ContactEmail ID.
+ */
+@Serializable
+data class LabelContactEmailsResponse(
+    @SerialName("Code") val code: Int = 0,
+    @SerialName("Responses") val responses: List<LabelResponseItem> = emptyList()
+)

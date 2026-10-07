@@ -280,6 +280,41 @@ class ProtonContactsApiTest {
         assertTrue("body must contain c2", body.contains("c2"))
     }
 
+    @Test fun labelContactEmails_sends_PUT_with_label_and_email_ids() = runTest {
+        session.update(uid = "uid-x", accessToken = "access-x")
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {"Code":1001,"Responses":[{"ID":"e1","Response":{"Code":1000}}]}
+                """.trimIndent()
+            )
+        )
+
+        val response = api.labelContactEmails(LabelContactEmailsRequest(labelId = "L1", contactEmailIds = listOf("e1")))
+
+        assertEquals(1001, response.code)
+        assertEquals("e1", response.responses.single().id)
+        assertEquals(1000, response.responses.single().response.code)
+        val recorded = server.takeRequest()
+        assertEquals("PUT", recorded.method)
+        assertEquals("/contacts/v4/contacts/emails/label", recorded.path)
+        assertEquals("""{"LabelID":"L1","ContactEmailIDs":["e1"]}""", recorded.body.readUtf8())
+    }
+
+    @Test fun unlabelContactEmails_accepts_a_bare_success_code() = runTest {
+        session.update(uid = "uid-x", accessToken = "access-x")
+        server.enqueue(MockResponse().setBody("""{"Code":1000}"""))
+
+        val request = LabelContactEmailsRequest(labelId = "L1", contactEmailIds = listOf("e1", "e2"))
+        val response = api.unlabelContactEmails(request)
+
+        assertEquals(1000, response.code)
+        assertTrue(response.responses.isEmpty())
+        val recorded = server.takeRequest()
+        assertEquals("/contacts/v4/contacts/emails/unlabel", recorded.path)
+        assertTrue(recorded.body.readUtf8().contains("\"ContactEmailIDs\":[\"e1\",\"e2\"]"))
+    }
+
     @Test fun listContactEmails_ignores_unknown_server_fields() = runTest {
         // Server adds a field we don't model; deserialization must not blow up.
         server.enqueue(

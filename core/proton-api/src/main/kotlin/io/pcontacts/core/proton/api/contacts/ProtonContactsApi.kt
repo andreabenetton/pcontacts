@@ -78,4 +78,19 @@ interface ProtonContactsApi {
      */
     @PUT("contacts/v4/contacts/delete")
     suspend fun deleteContacts(@Body request: BulkDeleteRequest): BulkDeleteResponse
+
+    /**
+     * Adds a contact group (a label of type 2) to contact emails: group membership lives
+     * on ContactEmails, not on the contact (ADR-0027). One label per request.
+     * [V] packages/shared/lib/api/contacts.ts `labelContactEmails`.
+     */
+    @PUT("contacts/v4/contacts/emails/label")
+    suspend fun labelContactEmails(@Body request: LabelContactEmailsRequest): LabelContactEmailsResponse
+
+    /**
+     * Removes a contact group from contact emails; the reverse of [labelContactEmails].
+     * [V] packages/shared/lib/api/contacts.ts `unLabelContactEmails`.
+     */
+    @PUT("contacts/v4/contacts/emails/unlabel")
+    suspend fun unlabelContactEmails(@Body request: LabelContactEmailsRequest): LabelContactEmailsResponse
 }

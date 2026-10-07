@@ -22,6 +22,8 @@ import io.pcontacts.core.proton.api.contacts.CreateContactsResponse
 import io.pcontacts.core.proton.api.contacts.DeleteResponseBody
 import io.pcontacts.core.proton.api.contacts.DeleteResponseItem
 import io.pcontacts.core.proton.api.contacts.GetContactResponse
+import io.pcontacts.core.proton.api.contacts.LabelContactEmailsRequest
+import io.pcontacts.core.proton.api.contacts.LabelContactEmailsResponse
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.contacts.UpdateContactResponse
@@ -1979,6 +1981,12 @@ private class WriteFakeApi : ProtonContactsApi {
             }
         )
     }
+
+    override suspend fun labelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse =
+        error("not used yet")
+
+    override suspend fun unlabelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse =
+        error("not used yet")
 }
 
 internal class WriteFakeOutboxDao : OutboxDao {

@@ -80,5 +80,11 @@ class ContactsMetadataPagerTest {
 
         override suspend fun deleteContacts(request: BulkDeleteRequest): BulkDeleteResponse =
             error("not used in metadata pager tests")
+
+        override suspend fun labelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse =
+            error("not used in metadata pager tests")
+
+        override suspend fun unlabelContactEmails(request: LabelContactEmailsRequest): LabelContactEmailsResponse =
+            error("not used in metadata pager tests")
     }
 }
