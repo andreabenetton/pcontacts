@@ -11,10 +11,12 @@
   AOSP Contacts treats an external account as read-only without one
   (ExternalAccountType.areContactsWritable() returns mHasEditSchema)
   and leaves it out of the "Save contact to" picker. It lists only
-  the kinds and types pcontacts carries both ways (ContactRow);
-  group membership is left out because it is pull-only. AOSP
+  the kinds and types pcontacts carries both ways (ContactRow),
+  group membership included since ADR-0027 (without it AOSP
+  Contacts does not let groups be edited for the account). AOSP
   requires every name attribute, phonetic ones included, to be true,
-  and nickname, organization, note and photo to have maxOccurs="1".
+  and nickname, organization, note, photo and group membership to
+  have maxOccurs="1".
 -->
 <ContactsAccountType xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -67,6 +69,7 @@
             <Type type="custom" />
         </DataKind>
         <DataKind kind="note" maxOccurs="1" />
+        <DataKind kind="group_membership" maxOccurs="1" />
     </EditSchema>
 
     <!--

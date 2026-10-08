@@ -40,7 +40,7 @@ class ContactsStructureXmlTest {
     }
 
     @Test fun only_what_pcontacts_carries_both_ways_is_editable() {
-        assertTrue("group membership is pull-only", "group_membership" !in schemaKinds)
+        assertTrue("group membership is pushed (ADR-0027)", "group_membership" in schemaKinds)
         val eventTypes = schemaKinds.getValue("event").children("Type").map { it.getAttribute("type") }
         assertEquals(listOf("birthday", "anniversary"), eventTypes)
     }
@@ -64,6 +64,6 @@ class ContactsStructureXmlTest {
             "supportsPhoneticMiddleName",
             "supportsPhoneticGivenName"
         )
-        val SINGLE_VALUED = listOf("photo", "nickname", "organization", "note")
+        val SINGLE_VALUED = listOf("photo", "nickname", "organization", "note", "group_membership")
     }
 }

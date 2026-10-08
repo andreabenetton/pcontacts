@@ -49,6 +49,8 @@ emails, against the label set Proton last reported for the contact.**
   base to match Proton's labels (`[U]` whether label calls move `ModifyTime`); a base still
   unknown after the upgrade is filled in without a fetch when the phone already shows Proton's
   groups, otherwise the contact is fetched and rewritten.
+- **Editors.** `contacts.xml` declares `group_membership` in its EditSchema: `[V]` AOSP
+  `ExternalAccountType` lets an account's groups be edited only when that kind is declared.
 - **Out of scope:** creating, renaming and deleting groups on the phone (ADR-0017 §8 still
   holds for those); groups created on the phone have no label and are ignored.
 
