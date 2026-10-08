@@ -1,0 +1,5 @@
+Versione 2.3.0.
+
+* I gruppi di contatti si sincronizzano in entrambe le direzioni: aggiungi o togli un contatto da un gruppo Proton sul telefono e la modifica arriva a Proton. I gruppi richiedono un piano Proton a pagamento.
+* I nuovi contatti si possono salvare in Proton da Contatti di Samsung e dall'app Contatti di Android, e modificare lì.
+* Gli account molto vecchi la cui chiave non ha salt vengono rifiutati all'accesso.

@@ -1,0 +1,5 @@
+Version 2.3.0.
+
+* Contact groups sync both ways: add a contact to a Proton group, or remove it, on the phone and the change reaches Proton. Groups need a paid Proton plan; see the FAQ for how Proton and Android groups differ.
+* New contacts can be saved to Proton from Samsung Contacts and Android's Contacts app, and edited there in place.
+* Very old accounts whose key has no salt are refused at sign-in, with a hint to sign in once at proton.me.

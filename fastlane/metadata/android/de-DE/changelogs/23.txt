@@ -1,0 +1,5 @@
+Version 2.3.0.
+
+* Kontaktgruppen werden in beide Richtungen synchronisiert: Fügen Sie einen Kontakt auf dem Telefon einer Proton-Gruppe hinzu oder entfernen Sie ihn, und die Änderung erreicht Proton. Gruppen erfordern einen kostenpflichtigen Proton-Tarif.
+* Neue Kontakte lassen sich aus Samsung Kontakte und der Kontakte-App von Android in Proton speichern und dort bearbeiten.
+* Sehr alte Konten, deren Schlüssel kein Salt hat, werden bei der Anmeldung abgelehnt.

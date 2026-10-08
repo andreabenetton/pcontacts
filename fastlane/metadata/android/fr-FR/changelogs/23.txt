@@ -1,0 +1,5 @@
+Version 2.3.0.
+
+* Les groupes de contacts se synchronisent dans les deux sens : ajoutez ou retirez un contact d'un groupe Proton sur le téléphone, et la modification parvient à Proton. Les groupes nécessitent une offre Proton payante.
+* Les nouveaux contacts peuvent être enregistrés dans Proton depuis Contacts de Samsung et l'app Contacts d'Android, et y être modifiés.
+* Les très anciens comptes dont la clé n'a pas de sel sont refusés à la connexion.

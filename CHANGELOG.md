@@ -10,7 +10,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.3.0] - 2026-10-08
+
+### Added
+
+- **Contact groups sync both ways.** Adding a contact to a Proton group, or
+  removing it, in the phone's Contacts app is sent to Proton at the next
+  sync; before, the next sync undid it. Proton keeps groups on email
+  addresses: joining a group adds all of the contact's addresses, leaving
+  removes all of them, and a contact without an email cannot join one (the
+  change is listed as refused, and discarding it puts Proton's groups back).
+  Changes made on Proton meanwhile are kept. Creating, renaming or deleting
+  groups still happens on Proton's web app, and contact groups need a paid
+  Proton plan. In Android's own Contacts app groups are called labels. The
+  FAQ explains the differences (ADR-0027).
+
+### Fixed
+
+- **New contacts can be saved to Proton from the phone's Contacts app.**
+  The account now declares which fields can be edited, which contacts
+  editors require before they count an account as writable. Samsung
+  Contacts did not list it under "Save contact to"; it now does, as
+  "PContacts". Android's own Contacts app (AOSP, GrapheneOS) treated the
+  account as read-only for the same reason; there, new contacts can now be
+  saved to Proton and Proton contacts edited in place. The editors offer
+  only the fields pcontacts syncs, plus phonetic names, which Android
+  requires and which stay on the phone.
+- **A password that does not open the account's keys** is explained
+  after the 2FA code too; before, that step showed only a generic error.
 
 ### Security
 
@@ -19,26 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   at proton.me, which upgrades it. 2.2.1 would have used — and stored,
   sealed — the account password itself as the key password; pcontacts
   never stores a password.
-
-### Fixed
-
-- **A password that does not open the account's keys** is explained
-  after the 2FA code too; before, that step showed only a generic error.
-- **Groups changed on the phone reach Proton.** Adding a contact to a Proton
-  group, or removing it, in the phone's Contacts app is sent to Proton at the
-  next sync; before, the next sync undid it. Proton keeps groups on email
-  addresses, so a contact without an email cannot join one: the change is
-  listed as refused, and discarding it puts Proton's groups back. Creating,
-  renaming or deleting groups still happens on Proton's web app (ADR-0027).
-- **New contacts can be saved to Proton from the phone's Contacts app.**
-  The account now declares which fields can be edited, which contacts
-  editors require before they count an account as writable. Samsung
-  Contacts did not list it under "Save contact to"; it now does, as
-  "PContacts". Android's own Contacts app (AOSP, GrapheneOS) treated the
-  account as read-only for the same reason; there, new contacts can now be
-  saved to Proton and Proton contacts edited in place. The editors offer only the
-  fields pcontacts syncs, plus phonetic names, which Android requires
-  and which stay on the phone.
 
 ## [2.2.1] - 2026-10-06
 
@@ -869,6 +876,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SPKI certificate pins for ISRG Root X1 + X2 enforced via OkHttp
   CertificatePinner.
 
+[2.3.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.3.0
 [2.2.1]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.2.1
 [2.2.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.2.0
 [2.1.0]: https://github.com/andreabenetton/pcontacts/releases/tag/v2.1.0
