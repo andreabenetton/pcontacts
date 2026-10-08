@@ -179,12 +179,16 @@ class LiveProtonWriteTest {
 
     /**
      * ADR-0027: membership lives on ContactEmails; label then unlabel the canary's email with
-     * an existing contact group and read it back. Skipped when the account has no group.
+     * an existing contact group and read it back. `PCONTACTS_TEST_GROUP` names the group to use
+     * (on a real account, a probe group: no real group is touched); without it, the first one.
+     * Skipped when there is no such group.
      */
     private suspend fun assertGroupMembershipRoundTrip(apiFactory: ProtonApiFactory, id: String) {
-        val group = apiFactory.labels.listLabels(LabelType.CONTACT_GROUP).labels.firstOrNull()
+        val wanted = System.getenv("PCONTACTS_TEST_GROUP")
+        val groups = apiFactory.labels.listLabels(LabelType.CONTACT_GROUP).labels
+        val group = if (wanted.isNullOrBlank()) groups.firstOrNull() else groups.firstOrNull { it.name == wanted }
         if (group == null) {
-            println("  groups: none on this account, label round trip skipped")
+            println("  groups: no usable group on this account, label round trip skipped")
             return
         }
         val before = apiFactory.contacts.getContact(id).contact
@@ -192,7 +196,10 @@ class LiveProtonWriteTest {
         assertTrue("the canary must have a ContactEmail", emailIds.isNotEmpty())
 
         val labelled = apiFactory.contacts.labelContactEmails(LabelContactEmailsRequest(group.id, emailIds))
-        println("  label: Code ${labelled.code}, ${labelled.responses.size} item responses")
+        println(
+            "  label: Code ${labelled.code}, ${labelled.responses.size} item responses " +
+                "${labelled.responses.map { it.response.code }}"
+        )
         val afterLabel = apiFactory.contacts.getContact(id).contact
         println("  label: ModifyTime moved ${afterLabel.modifyTime != before.modifyTime}")
         assertTrue(afterLabel.contactEmails.all { group.id in it.labelIds })
