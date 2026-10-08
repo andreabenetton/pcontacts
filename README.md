@@ -57,6 +57,7 @@ Practical questions from real phones, answered in [`docs/FAQ.md`](docs/FAQ.md):
 - [The sync interval slider has an "Off" position. What does it do?](docs/FAQ.md#the-sync-interval-slider-has-an-off-position-what-does-it-do)
 - [How can I see where a contact is stored?](docs/FAQ.md#how-can-i-see-where-a-contact-is-stored)
 - ["Send via Proton Mail" shows another app's icon, or asks which app to open](docs/FAQ.md#send-via-proton-mail-shows-another-apps-icon-or-asks-which-app-to-open)
+- [How do contact groups sync, and what are the limits?](docs/FAQ.md#how-do-contact-groups-sync-and-what-are-the-limits)
 
 ## Why this exists
 

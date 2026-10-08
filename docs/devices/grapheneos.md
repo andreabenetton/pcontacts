@@ -44,7 +44,9 @@ row opened no chooser), although the phone held 914 Proton contacts.
 Checked on this phone the same day with the fixed build, without saving
 anything: "Create new contact" preselected the Proton account, and
 editing an existing Proton contact opened "Edit contact — Saving to" the
-Proton account with its own fields, so an edit goes to the pcontacts row.
+Proton account with its own fields, so an edit goes to the pcontacts row. Since the schema
+declares group membership (ADR-0027), the editor also shows **Label** under "More fields";
+joining and leaving a Proton group there was checked live on 2026-10-08.
 
 The "Send via Proton Mail" rows (ADR-0021) still show. With OpenDocument
 Reader's "Offer to open any file" on (a catch-all `VIEW` filter on every

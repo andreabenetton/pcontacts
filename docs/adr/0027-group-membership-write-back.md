@@ -23,7 +23,8 @@ not on the contact. `useApplyGroups` sends `PUT contacts/v4/contacts/emails/labe
 `.../emails/unlabel` with `{LabelID, ContactEmailIDs}`, one label per request
 (`packages/shared/lib/api/contacts.ts`); the encrypted and signed cards are not touched; the UI
 offers no groups to a contact without an email. The contact's own `LabelIDs` follow its emails
-(`[A]`, checked by `LiveProtonWriteTest`).
+(`[V]` live 2026-10-08: after labelling, the pull — which rebuilds groups from those IDs — kept
+the membership).
 
 ## Decision
 
@@ -78,5 +79,10 @@ emails, against the label set Proton last reported for the contact.**
   no email, refused label, create in a group); `ContactDetailSyncEngineGroupsTest` (base stored,
   label change without `ModifyTime`, upgrade catch-up both ways, labels unreadable);
   `RawContactDataReaderTest` and the instrumented reader test; `MigrationTest` 3→4.
-- Live: `LiveProtonWriteTest` labels and unlabels a canary email with an existing group;
-  on-device checks on the Samsung test phone with Samsung Contacts and Fossify.
+- Live: `LiveProtonWriteTest` labels and unlabels a canary email with an existing group (it
+  skips on an account without groups; the test account is on a free plan, which has none).
+- `[V]` 2026-10-08, on the owner's paid account (Pixel 9a, GrapheneOS, Android's Contacts app),
+  with a probe contact and a probe group: joining pushed `groups +1 -0` and the membership
+  survived the pull; leaving pushed `groups +0 -1` and stayed gone; joining after removing the
+  email was refused ("group needs an email") while the email removal reached Proton, and
+  Discard put Proton's state back. The label answer's exact shape stays `[U]`; it was accepted.

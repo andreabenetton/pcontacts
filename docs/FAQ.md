@@ -179,3 +179,39 @@ not give it access.
 Tap the row once, choose pcontacts and then **Always**. From then on the
 row goes straight to Proton Mail, and the Contacts app shows pcontacts'
 icon. Turning the other app's catch-all setting off works too.
+
+## How do contact groups sync, and what are the limits?
+
+Proton and Android keep groups in different places, and pcontacts translates
+between the two:
+
+- **Proton puts email addresses in a group, Android puts whole contacts.** On
+  Proton, each address of a contact can be in a group or not (the web app asks
+  which addresses to add when a contact has several). On the phone, a contact
+  is either in a group or not.
+- **Adding a contact to a group on the phone adds all of its email
+  addresses** to the Proton group. **Removing it removes all of them**, also
+  any that were added on Proton one by one.
+- **An address added to a contact later is not added to its groups.** Add it
+  to the group on Proton's web app, or remove the contact from the group on
+  the phone, sync, and add it again.
+- **A contact without an email address cannot be in a Proton group.** If you
+  put one in a group on the phone, the sync card lists the change as failed:
+  "Proton groups need an email address". Tap **Discard**, and the next sync
+  puts Proton's groups back on the phone. Any other change made in the same
+  edit (a new phone number, a removed address) still reaches Proton.
+- **Groups themselves are managed on Proton's web app.** A group created on
+  the phone ("Create new…" under Label in Android's Contacts app, or a new
+  group in Samsung Contacts) stays on the phone: it is not sent to Proton,
+  and its members are dropped the next time the contact is updated from
+  Proton. Renaming or deleting a Proton group on the phone is not sent to
+  Proton either.
+- **Contact groups need a paid Proton plan.** On a free plan Proton has no
+  contact groups, and there is nothing to sync.
+
+Changes go to Proton at the next sync, and changes made on Proton come back
+the same way. A contact changed on both sides keeps both: pcontacts sends
+only what you changed on the phone, so a group added on the web meanwhile
+stays. In Android's own Contacts app, groups are called **labels** and appear
+under **More fields** when editing a contact.
+
