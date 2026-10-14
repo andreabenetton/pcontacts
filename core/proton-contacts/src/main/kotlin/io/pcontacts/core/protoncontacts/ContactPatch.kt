@@ -13,8 +13,8 @@ package io.pcontacts.core.protoncontacts
  * them, so a change the merge saw is a change the patch carries:
  * emails by address, phones by number, addresses by their full
  * component tuple, IM accounts by handle and protocol. A key's
- * entries are compared as a group, a set: order and exact repeats are
- * no change, and an email counts once per address. A key present on
+ * entries are compared as a group whose order is no change but whose
+ * repeats count, and an email counts once per address. A key present on
  * both sides whose group changed carries its **whole** new group in
  * `modified`, so the card's properties for it are replaced as a whole
  * and none is silently rewritten (ADR-0017, 2026-10-14).
@@ -58,8 +58,12 @@ data class ContactPatch(
                 .joinToString("|") { it.orEmpty() }
         fun imKey(im: DecryptedIm): String = "${im.handle}|${im.protocol}"
 
-        /** One key's entries on two sides agree when they hold the same values: order and exact repeats are no change. */
-        fun <T> sameEntries(a: List<T>?, b: List<T>?): Boolean = a?.toSet() == b?.toSet()
+        /**
+         * One key's entries on two sides agree when they hold the same values the same number of
+         * times: order is no change, a repeat is an entry (a number saved twice, one copy removed).
+         */
+        fun <T> sameEntries(a: List<T>?, b: List<T>?): Boolean =
+            a?.groupingBy { it }?.eachCount() == b?.groupingBy { it }?.eachCount()
 
         /**
          * One entry per address, primary if any repeat is: the row projection keeps nothing else

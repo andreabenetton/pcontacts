@@ -532,8 +532,8 @@ emitted twice, after which the change set kept the phone's attributes
 and dropped Proton's. Both were silent data loss, which §3 rules out.
 
 - **Entries are merged per key, as a group.** Each side's entries of
-  one key form a group, compared as a set: order and exact repeats are
-  no change. The §3 rule applies to each group as to a scalar: a side
+  one key form a group, compared regardless of order but counting
+  repeats (a number saved twice is two entries). The §3 rule applies to each group as to a scalar: a side
   equal to the base yields to the other; both changed alike is no
   conflict; both changed differently — including a key **added on
   both sides with different entries** — is a §3C conflict.

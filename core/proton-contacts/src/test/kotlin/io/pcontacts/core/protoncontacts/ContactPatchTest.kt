@@ -67,13 +67,21 @@ class ContactPatchTest {
         assertTrue(patch.phones.added.isEmpty() && patch.phones.removed.isEmpty())
     }
 
-    @Test fun order_and_exact_repeats_within_a_key_are_no_change() {
+    @Test fun order_within_a_key_is_no_change() {
         val home = DecryptedPhone("1", listOf("home"))
         val work = DecryptedPhone("1", listOf("work"))
 
-        val patch = ContactPatch.diff(contact(phones = listOf(home, work)), contact(phones = listOf(work, home, home)))
+        val patch = ContactPatch.diff(contact(phones = listOf(home, work)), contact(phones = listOf(work, home)))
 
         assertTrue(patch.isEmpty)
+    }
+
+    @Test fun removing_one_of_two_identical_entries_is_a_change() {
+        val home = DecryptedPhone("1", listOf("home"))
+
+        val patch = ContactPatch.diff(contact(phones = listOf(home, home)), contact(phones = listOf(home)))
+
+        assertEquals(listOf(home), patch.phones.modified)
     }
 
     @Test fun a_repeated_email_diffs_as_one_address_primary_if_any_repeat_is() {
