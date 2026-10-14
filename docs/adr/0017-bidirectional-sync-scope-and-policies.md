@@ -489,12 +489,15 @@ pre-delete fetch treats 404 and 422/2501 as done), but **not for the
 create** `POST`: a create that Proton committed and whose local
 acknowledgement (mapping, `SOURCE_ID`, outbox row removal) was cut
 short — a lost response, the system stopping the sync, the process
-dying — was sent again on the next run. Whether that duplicates the
-contact depends on Proton refusing a second contact with the same
-UID, which is `[U]`. A UID derived from the raw-contact id alone was
-also shared by unrelated contacts (other devices, a cleared Contacts
-storage), so the lookup that recovers a lost response could bind a new
-contact to someone else's.
+dying — was sent again on the next run. Proton refuses a second
+contact with the same UID (observed live 2026-10-14: item Code 2500,
+one contact kept), so the resend did not duplicate on Proton, but the
+phone could end with two rows for one contact, and the duplicate
+cleanup of ADR-0022 then removes one of them. A UID derived from the
+raw-contact id alone was also shared by unrelated contacts (other
+devices, a cleared Contacts storage): Proton refused the new contact
+as a duplicate and the lookup that recovers a refusal bound it to
+someone else's.
 
 - **The UID is the idempotency key.** A `CREATE` outbox row is
   inserted with a random `urn:uuid:` minted for it and kept through

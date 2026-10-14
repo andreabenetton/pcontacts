@@ -365,6 +365,13 @@ object SyncBootstrap {
             writeSourceId = { account, rawContactId, sourceId ->
                 withContext(Dispatchers.IO) { sourceIdWriter.writeSourceId(account, rawContactId, sourceId) }
             },
+            readSourceIds = { account ->
+                withContext(Dispatchers.IO) {
+                    RawContactReader(provider).readExistingState(account).rowsBySourceId
+                        .flatMap { (sourceId, rows) -> rows.map { it.rawContactId to sourceId } }
+                        .toMap()
+                }
+            },
             // Failures propagate: the engine backs off or quarantines, never local-wins.
             fetchServerContact = { protonContactId ->
                 processor.process(apis.contacts.getContact(protonContactId).contact)

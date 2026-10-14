@@ -10,6 +10,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A contact created on the phone is never sent to Proton twice.** If
+  the sync was stopped, or the connection dropped, right after Proton
+  stored a new contact but before the phone recorded it, the next sync
+  sent it again, which could leave a duplicate on Proton or remove the
+  phone's own copy. Each new contact now carries an identifier of its
+  own, and a contact Proton already holds is recorded instead of sent
+  again. A stopped sync also finishes recording a contact Proton has
+  confirmed.
+- **An edit right after creating a contact is no longer lost.** A
+  contact created on the phone was only linked to its Proton copy at the
+  next download, so an edit made before then was set aside and then
+  overwritten. The link is now made as soon as Proton confirms the
+  contact.
+
 ## [2.3.1] - 2026-10-14
 
 ### Fixed

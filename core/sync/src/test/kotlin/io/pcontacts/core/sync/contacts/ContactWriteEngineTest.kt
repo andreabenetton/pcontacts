@@ -49,6 +49,9 @@ import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -1282,6 +1285,148 @@ class ContactWriteEngineTest {
         )
     }
 
+    // ---- a create is acknowledged once, by the UID minted for it (ADR-0017, 2026-10-14) ----
+
+    private fun createdAs(id: String, uid: String) = CreateContactsResponse(
+        code = 1000,
+        responses = listOf(
+            CreateContactResponseItem(
+                index = 0,
+                response = CreateContactResponseBody(code = 1000, contact = ContactDto(id = id, uid = uid))
+            )
+        )
+    )
+
+    @Test fun a_create_is_sent_with_the_uid_minted_for_its_outbox_row() = runTest {
+        val api = WriteFakeApi().apply { createResponse = createdAs("srv-9", "any") }
+        val outbox = WriteFakeOutboxDao()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val minted = outbox.entries.values.single().createUid!!
+        val engine = newEngine(api, outbox, contacts = mapOf("local-200" to sampleContact("local-200")))
+
+        engine.push(testAccount)
+
+        val signed = api.lastCreateRequest!!.contacts.single().cards.single { it.type == CardType.SIGNED.wireValue }
+        assertTrue(signed.data.contains("UID:$minted"))
+    }
+
+    @Test fun a_create_whose_minted_uid_is_already_on_proton_is_acknowledged_without_a_post() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        api.listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = outbox.entries.values.single().createUid!!))
+        val written = mutableListOf<Pair<Long, String>>()
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to sampleContact("local-200")),
+            writtenSourceIds = written
+        )
+
+        val report = engine.push(testAccount)
+
+        assertNull("a create Proton already holds is not sent again", api.lastCreateRequest)
+        assertEquals(1, report.created)
+        assertEquals(listOf(200L to "srv-9"), written)
+        assertEquals(200L, contactMap.findByProtonId("srv-9")!!.androidRawContactId)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun a_create_whose_row_already_carries_a_source_id_is_acknowledged_without_a_post() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        outbox.insert(legacyCreate("local-200", "h", 1_000_000L))
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to sampleContact("local-200")),
+            sourceIds = mapOf(200L to "srv-9")
+        )
+
+        engine.push(testAccount)
+
+        assertNull(api.lastCreateRequest)
+        assertNotNull(contactMap.findByProtonId("srv-9"))
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun a_create_with_a_minted_uid_waits_while_the_contact_list_is_unreadable() = runTest {
+        val api = WriteFakeApi().apply { listFailsWith = IOException("offline") }
+        val outbox = WriteFakeOutboxDao()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val engine = newEngine(api, outbox, contacts = mapOf("local-200" to sampleContact("local-200")))
+
+        val report = engine.push(testAccount)
+
+        assertNull("no blind POST", api.lastCreateRequest)
+        assertEquals(1, report.failed)
+        assertEquals(1, outbox.entries.values.single().attempts)
+    }
+
+    @Test fun a_legacy_create_is_not_matched_by_its_derived_uid_before_posting() = runTest {
+        // A UID derived from a raw id is shared by unrelated contacts (another device's raw id 200).
+        val api = WriteFakeApi().apply {
+            createResponse = createdAs("srv-new", "any")
+            listedContacts = listOf(ContactMetadataDto(id = "srv-other", uid = ContactSerializer.fallbackUid("local-200")))
+        }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        outbox.insert(legacyCreate("local-200", "h", 1_000_000L))
+        val engine = newEngine(api, outbox, contactMap, contacts = mapOf("local-200" to sampleContact("local-200")))
+
+        engine.push(testAccount)
+
+        assertNotNull(api.lastCreateRequest)
+        assertNotNull(contactMap.findByProtonId("srv-new"))
+        assertNull(contactMap.findByProtonId("srv-other"))
+    }
+
+    @Test fun a_created_contact_is_mapped_at_once_so_its_merge_base_is_kept() = runTest {
+        val api = WriteFakeApi().apply { createResponse = createdAs("srv-9", "uid-9") }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val engine = newEngine(api, outbox, contactMap, contacts = mapOf("local-200" to sampleContact("local-200")))
+
+        engine.push(testAccount)
+
+        val mapping = contactMap.findByProtonId("srv-9")!!
+        assertEquals(200L, mapping.androidRawContactId)
+        assertEquals("uid-9", mapping.protonUid)
+        assertEquals(ContactMapEntity.Status.CLEAN, mapping.syncStatus)
+        assertEquals("the next pull still fetches the contact", 0L, mapping.modifyTime)
+    }
+
+    @Test fun a_create_proton_confirmed_is_recorded_even_when_the_sync_is_stopped() = runTest {
+        val api = WriteFakeApi().apply { createResponse = createdAs("srv-9", "uid-9") }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val written = mutableListOf<Pair<Long, String>>()
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to sampleContact("local-200")),
+            writtenSourceIds = written
+        )
+        lateinit var run: Job
+        // The system stops the sync while Proton commits the create.
+        api.onCreate = { run.cancel() }
+
+        run = launch { engine.push(testAccount) }
+        run.join()
+
+        assertTrue(run.isCancelled)
+        assertEquals(listOf(200L to "srv-9"), written)
+        assertNotNull(contactMap.findByProtonId("srv-9"))
+        assertTrue("the create is not sent again on the next run", outbox.entries.isEmpty())
+    }
+
     // ---- Proton item codes and the lost-response create (M4, A12) ----
 
     /** A create queued for RawContact 200: the local id carries the raw id, as the write engine mints it. */
@@ -2033,6 +2178,7 @@ class ContactWriteEngineTest {
         clearedFlags: MutableList<Long>? = null,
         serverContacts: Map<String, DecryptedContact> = emptyMap(),
         writtenSourceIds: MutableList<Pair<Long, String>>? = null,
+        sourceIds: Map<Long, String> = emptyMap(),
         clock: () -> Long = { 2_000_000_000L },
         bases: Map<String, DecryptedContact> = emptyMap(),
         mergeBases: InMemoryMergeBaseStore = InMemoryMergeBaseStore(),
@@ -2055,7 +2201,12 @@ class ContactWriteEngineTest {
                     ?: contacts[sourceId]?.let { DecryptedContactToRow.convert(it)?.copy(sourceId = sourceId) }
             },
             clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
-            writeSourceId = { _, rawId, sourceId -> writtenSourceIds?.add(rawId to sourceId) },
+            // Like the provider write's withContext, it notices a cancelled run.
+            writeSourceId = { _, rawId, sourceId ->
+                currentCoroutineContext().ensureActive()
+                writtenSourceIds?.add(rawId to sourceId)
+            },
+            readSourceIds = { sourceIds },
             fetchServerContact = fetchServerContact,
             hasLiveRow = hasLiveRow,
             onProgress = onProgress,
@@ -2129,8 +2280,14 @@ private class WriteFakeApi : ProtonContactsApi {
 
     override suspend fun getContact(id: String) =
         GetContactResponse(code = 1000, contact = ContactDto(id = id, contactEmails = serverEmails))
-    override suspend fun listContacts(page: Int, pageSize: Int, labelIdFilter: String?) =
-        ContactsPageResponse(code = 1000, contacts = listedContacts, total = listedContacts.size)
+
+    /** Thrown by `listContacts`: the contact list cannot be read. */
+    var listFailsWith: Exception? = null
+
+    override suspend fun listContacts(page: Int, pageSize: Int, labelIdFilter: String?): ContactsPageResponse {
+        listFailsWith?.let { throw it }
+        return ContactsPageResponse(code = 1000, contacts = listedContacts, total = listedContacts.size)
+    }
 
     override suspend fun createContacts(request: CreateContactsRequest): CreateContactsResponse {
         failWith?.let { throw it }

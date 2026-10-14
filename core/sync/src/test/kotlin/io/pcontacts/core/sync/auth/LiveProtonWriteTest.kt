@@ -139,6 +139,43 @@ class LiveProtonWriteTest {
         }
     }
 
+    /**
+     * Probe, not part of the canary: `PCONTACTS_PROBE_DUPLICATE_UID=true` posts one contact twice
+     * with the same UID and reports what Proton did with the second, then deletes both. Settles the
+     * `[U]` behind a create retried after a lost response (ADR-0017, 2026-10-14).
+     */
+    @Test fun live_duplicate_uid_probe() = runBlocking {
+        val probe = System.getenv("PCONTACTS_PROBE_DUPLICATE_UID") == "true"
+        assumeTrue("Set env PCONTACTS_PROBE_DUPLICATE_UID=true", probe)
+        assumeTrue("Set env PCONTACTS_LIVE_TEST=true", System.getenv("PCONTACTS_LIVE_TEST") == "true")
+        val username = System.getenv("PCONTACTS_USERNAME").orEmpty()
+        val password = System.getenv("PCONTACTS_PASSWORD").orEmpty().toCharArray()
+        val crypto = loginAndBuildCrypto(username, password)
+        val marker = UUID.randomUUID().toString().take(8)
+        val contact = buildTestContact(marker)
+        try {
+            val request = CreateContactsRequest(
+                contacts = listOf(ContactCardBundle(cards = crypto.serializer.serialize(contact)))
+            )
+            repeat(2) { attempt ->
+                val response = crypto.apiFactory.contacts.createContacts(request)
+                val item = response.responses.firstOrNull()?.response
+                val outcome = "envelope Code=${response.code} item Code=${item?.code} created=${item?.contact != null}"
+                println("  post ${attempt + 1}: $outcome")
+            }
+            val holders = ContactsMetadataPager(crypto.apiFactory.contacts).metadata().toList()
+                .filter { it.uid == contact.protonUid }
+            println("  contacts holding the UID: ${holders.size}")
+        } finally {
+            val ids = ContactsMetadataPager(crypto.apiFactory.contacts).metadata().toList()
+                .filter { it.name == contact.fullName }
+                .map { it.id }
+            if (ids.isNotEmpty()) crypto.apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = ids))
+            println("  cleanup: deleted ${ids.size}")
+            runCatching { crypto.apiFactory.auth.revoke() }
+        }
+    }
+
     private suspend fun seedContacts(crypto: CryptoContext, count: Int) {
         var created = 0
         for (batch in (1..count).chunked(SEED_BATCH)) {
