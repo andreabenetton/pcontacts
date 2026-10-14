@@ -3,6 +3,7 @@
 
 package io.pcontacts.core.sync.contacts.merge
 
+import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.DecryptedAddress
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.protoncontacts.DecryptedEmail
@@ -116,6 +117,115 @@ class ThreeWayMergerTest {
         )
 
         assertEquals(listOf(work), (result as ThreeWayMerger.MergeResult.AutoMerged).merged.addresses)
+    }
+
+    // ---- repeated entries of one key merge as a group (ADR-0017, 2026-10-14) ----
+
+    private val home = DecryptedPhone("+1555", listOf("home"))
+    private val work = DecryptedPhone("+1555", listOf("work"))
+    private val cell = DecryptedPhone("+1555", listOf("cell"))
+
+    private fun mergePhones(base: List<DecryptedPhone>, server: List<DecryptedPhone>, local: List<DecryptedPhone>) =
+        mergePhotos(contact(phones = base), contact(phones = server), contact(phones = local))
+
+    private fun ThreeWayMerger.MergeResult.autoMerged() = (this as ThreeWayMerger.MergeResult.AutoMerged).merged
+
+    @Test fun a_number_repeated_on_every_side_is_one_unchanged_group_and_keeps_both_entries() {
+        val merged = mergePhones(listOf(home, work), listOf(work, home), listOf(home, work)).autoMerged()
+
+        assertEquals(setOf(home, work), merged.phones.toSet())
+        assertEquals(2, merged.phones.size)
+    }
+
+    @Test fun a_type_changed_on_one_of_two_entries_of_a_number_carries_the_whole_local_group() {
+        val merged = mergePhones(listOf(home, work), listOf(home, work), listOf(home, cell)).autoMerged()
+
+        assertEquals(listOf(home, cell), merged.phones)
+    }
+
+    @Test fun a_number_changed_differently_on_each_side_is_a_conflict() {
+        val result = mergePhones(listOf(home), listOf(work), listOf(cell))
+
+        assertEquals(listOf("phones"), (result as ThreeWayMerger.MergeResult.Conflicted).conflicts.map { it.fieldName })
+        assertEquals(listOf(cell), result.partial.phones)
+    }
+
+    @Test fun the_same_number_added_on_both_sides_with_different_types_is_a_conflict() {
+        // Before: both entries were kept, and the change set then wrote the phone's type over Proton's.
+        val result = mergePhones(emptyList(), listOf(work), listOf(home))
+
+        assertTrue(result is ThreeWayMerger.MergeResult.Conflicted)
+    }
+
+    @Test fun the_same_number_added_identically_on_both_sides_merges_once() {
+        assertEquals(listOf(home), mergePhones(emptyList(), listOf(home), listOf(home)).autoMerged().phones)
+    }
+
+    @Test fun a_second_entry_of_a_number_added_on_the_phone_is_kept() {
+        // Before: the repeated key collapsed, the local edit read as a type change and `home` was lost.
+        val merged = mergePhones(listOf(home), listOf(home), listOf(home, work)).autoMerged()
+
+        assertEquals(listOf(home, work), merged.phones)
+    }
+
+    @Test fun exact_repeats_are_no_change() {
+        val server = contact(phones = listOf(home, home))
+        val merged = mergePhotos(contact(phones = listOf(home)), server, contact(phones = listOf(home))).autoMerged()
+
+        assertTrue("nothing to write back to Proton", ContactPatch.diff(server, merged).isEmpty)
+    }
+
+    @Test fun a_repeated_email_is_one_address_and_keeps_its_primary() {
+        val primary = DecryptedEmail("a@x", isPrimary = true)
+        val repeat = DecryptedEmail("a@x")
+        val merged = mergePhotos(
+            contact(emails = listOf(primary, repeat)),
+            contact(emails = listOf(primary, repeat)),
+            contact(emails = listOf(primary, repeat), notes = listOf("edited"))
+        ).autoMerged()
+
+        assertEquals(listOf(primary), merged.emails)
+    }
+
+    @Test fun a_server_dropping_an_email_repeat_does_not_conflict_with_a_local_primary_change() {
+        val a = DecryptedEmail("a@x", isPrimary = true)
+        val b = DecryptedEmail("b@x")
+        val result = mergePhotos(
+            contact(emails = listOf(a, b, DecryptedEmail("a@x"))),
+            contact(emails = listOf(a, b)),
+            contact(emails = listOf(b.copy(isPrimary = true), a.copy(isPrimary = false)))
+        )
+
+        assertEquals(setOf("b@x"), result.autoMerged().emails.filter { it.isPrimary }.map { it.address }.toSet())
+    }
+
+    @Test fun two_entries_of_one_address_with_different_types_merge_as_a_group() {
+        val homeAddress = DecryptedAddress(street = "Via Roma 1", locality = "Rome", types = listOf("home"))
+        val workAddress = homeAddress.copy(types = listOf("work"))
+
+        val merged = mergePhotos(
+            contact(addresses = listOf(homeAddress)),
+            contact(addresses = listOf(homeAddress), notes = listOf("server note")),
+            contact(addresses = listOf(homeAddress, workAddress))
+        ).autoMerged()
+
+        assertEquals(listOf(homeAddress, workAddress), merged.addresses)
+        assertEquals(listOf("server note"), merged.notes)
+    }
+
+    @Test fun a_local_delete_of_a_group_the_server_edited_keeps_the_server_group_in_the_conflict() {
+        val result = mergePhones(listOf(home), listOf(work), emptyList())
+
+        assertEquals(listOf(work), (result as ThreeWayMerger.MergeResult.Conflicted).partial.phones)
+    }
+
+    @Test fun a_merged_group_is_stable_as_the_next_base() {
+        val merged = mergePhones(listOf(home), listOf(home), listOf(home, work)).autoMerged()
+        val server = contact(phones = listOf(work, home))
+
+        val again = ThreeWayMerger.merge(ThreeWayMerger.MergeInput(merged, server, merged)).autoMerged()
+
+        assertTrue(ContactPatch.diff(server, again).isEmpty)
     }
 
     @Test fun no_changes_auto_merges_to_base() {

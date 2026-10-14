@@ -25,9 +25,13 @@ import io.pcontacts.core.protoncontacts.PhotoHash
  *   - Both changed to the same value → no conflict; use that value.
  *   - Both changed to different values → conflict.
  *
- * Multi-value fields (emails, phones, addresses, imAccounts) use
- * set-based merge: disjoint additions auto-merge; disjoint removals
- * auto-merge; contradicting changes to the same entry conflict. An
+ * Multi-value fields (emails, phones, addresses, imAccounts, nicknames,
+ * websites) merge key by key: each side's entries of one key form a
+ * group, compared as a set (order and exact repeats are no change), and
+ * the rule above applies to each group. Disjoint additions and removals
+ * auto-merge; a key changed differently on each side — added on both
+ * with different entries included — conflicts (ADR-0017, 2026-10-14).
+ * An email counts once per address, primary if any repeat is. An
  * address is identified by its full component tuple; a changed TYPE is
  * a modification, never a second address (ADR-0017 second amendment).
  *
@@ -66,8 +70,12 @@ object ThreeWayMerger {
         )
 
         val emails = mergeSet(
-            "emails", input.base.emails, input.server.emails, input.local.emails,
-            { it.address }, conflicts
+            "emails",
+            ContactPatch.emailsByAddress(input.base.emails),
+            ContactPatch.emailsByAddress(input.server.emails),
+            ContactPatch.emailsByAddress(input.local.emails),
+            { it.address },
+            conflicts
         )
 
         val phones = mergeSet(
@@ -185,65 +193,31 @@ object ThreeWayMerger {
         keyFn: (T) -> K,
         conflicts: MutableList<FieldConflict>
     ): List<T> {
-        val baseByKey = base.associateBy(keyFn)
-        val serverByKey = server.associateBy(keyFn)
-        val localByKey = local.associateBy(keyFn)
-
-        val allKeys = (baseByKey.keys + serverByKey.keys + localByKey.keys)
-        val result = mutableListOf<T>()
-        val conflicted = false
-
-        for (key in allKeys) {
-            val b = baseByKey[key]
-            val s = serverByKey[key]
-            val l = localByKey[key]
-
-            when {
-                // Present in all three — check for modifications
-                b != null && s != null && l != null -> {
-                    if (s == b) result += l          // server unchanged → local wins
-                    else if (l == b) result += s     // local unchanged → server wins
-                    else if (s == l) result += s     // same change
-                    else {
-                        conflicts += FieldConflict(fieldName, s.toString(), l.toString())
-                        result += l
-                    }
-                }
-                // Added on server only
-                b == null && s != null && l == null -> result += s
-                // Added on local only
-                b == null && s == null && l != null -> result += l
-                // Added on both
-                b == null && s != null && l != null -> {
-                    if (s == l) result += s
-                    else {
-                        result += l
-                        result += s
-                    }
-                }
-                // Removed on server only
-                b != null && s == null && l != null -> {
-                    if (l == b) { /* server deleted, local unchanged → accept deletion */ }
-                    else {
-                        conflicts += FieldConflict(fieldName, null, l.toString())
-                        result += l
-                    }
-                }
-                // Removed on local only
-                b != null && s != null && l == null -> {
-                    if (s == b) { /* local deleted, server unchanged → accept deletion */ }
-                    else {
-                        conflicts += FieldConflict(fieldName, s.toString(), null)
-                        result += s
-                    }
-                }
-                // Removed on both
-                b != null && s == null && l == null -> { /* both deleted */ }
-                // Not in any — shouldn't happen given allKeys construction
-                else -> {}
-            }
+        val baseByKey = base.groupBy(keyFn)
+        val serverByKey = server.groupBy(keyFn)
+        val localByKey = local.groupBy(keyFn)
+        return (baseByKey.keys + serverByKey.keys + localByKey.keys).flatMap { key ->
+            mergeGroup(fieldName, baseByKey[key], serverByKey[key], localByKey[key], conflicts).orEmpty()
         }
+    }
 
-        return result
+    /**
+     * One key's entries per side, null where the side lacks the key, merged like a scalar. A
+     * conflict keeps the phone's group, or the server's when the phone deleted what the server edited.
+     */
+    private fun <T> mergeGroup(
+        fieldName: String,
+        base: List<T>?,
+        server: List<T>?,
+        local: List<T>?,
+        conflicts: MutableList<FieldConflict>
+    ): List<T>? = when {
+        ContactPatch.sameEntries(server, base) -> local
+        ContactPatch.sameEntries(local, base) -> server
+        ContactPatch.sameEntries(server, local) -> server
+        else -> {
+            conflicts += FieldConflict(fieldName, server?.toString(), local?.toString())
+            local ?: server
+        }
     }
 }

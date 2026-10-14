@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   next download, so an edit made before then was set aside and then
   overwritten. The link is now made as soon as Proton confirms the
   contact.
+- **A phone number or address held twice is no longer flattened.** A
+  number saved twice with different labels (say *home* and *work*), or
+  added on the phone and on Proton with different labels, kept only one
+  of them, and an edit to one copy could be dropped or written over
+  Proton's label without a word. Each number, address and email is now
+  merged with all its copies: identical changes go through, different
+  changes on both sides ask you which version to keep, and a copy's
+  other details (such as a custom label) stay as they were.
 
 ## [2.3.1] - 2026-10-14
 

@@ -92,6 +92,41 @@ class WriteBackRoundTripTest {
         )
     }
 
+    @Test fun one_of_two_entries_of_a_number_edited_on_the_phone_keeps_the_other_and_its_label() {
+        // Before (ADR-0017, 2026-10-14): the two entries collapsed into one by number, the edit
+        // compared equal to the server and was dropped without a word.
+        val repeated = encryptedText.replace(
+            "TEL;TYPE=cell,voice;PREF=1:+15550001",
+            "TEL;TYPE=home:+15550001\nitem5.TEL;TYPE=work:+15550001\nitem5.X-ABLabel:Desk"
+        )
+        val encrypted = encryptOp(CardEncryptRequest.EncryptAndSign(repeated))
+        val dto = serverDto().let { dto ->
+            dto.copy(
+                cards = dto.cards.take(1) + ContactCardDto(
+                    type = CardType.ENCRYPTED_AND_SIGNED.wireValue,
+                    data = encrypted.data,
+                    signature = encrypted.signature
+                )
+            )
+        }
+        val server = processor.process(dto)
+        val serverCanonical = MergeBaseCodec.canonical(server)!!
+        val row = DecryptedContactToRow.convert(server)!!
+        val homeToMobile = row.phones.map { if (it.type == PhoneType.HOME) it.copy(type = PhoneType.MOBILE) else it }
+        val edited = row.copy(phones = homeToMobile)
+        val local = RowToDecryptedContact.convert(edited, server.protonContactId, server.protonUid)
+
+        val merged = ThreeWayMerger.merge(ThreeWayMerger.MergeInput(serverCanonical, serverCanonical, local))
+        val patch = ContactPatch.diff(serverCanonical, (merged as ThreeWayMerger.MergeResult.AutoMerged).merged)
+        val cards = serializer.serialize(server.cards, patch, fallbackUid = "unused")
+        val result = processor.process(dto.copy(cards = cards))
+
+        assertEquals(setOf(listOf("cell"), listOf("work")), result.phones.map { it.types }.toSet())
+        val encryptedBack = result.cards.first { it.originalType == CardType.ENCRYPTED_AND_SIGNED }.plaintext
+        assertTrue(encryptedBack.contains("item5.TEL;TYPE=work:+15550001"))
+        assertTrue(encryptedBack.contains("item5.X-ABLabel:Desk"))
+    }
+
     @Test fun an_unrelated_phone_edit_keeps_every_unmodelled_property_and_parameter() {
         val server = processor.process(serverDto())
         val serverCanonical = MergeBaseCodec.canonical(server)!!
