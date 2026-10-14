@@ -11,6 +11,7 @@ import io.pcontacts.core.proton.api.ProtonApiConfig
 import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
 import io.pcontacts.core.proton.api.contacts.ContactCardBundle
 import io.pcontacts.core.proton.api.contacts.ContactCardDto
+import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
 import io.pcontacts.core.proton.api.contacts.CreateContactsRequest
 import io.pcontacts.core.proton.api.contacts.LabelContactEmailsRequest
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
@@ -32,6 +33,8 @@ import io.pcontacts.core.sync.contacts.decrypt.OpenPgpCardCryptoOp
 import io.pcontacts.core.sync.contacts.encrypt.ContactEncryptBootstrap
 import io.pcontacts.core.sync.contacts.encrypt.OpenPgpCardEncryptOp
 import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -115,6 +118,70 @@ class LiveProtonWriteTest {
         }
 
         println("=== LiveProtonWriteTest PASS ===")
+    }
+
+    /**
+     * Load-test helper, not part of the canary: `PCONTACTS_SEED=<count>` creates that many
+     * encrypted and signed contacts named "pcontacts seed NNNN", `PCONTACTS_SEED=clean`
+     * deletes them again (issue #70: a first sync of a large account).
+     */
+    @Test fun live_seed_or_clean() = runBlocking {
+        val seed = System.getenv("PCONTACTS_SEED")
+        assumeTrue("Set env PCONTACTS_SEED=<count> or clean", !seed.isNullOrBlank())
+        assumeTrue("Set env PCONTACTS_LIVE_TEST=true", System.getenv("PCONTACTS_LIVE_TEST") == "true")
+        val username = System.getenv("PCONTACTS_USERNAME").orEmpty()
+        val password = System.getenv("PCONTACTS_PASSWORD").orEmpty().toCharArray()
+        val crypto = loginAndBuildCrypto(username, password)
+        try {
+            if (seed == "clean") cleanSeeded(crypto.apiFactory) else seedContacts(crypto, seed.toInt())
+        } finally {
+            runCatching { crypto.apiFactory.auth.revoke() }
+        }
+    }
+
+    private suspend fun seedContacts(crypto: CryptoContext, count: Int) {
+        var created = 0
+        for (batch in (1..count).chunked(SEED_BATCH)) {
+            val bundles = batch.map { ContactCardBundle(cards = crypto.serializer.serialize(seedContact(it))) }
+            val response = crypto.apiFactory.contacts.createContacts(CreateContactsRequest(contacts = bundles))
+            created += response.responses.count { it.response.code == SUCCESS }
+            delay(SEED_PAUSE_MS) // Proton allows about 100 calls per 10 s
+        }
+        println("  seed: created $created of $count")
+    }
+
+    private fun seedContact(i: Int): DecryptedContact {
+        val n = "%04d".format(i)
+        return DecryptedContact(
+            protonContactId = "",
+            protonUid = "urn:uuid:${UUID.randomUUID()}",
+            fullName = "pcontacts seed $n",
+            structuredName = DecryptedStructuredName(given = "Seed", family = "pcontacts $n"),
+            emails = listOf(DecryptedEmail(address = "seed-$n@example.invalid", types = listOf("home"))),
+            phones = listOf(DecryptedPhone(number = "+1-555-01${n.takeLast(2)}", types = listOf("cell"))),
+            notes = listOf("pcontacts load-test contact — safe to delete"),
+            verified = true,
+            cardCount = 2,
+            unverifiedCardCount = 0
+        )
+    }
+
+    private suspend fun cleanSeeded(apiFactory: ProtonApiFactory) {
+        val ids = ContactsMetadataPager(apiFactory.contacts).metadata().toList()
+            .filter { it.name.startsWith("pcontacts seed ") }
+            .map { it.id }
+        for (batch in ids.chunked(CLEAN_BATCH)) {
+            apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = batch))
+            delay(SEED_PAUSE_MS)
+        }
+        println("  clean: deleted ${ids.size} seeded contacts")
+    }
+
+    private companion object {
+        const val SEED_BATCH = 10
+        const val CLEAN_BATCH = 50
+        const val SEED_PAUSE_MS = 200L
+        const val SUCCESS = 1000
     }
 
     private data class CryptoContext(
