@@ -27,7 +27,7 @@ import io.pcontacts.core.protoncontacts.PhotoHash
  *
  * Multi-value fields (emails, phones, addresses, imAccounts, nicknames,
  * websites) merge key by key: each side's entries of one key form a
- * group, compared as a set (order and exact repeats are no change), and
+ * group, compared regardless of order but counting repeats, and
  * the rule above applies to each group. Disjoint additions and removals
  * auto-merge; a key changed differently on each side — added on both
  * with different entries included — conflicts (ADR-0017, 2026-10-14).

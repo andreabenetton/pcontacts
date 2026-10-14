@@ -168,11 +168,18 @@ class ThreeWayMergerTest {
         assertEquals(listOf(home, work), merged.phones)
     }
 
-    @Test fun exact_repeats_are_no_change() {
+    @Test fun a_repeat_added_on_proton_reaches_the_phone_and_nothing_goes_back() {
         val server = contact(phones = listOf(home, home))
         val merged = mergePhotos(contact(phones = listOf(home)), server, contact(phones = listOf(home))).autoMerged()
 
+        assertEquals(listOf(home, home), merged.phones)
         assertTrue("nothing to write back to Proton", ContactPatch.diff(server, merged).isEmpty)
+    }
+
+    @Test fun one_of_two_identical_entries_removed_on_the_phone_is_a_change() {
+        val merged = mergePhones(listOf(home, home), listOf(home, home), listOf(home)).autoMerged()
+
+        assertEquals(listOf(home), merged.phones)
     }
 
     @Test fun a_repeated_email_is_one_address_and_keeps_its_primary() {
