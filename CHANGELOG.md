@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contacts are now fetched a few at a time and written and recorded in
   chunks of 50, so a stopped sync keeps its progress and the next one
   carries on. The log notes each chunk with its timings.
+- **A sync Android stops is no longer counted as a failure.** Android
+  stops a background sync that runs too long or is replaced by a newer one;
+  that stop used to be recorded as a sync error or a network error. It is
+  now logged as a stop, and the next sync carries on.
 
 ## [2.3.0] - 2026-10-08
 

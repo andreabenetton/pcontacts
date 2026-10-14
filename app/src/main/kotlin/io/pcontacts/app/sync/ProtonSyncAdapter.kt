@@ -28,6 +28,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
 
+private const val MILLIS_PER_SECOND = 1000L
+
 /**
  * SyncAdapter — wires the system sync framework (ADR-0004) to the
  * bidirectional sync pipeline (ADR-0017, ADR-0018). Push-before-pull:
@@ -65,6 +67,18 @@ class ProtonSyncAdapter(
 
     private val logger: Logger = RedactingLogger(tag = "ProtonSync", sink = AndroidLogcatSink())
 
+    /**
+     * Set by [onSyncCanceled]: the system stopped this run (a job time limit, a newer request).
+     * Whatever the interrupted call then throws — `InterruptedException`, or an
+     * `InterruptedIOException` from the network stack — is that stop, not a failure (issue #70).
+     */
+    @Volatile private var stoppedBySystem = false
+
+    override fun onSyncCanceled() {
+        stoppedBySystem = true
+        super.onSyncCanceled()
+    }
+
     override fun onPerformSync(
         account: Account,
         extras: Bundle,
@@ -73,6 +87,8 @@ class ProtonSyncAdapter(
         syncResult: SyncResult
     ) {
         logger.info { "sync start account=${account.name} authority=$authority" }
+        stoppedBySystem = false
+        val startedAt = System.currentTimeMillis()
         if (!settingsInitializer(context.contentResolver, account, logger)) {
             // Non-fatal: self-heals on the next sync (provider resets, OEM
             // providers that create their settings row late, etc.).
@@ -103,6 +119,8 @@ class ProtonSyncAdapter(
         } catch (e: CancellationException) {
             // A cancelled run (the framework's onSyncCanceled) is neither a failure nor a run.
             throw e
+        } catch (e: InterruptedException) {
+            stoppedRun(startedAt, e)
         } catch (e: DecryptUnavailableException) {
             syncResult.stats.numAuthExceptions += 1
             logger.warn { "sync requires re-auth: ${e.message}" }
@@ -129,6 +147,7 @@ class ProtonSyncAdapter(
             userPreferences.lastSyncErrorCode = SyncErrorCodes.APP_VERSION
             notifier.notifyUpdateRequired()
         } catch (e: IOException) {
+            if (stoppedBySystem) return stoppedRun(startedAt, e)
             // A genuine network/transport failure — the connection really is
             // the problem (this includes cert-pinning rejections).
             syncResult.stats.numIoExceptions += 1
@@ -138,6 +157,7 @@ class ProtonSyncAdapter(
                 notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
             }
         } catch (e: Exception) {
+            if (stoppedBySystem) return stoppedRun(startedAt, e)
             // Anything else (a bug, malformed data) — do NOT blame the
             // connection. The redacted throwable fingerprint is logged so
             // production failures like this are diagnosable.
@@ -152,6 +172,17 @@ class ProtonSyncAdapter(
             userPreferences.syncProgressPhase = null
             userPreferences.syncProgressDone = 0
             userPreferences.syncProgressTotal = 0
+        }
+    }
+
+    /**
+     * The system stopped the run: neither a failure nor a completed run. The chunks the pull
+     * finished are recorded, and the next run carries on from there (issue #70).
+     */
+    private fun stoppedRun(startedAt: Long, e: Exception) {
+        logger.info {
+            "sync stopped by the system after ${(System.currentTimeMillis() - startedAt) / MILLIS_PER_SECOND} s " +
+                "(${e.javaClass.simpleName}); finished chunks are kept"
         }
     }
 

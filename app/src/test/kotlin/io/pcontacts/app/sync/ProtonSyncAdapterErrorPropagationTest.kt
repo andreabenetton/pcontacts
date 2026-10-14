@@ -63,6 +63,34 @@ class ProtonSyncAdapterErrorPropagationTest {
         )
 
     @Test
+    fun a_run_the_system_stops_is_neither_a_failure_nor_an_error() {
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> throw InterruptedException() }
+        val syncResult = SyncResult()
+
+        adapter.onPerformSync(account, extras, authority, provider, syncResult)
+
+        assertEquals(0L, syncResult.stats.numIoExceptions)
+        assertEquals(null, prefs.lastSyncErrorCode)
+    }
+
+    @Test
+    fun an_interrupted_network_call_after_the_system_stop_is_not_a_network_error() {
+        val prefs = InMemoryUserPreferences()
+        lateinit var adapter: ProtonSyncAdapter
+        adapter = adapter(prefs) { _, _, _ ->
+            adapter.onSyncCanceled()
+            throw java.io.InterruptedIOException("interrupted")
+        }
+        val syncResult = SyncResult()
+
+        adapter.onPerformSync(account, extras, authority, provider, syncResult)
+
+        assertEquals(0L, syncResult.stats.numIoExceptions)
+        assertEquals(null, prefs.lastSyncErrorCode)
+    }
+
+    @Test
     fun outOfMemoryError_propagates_out_of_onPerformSync() {
         val adapter = adapter { _, _, _ -> throw OutOfMemoryError("test OOM") }
         val syncResult = SyncResult()
