@@ -5,7 +5,7 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01 — see *Amendments* at the end)
+- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice — see *Amendments* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
@@ -478,3 +478,68 @@ settled, and both outcomes were wrong:
 §8's deferral is lifted for **membership**: adding a contact to an existing Proton group, or
 removing it, on the phone is pushed to Proton (ADR-0027). Creating, renaming and deleting
 groups on the phone stay out of scope, as §8 says.
+
+## Amendment (2026-10-14): a create is acknowledged once, by a UID minted for it
+
+§4 set aside push-then-poll on the assumption that Proton's failure
+modes are idempotent, and §5 deferred idempotency keys on the same
+ground. That holds for `PUT` (a replayed update merges against the
+state it produced and sends nothing) and for the bulk delete (the
+pre-delete fetch treats 404 and 422/2501 as done), but **not for the
+create** `POST`: a create that Proton committed and whose local
+acknowledgement (mapping, `SOURCE_ID`, outbox row removal) was cut
+short — a lost response, the system stopping the sync, the process
+dying — was sent again on the next run. Whether that duplicates the
+contact depends on Proton refusing a second contact with the same
+UID, which is `[U]`. A UID derived from the raw-contact id alone was
+also shared by unrelated contacts (other devices, a cleared Contacts
+storage), so the lookup that recovers a lost response could bind a new
+contact to someone else's.
+
+- **The UID is the idempotency key.** A `CREATE` outbox row is
+  inserted with a random `urn:uuid:` minted for it and kept through
+  coalescing; the card carries it. Rows queued before this amendment
+  keep the UID derived from their local id.
+- **Nothing is POSTed whose effect is already visible.** Before
+  posting, a row that already carries a `SOURCE_ID` is acknowledged
+  without a request, and once per push run, when creates are pending,
+  Proton's contact list is read and a create whose minted UID is
+  already there is acknowledged as that contact `[A]` (a UID minted
+  for one create is found only on the contact that create made). If
+  that list cannot be read, the creates wait for the next run.
+- **The acknowledgement is not cancellable.** Once Proton confirmed
+  a create, recording it locally completes even when the system stops
+  the sync.
+- **A created contact is mapped at once.** The acknowledgement writes
+  the `contact_map` row (and so the merge base) for the new server id,
+  instead of waiting for the next pull; an edit made before that pull
+  is pushed, not quarantined and then overwritten.
+
+Nothing below permits less than before.
+
+## Amendment (2026-10-14): repeated entries of one multi-valued field
+
+§3 merged emails, phones, addresses and IM accounts entry by entry,
+keyed by address, number, address tuple and handle. A side holding two
+entries with one key (the same number as *home* and as *work*, an
+email in both the signed and the encrypted card) kept only one of
+them, and a key added on both sides with different attributes was
+emitted twice, after which the change set kept the phone's attributes
+and dropped Proton's. Both were silent data loss, which §3 rules out.
+
+- **Entries are merged per key, as a group.** Each side's entries of
+  one key form a group, compared as a set: order and exact repeats are
+  no change. The §3 rule applies to each group as to a scalar: a side
+  equal to the base yields to the other; both changed alike is no
+  conflict; both changed differently — including a key **added on
+  both sides with different entries** — is a §3C conflict.
+- **An email counts once per address**, primary if any of its repeats
+  is: the row projection keeps nothing else of an email, so repeats
+  are one address and never a conflict among themselves.
+- **A changed key is replaced as a whole** in the change set: the
+  card's properties for that key become the merged group, edited in
+  place (parameters and `itemN` group kept), the surplus removed with
+  its group-mates and the shortfall added. An `EMAIL` is never removed
+  for a primary change; its `itemN` `KEY` and `X-PM-*` stay.
+
+Nothing below permits less than before.
