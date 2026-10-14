@@ -182,6 +182,78 @@ class CardPatcherTest {
         assertNull(tel.pref)
     }
 
+    // ---- a changed key is replaced as a whole (ADR-0017, 2026-10-14) ----
+
+    private val repeatedNumberCard = """
+        BEGIN:VCARD
+        VERSION:4.0
+        TEL;TYPE=cell:+1555
+        item5.TEL;TYPE=work:+1555
+        item5.X-ABLabel:Desk
+        ADR;TYPE=home:;;1 Main St;Springfield;IL;62701;USA
+        ADR;TYPE=work:;;1 Main St;Springfield;IL;62701;USA
+        END:VCARD
+    """.trimIndent()
+
+    private fun repeatedNumberCarrier() = listOf(
+        DecryptedCard(CardType.SIGNED, signedCard, verified = true),
+        DecryptedCard(CardType.ENCRYPTED_AND_SIGNED, repeatedNumberCard, verified = true)
+    )
+
+    private fun phonesPatched(vararg wanted: DecryptedPhone): VCard = rendered(
+        ContactPatch(phones = ContactPatch.ListPatch(modified = wanted.toList())),
+        repeatedNumberCarrier()
+    ).getValue(CardType.ENCRYPTED_AND_SIGNED)
+
+    @Test fun a_modified_phone_group_leaves_a_matching_property_untouched_and_edits_the_other_in_place() {
+        val card = phonesPatched(DecryptedPhone("+1555", listOf("work")), DecryptedPhone("+1555", listOf("home")))
+
+        val tels = card.telephoneNumbers
+        assertEquals(2, tels.size)
+        val desk = tels.single { it.group == "item5" }
+        assertEquals("the work number kept its type, group and label", listOf("work"), desk.types.map { it.value })
+        assertEquals("Desk", card.getExtendedProperty("X-ABLabel").value)
+        assertEquals(listOf("home"), tels.single { it.group == null }.types.map { it.value })
+    }
+
+    @Test fun a_modified_phone_group_with_fewer_entries_removes_the_surplus_with_its_group_mates() {
+        val card = phonesPatched(DecryptedPhone("+1555", listOf("cell")))
+
+        assertEquals(listOf(listOf("cell")), card.telephoneNumbers.map { t -> t.types.map { it.value } })
+        assertNull(card.getExtendedProperty("X-ABLabel"))
+    }
+
+    @Test fun a_modified_phone_group_with_more_entries_adds_the_shortfall_to_the_encrypted_card() {
+        val card = phonesPatched(
+            DecryptedPhone("+1555", listOf("cell")),
+            DecryptedPhone("+1555", listOf("work")),
+            DecryptedPhone("+1555", listOf("home"))
+        )
+
+        assertEquals(
+            setOf(listOf("cell"), listOf("work"), listOf("home")),
+            card.telephoneNumbers.map { t -> t.types.map { it.value } }.toSet()
+        )
+    }
+
+    @Test fun a_modified_address_group_is_replaced_as_a_whole() {
+        val address = DecryptedAddress(
+            street = "1 Main St",
+            locality = "Springfield",
+            region = "IL",
+            postalCode = "62701",
+            country = "USA",
+            types = listOf("work")
+        )
+
+        val card = rendered(
+            ContactPatch(addresses = ContactPatch.ListPatch(modified = listOf(address))),
+            repeatedNumberCarrier()
+        ).getValue(CardType.ENCRYPTED_AND_SIGNED)
+
+        assertEquals(listOf(listOf("work")), card.addresses.map { a -> a.types.map { it.value } })
+    }
+
     @Test fun name_and_organization_are_patched_component_wise() {
         val out = rendered(
             ContactPatch(

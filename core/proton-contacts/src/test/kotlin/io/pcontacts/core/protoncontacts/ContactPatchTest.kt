@@ -55,6 +55,44 @@ class ContactPatchTest {
         assertNull(patch.notes)
     }
 
+    // ---- repeated entries of one key (ADR-0017, 2026-10-14) ----
+
+    @Test fun a_key_whose_entries_changed_carries_its_whole_new_group_as_modified() {
+        val from = contact(phones = listOf(DecryptedPhone("1", listOf("home")), DecryptedPhone("1", listOf("work"))))
+        val to = contact(phones = listOf(DecryptedPhone("1", listOf("home")), DecryptedPhone("1", listOf("cell"))))
+
+        val patch = ContactPatch.diff(from, to)
+
+        assertEquals(listOf(listOf("home"), listOf("cell")), patch.phones.modified.map { it.types })
+        assertTrue(patch.phones.added.isEmpty() && patch.phones.removed.isEmpty())
+    }
+
+    @Test fun order_and_exact_repeats_within_a_key_are_no_change() {
+        val home = DecryptedPhone("1", listOf("home"))
+        val work = DecryptedPhone("1", listOf("work"))
+
+        val patch = ContactPatch.diff(contact(phones = listOf(home, work)), contact(phones = listOf(work, home, home)))
+
+        assertTrue(patch.isEmpty)
+    }
+
+    @Test fun a_repeated_email_diffs_as_one_address_primary_if_any_repeat_is() {
+        val from = contact(emails = listOf(DecryptedEmail("a@x", isPrimary = true), DecryptedEmail("a@x")))
+        val to = contact(emails = listOf(DecryptedEmail("a@x")))
+
+        val patch = ContactPatch.diff(from, to)
+
+        assertEquals(listOf(DecryptedEmail("a@x", isPrimary = false)), patch.emails.modified)
+    }
+
+    @Test fun dropping_an_email_repeat_is_no_change() {
+        val primary = DecryptedEmail("a@x", isPrimary = true)
+        val from = contact(emails = listOf(primary, DecryptedEmail("b@x"), DecryptedEmail("a@x")))
+        val to = contact(emails = listOf(primary, DecryptedEmail("b@x")))
+
+        assertTrue(ContactPatch.diff(from, to).isEmpty)
+    }
+
     @Test fun addresses_are_identified_by_every_component() {
         val rome = DecryptedAddress(street = "Via Roma 1", locality = "Rome", postalCode = "00100", country = "IT")
         val sameStreetElsewhere = rome.copy(country = "SM")

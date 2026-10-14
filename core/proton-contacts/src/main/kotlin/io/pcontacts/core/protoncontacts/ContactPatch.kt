@@ -12,8 +12,12 @@ package io.pcontacts.core.protoncontacts
  * Multi-valued properties are keyed the way the three-way merger keys
  * them, so a change the merge saw is a change the patch carries:
  * emails by address, phones by number, addresses by their full
- * component tuple, IM accounts by handle and protocol. A `modified`
- * entry carries the new value for a key present on both sides.
+ * component tuple, IM accounts by handle and protocol. A key's
+ * entries are compared as a group, a set: order and exact repeats are
+ * no change, and an email counts once per address. A key present on
+ * both sides whose group changed carries its **whole** new group in
+ * `modified`, so the card's properties for it are replaced as a whole
+ * and none is silently rewritten (ADR-0017, 2026-10-14).
  */
 data class ContactPatch(
     val fullName: Change<String?>? = null,
@@ -54,11 +58,23 @@ data class ContactPatch(
                 .joinToString("|") { it.orEmpty() }
         fun imKey(im: DecryptedIm): String = "${im.handle}|${im.protocol}"
 
+        /** One key's entries on two sides agree when they hold the same values: order and exact repeats are no change. */
+        fun <T> sameEntries(a: List<T>?, b: List<T>?): Boolean = a?.toSet() == b?.toSet()
+
+        /**
+         * One entry per address, primary if any repeat is: the row projection keeps nothing else
+         * of an email, so repeats left by a signed and an encrypted card are one address.
+         */
+        fun emailsByAddress(emails: List<DecryptedEmail>): List<DecryptedEmail> =
+            emails.groupBy(::emailKey).values.map { group ->
+                group.first().copy(isPrimary = group.any { it.isPrimary })
+            }
+
         /** What has to change on [from] to become [to]. */
         fun diff(from: DecryptedContact, to: DecryptedContact): ContactPatch = ContactPatch(
             fullName = scalar(from.fullName, to.fullName),
             structuredName = scalar(from.structuredName, to.structuredName),
-            emails = list(from.emails, to.emails, ::emailKey),
+            emails = list(emailsByAddress(from.emails), emailsByAddress(to.emails), ::emailKey),
             phones = list(from.phones, to.phones, ::phoneKey),
             addresses = list(from.addresses, to.addresses, ::addressKey),
             imAccounts = list(from.imAccounts, to.imAccounts, ::imKey),
@@ -74,12 +90,13 @@ data class ContactPatch(
         private fun <T> scalar(from: T, to: T): Change<T>? = if (from == to) null else Change(to)
 
         private fun <T, K> list(from: List<T>, to: List<T>, key: (T) -> K): ListPatch<T> {
-            val fromByKey = from.associateBy(key)
-            val toByKey = to.associateBy(key)
+            val fromByKey = from.groupBy(key)
+            val toByKey = to.groupBy(key)
+            val changed = toByKey.filter { (k, group) -> k in fromByKey && !sameEntries(fromByKey[k], group) }.keys
             return ListPatch(
                 added = to.filter { key(it) !in fromByKey },
                 removed = from.filter { key(it) !in toByKey },
-                modified = to.filter { item -> fromByKey[key(item)]?.let { it != item } == true }
+                modified = to.filter { key(it) in changed }
             )
         }
 

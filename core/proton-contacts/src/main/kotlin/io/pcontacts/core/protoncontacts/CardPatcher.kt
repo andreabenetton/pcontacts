@@ -259,47 +259,58 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
 
     private fun applyPhones(patch: ContactPatch.ListPatch<DecryptedPhone>) {
         fun matches(t: Telephone, number: String) = (t.text ?: t.uri?.toString()) == number
-        val all = { cards.flatMap { it.vcard.telephoneNumbers } }
-        patch.removed.forEach { p -> all().filter { matches(it, p.number) }.forEach(::removeWithGroup) }
-        patch.modified.forEach { p ->
-            all().filter { matches(it, p.number) }.forEach { t ->
-                t.types.removeAll { it.value.lowercase() in ANDROID_TEL_TOKENS }
-                p.types.forEach { token -> t.types.add(TelephoneType.get(token)) }
-                t.pref = if (p.isPrimary) 1 else null
-            }
+        fun says(t: Telephone, p: DecryptedPhone) =
+            ownTokens(t.types.map { it.value }, ANDROID_TEL_TOKENS) == ownTokens(p.types, ANDROID_TEL_TOKENS) &&
+                (t.pref == 1) == p.isPrimary
+        fun edit(t: Telephone, p: DecryptedPhone) {
+            t.types.removeAll { it.value.lowercase() in ANDROID_TEL_TOKENS }
+            p.types.forEach { token -> t.types.add(TelephoneType.get(token)) }
+            t.pref = if (p.isPrimary) 1 else null
         }
-        patch.added.forEach { p ->
+        fun add(p: DecryptedPhone) {
             val t = Telephone(p.number)
             p.types.forEach { token -> t.types.add(TelephoneType.get(token)) }
             if (p.isPrimary) t.pref = 1
             encrypted.vcard.addTelephoneNumber(t)
         }
+        val all = { cards.flatMap { it.vcard.telephoneNumbers } }
+        patch.removed.forEach { p -> all().filter { matches(it, p.number) }.forEach(::removeWithGroup) }
+        patch.modified.groupBy { it.number }.forEach { (number, wanted) ->
+            replaceGroup(all().filter { matches(it, number) }, wanted, ::says, ::edit, ::add)
+        }
+        patch.added.forEach(::add)
     }
 
     private fun applyAddresses(patch: ContactPatch.ListPatch<DecryptedAddress>) {
         fun key(a: Address) = ContactPatch.addressKey(a.toDecrypted())
+        fun says(addr: Address, a: DecryptedAddress) =
+            ownTokens(addr.types.map { it.value }, ANDROID_ADR_TOKENS) == ownTokens(a.types, ANDROID_ADR_TOKENS) &&
+                (addr.pref == 1) == a.isPrimary
+        fun edit(addr: Address, a: DecryptedAddress) {
+            addr.types.removeAll { it.value.lowercase() in ANDROID_ADR_TOKENS }
+            a.types.forEach { token -> addr.types.add(AddressType.get(token)) }
+            addr.pref = if (a.isPrimary) 1 else null
+        }
         val all = { cards.flatMap { it.vcard.addresses } }
         patch.removed.forEach { a -> all().filter { key(it) == ContactPatch.addressKey(a) }.forEach(::removeWithGroup) }
-        patch.modified.forEach { a ->
-            all().filter { key(it) == ContactPatch.addressKey(a) }.forEach { addr ->
-                addr.types.removeAll { it.value.lowercase() in ANDROID_ADR_TOKENS }
-                a.types.forEach { token -> addr.types.add(AddressType.get(token)) }
-                addr.pref = if (a.isPrimary) 1 else null
-            }
+        patch.modified.groupBy(ContactPatch::addressKey).forEach { (k, wanted) ->
+            replaceGroup(all().filter { key(it) == k }, wanted, ::says, ::edit, ::addAddress)
         }
-        patch.added.forEach { a ->
-            val addr = Address()
-            addr.poBox = a.poBox
-            addr.extendedAddress = a.extendedAddress
-            addr.streetAddress = a.street
-            addr.locality = a.locality
-            addr.region = a.region
-            addr.postalCode = a.postalCode
-            addr.country = a.country
-            a.types.forEach { token -> addr.types.add(AddressType.get(token)) }
-            if (a.isPrimary) addr.pref = 1
-            encrypted.vcard.addAddress(addr)
-        }
+        patch.added.forEach(::addAddress)
+    }
+
+    private fun addAddress(a: DecryptedAddress) {
+        val addr = Address()
+        addr.poBox = a.poBox
+        addr.extendedAddress = a.extendedAddress
+        addr.streetAddress = a.street
+        addr.locality = a.locality
+        addr.region = a.region
+        addr.postalCode = a.postalCode
+        addr.country = a.country
+        a.types.forEach { token -> addr.types.add(AddressType.get(token)) }
+        if (a.isPrimary) addr.pref = 1
+        encrypted.vcard.addAddress(addr)
     }
 
     private fun applyIms(patch: ContactPatch.ListPatch<DecryptedIm>) {
@@ -318,6 +329,24 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
     }
 
     // ---- helpers --------------------------------------------------------
+
+    /**
+     * A changed key's properties become [wanted] (ADR-0017, 2026-10-14): one already saying what
+     * an entry says is left as it is, the rest are edited in place in order (parameters and group
+     * survive), the surplus is removed with its group-mates and the shortfall added.
+     */
+    private fun <P : VCardProperty, T> replaceGroup(
+        present: List<P>,
+        wanted: List<T>,
+        same: (P, T) -> Boolean,
+        edit: (P, T) -> Unit,
+        add: (T) -> Unit
+    ) {
+        val free = present.toMutableList()
+        val rest = wanted.filterNot { w -> free.firstOrNull { same(it, w) }?.let(free::remove) == true }
+        rest.forEachIndexed { i, w -> if (i < free.size) edit(free[i], w) else add(w) }
+        free.drop(rest.size).forEach(::removeWithGroup)
+    }
 
     private fun removeWithGroup(property: VCardProperty) {
         val group = property.group
@@ -352,5 +381,9 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
         val ANDROID_TEL_TOKENS = setOf("home", "work", "cell", "mobile", "fax", "pager", "main")
         val ANDROID_ADR_TOKENS = setOf("home", "work")
         val GROUP_PATTERN = Regex("item(\\d+)", RegexOption.IGNORE_CASE)
+
+        /** The TYPE tokens of [own] among [tokens], as a set: a subset test would let OTHER's `[]` match anything. */
+        fun ownTokens(tokens: List<String>, own: Set<String>): Set<String> =
+            tokens.map { it.lowercase() }.filter { it in own }.toSet()
     }
 }
