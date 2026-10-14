@@ -256,6 +256,17 @@ that no other app can read, the right tool is Proton's own
 Android Mail app's contact picker (which doesn't expose to
 ContactsContract).
 
+**What the list itself costs.** Android 11 and later hide other
+apps from `getInstalledPackages()`, so listing the apps that hold
+`READ_CONTACTS` needs `QUERY_ALL_PACKAGES`, which lets pcontacts see
+every installed app. That inventory is itself sensitive: it can say
+a lot about the device's owner. pcontacts reads it only to draw that
+list, keeps no copy, never logs it and never sends it anywhere — it has no network path except Proton's API (and the
+opt-in advisory check of ADR-0025, which sends only dependency
+coordinates). The trade-off is deliberate: showing the exposure is
+worth the permission, which F-Droid accepts; a Google Play listing
+would need Play's separate review of `QUERY_ALL_PACKAGES`.
+
 ### 5.3 The lost-device narrative
 
 User loses an unlocked device with the app in the foreground:

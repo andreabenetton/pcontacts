@@ -114,6 +114,15 @@ repository secret `NVD_API_KEY`: CI's own free NVD API key for OWASP
 Dependency-Check, see [§Vulnerability scanning](#vulnerability-scanning).
 Nothing local needs a key.
 
+The daily API canary (`.github/workflows/api-canary.yml`) signs in to
+Proton with the repository secrets `PCONTACTS_USERNAME` and
+`PCONTACTS_PASSWORD`. They belong to a dedicated test account that
+holds only synthetic contacts — never a personal account. The canary
+creates, edits and deletes its own throwaway contacts and deletes them
+again even when an assertion fails (`LiveProtonWriteTest`). A password
+change on that account must update `PCONTACTS_PASSWORD` too, or the
+canary fails and blames the API.
+
 ### Repository rulesets (applied 2026-09-22)
 
 `master` and the `v*` tags are what F-Droid and the release workflow
