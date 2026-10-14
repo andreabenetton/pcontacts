@@ -17,6 +17,7 @@ import io.pcontacts.core.storage.db.entity.SyncStateEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -340,6 +341,20 @@ class PcontactsDatabaseTest {
         val live = outboxDao.findLive("local-42")!!
         assertEquals(OutboxEntity.OpType.CREATE, live.opType)
         assertEquals("h2", live.payloadHash)
+    }
+
+    @Test fun outbox_enqueue_mints_a_uid_for_a_create_and_keeps_it_through_coalescing() = runTest {
+        outboxDao.enqueue("local-42", OutboxEntity.OpType.CREATE, "h1", now = 10L)
+        outboxDao.enqueue("local-43", OutboxEntity.OpType.CREATE, "h1", now = 10L)
+        val uid = outboxDao.findLive("local-42")!!.createUid!!
+
+        outboxDao.enqueue("local-42", OutboxEntity.OpType.UPDATE, "h2", now = 20L)
+
+        assertTrue(uid.startsWith("urn:uuid:"))
+        assertEquals(uid, outboxDao.findLive("local-42")!!.createUid)
+        assertNotEquals(uid, outboxDao.findLive("local-43")!!.createUid)
+        outboxDao.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h1", now = 10L)
+        assertNull(outboxDao.findLive("ct-1")!!.createUid)
     }
 
     @Test fun outbox_enqueue_drops_an_unpushed_create_on_delete() = runTest {

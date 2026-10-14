@@ -33,7 +33,7 @@ import io.pcontacts.core.storage.db.entity.SyncStateEntity
         SyncStateEntity::class,
         OutboxEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class PcontactsDatabase : RoomDatabase() {
@@ -94,6 +94,13 @@ abstract class PcontactsDatabase : RoomDatabase() {
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE contact_map ADD COLUMN server_label_ids TEXT DEFAULT NULL")
+            }
+        }
+
+        /** ADR-0017 (2026-10-14): the UID a CREATE is sent with; rows already queued keep NULL. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE outbox ADD COLUMN create_uid TEXT DEFAULT NULL")
             }
         }
     }

@@ -156,6 +156,23 @@ class MigrationTest {
         migratedDb.close()
     }
 
+    @Test fun migrate_4_to_5_keeps_queued_creates_without_a_minted_uid() {
+        helper.createDatabase(TEST_DB, 4).apply {
+            execSQL(outboxRow("local-7", opType = 0, hash = "h1", quarantined = 0))
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(TEST_DB, 5, true, PcontactsDatabase.MIGRATION_4_5)
+
+        val query = "SELECT create_uid, payload_hash FROM outbox WHERE proton_contact_id = 'local-7'"
+        migratedDb.query(query).use { cursor ->
+            assertTrue("outbox row should survive migration", cursor.moveToFirst())
+            assertTrue("a create queued before v5 keeps its derived UID", cursor.isNull(0))
+            assertEquals("h1", cursor.getString(1))
+        }
+        migratedDb.close()
+    }
+
     private fun outboxRow(contactId: String, opType: Int, hash: String, quarantined: Int): String =
         """INSERT INTO outbox (
             proton_contact_id, op_type, payload_hash, attempts, last_error, next_attempt_at, created_at, quarantined

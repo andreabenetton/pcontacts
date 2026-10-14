@@ -26,6 +26,12 @@ import androidx.room.PrimaryKey
  * a push completes (the row is removed only if it still carries the
  * hash that was pushed). It is `""` for DELETE and FORCE_UPDATE, whose
  * content is not compared.
+ *
+ * [createUid] is the vCard UID a CREATE row was inserted with: a random
+ * `urn:uuid:` minted for that one create and kept through coalescing, so a
+ * create Proton committed but the phone never acknowledged is recognised on
+ * the next run instead of being sent again (ADR-0017, 2026-10-14). NULL on
+ * every other row, and on CREATE rows queued before schema v5.
  */
 @Entity(
     tableName = "outbox",
@@ -43,7 +49,8 @@ data class OutboxEntity(
     @ColumnInfo(name = "last_error") val lastError: String? = null,
     @ColumnInfo(name = "next_attempt_at") val nextAttemptAt: Long = 0L,
     @ColumnInfo(name = "created_at") val createdAt: Long,
-    @ColumnInfo(name = "quarantined") val quarantined: Boolean = false
+    @ColumnInfo(name = "quarantined") val quarantined: Boolean = false,
+    @ColumnInfo(name = "create_uid", defaultValue = "NULL") val createUid: String? = null
 ) {
     object OpType {
         const val CREATE = 0

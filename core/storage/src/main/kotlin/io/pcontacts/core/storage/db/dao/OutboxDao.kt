@@ -9,6 +9,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity.OpType
+import java.util.UUID
 
 /** What [OutboxDao.enqueue] did with the change. */
 enum class OutboxEnqueue { INSERTED, REPLACED, UNCHANGED, DROPPED }
@@ -56,7 +57,8 @@ interface OutboxDao {
      * grace period starts now; any edit over a DELETE cancels the
      * delete; an edit over a CREATE stays a CREATE with the new hash;
      * FORCE_UPDATE wins over UPDATE either way; the same operation with
-     * the same hash leaves the row and its backoff untouched.
+     * the same hash leaves the row and its backoff untouched. A CREATE row
+     * is inserted with its own random UID ([OutboxEntity.createUid]).
      */
     @Transaction
     suspend fun enqueue(contactId: String, opType: Int, payloadHash: String, now: Long): OutboxEnqueue {
@@ -67,7 +69,8 @@ interface OutboxDao {
                     protonContactId = contactId,
                     opType = opType,
                     payloadHash = payloadHash,
-                    createdAt = now
+                    createdAt = now,
+                    createUid = if (opType == OpType.CREATE) "urn:uuid:${UUID.randomUUID()}" else null
                 )
             )
             return OutboxEnqueue.INSERTED
