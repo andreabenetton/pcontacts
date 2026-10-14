@@ -1334,26 +1334,6 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
-    @Test fun a_create_whose_row_already_carries_a_source_id_is_acknowledged_without_a_post() = runTest {
-        val api = WriteFakeApi()
-        val outbox = WriteFakeOutboxDao()
-        val contactMap = WriteFakeContactMapDao()
-        outbox.insert(legacyCreate("local-200", "h", 1_000_000L))
-        val engine = newEngine(
-            api,
-            outbox,
-            contactMap,
-            contacts = mapOf("local-200" to sampleContact("local-200")),
-            sourceIds = mapOf(200L to "srv-9")
-        )
-
-        engine.push(testAccount)
-
-        assertNull(api.lastCreateRequest)
-        assertNotNull(contactMap.findByProtonId("srv-9"))
-        assertTrue(outbox.entries.isEmpty())
-    }
-
     @Test fun a_create_with_a_minted_uid_waits_while_the_contact_list_is_unreadable() = runTest {
         val api = WriteFakeApi().apply { listFailsWith = IOException("offline") }
         val outbox = WriteFakeOutboxDao()
@@ -2178,7 +2158,6 @@ class ContactWriteEngineTest {
         clearedFlags: MutableList<Long>? = null,
         serverContacts: Map<String, DecryptedContact> = emptyMap(),
         writtenSourceIds: MutableList<Pair<Long, String>>? = null,
-        sourceIds: Map<Long, String> = emptyMap(),
         clock: () -> Long = { 2_000_000_000L },
         bases: Map<String, DecryptedContact> = emptyMap(),
         mergeBases: InMemoryMergeBaseStore = InMemoryMergeBaseStore(),
@@ -2206,7 +2185,6 @@ class ContactWriteEngineTest {
                 currentCoroutineContext().ensureActive()
                 writtenSourceIds?.add(rawId to sourceId)
             },
-            readSourceIds = { sourceIds },
             fetchServerContact = fetchServerContact,
             hasLiveRow = hasLiveRow,
             onProgress = onProgress,

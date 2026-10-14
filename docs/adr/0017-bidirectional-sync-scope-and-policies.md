@@ -503,13 +503,14 @@ someone else's.
   inserted with a random `urn:uuid:` minted for it and kept through
   coalescing; the card carries it. Rows queued before this amendment
   keep the UID derived from their local id.
-- **Nothing is POSTed whose effect is already visible.** Before
-  posting, a row that already carries a `SOURCE_ID` is acknowledged
-  without a request, and once per push run, when creates are pending,
-  Proton's contact list is read and a create whose minted UID is
-  already there is acknowledged as that contact `[A]` (a UID minted
-  for one create is found only on the contact that create made). If
-  that list cannot be read, the creates wait for the next run.
+- **Nothing is POSTed whose effect is already visible.** Once per
+  push run, when creates are pending, Proton's contact list is read
+  and a create whose minted UID is already there is acknowledged as
+  that contact `[A]` (a UID minted for one create is found only on the
+  contact that create made). If that list cannot be read, the creates
+  wait for the next run. The row's `SOURCE_ID` is no such evidence:
+  "use phone version" for a contact deleted on Proton queues a create
+  for a row that still carries the deleted contact's id.
 - **The acknowledgement is not cancellable.** Once Proton confirmed
   a create, recording it locally completes even when the system stops
   the sync.

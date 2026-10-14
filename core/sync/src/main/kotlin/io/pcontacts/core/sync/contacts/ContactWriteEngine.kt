@@ -94,8 +94,6 @@ class ContactWriteEngine(
     private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
-    /** `RawContacts._ID → SOURCE_ID` of the account's rows that carry one; read once per run with creates pending. */
-    private val readSourceIds: suspend (Account) -> Map<Long, String> = { emptyMap() },
     /** Server-current contact; throws on transport failure (handled like any push failure), null if there is none. */
     private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
     /** `Groups._ID → Proton label ID` for the account's groups (ADR-0027); empty when unreadable. */
@@ -223,12 +221,12 @@ class ContactWriteEngine(
         var sent = 0
         val progressLock = Any()
 
-        val evidence = createEvidence(survivors, account)
+        val createdUids = createdUids(survivors)
         val semaphore = Semaphore(MAX_CONCURRENT_PUSHES)
         val results = coroutineScope {
             survivors.map { entry ->
                 async {
-                    semaphore.withPermit { pushEntry(entry, account, evidence) }.also { report ->
+                    semaphore.withPermit { pushEntry(entry, account, createdUids) }.also { report ->
                         if (report.skippedGrace == 0) {
                             synchronized(progressLock) {
                                 sent += 1
@@ -246,11 +244,11 @@ class ContactWriteEngine(
     private suspend fun pushEntry(
         entry: OutboxEntity,
         account: Account?,
-        evidence: CreateEvidence?
+        createdUids: Map<String, String>?
     ): WriteReport = when (entry.opType) {
         OutboxEntity.OpType.DELETE -> pushDelete(entry, account)
         OutboxEntity.OpType.UPDATE, OutboxEntity.OpType.FORCE_UPDATE -> pushUpdate(entry, account)
-        OutboxEntity.OpType.CREATE -> pushCreate(entry, account, evidence)
+        OutboxEntity.OpType.CREATE -> pushCreate(entry, account, createdUids)
         else -> {
             logger.warn { "unknown outbox op_type=${entry.opType}, quarantining" }
             outboxDao.quarantine(entry.id, "unknown op_type=${entry.opType}")
@@ -522,7 +520,18 @@ class ContactWriteEngine(
         return now
     }
 
-    private suspend fun pushCreate(entry: OutboxEntity, account: Account?, evidence: CreateEvidence?): WriteReport {
+    /**
+     * [createdUids] is Proton's `UID → ID` list read before this run's first POST, or null when it
+     * could not be read: a create whose minted UID is already there was made by an earlier run whose
+     * acknowledgement was cut short, and is acknowledged without a request (ADR-0017, 2026-10-14).
+     * The row's SOURCE_ID is no evidence: "use phone version" for a contact deleted on Proton queues
+     * a CREATE for a row that still carries the deleted contact's id.
+     */
+    private suspend fun pushCreate(
+        entry: OutboxEntity,
+        account: Account?,
+        createdUids: Map<String, String>?
+    ): WriteReport {
         val localId = entry.protonContactId
         val rawContactId = resolveRawContactId(localId, contactMapDao)
         val row = rawContactId?.let { readContactRow(it, localId) }
@@ -531,7 +540,7 @@ class ContactWriteEngine(
             return WriteReport(quarantined = 1)
         }
         val minted = entry.createUid
-        if (minted != null && evidence?.serverIdByUid == null) {
+        if (minted != null && createdUids == null) {
             // The list that would show an earlier, unacknowledged create is unreadable: no blind POST.
             return handleFailure(entry, IOException("contact list unreadable"))
         }
@@ -540,8 +549,7 @@ class ContactWriteEngine(
         val attempt = CreateAttempt(entry, rawContactId, RowToDecryptedContact.convert(row, localId, uid))
         val pushedHash = EmailSyncHash.compute(row)
         return try {
-            val earlier = evidence?.sourceIdByRawId?.get(rawContactId)
-                ?: minted?.let { evidence?.serverIdByUid?.get(it) }
+            val earlier = minted?.let { createdUids?.get(it) }
             val serverContact = if (earlier != null) {
                 logger.info { "push: create already on Proton, acknowledged without a request idTag=${earlier.hashCode()}" }
                 ContactDto(id = earlier, uid = uid)
@@ -618,18 +626,13 @@ class ContactWriteEngine(
         lastSyncedAt = clock()
     )
 
-    /**
-     * What earlier runs may already have made of the pending creates (ADR-0017, 2026-10-14): the
-     * SOURCE_IDs written back on the phone and, when a create carries a minted UID, Proton's
-     * `UID → ID` list. Read once per run, before any POST; null when no create is pending.
-     */
-    private suspend fun createEvidence(entries: List<OutboxEntity>, account: Account?): CreateEvidence? {
-        val creates = entries.filter { it.opType == OutboxEntity.OpType.CREATE }
-        if (creates.isEmpty()) return null
-        val sourceIds = account?.let { readSourceIds(it) }.orEmpty()
-        val serverIds = if (creates.any { it.createUid != null }) serverIdsByUid() else emptyMap()
-        return CreateEvidence(sourceIds, serverIds)
-    }
+    /** Proton's `UID → ID` list, read once per run before any POST when a create carries a minted UID. */
+    private suspend fun createdUids(entries: List<OutboxEntity>): Map<String, String>? =
+        if (entries.any { it.opType == OutboxEntity.OpType.CREATE && it.createUid != null }) {
+            serverIdsByUid()
+        } else {
+            emptyMap()
+        }
 
     /**
      * `[A]` a UID minted for one create is found only on the contact that create made, so a
@@ -747,8 +750,6 @@ class ContactWriteEngine(
             ?.let(ProtonCodeInterceptor::codeOf)
 
     private class CreateAttempt(val entry: OutboxEntity, val rawContactId: Long, val contact: DecryptedContact)
-
-    private class CreateEvidence(val sourceIdByRawId: Map<Long, String>, val serverIdByUid: Map<String, String>?)
 
     companion object {
         private const val HTTP_NOT_FOUND = 404
