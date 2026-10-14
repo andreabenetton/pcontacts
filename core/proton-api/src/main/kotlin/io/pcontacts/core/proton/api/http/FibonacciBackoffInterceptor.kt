@@ -13,7 +13,9 @@ import okhttp3.Response
  * Per plan §3.6 and ADR-0015 / risk-#8: when Proton rate-limits a
  * call (HTTP 429), retry with Fibonacci backoff. Honours the
  * `Retry-After` header when present (overrides the backoff
- * schedule).
+ * schedule), in either form HTTP allows — seconds or a date — and
+ * never for longer than ADR-0012's [MAX_DELAY_MS], so a large value
+ * cannot hold the sync's thread for minutes.
  *
  * Mirrors the web client's `refreshHandlers.ts` approach. Cap at
  * `maxRetries` so a stuck account doesn't pin a background thread
@@ -26,6 +28,7 @@ import okhttp3.Response
 class FibonacciBackoffInterceptor(
     private val maxRetries: Int = DEFAULT_MAX_RETRIES,
     private val sleeper: (Long) -> Unit = { Thread.sleep(it) },
+    private val clock: () -> Long = System::currentTimeMillis,
     private val logger: Logger = RedactingLogger(tag = "Backoff", sink = NoOpSink)
 ) : Interceptor {
 
@@ -37,8 +40,7 @@ class FibonacciBackoffInterceptor(
         var response = chain.proceed(request)
 
         while (response.code == HTTP_TOO_MANY_REQUESTS && attempt < maxRetries) {
-            val retryAfterMs = response.header(RETRY_AFTER)?.toLongOrNull()?.times(1000)
-            val sleepMs = retryAfterMs ?: fibonacciMillis(attempt)
+            val sleepMs = retryAfterMillis(response) ?: fibonacciMillis(attempt)
             response.close()
             logger.warn { "429 on ${request.method} ${request.url.encodedPath}; backing off ${sleepMs}ms (attempt=${attempt + 1}/$maxRetries)" }
             sleeper(sleepMs)
@@ -50,6 +52,21 @@ class FibonacciBackoffInterceptor(
             logger.warn { "429 persisted past $maxRetries retries; surfacing to caller" }
         }
         return response
+    }
+
+    /**
+     * `Retry-After` as delta-seconds or an HTTP-date (RFC 9110 §10.2.3), capped at
+     * [MAX_DELAY_MS]; null when absent or unreadable. `[U]` which form Proton sends.
+     */
+    private fun retryAfterMillis(response: Response): Long? {
+        val value = response.header(RETRY_AFTER)?.trim() ?: return null
+        val seconds = value.toLongOrNull()
+        val millis = if (seconds != null) {
+            seconds.coerceIn(0L, MAX_DELAY_MS / MILLIS_PER_SECOND) * MILLIS_PER_SECOND
+        } else {
+            response.headers.getDate(RETRY_AFTER)?.let { it.time - clock() } ?: return null
+        }
+        return millis.coerceIn(0L, MAX_DELAY_MS)
     }
 
     /**
@@ -73,5 +90,9 @@ class FibonacciBackoffInterceptor(
         const val DEFAULT_MAX_RETRIES = 5
         const val HTTP_TOO_MANY_REQUESTS = 429
         const val RETRY_AFTER = "Retry-After"
+
+        /** ADR-0012: no single backoff waits longer than this. */
+        const val MAX_DELAY_MS = 30_000L
+        private const val MILLIS_PER_SECOND = 1000L
     }
 }

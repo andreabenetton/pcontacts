@@ -12,6 +12,10 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class FibonacciBackoffInterceptorTest {
 
@@ -69,13 +73,49 @@ class FibonacciBackoffInterceptorTest {
     }
 
     @Test fun retry_after_header_overrides_the_fibonacci_schedule() {
-        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "42"))
+        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "12"))
         server.enqueue(MockResponse().setResponseCode(200))
 
         client.newCall(Request.Builder().url(server.url("/x")).build()).execute().close()
 
-        // 42 seconds → 42_000 ms, NOT 1_000.
-        assertEquals(listOf(42_000L), sleeps)
+        // 12 seconds → 12_000 ms, NOT 1_000.
+        assertEquals(listOf(12_000L), sleeps)
+    }
+
+    @Test fun a_retry_after_beyond_the_cap_waits_only_the_cap() {
+        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "3600"))
+        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", Long.MAX_VALUE.toString()))
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().close()
+
+        assertEquals(listOf(30_000L, 30_000L), sleeps)
+    }
+
+    @Test fun a_retry_after_date_waits_until_that_date() {
+        val now = 1_760_000_000_000L
+        val dated = OkHttpClient.Builder()
+            .addInterceptor(FibonacciBackoffInterceptor(sleeper = { sleeps += it }, clock = { now }))
+            .build()
+        val httpDate = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("GMT") }
+            .format(Date(now + 7_000L))
+        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", httpDate))
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        dated.newCall(Request.Builder().url(server.url("/x")).build()).execute().close()
+
+        assertEquals(listOf(7_000L), sleeps)
+    }
+
+    @Test fun an_unreadable_or_past_retry_after_falls_back_or_waits_nothing() {
+        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "soon"))
+        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "-5"))
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        client.newCall(Request.Builder().url(server.url("/x")).build()).execute().close()
+
+        assertEquals(listOf(1_000L, 0L), sleeps)
     }
 
     @Test fun post_request_is_not_retried_on_429() {

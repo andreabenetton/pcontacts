@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   merged with all its copies: identical changes go through, different
   changes on both sides ask you which version to keep, and a copy's
   other details (such as a custom label) stay as they were.
+- **A rate-limited sync waits at most 30 seconds per retry.** When Proton
+  asked the app to slow down, the wait it named was taken as given,
+  however long, and a wait given as a date was ignored. Both forms are
+  now understood and each wait is capped at 30 seconds.
 
 ## [2.3.1] - 2026-10-14
 
