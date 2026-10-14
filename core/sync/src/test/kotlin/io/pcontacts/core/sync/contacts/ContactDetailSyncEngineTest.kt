@@ -67,7 +67,8 @@ class ContactDetailSyncEngineTest {
         assertEquals(listOf("alice@proton.me"), createIntent.row.emails)
     }
 
-    @Test fun progress_walks_checking_downloading_and_saving_in_order() = runTest {
+    // Each chunk is written while the download goes on (issue #70); SAVING marks only the deletions.
+    @Test fun progress_walks_checking_then_downloading_in_order() = runTest {
         val api = DetailFakeApi(
             metadataPages = listOf(metaPage(meta("c1", 100L), meta("c2", 100L))),
             contacts = mapOf(
@@ -87,8 +88,7 @@ class ContactDetailSyncEngineTest {
                 Triple(SyncPhase.CHECKING, 0, 0),
                 Triple(SyncPhase.DOWNLOADING, 0, 2),
                 Triple(SyncPhase.DOWNLOADING, 1, 2),
-                Triple(SyncPhase.DOWNLOADING, 2, 2),
-                Triple(SyncPhase.SAVING, 0, 0)
+                Triple(SyncPhase.DOWNLOADING, 2, 2)
             ),
             progress
         )

@@ -149,8 +149,14 @@ internal class DetailFakeApi(
     ): ContactEmailsPageResponse =
         error("ContactDetailSyncEngine does not use /emails")
 
+    /** The system stopping the run: fetches past this count end it with a cancellation (issue #70). */
+    var stopAfterFetches: Int? = null
+
     override suspend fun getContact(id: String): GetContactResponse {
         getContactCallCount += 1
+        stopAfterFetches?.let { limit ->
+            if (getContactCallCount > limit) throw kotlinx.coroutines.CancellationException("stopped by the system")
+        }
         val source = when {
             firstRoundDone && secondRoundContacts != null -> secondRoundContacts
             else -> contacts

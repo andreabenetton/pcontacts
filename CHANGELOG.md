@@ -10,6 +10,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Large accounts finish their first sync**
+  ([#70](https://github.com/andreabenetton/pcontacts/issues/70)). Contacts
+  were fetched one at a time and recorded only once all of them were
+  written, so on an account with about 1000 contacts the sync ran longer
+  than Android lets a background sync run, was stopped, and started over
+  every time: the card stayed on "Sync in progress" with a stale count.
+  Contacts are now fetched a few at a time and written and recorded in
+  chunks of 50, so a stopped sync keeps its progress and the next one
+  carries on. The log notes each chunk with its timings.
+
 ## [2.3.0] - 2026-10-08
 
 ### Added

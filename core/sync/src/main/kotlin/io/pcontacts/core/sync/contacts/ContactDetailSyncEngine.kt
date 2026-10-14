@@ -14,6 +14,7 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.NoOpSink
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.contacts.ContactsMetadataPager
+import io.pcontacts.core.proton.api.contacts.GetContactResponse
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.proton.api.labels.LabelType
@@ -23,7 +24,18 @@ import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+
+/** Contacts fetched, written and recorded together; a stopped run keeps every finished chunk (issue #70). */
+private const val PULL_CHUNK = 50
+
+/** Contact fetches in flight at once within a chunk. */
+private const val FETCH_CONCURRENCY = 4
 
 /**
  * Full-decrypt sync engine (plan §17 task 17, end-to-end). Per-contact
@@ -91,8 +103,9 @@ class ContactDetailSyncEngine(
     /**
      * (phase, items done, phase total) — [SyncPhase.CHECKING] when the run
      * starts, [SyncPhase.DOWNLOADING] per contact that has to be fetched
-     * (the total is those contacts, not the server's), [SyncPhase.SAVING]
-     * before the provider write. A phase with nothing to do is skipped.
+     * (the total is those contacts, not the server's; each chunk is written
+     * as the download goes on), [SyncPhase.SAVING] before the deletions are
+     * written. A phase with nothing to do is skipped.
      */
     private val onProgress: (phase: SyncPhase, done: Int, total: Int) -> Unit = { _, _, _ -> },
     /**
@@ -135,6 +148,7 @@ class ContactDetailSyncEngine(
     @Suppress("ThrowsCount", "LongMethod", "CyclomaticComplexMethod")
     suspend fun sync(account: Account): SyncReport {
         logger.info { "contact-detail sync start account=${account.name}" }
+        val startedAt = clock()
         onProgress(SyncPhase.CHECKING, 0, 0)
 
         // 1a. Labels: fetch + reconcile ContactsContract.Groups before any
@@ -291,90 +305,101 @@ class ContactDetailSyncEngine(
             toFetch += sourceId
         }
 
-        for ((index, sourceId) in toFetch.withIndex()) {
-            onProgress(SyncPhase.DOWNLOADING, index, toFetch.size)
-            val stored = storedMappings[sourceId]
-            val liveRawId = existing[sourceId]
-            val response = try {
-                contactsApi.getContact(sourceId)
-            } catch (e: HumanVerificationRequiredException) {
-                // 9001 on /contacts/v4/contacts/{id} — every subsequent fetch
-                // will hit the same gate. Abort so SyncAdapter notifies the
-                // user once instead of looping N times.
-                throw e
-            } catch (e: CancellationException) {
-                throw e
-            } catch (t: Throwable) {
-                fetchFailures += 1
-                logger.error(t) { "contact skipped (fetch failed) idTag=${sourceId.hashCode()}" }
-                continue
-            }
-            // Decrypt + project. A single malformed/undecryptable contact
-            // must not abort the whole sync — skip it (counted) and carry on,
-            // otherwise one bad card on a large account fails every contact.
-            val (decrypted, baseRow) = try {
-                val d = processor.process(response.contact)
-                d to DecryptedContactToRow.convert(d)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (t: Throwable) {
-                fetchFailures += 1
-                logger.error(t) { "contact skipped (decrypt/parse failed) idTag=${sourceId.hashCode()}" }
-                continue
-            }
-            if (baseRow == null) {
-                fetchFailures += 1
-                logger.warn { "contact skipped (nothing representable) idTag=${sourceId.hashCode()}" }
-                continue
-            }
-            if (liveRawId != null && stored != null && keepsPhoneOnlyFields(stored, liveRawId, decrypted)) {
-                protectedIds += sourceId
-                continue
-            }
-            // Attach the contact's group memberships (translating Proton
-            // LabelIDs → local Groups._ID via the reconciled labelMap); with
-            // the label state unknown, keep what the provider holds.
-            val groupRowIds = if (labelMap != null) {
-                serverLabelIds[sourceId].orEmpty().mapNotNull { labelId -> labelMap[labelId] }.sorted()
-            } else {
-                liveRawId?.let { readGroupRowIds(it) }.orEmpty()
-            }
-            val row = if (groupRowIds.isEmpty()) baseRow else baseRow.copy(groupRowIds = groupRowIds)
+        // 3a. Fetch, decrypt, write and record in chunks (issue #70): a run the system stops
+        //     keeps every finished chunk, and the next run carries on from there instead of
+        //     fetching everything again. Fetches within a chunk run in parallel.
+        logger.info { "pull: ${toFetch.size} to fetch, $modifyTimeSkips skipped, ${serverSourceIds.size} on Proton" }
+        var applied = ApplyResult(insertedContacts = 0, updatedContacts = 0, deletedContacts = 0)
+        var processed = 0
+        for ((chunkIndex, chunk) in toFetch.chunked(PULL_CHUNK).withIndex()) {
+            val chunkStart = clock()
+            val responses = fetchAll(chunk)
+            val fetchedAt = clock()
+            val chunkTarget = ArrayList<ContactRow>(chunk.size)
+            for (sourceId in chunk) {
+                onProgress(SyncPhase.DOWNLOADING, processed++, toFetch.size)
+                val stored = storedMappings[sourceId]
+                val liveRawId = existing[sourceId]
+                val response = responses[sourceId]
+                if (response == null) {
+                    fetchFailures += 1
+                    continue
+                }
+                // Decrypt + project. A single malformed/undecryptable contact
+                // must not abort the whole sync — skip it (counted) and carry on,
+                // otherwise one bad card on a large account fails every contact.
+                val (decrypted, baseRow) = try {
+                    val d = processor.process(response.contact)
+                    d to DecryptedContactToRow.convert(d)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (t: Throwable) {
+                    fetchFailures += 1
+                    logger.error(t) { "contact skipped (decrypt/parse failed) idTag=${sourceId.hashCode()}" }
+                    continue
+                }
+                if (baseRow == null) {
+                    fetchFailures += 1
+                    logger.warn { "contact skipped (nothing representable) idTag=${sourceId.hashCode()}" }
+                    continue
+                }
+                if (liveRawId != null && stored != null && keepsPhoneOnlyFields(stored, liveRawId, decrypted)) {
+                    protectedIds += sourceId
+                    continue
+                }
+                // Attach the contact's group memberships (translating Proton
+                // LabelIDs → local Groups._ID via the reconciled labelMap); with
+                // the label state unknown, keep what the provider holds.
+                val groupRowIds = if (labelMap != null) {
+                    serverLabelIds[sourceId].orEmpty().mapNotNull { labelId -> labelMap[labelId] }.sorted()
+                } else {
+                    liveRawId?.let { readGroupRowIds(it) }.orEmpty()
+                }
+                val row = if (groupRowIds.isEmpty()) baseRow else baseRow.copy(groupRowIds = groupRowIds)
 
-            val newHash = EmailSyncHash.compute(row)
-            val meta = PerContactMeta(
-                // Unknown group state: forget the server time so the next pull refetches the contact.
-                modifyTime = if (labelMap == null) 0L else response.contact.modifyTime,
-                verified = decrypted.verified,
-                protonUid = decrypted.protonUid,
-                hash = newHash,
-                decrypted = decrypted,
-                labelBase = labelBaseOf(serverLabelIds[sourceId], labelMap, stored)
-            )
-            perContactMeta[sourceId] = meta
-
-            if (stored?.contentHash == newHash && liveRawId != null) {
-                // ModifyTime bumped but visible content unchanged, and the
-                // provider still holds the row. Refresh bookkeeping; no
-                // ContactsContract write needed. A matching hash means
-                // "the data hasn't changed", not "the row still exists" —
-                // with the row missing we fall through and recreate it.
-                contactMapDao.upsert(
-                    repairMapping(stored, liveRawId).copy(
-                        modifyTime = meta.modifyTime,
-                        isVerified = meta.verified,
-                        protonUid = meta.protonUid,
-                        syncStatus = ContactMapEntity.Status.CLEAN,
-                        lastError = null,
-                        lastSyncedAt = now,
-                        serverLabelIds = meta.labelBase
-                    )
+                val newHash = EmailSyncHash.compute(row)
+                val meta = PerContactMeta(
+                    // Unknown group state: forget the server time so the next pull refetches the contact.
+                    modifyTime = if (labelMap == null) 0L else response.contact.modifyTime,
+                    verified = decrypted.verified,
+                    protonUid = decrypted.protonUid,
+                    hash = newHash,
+                    decrypted = decrypted,
+                    labelBase = labelBaseOf(serverLabelIds[sourceId], labelMap, stored)
                 )
-                saveMergeBase(sourceId, decrypted.copy(localPhotoHash = readLocalPhotoHash(liveRawId)))
-                continue
-            }
+                perContactMeta[sourceId] = meta
 
-            target += row
+                if (stored?.contentHash == newHash && liveRawId != null) {
+                    // ModifyTime bumped but visible content unchanged, and the
+                    // provider still holds the row. Refresh bookkeeping; no
+                    // ContactsContract write needed. A matching hash means
+                    // "the data hasn't changed", not "the row still exists" —
+                    // with the row missing we fall through and recreate it.
+                    contactMapDao.upsert(
+                        repairMapping(stored, liveRawId).copy(
+                            modifyTime = meta.modifyTime,
+                            isVerified = meta.verified,
+                            protonUid = meta.protonUid,
+                            syncStatus = ContactMapEntity.Status.CLEAN,
+                            lastError = null,
+                            lastSyncedAt = now,
+                            serverLabelIds = meta.labelBase
+                        )
+                    )
+                    saveMergeBase(sourceId, decrypted.copy(localPhotoHash = readLocalPhotoHash(liveRawId)))
+                    continue
+                }
+
+                chunkTarget += row
+            }
+            if (chunkTarget.isNotEmpty()) {
+                applied += writeChunk(account, chunkTarget, existing, serverSourceIds, perContactMeta, now)
+                target += chunkTarget
+            }
+            logger.info {
+                "pull: chunk ${chunkIndex + 1}, $processed/${toFetch.size} contacts, " +
+                    "fetch ${fetchedAt - chunkStart} ms, write ${clock() - fetchedAt} ms"
+            }
         }
         if (toFetch.isNotEmpty()) onProgress(SyncPhase.DOWNLOADING, toFetch.size, toFetch.size)
 
@@ -404,55 +429,104 @@ class ContactDetailSyncEngine(
             }
         }
 
-        // 4. Decide intents — duplicate cleanup first, then the diff. Protected rows count as
-        //    present on the server so the differ leaves them alone.
-        val intents = dedupeIntents + RawContactDiffer.diff(
-            target = target,
+        // 4. Deletions — duplicate cleanup, then the rows Proton no longer has. Protected rows
+        //    count as present on the server so the differ leaves them alone; the rows written
+        //    above are in `existing` already and on the server, so nothing else is touched.
+        val deletions = dedupeIntents + RawContactDiffer.diff(
+            target = emptyList(),
             existing = existing,
             serverSourceIds = serverSourceIds + protectedIds
         )
-
-        if (intents.isEmpty()) {
-            val unchanged = (serverSourceIds.size - target.size - fetchFailures).coerceAtLeast(0)
-            val unverified = contactMapDao.countUnverified()
-            logger.info {
-                "contact-detail sync done — no writes; " +
-                    "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures " +
-                    "unverified=$unverified"
+        if (deletions.isNotEmpty()) {
+            // 5. A chunked batch that fails leaves the earlier chunks committed; the mappings
+            //    of contacts those chunks deleted are dropped so they do not outlive their rows.
+            onProgress(SyncPhase.SAVING, 0, 0)
+            applied += try {
+                applyIntents(account, deletions)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                dropMappingsOfDeletedRows(account, deletions)
+                throw t
             }
-            return SyncReport(
-                totalServer = serverSourceIds.size,
-                inserted = 0,
-                updated = 0,
-                deleted = 0,
-                unchanged = unchanged,
-                unverifiedCount = unverified,
-                failed = fetchFailures
-            )
+            for (intent in deletions.filterIsInstance<RawContactOpIntent.DeleteContact>()) {
+                contactMapDao.deleteByProtonId(intent.sourceId)
+            }
         }
 
-        // 5. Apply ops. A chunked batch that fails leaves the earlier
-        //    chunks committed; the mappings of contacts those chunks
-        //    deleted are dropped here so they do not outlive their rows.
-        onProgress(SyncPhase.SAVING, 0, 0)
-        val applyResult = try {
-            applyIntents(account, intents)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (t: Throwable) {
-            dropMappingsOfDeletedRows(account, intents)
-            throw t
+        val deletedCount = deletions.count { it is RawContactOpIntent.DeleteContact }
+        val unchanged = (serverSourceIds.size - target.size - fetchFailures).coerceAtLeast(0)
+        val unverified = contactMapDao.countUnverified()
+        val wrote = target.isNotEmpty() || deletions.isNotEmpty()
+        val writes = if (wrote) {
+            "inserted=${applied.insertedContacts} updated=${applied.updatedContacts} deleted=$deletedCount "
+        } else {
+            "no writes; "
         }
+        logger.info {
+            "contact-detail sync done — $writes" +
+                "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures " +
+                "unverified=$unverified in ${clock() - startedAt} ms"
+        }
+        return SyncReport(
+            totalServer = serverSourceIds.size,
+            inserted = applied.insertedContacts,
+            updated = applied.updatedContacts,
+            deleted = deletedCount,
+            unchanged = unchanged,
+            unverifiedCount = unverified,
+            failed = fetchFailures
+        )
+    }
 
-        // 6. Reconcile mapping rows.
-        val freshExisting = readExisting(account).canonicalIds()
-        for (row in target) {
-            val rawId = freshExisting[row.sourceId]
+    /** One chunk's contacts, fetched in parallel; null for a contact whose fetch failed (logged). */
+    private suspend fun fetchAll(ids: List<String>): Map<String, GetContactResponse?> = coroutineScope {
+        val gate = Semaphore(FETCH_CONCURRENCY)
+        ids.map { id -> async { id to gate.withPermit { fetchOne(id) } } }.awaitAll().toMap()
+    }
+
+    private suspend fun fetchOne(id: String): GetContactResponse? = try {
+        contactsApi.getContact(id)
+    } catch (e: HumanVerificationRequiredException) {
+        // 9001 on /contacts/v4/contacts/{id}: every other fetch hits the same gate. Abort so the
+        // SyncAdapter notifies the user once instead of looping N times.
+        throw e
+    } catch (e: CancellationException) {
+        throw e
+    } catch (t: Throwable) {
+        logger.error(t) { "contact skipped (fetch failed) idTag=${id.hashCode()}" }
+        null
+    }
+
+    /**
+     * Writes one chunk's rows and records them (mapping, then merge base), so the chunk is done
+     * even if the run stops afterwards. Creates and updates only: every id already on the
+     * phone counts as kept, and deletions wait for the end of the run.
+     */
+    @Suppress("LongParameterList")
+    private suspend fun writeChunk(
+        account: Account,
+        rows: List<ContactRow>,
+        existing: MutableMap<String, Long>,
+        serverSourceIds: Set<String>,
+        perContactMeta: MutableMap<String, PerContactMeta>,
+        now: Long
+    ): ApplyResult {
+        val intents = RawContactDiffer.diff(
+            target = rows,
+            existing = existing,
+            serverSourceIds = serverSourceIds + existing.keys
+        )
+        val result = applyIntents(account, intents)
+        val fresh = readExisting(account).canonicalIds()
+        for (row in rows) {
+            val rawId = fresh[row.sourceId]
             if (rawId == null) {
                 logger.warn { "post-apply read missed source-id; skipping mapping refresh" }
                 continue
             }
-            val meta = perContactMeta[row.sourceId] ?: continue
+            existing[row.sourceId] = rawId
+            val meta = perContactMeta.remove(row.sourceId) ?: continue
             contactMapDao.upsert(
                 ContactMapEntity(
                     protonContactId = row.sourceId,
@@ -470,29 +544,15 @@ class ContactDetailSyncEngine(
             )
             saveMergeBase(row.sourceId, meta.decrypted.copy(localPhotoHash = readLocalPhotoHash(rawId)))
         }
-        for (intent in intents.filterIsInstance<RawContactOpIntent.DeleteContact>()) {
-            contactMapDao.deleteByProtonId(intent.sourceId)
-        }
-
-        val deletedCount = intents.count { it is RawContactOpIntent.DeleteContact }
-        val unchanged = (serverSourceIds.size - target.size - fetchFailures).coerceAtLeast(0)
-        val unverified = contactMapDao.countUnverified()
-        logger.info {
-            "contact-detail sync done — inserted=${applyResult.insertedContacts} " +
-                "updated=${applyResult.updatedContacts} deleted=$deletedCount " +
-                "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures " +
-                "unverified=$unverified"
-        }
-        return SyncReport(
-            totalServer = serverSourceIds.size,
-            inserted = applyResult.insertedContacts,
-            updated = applyResult.updatedContacts,
-            deleted = deletedCount,
-            unchanged = unchanged,
-            unverifiedCount = unverified,
-            failed = fetchFailures
-        )
+        return result
     }
+
+    private operator fun ApplyResult.plus(other: ApplyResult) = ApplyResult(
+        insertedContacts = insertedContacts + other.insertedContacts,
+        updatedContacts = updatedContacts + other.updatedContacts,
+        deletedContacts = deletedContacts + other.deletedContacts,
+        totalOpsApplied = totalOpsApplied + other.totalOpsApplied
+    )
 
     /**
      * The group base to store for a contact (ADR-0027): Proton's labels when they were read
