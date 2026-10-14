@@ -1,0 +1,4 @@
+Version 2.3.1.
+
+* Große Konten schließen ihre erste Synchronisierung ab: Kontakte werden parallel geladen und in Blöcken zu 50 gespeichert. Eine von Android gestoppte Synchronisierung behält ihren Fortschritt, und die nächste macht dort weiter, statt bei „Synchronisierung läuft…“ hängen zu bleiben.
+* Eine von Android gestoppte Synchronisierung gilt nicht mehr als Fehler.

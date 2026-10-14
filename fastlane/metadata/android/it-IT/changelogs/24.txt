@@ -1,0 +1,4 @@
+Versione 2.3.1.
+
+* Gli account grandi completano la prima sincronizzazione: i contatti vengono scaricati in parallelo e salvati a blocchi di 50, quindi una sincronizzazione interrotta da Android conserva i progressi e la successiva riprende, invece di restare su «Sincronizzazione in corso…».
+* Una sincronizzazione interrotta da Android non conta più come errore.

@@ -1,0 +1,4 @@
+Version 2.3.1.
+
+* Les grands comptes terminent leur première synchronisation : les contacts sont téléchargés en parallèle et enregistrés par blocs de 50. Une synchronisation arrêtée par Android garde sa progression et la suivante reprend, au lieu de rester sur « Synchronisation en cours… ».
+* Une synchronisation arrêtée par Android n'est plus comptée comme une erreur.

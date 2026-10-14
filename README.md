@@ -19,7 +19,7 @@ pcontacts is a GPL-3.0 Android app that connects your Proton Mail contacts to An
 
 ## Status
 
-**Latest release: [v2.3.0](CHANGELOG.md#230---2026-10-08)**, released 8 October 2026.
+**Latest release: [v2.3.1](CHANGELOG.md#231---2026-10-14)**, released 14 October 2026.
 
 Sign-in, decryption, two-way sync and the Android contacts integration are validated against Proton's production API, and a daily canary run checks that the API still behaves as expected.
 

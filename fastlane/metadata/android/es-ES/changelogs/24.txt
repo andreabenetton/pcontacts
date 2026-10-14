@@ -1,0 +1,4 @@
+Versión 2.3.1.
+
+* Las cuentas grandes completan su primera sincronización: los contactos se descargan en paralelo y se guardan en bloques de 50, así que una sincronización que Android detiene conserva su progreso y la siguiente continúa, en lugar de quedarse en «Sincronización en curso…».
+* Una sincronización detenida por Android ya no cuenta como error.

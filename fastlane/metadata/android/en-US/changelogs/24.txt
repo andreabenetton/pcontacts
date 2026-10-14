@@ -1,0 +1,4 @@
+Version 2.3.1.
+
+* Large accounts finish their first sync: contacts are fetched a few at a time and saved in chunks of 50, so a sync that Android stops keeps its progress and the next one carries on, instead of staying on "Sync in progress…".
+* A sync stopped by Android is no longer counted as an error.
