@@ -176,6 +176,36 @@ class LiveProtonWriteTest {
         }
     }
 
+    /**
+     * Device-test helper, not part of the canary: edits a contact on Proton the way another client
+     * would. `PCONTACTS_EDIT_NAME=<display name>` picks the contact; `PCONTACTS_EDIT_PHONE=<number>|<type>`
+     * adds that phone. Without the phone it only prints the contact's numbers and types (synthetic
+     * test contacts only).
+     */
+    @Test fun live_edit_by_name() = runBlocking {
+        val name = System.getenv("PCONTACTS_EDIT_NAME")
+        assumeTrue("Set env PCONTACTS_EDIT_NAME", !name.isNullOrBlank())
+        assumeTrue("Set env PCONTACTS_LIVE_TEST=true", System.getenv("PCONTACTS_LIVE_TEST") == "true")
+        val username = System.getenv("PCONTACTS_USERNAME").orEmpty()
+        val password = System.getenv("PCONTACTS_PASSWORD").orEmpty().toCharArray()
+        val crypto = loginAndBuildCrypto(username, password)
+        try {
+            val id = ContactsMetadataPager(crypto.apiFactory.contacts).metadata().toList().single { it.name == name }.id
+            val server = fetchAndDecrypt(crypto.apiFactory, crypto.processor, id)
+            System.getenv("PCONTACTS_EDIT_PHONE")?.split("|")?.let { (number, type) ->
+                val canonical = MergeBaseCodec.canonical(server)!!
+                val edited = canonical.copy(phones = canonical.phones + DecryptedPhone(number, listOf(type)))
+                val patch = ContactPatch.diff(canonical, edited)
+                val cards = crypto.serializer.serialize(server.cards, patch, "unused")
+                println("  edit: Code=${crypto.apiFactory.contacts.updateContact(id, UpdateContactRequest(cards)).code}")
+            }
+            val after = fetchAndDecrypt(crypto.apiFactory, crypto.processor, id)
+            println("  phones on Proton: ${after.phones.map { "${it.number}|${it.types}" }}")
+        } finally {
+            runCatching { crypto.apiFactory.auth.revoke() }
+        }
+    }
+
     private suspend fun seedContacts(crypto: CryptoContext, count: Int) {
         var created = 0
         for (batch in (1..count).chunked(SEED_BATCH)) {
