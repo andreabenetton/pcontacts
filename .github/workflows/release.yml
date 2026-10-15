@@ -65,7 +65,7 @@ jobs:
             '[.check_runs[] | select(.app.slug == "github-actions") | {name: .name, conclusion: .conclusion}]')"
           echo "$runs"
           for job in "Unit tests (all modules)" "Assemble debug + lint" "Assemble release (R8 minified)" \
-            "Reproducible build (diffoscope)" "OWASP Dependency-Check" \
+            "Reproducible build (diffoscope)" "osv.dev vulnerability check" \
             "Instrumented tests (emulator) (26, default)" "Instrumented tests (emulator) (33, default)" \
             "Instrumented tests (emulator) (35, google_apis)"; do
             conclusion="$(echo "$runs" | jq -r --arg n "$job" '[.[] | select(.name == $n)] | last | .conclusion // "missing"')"

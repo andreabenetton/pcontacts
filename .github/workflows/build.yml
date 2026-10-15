@@ -19,7 +19,6 @@ concurrency:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   unit-tests:
@@ -281,14 +280,12 @@ jobs:
           path: /tmp/diffoscope-report.html
 
   vulnerability-scan:
-    name: OWASP Dependency-Check
+    name: osv.dev vulnerability check
     # Runs on every trigger (push, pull_request, schedule, workflow_dispatch).
-    # A path filter on push was attempted but this repo's push payloads carry
-    # an empty github.event.commits / null head_commit, so no changed-file
-    # detection is possible in the job `if`; running always is the reliable
-    # way to keep the CVE gate honest on master pushes.
+    # osv.dev needs no key, so Dependabot's pull requests (which get no
+    # repository secrets) run it like any other (ADR-0024, 2026-10-15).
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -302,48 +299,10 @@ jobs:
       - name: Set up Gradle (with cache)
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
-      # Split into restore + save with `if: always()` so partial NVD download
-      # progress is preserved when the analyze step times out or fails. The
-      # single-step cache action saves in a post-hook which is skipped on
-      # runner-imposed cancellation — losing partial progress means every
-      # follow-up run restarts the NVD download from scratch.
-      - name: Restore NVD database cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: nvd-${{ github.run_id }}
-          restore-keys: nvd-
-
-      - name: Run dependency-check
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: ./gradlew --no-daemon --stacktrace :app:dependencyCheckAnalyze
-
-      # ADR-0024: an open advisory the shipped snapshot does not list fails the
-      # scan — first against osv.dev (the snapshot's own source, one batch
-      # query), then against the Dependency-Check report as a second opinion.
-      # The fix is a dependency bump and/or a regenerated snapshot, never silence.
-      - name: Compare osv.dev and the scan with the shipped audit snapshot
+      # ADR-0024: asks osv.dev about every artifact of the release classpath.
+      # Fails on an open advisory the shipped snapshot does not list, and on
+      # any open HIGH or CRITICAL advisory not assessed in the suppression
+      # file. The fix is a dependency bump, a regenerated snapshot or an
+      # assessed suppression, never silence.
+      - name: Check the release classpath against osv.dev
         run: ./gradlew --no-daemon --stacktrace :app:verifyDependencyAudit -PauditLive=true
-
-      - name: Save NVD database cache
-        if: always()
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: nvd-${{ github.run_id }}
-
-      - name: Upload HTML + JSON reports
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dependency-check-reports
-          path: |
-            app/build/reports/dependency-check/dependency-check-report.*
-
-      - name: Upload SARIF to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        with:
-          sarif_file: app/build/reports/dependency-check/dependency-check-report.sarif
-          category: dependency-check

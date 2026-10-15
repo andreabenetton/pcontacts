@@ -13,7 +13,6 @@ agp                          = "8.12.3"
 kotlin                       = "2.4.20"
 ksp                          = "2.3.12"
 java                         = "17"
-dependency-check             = "13.0.0"
 detekt                       = "1.23.8"
 kover                        = "0.9.11"
 android-lint                 = "31.12.3"
@@ -136,6 +135,5 @@ kotlin-compose               = { id = "org.jetbrains.kotlin.plugin.compose", ver
 kotlin-jvm                   = { id = "org.jetbrains.kotlin.jvm",           version.ref = "kotlin" }
 kotlin-serialization         = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp                          = { id = "com.google.devtools.ksp",            version.ref = "ksp" }
-dependency-check             = { id = "org.owasp.dependencycheck",          version.ref = "dependency-check" }
 detekt                       = { id = "io.gitlab.arturbosch.detekt",        version.ref = "detekt" }
 kover                        = { id = "org.jetbrains.kotlinx.kover",        version.ref = "kover" }

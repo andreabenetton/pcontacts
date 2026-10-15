@@ -12,7 +12,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.dependency.check)
 }
 
 android {
@@ -254,7 +253,6 @@ tasks.register("checkLicense") {
 // (the same source the app's opt-in runtime check uses, ADR-0025) and the
 // suppression file; committed so the F-Droid build reproduces it.
 val dependencyAuditFile = layout.projectDirectory.file("src/main/assets/dependency-audit.json")
-val dependencyCheckReport = layout.buildDirectory.file("reports/dependency-check/dependency-check-report.json")
 val suppressionFileForAudit = rootProject.file("config/dependency-check-suppressions.xml")
 
 @Suppress("UNCHECKED_CAST")
@@ -276,53 +274,6 @@ fun readAuditSuppressions(): List<AuditSuppression> {
             packageUrl = purl?.let { if (it.attributes.getNamedItem("regex")?.nodeValue == "true") Regex(it.textContent.trim()) else Regex(Regex.escape(it.textContent.trim())) }
         )
     }
-}
-
-/** CVEs per "group:name:version" from the Dependency-Check JSON report, open and suppressed. */
-fun readAuditCves(reportFile: File): Map<String, List<Map<String, Any?>>> {
-    @Suppress("UNCHECKED_CAST")
-    val report = groovy.json.JsonSlurper().parse(reportFile) as Map<String, Any?>
-    val suppressions = readAuditSuppressions()
-    val purlPattern = Regex("""^pkg:maven/([^/]+)/([^@]+)@(.+)$""")
-    val out = mutableMapOf<String, MutableMap<String, Map<String, Any?>>>()
-    @Suppress("UNCHECKED_CAST")
-    for (dep in report["dependencies"] as List<Map<String, Any?>>) {
-        val purls = (dep["packages"] as? List<Map<String, Any?>>)?.mapNotNull { it["id"] as? String }.orEmpty()
-        for (purl in purls) {
-            val m = purlPattern.find(purl) ?: continue
-            val coordinate = "${m.groupValues[1]}:${m.groupValues[2]}:${m.groupValues[3]}"
-            for ((key, suppressed) in listOf("vulnerabilities" to false, "suppressedVulnerabilities" to true)) {
-                for (v in (dep[key] as? List<Map<String, Any?>>).orEmpty()) {
-                    val id = v["name"] as String
-                    val v3 = v["cvssv3"] as? Map<String, Any?>
-                    val v2 = v["cvssv2"] as? Map<String, Any?>
-                    val score = (v3?.get("baseScore") ?: v2?.get("score"))?.toString()?.toDoubleOrNull()
-                    val severity = (v3?.get("baseSeverity") ?: v2?.get("severity") ?: v["severity"])?.toString()?.uppercase()
-                    val reason = if (!suppressed) null else suppressions.firstOrNull { id in it.cves }?.notes
-                        ?: suppressions.firstOrNull { it.packageUrl?.containsMatchIn(purl) == true }?.notes
-                        ?: "Suppressed in config/dependency-check-suppressions.xml"
-                    // Convention: a suppression whose notes open with "False positive" says the scanner
-                    // matched the wrong product; such matches do not colour the artifact (ADR-0024).
-                    val falsePositive = reason?.startsWith("False positive", ignoreCase = true) == true
-                    val url = if (id.startsWith("CVE-")) "https://nvd.nist.gov/vuln/detail/$id" else
-                        (v["references"] as? List<Map<String, Any?>>)?.firstOrNull()?.get("url")?.toString() ?: "https://github.com/advisories/$id"
-                    out.getOrPut(coordinate) { linkedMapOf() }.putIfAbsent(
-                        id,
-                        linkedMapOf(
-                            "id" to id,
-                            "score" to score,
-                            "severity" to severity,
-                            "url" to url,
-                            "suppressed" to suppressed,
-                            "falsePositive" to falsePositive,
-                            "reason" to reason
-                        )
-                    )
-                }
-            }
-        }
-    }
-    return out.mapValues { (_, byId) -> byId.values.sortedByDescending { (it["score"] as? Double) ?: 0.0 } }
 }
 
 /** The osv.dev batch query for the given coordinates: advisory ids per coordinate, in order. */
@@ -442,7 +393,7 @@ tasks.register("verifyDependencyAudit") {
     group = "verification"
     description = "Fails if the committed dependency audit snapshot (ADR-0024) does not match the resolved " +
         "release classpath; with -PauditLive=true also asks osv.dev and fails on an open advisory the snapshot " +
-        "does not list; when a Dependency-Check report is present, compares its open CVEs too."
+        "does not list, or on any open HIGH or CRITICAL advisory the suppression file does not assess."
     notCompatibleWithConfigurationCache("walks resolved configurations at execution time")
 
     doLast {
@@ -455,6 +406,7 @@ tasks.register("verifyDependencyAudit") {
         val snapshotCoordinates = deps.map { "${it["group"]}:${it["name"]}:${it["version"]}" }.toSet()
         val resolved = resolvedReleaseComponents().map { "${it.group}:${it.module}:${it.version}" }.toSet()
         val problems = mutableListOf<String>()
+        val advisories = mutableListOf<String>()
         (resolved - snapshotCoordinates).sorted().forEach { problems += "on the classpath, not in the snapshot: $it" }
         (snapshotCoordinates - resolved).sorted().forEach { problems += "in the snapshot, not on the classpath: $it" }
 
@@ -469,22 +421,13 @@ tasks.register("verifyDependencyAudit") {
                     val known = (c["id"] as String) in snapshotKnown ||
                         ((c["aliases"] as List<*>).any { it.toString() in snapshotKnown })
                     if (open && !known) problems += "osv.dev reports an open advisory the snapshot does not list: $coordinate ${c["id"]}"
+                    // The gate the NVD scan held at CVSS 7.0: an open HIGH or CRITICAL advisory fails (ADR-0024, 2026-10-15).
+                    if (open && c["severity"] in setOf("HIGH", "CRITICAL")) {
+                        advisories += "open ${c["severity"]} advisory: $coordinate ${c["id"]} — bump the dependency or assess it in config/dependency-check-suppressions.xml"
+                    }
                 }
             }
             logger.lifecycle("ADR-0024 live comparison with osv.dev done for ${resolved.size} artifacts.")
-        }
-
-        val reportFile = dependencyCheckReport.get().asFile
-        if (reportFile.exists()) {
-            fun openIds(cves: List<Map<String, Any?>>) = cves.filter { it["suppressed"] == false }.map { it["id"] as String }.toSet()
-            val snapshotOpen = deps.flatMap { d -> openIds(auditCvesOf(d)).map { "${d["group"]}:${d["name"]}:${d["version"]} $it" } }.toSet()
-            val fresh = readAuditCves(reportFile)
-            val freshOpen = fresh.flatMap { (c, cves) -> openIds(cves).map { "$c $it" } }.toSet()
-            (freshOpen - snapshotOpen).sorted().forEach { problems += "open CVE not in the snapshot: $it" }
-            (snapshotOpen - freshOpen).sorted().forEach { logger.warn("verifyDependencyAudit: snapshot lists an open CVE the scan no longer reports: $it") }
-            val snapshotSuppressed = deps.flatMap { d -> auditCvesOf(d).filter { it["suppressed"] == true }.map { "${d["group"]}:${d["name"]}:${d["version"]} ${it["id"]}" } }.toSet()
-            val freshSuppressed = fresh.flatMap { (c, cves) -> cves.filter { it["suppressed"] == true }.map { "$c ${it["id"]}" } }.toSet()
-            if (snapshotSuppressed != freshSuppressed) logger.warn("verifyDependencyAudit: suppressed CVE set drifted; regenerate the snapshot when convenient (${(freshSuppressed - snapshotSuppressed).size} new, ${(snapshotSuppressed - freshSuppressed).size} gone)")
         }
 
         if (problems.isNotEmpty()) {
@@ -493,7 +436,10 @@ tasks.register("verifyDependencyAudit") {
                     problems.joinToString("\n  - ")
             )
         }
-        logger.lifecycle("ADR-0024 dependency audit snapshot matches: ${resolved.size} artifacts" + if (reportFile.exists()) ", open CVEs match the scan." else ".")
+        if (advisories.isNotEmpty()) {
+            throw GradleException("ADR-0024 — osv.dev reports open advisories:\n  - " + advisories.joinToString("\n  - "))
+        }
+        logger.lifecycle("ADR-0024 dependency audit snapshot matches: ${resolved.size} artifacts.")
     }
 }
 
@@ -623,34 +569,6 @@ tasks.register("verifyManifestInvariants") {
                 "debug manifest, release manifest, data_extraction_rules.xml all verified."
         )
     }
-}
-
-// OWASP Dependency-Check — scans resolved classpath for known CVEs.
-// Runs weekly in CI and on PRs touching libs.versions.toml.
-// NVD API key (free, https://nvd.nist.gov/developers/request-an-api-key)
-// is required since dependency-check v9; set NVD_API_KEY in CI secrets.
-dependencyCheck {
-    failBuildOnCVSS = 7.0f
-    suppressionFile = "$rootDir/config/dependency-check-suppressions.xml"
-    formats = listOf("HTML", "JSON", "SARIF")
-    // Pin the report location. The plugin's default moved to a
-    // dependency-check/ subdirectory in 13.0.0; CI reads these paths, so
-    // state them here rather than tracking the plugin's default.
-    outputDirectory.set(layout.buildDirectory.dir("reports/dependency-check"))
-    // Scan only what actually ships in the release APK. Test/build/lint
-    // classpaths pull in transitives (gRPC, Netty, protobuf, kotlin-compiler)
-    // with their own CVE histories, none of which reach end users.
-    scanConfigurations = listOf("releaseRuntimeClasspath")
-    // CI sets the key; the audit snapshot (ADR-0024) does not need Dependency-Check locally.
-    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
-    // NVD's API returns intermittent 503/timeout responses. Bump retry count
-    // and inter-request delay enough to survive a brief blip, but not so much
-    // that a sustained NVD outage runs past the CI job timeout.
-    nvd.maxRetryCount = 20
-    nvd.delay = 2000
-    // Trust cached NVD data for 7 days. We run weekly, so a single failed
-    // refresh still produces a useful report against the prior week's CVE set.
-    nvd.validForHours = 168
 }
 
 afterEvaluate {

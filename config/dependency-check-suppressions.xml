@@ -3,7 +3,10 @@
   SPDX-License-Identifier: GPL-3.0-only
   SPDX-FileCopyrightText: 2026 pcontacts contributors
 
-  OWASP Dependency-Check suppression file.
+  Suppression file of the dependency audit (ADR-0024): an advisory osv.dev
+  reports for an artifact is marked assessed when its id or one of its
+  aliases is listed here, or when the artifact matches a packageUrl. It keeps
+  Dependency-Check's format, which OWASP scans used until 2026-10-15.
 
   Add CVEs here ONLY with justification and a re-evaluation date.
   Each suppression MUST include:
@@ -17,7 +20,7 @@
   suppression is a real CVE of the artifact assessed as not applicable and
   shows the artifact as amber with these notes as the reason.
 
-  See https://jeremylong.github.io/DependencyCheck/general/suppression.html
+  Format: https://jeremylong.github.io/DependencyCheck/general/suppression.html
 -->
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
 

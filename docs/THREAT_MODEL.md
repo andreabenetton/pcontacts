@@ -63,7 +63,7 @@ issue or PR.
 | A2 | The platform AES-GCM implementation behind the Keystore key is honest; no third-party cryptography sits in the secrets path (androidx security-crypto and Tink were removed in 2.0.0). | Android's Conscrypt provider, exercised by every Keystore-backed app. |
 | A3 | The Android `ContactsContract` provider is honest — `caller_is_syncadapter=true` semantics work as documented (no duplicate-resurrection bug). | AOSP-documented, exercised by every account-syncing app. |
 | A4 | The user's Proton account password is sufficiently strong to resist offline brute-force against the bcrypt-SHA-512 key-password (≥ 60 bits of entropy in practice). | Proton enforces a minimum complexity at signup. |
-| A5 | The OkHttp + BouncyCastle releases pinned in `gradle/libs.versions.toml` do not contain a known CVE we're vulnerable to. | Dep-bump cadence per ADR-0015. Dependabot is enabled (`.github/dependabot.yml`). OWASP Dependency-Check runs on every push and pull request and weekly (Monday 09:00 UTC) — see the `vulnerability-scan` job in `.github/workflows/build.yml`. Findings with CVSS >= 7.0 fail the build. |
+| A5 | The OkHttp + BouncyCastle releases pinned in `gradle/libs.versions.toml` do not contain a known CVE we're vulnerable to. | Dep-bump cadence per ADR-0015. Dependabot is enabled (`.github/dependabot.yml`). The osv.dev vulnerability check runs on every push and pull request and weekly (Monday 09:00 UTC) — see the `vulnerability-scan` job in `.github/workflows/build.yml`. An open HIGH or CRITICAL advisory, or any open advisory the shipped audit snapshot does not list, fails the build (ADR-0024; until 2026-10-15 OWASP Dependency-Check, failing at CVSS >= 7.0). |
 
 ---
 
@@ -333,7 +333,8 @@ Implemented (ADR-0017/0018):
 
 Since delivered: instrumented ContactsContract tests on the API 26
 and 33 emulator pipeline, the reproducible-build gate (diffoscope),
-the OWASP dependency-check job, Compose UI tests for the
+the dependency vulnerability check (OWASP Dependency-Check, osv.dev since
+2026-10-15), Compose UI tests for the
 onboarding and settings screens (all in `.github/workflows/build.yml`),
 and the `verifyManifestInvariants` Gradle task that fails the build
 when a merged manifest has `allowBackup` or `debuggable` set wrong.

@@ -5,7 +5,7 @@
 
 # ADR-0024: The app ships a build-time dependency audit snapshot, never a runtime CVE lookup
 
-- **Status:** Accepted (amended 2026-09-22 — ADR-0025 adds an opt-in runtime check on top; the snapshot stays the default and the baseline every runtime result is compared with. Amended the same day: the snapshot is generated from one osv.dev batch query instead of the Dependency-Check report, so regenerating it needs no NVD mirror and no key; Dependency-Check stays the weekly CI second opinion)
+- **Status:** Accepted (amended 2026-09-22 — ADR-0025 adds an opt-in runtime check on top; the snapshot stays the default and the baseline every runtime result is compared with. Amended the same day: the snapshot is generated from one osv.dev batch query instead of the Dependency-Check report, so regenerating it needs no NVD mirror and no key; Dependency-Check stays the weekly CI second opinion. Amended 2026-10-15: CI's scan is osv.dev only; OWASP Dependency-Check is removed, its CVSS 7.0 gate kept as a HIGH/CRITICAL gate)
 - **Date:** 2026-09-22
 - **Deciders:** project owner
 - **Related:** ADR-0015 (no telemetry, no Google services, no remote configuration), ADR-0001 (license and attribution), ADR-0011 (module boundaries)
@@ -97,3 +97,33 @@ the app itself sends nothing.
   regenerated snapshot must fail the unit-test job.
 - The weekly scan failing on a new open CVE is the signal that the
   snapshot, and probably a dependency, needs attention.
+
+## Amendment (2026-10-15): CI scans with osv.dev only
+
+OWASP Dependency-Check is removed from the build. It mirrored the NVD
+with an API key that GitHub does not give Dependabot's runs, so the scan
+failed on every Dependabot pull request whatever it changed, and its
+CPE guesses produced matches for other products (the SQLite case). The
+`vulnerability-scan` job now runs `verifyDependencyAudit
+-PauditLive=true` alone, against osv.dev, which matches exact Maven
+coordinates and needs no key.
+
+The gate keeps its strength:
+
+- An open advisory the snapshot does not list still fails, by id or
+  alias, as before.
+- The NVD scan failed on an unsuppressed finding of CVSS 7.0 or more.
+  The live check now fails on any open advisory osv.dev rates HIGH or
+  CRITICAL (the GitHub advisory severity of its record), listed in the
+  snapshot or not, until it is fixed by a bump or assessed in the
+  suppression file.
+- The release workflow requires the new job's success on the tagged
+  commit, as it required the scan's.
+
+What goes: the comparison with the Dependency-Check report and its SARIF
+upload to the Security tab. Trade-off: an advisory recorded only in the
+NVD, with no osv.dev record (osv.dev imports the GitHub advisory database,
+where Maven advisories are kept), is no longer seen. The suppression file
+keeps its name and format; ids and aliases still match.
+
+Nothing below permits less than before, beyond that trade-off.
