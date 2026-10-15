@@ -6,6 +6,7 @@ package io.pcontacts.core.contactswriter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
+import kotlin.math.roundToInt
 
 /**
  * Downscales contact photo bytes to fit ContactsContract's inline
@@ -53,6 +54,50 @@ object PhotoDownscaler {
         } finally {
             if (!original.isRecycled) original.recycle()
         }
+    }
+
+    /** The box Proton's client fits a contact photo to: `[V]` WebClients `CONTACT_IMG_SIZE`. */
+    const val PROTON_PHOTO_SIZE = 180
+
+    private const val FULL_QUALITY = 100
+
+    /**
+     * The photo as Proton's own client sends it (ADR-0017, 2026-10-15): fitted to
+     * [PROTON_PHOTO_SIZE] px and encoded as JPEG at full quality. A JPEG already that small is
+     * returned as it is, so a photo that came from Proton is never re-encoded. Null when the
+     * bytes are no image.
+     */
+    fun fitForProton(bytes: ByteArray): ByteArray? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        val small = bounds.outWidth <= PROTON_PHOTO_SIZE && bounds.outHeight <= PROTON_PHOTO_SIZE
+        if (small && bounds.outMimeType == "image/jpeg") return bytes
+        val original = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        val fitted = fit(original)
+        return ByteArrayOutputStream().use { out ->
+            fitted.compress(Bitmap.CompressFormat.JPEG, FULL_QUALITY, out)
+            if (fitted !== original) fitted.recycle()
+            original.recycle()
+            out.toByteArray()
+        }
+    }
+
+    /** Halves while more than twice too big, then scales to the box: a smooth result, as the web client's. */
+    private fun fit(original: Bitmap): Bitmap {
+        var bitmap = original
+        while (maxOf(bitmap.width, bitmap.height) > 2 * PROTON_PHOTO_SIZE) {
+            val half = Bitmap.createScaledBitmap(bitmap, bitmap.width / 2, bitmap.height / 2, true)
+            if (bitmap !== original) bitmap.recycle()
+            bitmap = half
+        }
+        val scale = PROTON_PHOTO_SIZE.toDouble() / maxOf(bitmap.width, bitmap.height)
+        if (scale >= 1.0) return bitmap
+        val width = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
+        val height = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
+        val scaled = Bitmap.createScaledBitmap(bitmap, width, height, true)
+        if (bitmap !== original) bitmap.recycle()
+        return scaled
     }
 
     private fun tryFit(original: Bitmap): ByteArray? {
