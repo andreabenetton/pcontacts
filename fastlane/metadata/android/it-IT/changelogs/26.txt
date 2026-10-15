@@ -1,0 +1,4 @@
+Versione 2.4.2.
+
+* Le foto dei contatti vanno a Proton come le invia l'app di Proton: adattate a 180 × 180 pixel e salvate in JPEG. La foto sul telefono non cambia, e una foto già su Proton non viene inviata di nuovo.
+* Una modifica rifiutata da Proton ora dice perché in parole semplici, con il codice di Proton sotto, e cosa fare, ad esempio correggere un'email non valida e toccare Riprova.

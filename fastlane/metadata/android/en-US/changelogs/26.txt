@@ -1,0 +1,4 @@
+Version 2.4.2.
+
+* Contact photos go to Proton the way Proton's own app sends them: fitted to 180 × 180 pixels and saved as JPEG. The photo on the phone is not changed, and a photo already on Proton is not sent again.
+* A change Proton refuses now says why in plain words, with Proton's code below, and what to do, such as correcting an invalid email on the phone and tapping Retry.
