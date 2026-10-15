@@ -597,6 +597,9 @@ now fails toward keeping the user's data or asking:
   not known to be stable while contacts change. Before a contact
   missing from the listing is deleted on the phone, it is fetched; only
   "does not exist" (HTTP 404, or 422 with Code 2501) deletes it, any
-  other answer keeps the row for the next run.
+  other answer keeps the row for the next run. The same holds for the
+  "deleted on Proton while edited here" conflict: a contact the phone
+  owns that is missing from the listing is asked about only once Proton
+  says it is gone, so "use phone version" cannot make a second copy.
 
 Nothing below permits less than before.

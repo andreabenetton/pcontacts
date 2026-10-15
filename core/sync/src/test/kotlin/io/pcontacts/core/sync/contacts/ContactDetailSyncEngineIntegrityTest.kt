@@ -219,6 +219,7 @@ class ContactDetailSyncEngineIntegrityTest {
         val applier = DetailFakeApplier(base = 1L)
         val engine = newEngine(api, dao, applier, hasLocalMutation = { it == "c2" })
         engine.sync(account)
+        api.goneIds += "c2"
 
         val report = engine.sync(account)
 
@@ -228,6 +229,21 @@ class ContactDetailSyncEngineIntegrityTest {
         val mapping = dao.snapshot()["c2"]!!
         assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
         assertEquals(SERVER_DELETED_CONFLICT, mapping.lastError)
+    }
+
+    @Test fun a_row_the_phone_owns_missing_from_the_listing_but_still_on_proton_is_no_conflict() = runTest {
+        // [U] paging: "deleted on Proton" offered to recreate the contact, a second copy on Proton
+        // (ADR-0017, 2026-10-15).
+        val api = aliceBobApi(secondPage = metaPage(meta("c1", 100L)))
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier, hasLocalMutation = { it == "c2" })
+        engine.sync(account)
+
+        engine.sync(account)
+
+        assertEquals(ContactMapEntity.Status.CLEAN, dao.snapshot()["c2"]!!.syncStatus)
+        assertEquals(listOf(2L), applier.rawIdsFor("c2"))
     }
 
     @Test fun a_row_whose_create_is_queued_after_a_server_deleted_conflict_is_not_deleted_by_the_pull() = runTest {

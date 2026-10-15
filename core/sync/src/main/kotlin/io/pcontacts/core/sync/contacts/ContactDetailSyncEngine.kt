@@ -440,7 +440,9 @@ class ContactDetailSyncEngine(
             val owned = (stored != null && locallyOwned(stored, sourceId)) || rawId in rawIdsWithQueuedCreate
             if (!owned) continue
             protectedIds += sourceId
-            if (stored != null && stored.lastError != SERVER_DELETED_CONFLICT) {
+            // Missing from the listing is not "deleted on Proton" until Proton says so (ADR-0017, 2026-10-15).
+            val deletedThere = stored != null && stored.lastError != SERVER_DELETED_CONFLICT && goneFromProton(sourceId)
+            if (deletedThere) {
                 logger.warn { "deleted on Proton while edited here; kept as a conflict idTag=${sourceId.hashCode()}" }
                 contactMapDao.markConflict(sourceId, SERVER_DELETED_CONFLICT)
             }
