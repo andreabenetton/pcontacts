@@ -28,6 +28,7 @@ import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.app.sync.hasNetwork
+import io.pcontacts.core.protoncontacts.ProtonAdjustment
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.sync.auth.LogoutOrchestrator
@@ -36,12 +37,14 @@ import io.pcontacts.core.sync.contacts.LOCAL_REMOVED_CONFLICT
 import io.pcontacts.core.sync.contacts.SERVER_DELETED_CONFLICT
 import io.pcontacts.core.sync.contacts.SERVER_EDITED_CONFLICT
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.feature.settings.AdjustedContact
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
 import io.pcontacts.feature.settings.ContactsAccessKind
 import io.pcontacts.feature.settings.LastSyncSummary
 import io.pcontacts.feature.settings.OutboxStats
 import io.pcontacts.feature.settings.PendingDelete
+import io.pcontacts.feature.settings.ProtonAdjustmentKind
 import io.pcontacts.feature.settings.QuarantinedChange
 import io.pcontacts.feature.settings.QuarantinedOperation
 import io.pcontacts.feature.settings.SettingsActionResult
@@ -86,6 +89,11 @@ class SettingsHost(
             queryQuarantinedChanges = ::queryQuarantinedChanges,
             retryQuarantinedChange = { SyncBootstrap.retryQuarantinedChange(context, it) },
             discardQuarantinedChange = { SyncBootstrap.discardQuarantinedChange(context, it, currentAccount()) },
+            queryAdjustedContacts = ::queryAdjustedContacts,
+            dismissAdjustment = { item ->
+                val adjustment = ProtonAdjustment.valueOf(item.kind.name)
+                SyncBootstrap.dismissProtonAdjustment(context, item.protonContactId, adjustment)
+            },
             cancelDelete = ::cancelPendingDelete,
             resolveConflict = ::resolveConflict,
             queryContactsAccessApps = { ContactsAccessApps.list(activity, ContactsAccessKind.USER) },
@@ -310,6 +318,21 @@ class SettingsHost(
                 displayName = ref.androidRawContactId?.let { names[it] },
                 operation = ref.op.toUiOperation(),
                 reason = ref.lastError,
+                rawContactId = ref.androidRawContactId
+            )
+        }
+    }
+
+    /** Values fitted to Proton's editor rules before sending; names from the provider (ADR-0007). */
+    private suspend fun queryAdjustedContacts(): List<AdjustedContact> {
+        val refs = SyncBootstrap.listProtonAdjustments(context)
+        if (refs.isEmpty()) return emptyList()
+        val names = resolveDisplayNames(refs.mapNotNull { it.androidRawContactId })
+        return refs.map { ref ->
+            AdjustedContact(
+                protonContactId = ref.protonContactId,
+                displayName = ref.androidRawContactId?.let { names[it] },
+                kind = ProtonAdjustmentKind.valueOf(ref.adjustment.name),
                 rawContactId = ref.androidRawContactId
             )
         }
