@@ -10,7 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import kotlin.time.Duration.Companion.minutes
 
@@ -29,12 +28,11 @@ import kotlin.time.Duration.Companion.minutes
  *
  * - S6: a contact still on Proton is never purged from the phone.
  *
- * `PCONTACTS_FUZZ_SEED`, `PCONTACTS_FUZZ_ITERATIONS` and `PCONTACTS_FUZZ_STEPS` widen the
- * search; a failure names the seed and the command that replays it. Opt-in, off in CI while
- * the defects they find are open: `PCONTACTS_FUZZ_FAULTS` (faults at every boundary),
- * `PCONTACTS_FUZZ_CONCURRENT_EDITS` (the user edits while a run is in flight) and
- * `PCONTACTS_FUZZ_LISTING_OMISSION` (a listing page silently leaves a contact out);
+ * Worlds run without faults, with faults at every boundary, with the user editing while a run is
+ * in flight, and with listing pages that silently leave a contact out. `PCONTACTS_FUZZ_SEED`,
+ * `PCONTACTS_FUZZ_ITERATIONS` and `PCONTACTS_FUZZ_STEPS` widen the search;
  * `PCONTACTS_FUZZ_FAULT_RATE` sets the odds of a fault per call (0 isolates the other modes).
+ * A failure names the seed and the command that replays it.
  */
 class SyncConvergenceFuzzTest {
 
@@ -51,9 +49,15 @@ class SyncConvergenceFuzzTest {
     }
 
     @Test fun seeded_fault_injection_converges() = runTest(timeout = TIMEOUT) {
-        // Opt-in until the open defects it finds are fixed (the 2026-10-14 review follow-ups).
-        assumeTrue("Set env PCONTACTS_FUZZ_FAULTS=true", System.getenv("PCONTACTS_FUZZ_FAULTS") == "true")
         repeat(iterations) { i -> Fuzz(baseSeed + i, steps, withFaults = true).run(this) }
+    }
+
+    @Test fun edits_made_while_a_run_is_in_flight_converge() = runTest(timeout = TIMEOUT) {
+        repeat(iterations) { i -> Fuzz(baseSeed + i, steps, withFaults = true, concurrentEdits = true).run(this) }
+    }
+
+    @Test fun listings_that_leave_contacts_out_converge() = runTest(timeout = TIMEOUT) {
+        repeat(iterations) { i -> Fuzz(baseSeed + i, steps, withFaults = true, listingOmission = true).run(this) }
     }
 
     // ---- scripted: the windows the 2026-10-14 fixes closed ----
@@ -160,10 +164,16 @@ class SyncConvergenceFuzzTest {
     }
 
     /** One seeded world driven through bootstrap, faulted steps and quiescence. */
-    private class Fuzz(private val seed: Long, private val steps: Int, private val withFaults: Boolean) {
+    private class Fuzz(
+        private val seed: Long,
+        private val steps: Int,
+        private val withFaults: Boolean,
+        concurrentEdits: Boolean = false,
+        listingOmission: Boolean = false
+    ) {
         val world = SyncWorld(seed).apply {
-            if (System.getenv("PCONTACTS_FUZZ_CONCURRENT_EDITS") == "true") faults.midRun = { localEdit() }
-            server.omitFromListing = System.getenv("PCONTACTS_FUZZ_LISTING_OMISSION") == "true"
+            if (concurrentEdits) faults.midRun = { localEdit() }
+            server.omitFromListing = listingOmission
             System.getenv("PCONTACTS_FUZZ_FAULT_RATE")?.toDoubleOrNull()?.let { faults.rate = it }
         }
         private var step = "bootstrap"
