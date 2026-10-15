@@ -24,9 +24,13 @@ import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
+import io.pcontacts.core.protoncontacts.DecryptedAddress
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.protoncontacts.DecryptedEmail
+import io.pcontacts.core.protoncontacts.DecryptedIm
+import io.pcontacts.core.protoncontacts.DecryptedOrganization
 import io.pcontacts.core.protoncontacts.DecryptedPhone
+import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.DecryptedStructuredName
 import io.pcontacts.core.storage.InMemorySecretStore
 import io.pcontacts.core.sync.contacts.decrypt.OpenPgpCardCryptoOp
@@ -207,6 +211,83 @@ class LiveProtonWriteTest {
         }
     }
 
+    /**
+     * Probe, not part of the canary: `PCONTACTS_PROBE_FIELDS=true` creates one throwaway contact
+     * per field value the phone side can produce and prints Proton's item code for each, then
+     * deletes them. Finds which value Proton refuses with an undocumented code (`[U]` 2060).
+     */
+    @Test fun live_field_probe() = runBlocking {
+        assumeTrue("Set env PCONTACTS_PROBE_FIELDS=true", System.getenv("PCONTACTS_PROBE_FIELDS") == "true")
+        assumeTrue("Set env PCONTACTS_LIVE_TEST=true", System.getenv("PCONTACTS_LIVE_TEST") == "true")
+        val username = System.getenv("PCONTACTS_USERNAME").orEmpty()
+        val password = System.getenv("PCONTACTS_PASSWORD").orEmpty().toCharArray()
+        val crypto = loginAndBuildCrypto(username, password)
+        val base = buildTestContact("probe").copy(phones = emptyList(), notes = emptyList())
+        val probes = linkedMapOf(
+            "baseline" to base,
+            "birthday full" to base.copy(birthday = "1980-03-15"),
+            "birthday no year" to base.copy(birthday = "--03-15"),
+            "birthday text" to base.copy(birthday = "March 15"),
+            "anniversary no year" to base.copy(anniversary = "--06-01"),
+            "website no scheme" to base.copy(websites = listOf("example.com")),
+            "website scheme" to base.copy(websites = listOf("https://example.com")),
+            "phone letters" to base.copy(phones = listOf(DecryptedPhone("+1 555 CALL ME", listOf("cell")))),
+            "phone extension" to base.copy(phones = listOf(DecryptedPhone("+1 555 0100 ext. 12", listOf("work")))),
+            "email invalid" to base.copy(emails = listOf(DecryptedEmail("not an email", isPrimary = true))),
+            "email spaces" to base.copy(emails = listOf(DecryptedEmail(" spaced@example.com ", isPrimary = true))),
+            "email none" to base.copy(emails = emptyList()),
+            "nickname" to base.copy(nicknames = listOf("Probe")),
+            "address country only" to base.copy(addresses = listOf(DecryptedAddress(country = "Italy"))),
+            "im" to base.copy(imAccounts = listOf(DecryptedIm("probe.handle", "skype"))),
+            "organization title only" to base.copy(organization = DecryptedOrganization(title = "Engineer")),
+            "note long" to base.copy(notes = listOf("x".repeat(LONG_NOTE)))
+        )
+        // JPEG files named by the env var, sent the way the push sends a phone photo.
+        System.getenv("PCONTACTS_PROBE_PHOTOS")?.split(",")?.forEach { path ->
+            val bytes = java.io.File(path).readBytes()
+            probes["photo ${bytes.size / KIB} KiB"] = base.copy(photo = DecryptedPhoto(bytes))
+        }
+        val created = mutableListOf<String>()
+        try {
+            for ((tag, contact) in probes) {
+                val probe = contact.copy(fullName = "pcontacts probe $tag", protonUid = "urn:uuid:${UUID.randomUUID()}")
+                val request = CreateContactsRequest(listOf(ContactCardBundle(crypto.serializer.serialize(probe))))
+                val item = crypto.apiFactory.contacts.createContacts(request).responses.firstOrNull()?.response
+                item?.contact?.id?.let { created += it }
+                println("  probe [$tag]: item Code=${item?.code}")
+                delay(SEED_PAUSE_MS)
+            }
+            // The same values reached by an update of a plain contact, through the push's patch path.
+            for ((tag, contact) in probes) {
+                val plain = base.copy(
+                    fullName = "pcontacts probe update $tag",
+                    protonUid = "urn:uuid:${UUID.randomUUID()}"
+                )
+                val request = CreateContactsRequest(listOf(ContactCardBundle(crypto.serializer.serialize(plain))))
+                val response = crypto.apiFactory.contacts.createContacts(request)
+                val id = response.responses.firstOrNull()?.response?.contact?.id ?: continue
+                created += id
+                val server = fetchAndDecrypt(crypto.apiFactory, crypto.processor, id)
+                val canonical = MergeBaseCodec.canonical(server)!!
+                val target = contact.copy(fullName = canonical.fullName, protonUid = canonical.protonUid)
+                val patch = ContactPatch.diff(canonical, target)
+                val cards = crypto.serializer.serialize(server.cards, patch, "unused")
+                val update = UpdateContactRequest(cards)
+                val outcome = runCatching { crypto.apiFactory.contacts.updateContact(id, update).code }
+                println("  probe update [$tag]: ${outcome.getOrElse(::refusal)}")
+                delay(SEED_PAUSE_MS)
+            }
+        } finally {
+            if (created.isNotEmpty()) crypto.apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = created))
+            println("  cleanup: deleted ${created.size}")
+            runCatching { crypto.apiFactory.auth.revoke() }
+        }
+    }
+
+    private fun refusal(t: Throwable): String = (t as? retrofit2.HttpException)
+        ?.let { e -> "HTTP ${e.code()} ${e.response()?.errorBody()?.string()?.take(PROBE_BODY)}" }
+        ?: t.javaClass.simpleName
+
     private suspend fun seedContacts(crypto: CryptoContext, count: Int) {
         var created = 0
         for (batch in (1..count).chunked(SEED_BATCH)) {
@@ -250,6 +331,9 @@ class LiveProtonWriteTest {
         const val CLEAN_BATCH = 50
         const val SEED_PAUSE_MS = 200L
         const val SUCCESS = 1000
+        const val LONG_NOTE = 20_000
+        const val KIB = 1024
+        const val PROBE_BODY = 160
     }
 
     private data class CryptoContext(
