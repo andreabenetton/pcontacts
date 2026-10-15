@@ -92,6 +92,10 @@ internal class FakeContactsProvider(private val faults: Faults, private val rng:
         rows.values.any { it.sourceId == sourceId && !it.deleted }
     }
 
+    suspend fun liveRawId(sourceId: String): Long? = faults.checkpoint(Site.PROVIDER, "live id $sourceId") {
+        rows.values.filter { it.sourceId == sourceId && !it.deleted }.minOfOrNull { it.id }
+    }
+
     /** Puts a tombstoned contact back (the user cancelled the deletion); the number of rows restored. */
     fun restoreTombstones(sourceId: String): Int {
         val tombstones = rows.values.filter { it.sourceId == sourceId && it.deleted }

@@ -594,6 +594,45 @@ class ContactWriteEngineTest {
         assertEquals(OutboxEntity.OpType.CREATE, live.opType)
     }
 
+    @Test fun an_update_for_a_row_the_pull_never_mapped_becomes_a_conflict_not_a_rewrite() = runTest {
+        // The pull wrote the row and stopped before mapping it; then the user edited it. Before,
+        // the update was quarantined and the next pull rewrote the edit away (ADR-0017, 2026-10-15).
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        outbox.enqueue("srv-5", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("srv-5" to sampleContact("srv-5")),
+            serverContacts = mapOf("srv-5" to sampleContact("srv-5")),
+            liveRawIds = mapOf("srv-5" to 105L)
+        )
+
+        val report = engine.push(testAccount)
+
+        val mapping = contactMap.findByProtonId("srv-5")!!
+        assertEquals(105L, mapping.androidRawContactId)
+        assertEquals(ContactMapEntity.Status.CONFLICT, mapping.syncStatus)
+        assertEquals(1, report.conflicted)
+        assertNull(api.lastUpdateRequest)
+    }
+
+    @Test fun an_update_whose_row_is_mapped_under_another_id_is_stale_and_dropped() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("local-105", rawId = 105L))
+        outbox.enqueue("srv-gone", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(outbox = outbox, contactMap = contactMap, liveRawIds = mapOf("srv-gone" to 105L))
+
+        val report = engine.push(testAccount)
+
+        assertTrue(outbox.entries.isEmpty())
+        assertEquals(0, report.quarantined)
+        assertNull(contactMap.findByProtonId("srv-gone"))
+    }
+
     @Test fun detectChanges_skips_duplicate_delete() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
@@ -2225,6 +2264,7 @@ class ContactWriteEngineTest {
         mergeBases: InMemoryMergeBaseStore = InMemoryMergeBaseStore(),
         fetchServerContact: suspend (String) -> DecryptedContact? = { id -> serverContacts[id] },
         hasLiveRow: suspend (Account, String) -> Boolean = { _, _ -> false },
+        liveRawIds: Map<String, Long> = emptyMap(),
         onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> },
         groupLabelIds: Map<Long, String> = emptyMap()
     ): ContactWriteEngine {
@@ -2249,6 +2289,7 @@ class ContactWriteEngineTest {
             },
             fetchServerContact = fetchServerContact,
             hasLiveRow = hasLiveRow,
+            liveRawId = { _, id -> liveRawIds[id] },
             onProgress = onProgress,
             groupLabelIds = { groupLabelIds },
             clock = clock

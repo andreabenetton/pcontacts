@@ -100,6 +100,7 @@ internal class SyncWorld(seed: Long) {
         mergeBases = mergeBases,
         readDirtyContacts = { provider.readDirty() },
         hasLiveRow = { _, id -> provider.hasLiveRow(id) },
+        liveRawId = { _, id -> provider.liveRawId(id) },
         readContactRow = { rawId, sourceId -> provider.readRow(rawId, sourceId) },
         clearDirtyFlag = { _, rawId -> provider.clearDirty(rawId) },
         writeSourceId = { _, rawId, id -> provider.writeSourceId(rawId, id) },

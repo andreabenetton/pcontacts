@@ -91,6 +91,8 @@ class ContactWriteEngine(
      * row itself shows it (ADR-0017, 2026-10-01).
      */
     private val hasLiveRow: suspend (Account, String) -> Boolean = { _, _ -> false },
+    /** `RawContacts._ID` of the live row carrying the SOURCE_ID under [Account], or null. */
+    private val liveRawId: suspend (Account, String) -> Long? = { _, _ -> null },
     private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
@@ -354,6 +356,14 @@ class ContactWriteEngine(
 
     private suspend fun pushUpdate(entry: OutboxEntity, account: Account?): WriteReport {
         val id = entry.protonContactId
+        val unmapped = account != null && contactMapDao.findByProtonId(id) == null
+        val unmappedRow = if (unmapped) account?.let { liveRawId(it, id) } else null
+        if (unmappedRow != null && contactMapDao.findByRawContactId(unmappedRow) != null) {
+            logger.info { "push: update for a row mapped under another id is stale; dropped idTag=${id.hashCode()}" }
+            outboxDao.deleteById(entry.id)
+            return WriteReport.EMPTY
+        }
+        if (unmappedRow != null) contactMapDao.upsert(rebuiltMapping(id, unmappedRow))
         val mapping = contactMapDao.findByProtonId(id)
         val row = mapping?.let { readContactRow(it.androidRawContactId, id) }
         if (mapping == null || row == null) {
@@ -666,6 +676,24 @@ class ContactWriteEngine(
             outboxDao.enqueue(serverContact.id, OutboxEntity.OpType.UPDATE, nowHash, clock())
         }
     }
+
+    /**
+     * The mapping of a row the pull wrote and stopped before recording, rebuilt from the provider
+     * row. It has no merge base, so the update ends as a conflict the user settles, never as a
+     * silent rewrite from Proton (ADR-0017, 2026-10-15).
+     */
+    private fun rebuiltMapping(id: String, rawContactId: Long) = ContactMapEntity(
+        protonContactId = id,
+        protonUid = null,
+        androidRawContactId = rawContactId,
+        modifyTime = 0L,
+        contentHash = "",
+        isVerified = true,
+        deleted = false,
+        syncStatus = ContactMapEntity.Status.CLEAN,
+        lastError = null,
+        lastSyncedAt = clock()
+    )
 
     /** ModifyTime 0: the next pull still fetches the contact and rewrites the row from Proton. */
     private fun createdMapping(serverContact: ContactDto, rawContactId: Long, pushedHash: String) = ContactMapEntity(

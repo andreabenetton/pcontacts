@@ -356,6 +356,12 @@ object SyncBootstrap {
                         .orEmpty().any { !it.deleted }
                 }
             },
+            liveRawId = { account, protonContactId ->
+                withContext(Dispatchers.IO) {
+                    RawContactReader(provider).readExistingState(account).rowsBySourceId[protonContactId]
+                        .orEmpty().filter { !it.deleted }.minOfOrNull { it.rawContactId }
+                }
+            },
             readContactRow = { rawContactId, sourceId ->
                 withContext(Dispatchers.IO) { dataReader.read(rawContactId, sourceId) }
             },

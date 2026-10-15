@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An edit is no longer lost after a download was cut short.** If a
+  sync stopped right after writing a contact to the phone, an edit made
+  to it before the next sync was overwritten from Proton. The app now
+  asks which version to keep.
 - **A contact deleted right after it was created no longer comes back.**
   If a sync was cut off just after Proton stored a new contact, and the
   contact was then deleted on the phone, the next sync brought it back
