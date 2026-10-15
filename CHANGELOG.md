@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adjusted value and the phone gets it with the next sync. An email
   address that is still invalid is sent as it is and, if Proton refuses
   it, listed as a failed change as before.
+- **Email types sync both ways.** An email marked home or work keeps its
+  type on the phone and on Proton; before, every email on the phone was
+  "other" and a type set on either side was lost. The Contacts app now
+  offers home, work and other for a Proton contact's email. After the
+  update every contact is rewritten once from Proton; a home or work type
+  you had set on the phone is sent to Proton first, and a different type
+  on each side is shown as a conflict for you to settle.
 
 ### Fixed
 
