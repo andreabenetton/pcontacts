@@ -110,6 +110,21 @@ data class QuarantinedChange(
     val rawContactId: Long? = null
 )
 
+/** What was conformed to Proton's editor rules before sending (ADR-0017, 2026-10-15, third amendment). */
+enum class ProtonAdjustmentKind { NAME_SHORTENED, FIRST_NAME_SHORTENED, LAST_NAME_SHORTENED, EMAIL_TRIMMED }
+
+/**
+ * One value pcontacts adjusted so Proton would take the contact. Like [QuarantinedChange], the
+ * name is resolved in `:app` from ContactsContract and is null once the contact is gone; the
+ * value itself is never kept (ADR-0007).
+ */
+data class AdjustedContact(
+    val protonContactId: String,
+    val displayName: String?,
+    val kind: ProtonAdjustmentKind,
+    val rawContactId: Long? = null
+)
+
 data class ConflictInfo(
     val protonContactId: String,
     val displayName: String?,

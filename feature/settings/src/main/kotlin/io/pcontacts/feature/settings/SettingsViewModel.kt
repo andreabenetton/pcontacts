@@ -48,6 +48,8 @@ class SettingsViewModel(
     private val queryQuarantinedChanges: suspend () -> List<QuarantinedChange> = { emptyList() },
     private val retryQuarantinedChange: suspend (Long) -> Unit = {},
     private val discardQuarantinedChange: suspend (Long) -> Unit = {},
+    private val queryAdjustedContacts: suspend () -> List<AdjustedContact> = { emptyList() },
+    private val dismissAdjustment: suspend (AdjustedContact) -> Unit = {},
     private val cancelDelete: suspend (String) -> Unit = {},
     private val resolveConflict: suspend (String, ConflictResolution) -> Unit = { _, _ -> },
     private val queryContactsAccessApps: suspend () -> List<ContactsAccessApp> = { emptyList() },
@@ -108,6 +110,12 @@ class SettingsViewModel(
 
     private val _quarantinedDialogOpen = MutableStateFlow(false)
     val quarantinedDialogOpen: StateFlow<Boolean> = _quarantinedDialogOpen.asStateFlow()
+
+    private val _adjustedContacts = MutableStateFlow<List<AdjustedContact>>(emptyList())
+    val adjustedContacts: StateFlow<List<AdjustedContact>> = _adjustedContacts.asStateFlow()
+
+    private val _adjustedDialogOpen = MutableStateFlow(false)
+    val adjustedDialogOpen: StateFlow<Boolean> = _adjustedDialogOpen.asStateFlow()
 
     private val _contactsAccessApps = MutableStateFlow<List<ContactsAccessApp>>(emptyList())
     val contactsAccessApps: StateFlow<List<ContactsAccessApp>> = _contactsAccessApps.asStateFlow()
@@ -173,6 +181,7 @@ class SettingsViewModel(
             _pendingDeletes.value = orDefault(emptyList()) { queryPendingDeletes() }
             _conflicts.value = orDefault(emptyList()) { queryConflicts() }
             _quarantinedChanges.value = orDefault(emptyList()) { queryQuarantinedChanges() }
+            _adjustedContacts.value = orDefault(emptyList()) { queryAdjustedContacts() }
             _contactsAccessApps.value = orDefault(emptyList()) { queryContactsAccessApps() }
             _systemContactsAccessApps.value = orDefault(emptyList()) { querySystemContactsAccessApps() }
             _systemNoticeDismissed.value = orDefault(false) { querySystemNoticeDismissed() }
@@ -291,6 +300,23 @@ class SettingsViewModel(
             withContext(workDispatcher) { discardQuarantinedChange(outboxId) }
             refreshSyncStatus()
             closeQuarantinedDialogIfEmpty()
+        }
+    }
+
+    fun showAdjustedContactsDialog() {
+        _adjustedDialogOpen.value = true
+    }
+
+    fun dismissAdjustedContactsDialog() {
+        _adjustedDialogOpen.value = false
+    }
+
+    /** The user has read one adjustment; the dialog closes with the last one. */
+    fun dismissAdjusted(adjustment: AdjustedContact) {
+        scope.launch {
+            withContext(workDispatcher) { dismissAdjustment(adjustment) }
+            refreshSyncStatus()
+            if (_adjustedContacts.value.isEmpty()) _adjustedDialogOpen.value = false
         }
     }
 

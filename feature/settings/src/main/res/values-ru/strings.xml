@@ -68,6 +68,19 @@
     <string name="quarantined_reason_format">Proton не принял то, как pcontacts записал этот контакт. Это ошибка pcontacts, а не контакта: сообщите о ней с кодом ниже.</string>
     <string name="quarantined_reason_not_on_proton">У Proton больше нет этого контакта.</string>
     <string name="quarantined_reason_not_allowed">Proton не разрешает это изменение для вашего аккаунта.</string>
+    <plurals name="adjusted_count">
+        <item quantity="one">%d значение изменено для Proton</item>
+        <item quantity="few">%d значения изменены для Proton</item>
+        <item quantity="many">%d значений изменены для Proton</item>
+        <item quantity="other">%d значений изменены для Proton</item>
+    </plurals>
+    <string name="adjusted_dialog_title">Изменено для Proton</string>
+    <string name="adjusted_detail">Приложение Proton не принимает эти значения в исходном виде, поэтому pcontacts изменил их перед отправкой. Proton хранит изменённое значение, а телефон получит его при следующей синхронизации.</string>
+    <string name="adjusted_name_shortened">Имя сокращено до 190 символов — максимума в Proton.</string>
+    <string name="adjusted_first_name_shortened">Имя сокращено до 94 символов — максимума в Proton.</string>
+    <string name="adjusted_last_name_shortened">Фамилия сокращена до 94 символов — максимума в Proton.</string>
+    <string name="adjusted_email_trimmed">Удалены пробелы вокруг адреса эл. почты.</string>
+    <string name="adjusted_dismiss">Скрыть</string>
     <string name="quarantined_reason_not_on_phone">Этого контакта больше нет на этом телефоне.</string>
     <string name="quarantined_reason_network">Не удалось связаться с Proton.</string>
     <string name="quarantined_reason_other">На этом телефоне что-то пошло не так.</string>

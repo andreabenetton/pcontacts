@@ -62,6 +62,17 @@
     <string name="quarantined_reason_format">Proton n\'a pas accepté la façon dont pcontacts a écrit ce contact. C\'est un problème de pcontacts, pas du contact : signalez-le avec le code ci-dessous.</string>
     <string name="quarantined_reason_not_on_proton">Proton n\'a plus ce contact.</string>
     <string name="quarantined_reason_not_allowed">Proton n\'autorise pas cette modification sur votre compte.</string>
+    <plurals name="adjusted_count">
+        <item quantity="one">%d valeur ajustée pour Proton</item>
+        <item quantity="other">%d valeurs ajustées pour Proton</item>
+    </plurals>
+    <string name="adjusted_dialog_title">Ajusté pour Proton</string>
+    <string name="adjusted_detail">L\'app de Proton n\'accepte pas ces valeurs telles quelles : pcontacts les a donc ajustées avant l\'envoi. Proton garde la valeur ajustée, et le téléphone la reçoit à la prochaine synchronisation.</string>
+    <string name="adjusted_name_shortened">Nom raccourci à 190 caractères, le maximum accepté par Proton.</string>
+    <string name="adjusted_first_name_shortened">Prénom raccourci à 94 caractères, le maximum accepté par Proton.</string>
+    <string name="adjusted_last_name_shortened">Nom de famille raccourci à 94 caractères, le maximum accepté par Proton.</string>
+    <string name="adjusted_email_trimmed">Espaces supprimés autour d\'une adresse e-mail.</string>
+    <string name="adjusted_dismiss">Masquer</string>
     <string name="quarantined_reason_not_on_phone">Ce contact n\'est plus sur ce téléphone.</string>
     <string name="quarantined_reason_network">Proton n\'a pas pu être joint.</string>
     <string name="quarantined_reason_other">Un problème est survenu sur ce téléphone.</string>

@@ -426,6 +426,7 @@ private fun StatusRows(viewModel: SettingsViewModel) {
         )
     }
     if (conflicts.isNotEmpty()) ConflictRows(conflicts, viewModel::resolveContactConflict)
+    AdjustedContactsRow(viewModel)
 
     if (unverifiedDialogOpen) {
         UnverifiedContactsDialog(
@@ -453,7 +454,7 @@ private fun StatusRows(viewModel: SettingsViewModel) {
 }
 
 @Composable
-private fun StatusRow(text: String, detail: String?, error: Boolean, onClick: (() -> Unit)?) {
+internal fun StatusRow(text: String, detail: String?, error: Boolean, onClick: (() -> Unit)?) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     val clickable = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
     Column(
