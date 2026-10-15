@@ -7,6 +7,7 @@ import ezvcard.Ezvcard
 import ezvcard.VCard
 import ezvcard.VCardVersion
 import ezvcard.parameter.AddressType
+import ezvcard.parameter.EmailType
 import ezvcard.parameter.ImageType
 import ezvcard.parameter.TelephoneType
 import ezvcard.property.Address
@@ -246,12 +247,21 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
 
     private fun applyEmails(patch: ContactPatch.ListPatch<DecryptedEmail>) {
         patch.removed.forEach { e -> allEmails().filter { it.value == e.address }.forEach(::removeWithGroup) }
+        // Only the home/work tokens are Android's; any other type, the group and the keys stay (ADR-0023, 2026-10-15).
+        fun setTypes(email: Email, e: DecryptedEmail) {
+            email.types.removeAll { it.value.lowercase() in ANDROID_EMAIL_TOKENS }
+            e.types.filter { it.lowercase() in ANDROID_EMAIL_TOKENS }.forEach { email.types.add(EmailType.get(it)) }
+        }
         patch.modified.forEach { e ->
-            allEmails().filter { it.value == e.address }.forEach { it.pref = if (e.isPrimary) 1 else null }
+            allEmails().filter { it.value == e.address }.forEach {
+                setTypes(it, e)
+                it.pref = if (e.isPrimary) 1 else null
+            }
         }
         patch.added.forEach { e ->
             val email = Email(e.address)
             email.group = freshGroup()
+            setTypes(email, e)
             if (e.isPrimary) email.pref = 1
             signed.vcard.addEmail(email)
         }
@@ -380,6 +390,7 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
         /** The TEL TYPE tokens Android can express; any other token on the property is not ours to touch. */
         val ANDROID_TEL_TOKENS = setOf("home", "work", "cell", "mobile", "fax", "pager", "main")
         val ANDROID_ADR_TOKENS = setOf("home", "work")
+        val ANDROID_EMAIL_TOKENS = setOf("home", "work")
         val GROUP_PATTERN = Regex("item(\\d+)", RegexOption.IGNORE_CASE)
 
         /** The TYPE tokens of [own] among [tokens], as a set: a subset test would let OTHER's `[]` match anything. */

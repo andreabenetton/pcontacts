@@ -139,6 +139,37 @@ class CardPatcherTest {
         assertTrue(out.getValue(CardType.ENCRYPTED_AND_SIGNED).emails.isEmpty())
     }
 
+    @Test fun an_email_type_change_replaces_only_home_and_work_and_keeps_group_and_keys() {
+        val out = rendered(
+            ContactPatch(
+                emails = ContactPatch.ListPatch(
+                    modified = listOf(
+                        DecryptedEmail("alice@example.com", types = listOf("work"), isPrimary = true)
+                    )
+                )
+            )
+        )
+
+        val signed = out.getValue(CardType.SIGNED)
+        val email = signed.emails.single { it.value == "alice@example.com" }
+        assertEquals(listOf("work"), email.types.map { it.value })
+        assertEquals("item1", email.group)
+        assertEquals(1, email.pref)
+        assertEquals(1, signed.keys.size)
+
+        val untyped = DecryptedEmail("alice@example.com", isPrimary = true)
+        val back = rendered(ContactPatch(emails = ContactPatch.ListPatch(modified = listOf(untyped))))
+        assertTrue(back.getValue(CardType.SIGNED).emails.single { it.value == "alice@example.com" }.types.isEmpty())
+    }
+
+    @Test fun an_added_email_carries_its_type() {
+        val home = DecryptedEmail("home@example.com", types = listOf("home"))
+        val out = rendered(ContactPatch(emails = ContactPatch.ListPatch(added = listOf(home))))
+
+        val added = out.getValue(CardType.SIGNED).emails.single { it.value == "home@example.com" }
+        assertEquals(listOf("home"), added.types.map { it.value })
+    }
+
     @Test fun removing_an_email_removes_its_key_and_x_pm_group_mates() {
         val out = rendered(
             ContactPatch(emails = ContactPatch.ListPatch(removed = listOf(DecryptedEmail("alice@example.com"))))
