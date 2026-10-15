@@ -5,7 +5,7 @@
 
 # ADR-0023: One-way contact enrichment — pull linked accounts' fields into Proton
 
-- **Status:** Accepted (amended 2026-09-22 — allowlist narrowed to what ships; consent model stated; amended 2026-09-24 — birthday, anniversary, nickname and website carried; narrowed by ADR-0026 — orphan `PHONE` contacts may be moved)
+- **Status:** Accepted (amended 2026-09-22 — allowlist narrowed to what ships; consent model stated; amended 2026-09-24 — birthday, anniversary, nickname and website carried; amended 2026-10-15 — email types carried; narrowed by ADR-0026 — orphan `PHONE` contacts may be moved)
 - **Date:** 2026-09-21
 - **Deciders:** project owner
 - **Related:** ADR-0007 (decrypt/read client-side only), ADR-0010 (ContactsContract write strategy), ADR-0011 (module boundaries), ADR-0017 (bidirectional sync), ADR-0022 (ContactsProvider authoritative)
@@ -178,3 +178,28 @@ next push carries it to Proton; a value both sides hold differently
 becomes a conflict for the user (ADR-0017 §3C). Only a contact with
 neither is rewritten at once.
 
+## Amendment (2026-10-15): email types
+
+An email's type now travels both ways, as a phone number's and an
+address's already do. Before, the phone row carried only the address:
+every email was written as `TYPE_OTHER`, the account's edit schema
+offered only "other", and a type set on either side was lost — on the
+phone at once, on Proton the next time the email was rewritten.
+
+- `[V]` Proton's editor offers no type, `home`, `work` and `other` for
+  an email (`packages/shared/lib/helpers/contacts.ts`, `getTypeValues`,
+  WebClients `838762f`). Android's `Email.TYPE_HOME` and `TYPE_WORK`
+  map to `home` and `work`; `TYPE_OTHER` (and any other Android type)
+  is an email with neither, which covers Proton's no type and `other`
+  alike. The edit schema offers home, work and other.
+- A type change is sent like a phone's: only the `home`/`work` tokens
+  of the `EMAIL` properties with that address are replaced; other
+  tokens, the `itemN` group, `PREF` and the key properties stay.
+- The type joins the change hash, so its format rolls to v4 and every
+  contact is fetched and rewritten once after the update. A type the
+  phone set before this change was never pushed and must survive that
+  rewrite: `home` or `work` on the phone where Proton has neither
+  queues an update first; a different `home`/`work` on each side is a
+  conflict for the user, as for a birthday above.
+
+Nothing below permits less than before.
