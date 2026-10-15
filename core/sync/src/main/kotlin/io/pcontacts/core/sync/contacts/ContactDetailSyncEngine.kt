@@ -143,6 +143,11 @@ class ContactDetailSyncEngine(
      * before a chunk is written, so a row edited during the run is left for the next one.
      */
     private val readDirtyRawIds: suspend (Account) -> Set<Long> = { emptySet() },
+    /**
+     * RawContacts whose create is still queued: whatever Proton holds for them is not settled yet,
+     * so the pull neither rewrites the row nor recreates its contact (ADR-0017, 2026-10-15).
+     */
+    private val queuedCreateRawIds: suspend () -> Set<Long> = { emptySet() },
     /** Drops the contact's queued DELETE: it was deleted on Proton too (ADR-0017, 2026-10-01). */
     private val dropQueuedDelete: suspend (protonContactId: String) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
@@ -192,6 +197,7 @@ class ContactDetailSyncEngine(
         //    RawContacts exist; the Room mapping is only sync metadata
         //    and converges to provider reality (repairMapping below).
         val existingState = readExisting(account)
+        val pendingCreates = queuedCreateRawIds()
         val storedMappings: Map<String, ContactMapEntity> = contactMapDao.listLive()
             .associateBy { it.protonContactId }
 
@@ -272,6 +278,11 @@ class ContactDetailSyncEngine(
                     logger.warn { "RawContact missing on a provider with a recycle bin; asking idTag=${sourceId.hashCode()}" }
                     contactMapDao.markConflict(sourceId, LOCAL_REMOVED_CONFLICT)
                 }
+                continue
+            }
+            if (unsettledCreate(stored, liveRawId, pendingCreates)) {
+                logger.info { "skip: its create is still queued idTag=${sourceId.hashCode()}" }
+                protectedIds += sourceId
                 continue
             }
             if (liveRawId != null && stored != null && locallyOwned(stored, sourceId)) {
@@ -415,7 +426,7 @@ class ContactDetailSyncEngine(
         val rawIdsWithQueuedCreate = storedMappings.values
             .filter { it.protonContactId.startsWith(LOCAL_ID_PREFIX) }
             .map { it.androidRawContactId }
-            .toSet()
+            .toSet() + pendingCreates
         for ((sourceId, rawId) in existing) {
             if (sourceId in serverSourceIds) continue
             if (hasPendingDelete(sourceId)) {
@@ -661,6 +672,13 @@ class ContactDetailSyncEngine(
         logger.warn { "deletion check failed (${t.javaClass.simpleName}); row kept idTag=${id.hashCode()}" }
         false
     }
+
+    /**
+     * A contact whose phone row still waits for its create to be recorded: the row carries the
+     * SOURCE_ID already ([liveRawId]) or not yet (the mapping points at it, the row has none).
+     */
+    private fun unsettledCreate(stored: ContactMapEntity?, liveRawId: Long?, pendingCreates: Set<Long>): Boolean =
+        (liveRawId ?: stored?.androidRawContactId) in pendingCreates
 
     private suspend fun locallyOwned(stored: ContactMapEntity, sourceId: String): Boolean =
         stored.syncStatus == ContactMapEntity.Status.CONFLICT || hasLocalMutation(sourceId)

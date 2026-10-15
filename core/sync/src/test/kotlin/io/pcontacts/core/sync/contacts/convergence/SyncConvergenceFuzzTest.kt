@@ -99,6 +99,27 @@ class SyncConvergenceFuzzTest {
         assertEquals("srv-1", world.provider.rows.getValue(raw).sourceId)
     }
 
+    @Test fun an_edit_survives_a_create_whose_recording_died_twice() = runTest {
+        // The create committed, the process died; the user edited the contact; the next run's
+        // recording died again part-way. The edit was dropped with the CREATE row and the pull
+        // restored Proton's older copy (ADR-0017, 2026-10-15).
+        val fuzz = Fuzz(seed = 11, steps = 0, withFaults = true)
+        val world = fuzz.world
+        val raw = world.provider.userCreate(world.newRow())
+        world.faults.rate = 0.0
+        world.faults.forced = once("create", before = false, fault = "KILL")
+        world.runOnce(this, withFaults = true)
+        val edited = world.edited(world.provider.rows.getValue(raw).data)
+        world.provider.userEdit(raw, edited)
+        world.faults.forced = once("outbox delete local-$raw", before = false, fault = "KILL")
+        world.runOnce(this, withFaults = true)
+
+        fuzz.quiesce(this)
+
+        assertEquals(edited, world.provider.rows.getValue(raw).data)
+        assertEquals(edited, world.serverRow(world.server.contacts.values.single()))
+    }
+
     @Test fun the_same_number_given_another_type_on_each_side_asks_the_user() = runTest {
         val world = SyncWorld(seed = 9)
         val row = world.newRow().copy(phones = listOf(PhoneEntry("+15550100", PhoneType.HOME)))

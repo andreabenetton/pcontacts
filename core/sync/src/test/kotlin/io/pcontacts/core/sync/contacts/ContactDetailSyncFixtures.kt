@@ -84,6 +84,7 @@ internal fun newEngine(
     queueUpdate: suspend (String) -> Unit = {},
     dropQueuedDelete: suspend (String) -> Unit = {},
     readDirtyRawIds: suspend () -> Set<Long> = { emptySet() },
+    queuedCreateRawIds: Set<Long> = emptySet(),
     onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
@@ -109,6 +110,7 @@ internal fun newEngine(
         queueUpdate = queueUpdate,
         dropQueuedDelete = dropQueuedDelete,
         readDirtyRawIds = { readDirtyRawIds() },
+        queuedCreateRawIds = { queuedCreateRawIds },
         saveMergeBase = saveMergeBase,
         readLocalPhotoHash = readLocalPhotoHash,
         clock = { 1_700_000_000L }

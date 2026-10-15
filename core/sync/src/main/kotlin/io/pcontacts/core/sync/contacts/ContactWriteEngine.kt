@@ -654,8 +654,10 @@ class ContactWriteEngine(
 
     /**
      * Records a create Proton holds: the mapping (so the merge base is kept and a later edit is
-     * pushed, not quarantined), the SOURCE_ID, the outbox row. Called under [NonCancellable]: a
-     * stopped sync must not leave a committed create unrecorded (ADR-0017, 2026-10-14).
+     * pushed, not quarantined), the merge base, the follow-up update, the SOURCE_ID and, last, the
+     * outbox row. Called under [NonCancellable]: a stopped sync must not leave a committed create
+     * unrecorded (ADR-0017, 2026-10-14). A process dying part-way leaves the CREATE queued, so the
+     * next run records it again; nothing pending is dropped first (ADR-0017, 2026-10-15).
      */
     private suspend fun acknowledgeCreate(
         attempt: CreateAttempt,
@@ -679,8 +681,6 @@ class ContactWriteEngine(
                 ) ?: createdMapping(serverContact, attempt.rawContactId, serverHash)
             )
         }
-        if (account != null) writeSourceId(account, attempt.rawContactId, serverContact.id)
-        outboxDao.deleteByContact(localId)
         val nowRow = readContactRow(attempt.rawContactId, localId)
         MergeBaseCodec.save(
             mergeBases,
@@ -692,6 +692,8 @@ class ContactWriteEngine(
         if (nowHash != null && nowHash != serverHash) {
             outboxDao.enqueue(serverContact.id, OutboxEntity.OpType.UPDATE, nowHash, clock())
         }
+        if (account != null) writeSourceId(account, attempt.rawContactId, serverContact.id)
+        outboxDao.deleteByContact(localId)
     }
 
     /**

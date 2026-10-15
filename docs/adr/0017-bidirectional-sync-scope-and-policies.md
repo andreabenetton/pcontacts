@@ -563,6 +563,12 @@ now fails toward keeping the user's data or asking:
   the row goes as an ordinary update merged onto it — instead of the
   row being taken as what Proton holds and the pull restoring the older
   copy over the edit.
+- **A create's recording drops nothing first.** The steps that record
+  a confirmed create run as mapping, merge base, follow-up update,
+  SOURCE_ID, and only then the removal of the CREATE row; a process
+  dying part-way leaves the CREATE queued and the next run records it
+  again. Until then the pull leaves that row alone — no rewrite from
+  Proton, and no second row for a contact whose row lacks its SOURCE_ID.
 - **A change follows the row, not a stale id.** An edit whose row
   still carries a Proton id that has no mapping (after "use phone
   version" for a contact deleted on Proton) is queued under the

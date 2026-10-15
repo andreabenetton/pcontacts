@@ -5,6 +5,7 @@ package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
 import io.pcontacts.core.contactswriter.RawContactOpIntent
+import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -53,6 +54,40 @@ class ContactDetailSyncEngineChunkTest {
 
         assertTrue(applier.lastIntents.none { it is RawContactOpIntent.UpdateContact && it.row.sourceId == "c7" })
         assertEquals("its mapping is left as it was", 0L, dao.findByProtonId("c7")!!.modifyTime)
+    }
+
+    @Test fun a_row_whose_create_is_still_queued_is_neither_rewritten_nor_recreated() = runTest {
+        // The create's recording was cut short: the mapping exists, the row may or may not carry the
+        // SOURCE_ID yet. The pull rewrote the row, or recreated the contact as a second row
+        // (ADR-0017, 2026-10-15).
+        val api = DetailFakeApi(
+            metadataPages = listOf(metaPage(meta("srv-8", 200L)), metaPage(meta("srv-8", 200L))),
+            contacts = mapOf("srv-8" to contact("srv-8", 200L, card("srv-8"))),
+            repeatContacts = true
+        )
+        val dao = DetailFakeContactMapDao()
+        dao.upsert(
+            ContactMapEntity(
+                protonContactId = "srv-8",
+                protonUid = null,
+                androidRawContactId = 105L,
+                modifyTime = 0L,
+                contentHash = "",
+                isVerified = true,
+                deleted = false,
+                syncStatus = ContactMapEntity.Status.CLEAN,
+                lastError = null,
+                lastSyncedAt = 0L
+            )
+        )
+        val applier = DetailFakeApplier(base = 1L)
+
+        newEngine(api, dao, applier, queuedCreateRawIds = setOf(105L)).sync(account)
+        assertEquals("no second row for a contact whose row lacks its SOURCE_ID", 0, applier.applyCallCount)
+
+        applier.seedRow("srv-8", 105L)
+        newEngine(api, dao, applier, queuedCreateRawIds = setOf(105L)).sync(account)
+        assertEquals("the row is not rewritten", 0, applier.applyCallCount)
     }
 
     @Test fun a_contact_missing_from_the_listing_but_still_on_proton_is_not_deleted() = runTest {

@@ -304,6 +304,7 @@ object SyncBootstrap {
             readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { readDataReader.readGroupRowIds(rawId) } },
             readLocalRow = { rawId, sourceId -> withContext(Dispatchers.IO) { readDataReader.read(rawId, sourceId) } },
             readDirtyRawIds = dirtyRawIds(provider),
+            queuedCreateRawIds = queuedCreateRawIds(db.outboxDao()),
             queueUpdate = queueUpdate(db.outboxDao()),
             dropQueuedDelete = dropQueuedDelete(db.outboxDao()),
             // Same production logger as the write engine — the pull path was
@@ -443,6 +444,14 @@ private fun hasPendingOutboxDelete(outboxDao: OutboxDao): suspend (String) -> Bo
 private fun dropQueuedDelete(outboxDao: OutboxDao): suspend (String) -> Unit = { protonContactId ->
     val live = outboxDao.findLive(protonContactId)
     if (live?.opType == OutboxEntity.OpType.DELETE) outboxDao.deleteById(live.id)
+}
+
+/** RawContacts whose create is queued or failed, ready or backing off (ADR-0017, 2026-10-15). */
+private fun queuedCreateRawIds(outboxDao: OutboxDao): suspend () -> Set<Long> = {
+    (outboxDao.listReady(Long.MAX_VALUE) + outboxDao.listQuarantined())
+        .filter { it.opType == OutboxEntity.OpType.CREATE }
+        .mapNotNull { it.protonContactId.removePrefix(LOCAL_ID_PREFIX).toLongOrNull() }
+        .toSet()
 }
 
 /** The rows the user edited or deleted that the push has not picked up yet (ADR-0017, 2026-10-15). */
