@@ -1496,6 +1496,87 @@ class ContactWriteEngineTest {
         assertTrue(cards.contains("edited after the create"))
     }
 
+    // ---- a photo sent to Proton is fitted as Proton's client fits it (ADR-0017, 2026-10-15) ----
+
+    private val phonePhoto = DecryptedPhoto(byteArrayOf(1, 2, 3))
+    private val fitted = DecryptedPhoto(byteArrayOf(9, 9), "image/jpeg")
+    private var fits = 0
+    private val fit: (DecryptedPhoto) -> DecryptedPhoto? = {
+        fits += 1
+        fitted
+    }
+
+    @Test fun a_created_contacts_photo_goes_fitted_and_its_digest_is_the_base() = runTest {
+        val api = WriteFakeApi().apply { createResponse = createdAs("srv-9", "uid-9") }
+        val outbox = WriteFakeOutboxDao()
+        val bases = InMemoryMergeBaseStore()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contacts = mapOf("local-200" to sampleContact("local-200").copy(photo = phonePhoto)),
+            mergeBases = bases,
+            fitPhoto = fit
+        )
+
+        engine.push(testAccount)
+
+        val cards = api.lastCreateRequest!!.contacts.single().cards.joinToString { it.data }
+        assertTrue(cards.contains("PHOTO:data:image/jpeg;base64,CQk="))
+        assertEquals(PhotoHash.of(fitted.data), MergeBaseCodec.load(bases, "srv-9")!!.serverPhotoHash)
+    }
+
+    @Test fun a_photo_changed_on_the_phone_goes_fitted_in_the_update() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1").copy(photo = phonePhoto)),
+            serverContacts = mapOf("ct-1" to sampleContact("ct-1")),
+            bases = mapOf("ct-1" to sampleContact("ct-1")),
+            fitPhoto = fit
+        )
+
+        engine.push(testAccount)
+
+        val cards = api.lastUpdateRequest!!.cards.joinToString { it.data }
+        assertTrue(cards.contains("CQk="))
+        assertFalse("the phone's own bytes stay home", cards.contains("AQID"))
+    }
+
+    @Test fun a_photo_unchanged_on_the_phone_is_neither_fitted_nor_sent_again() = runTest {
+        val onProton = DecryptedPhoto(byteArrayOf(5, 5), "image/jpeg")
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val base = sampleContact("ct-1").copy(
+            photo = onProton,
+            serverPhotoHash = PhotoHash.of(onProton.data),
+            localPhotoHash = PhotoHash.of(phonePhoto.data)
+        )
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1").copy(photo = phonePhoto, notes = listOf("edited"))),
+            serverContacts = mapOf("ct-1" to sampleContact("ct-1").copy(photo = onProton)),
+            bases = mapOf("ct-1" to base),
+            fitPhoto = fit
+        )
+
+        engine.push(testAccount)
+
+        assertEquals(0, fits)
+        assertFalse(api.lastUpdateRequest!!.cards.joinToString { it.data }.contains("CQk="))
+    }
+
     // ---- an update sent by a run that died before recording it (ADR-0017, 2026-10-15) ----
 
     private val withNumber = sampleContact("ct-1").copy(phones = listOf(DecryptedPhone("+15550111", listOf("work"))))
@@ -2391,6 +2472,7 @@ class ContactWriteEngineTest {
         fetchServerContact: suspend (String) -> DecryptedContact? = { id -> serverContacts[id] },
         hasLiveRow: suspend (Account, String) -> Boolean = { _, _ -> false },
         liveRawIds: Map<String, Long> = emptyMap(),
+        fitPhoto: (DecryptedPhoto) -> DecryptedPhoto? = { it },
         onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> },
         groupLabelIds: Map<Long, String> = emptyMap()
     ): ContactWriteEngine {
@@ -2416,6 +2498,7 @@ class ContactWriteEngineTest {
             fetchServerContact = fetchServerContact,
             hasLiveRow = hasLiveRow,
             liveRawId = { _, id -> liveRawIds[id] },
+            fitPhoto = fitPhoto,
             onProgress = onProgress,
             groupLabelIds = { groupLabelIds },
             clock = clock

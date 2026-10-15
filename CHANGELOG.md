@@ -10,6 +10,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Photos go to Proton the way Proton's own app sends them**
+  ([#71](https://github.com/andreabenetton/pcontacts/issues/71)): fitted
+  to 180 × 180 pixels and saved as JPEG, with their type. The photo on
+  the phone is not changed, and a photo already on Proton is not sent
+  again. This is a first step on changes Proton refuses with code 2060,
+  whose cause is not confirmed yet.
+
 ## [2.4.0] - 2026-10-15
 
 ### Fixed

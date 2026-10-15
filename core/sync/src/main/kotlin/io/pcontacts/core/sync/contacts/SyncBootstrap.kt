@@ -11,6 +11,7 @@ import io.pcontacts.core.contactswriter.BatchApplier
 import io.pcontacts.core.contactswriter.DirtyContactReader
 import io.pcontacts.core.contactswriter.DirtyFlagClearer
 import io.pcontacts.core.contactswriter.LocalGroupsWriter
+import io.pcontacts.core.contactswriter.PhotoDownscaler
 import io.pcontacts.core.contactswriter.RawContactDataReader
 import io.pcontacts.core.contactswriter.RawContactReader
 import io.pcontacts.core.contactswriter.SourceIdWriter
@@ -26,6 +27,7 @@ import io.pcontacts.core.proton.api.retrofit.ProtonApiFactory
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
+import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.KeystoreMergeBaseStore
@@ -377,6 +379,7 @@ object SyncBootstrap {
             fetchServerContact = { protonContactId ->
                 processor.process(apis.contacts.getContact(protonContactId).contact)
             },
+            fitPhoto = { photo -> PhotoDownscaler.fitForProton(photo.data)?.let { DecryptedPhoto(it, "image/jpeg") } },
             groupLabelIds = { account ->
                 withContext(Dispatchers.IO) { LocalGroupsWriter(provider).labelIdsByRowId(account) }
             },

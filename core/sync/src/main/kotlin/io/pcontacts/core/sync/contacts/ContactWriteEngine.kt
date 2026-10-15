@@ -27,6 +27,7 @@ import io.pcontacts.core.proton.api.http.ProtonCodeInterceptor
 import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.InMemoryMergeBaseStore
 import io.pcontacts.core.storage.MergeBaseStore
@@ -98,6 +99,11 @@ class ContactWriteEngine(
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
     /** Server-current contact; throws on transport failure (handled like any push failure), null if there is none. */
     private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
+    /**
+     * A photo as Proton's own client sends it — fitted to 180 px, JPEG — or null when it is no
+     * image. Applied only to a photo that goes out (ADR-0017, 2026-10-15).
+     */
+    private val fitPhoto: (DecryptedPhoto) -> DecryptedPhoto? = { it },
     /** `Groups._ID → Proton label ID` for the account's groups (ADR-0027); empty when unreadable. */
     private val groupLabelIds: suspend (Account) -> Map<Long, String> = { emptyMap() },
     /** ([SyncPhase.SENDING], changes sent, changes to send) — a delete still in its grace period is not one. */
@@ -543,11 +549,14 @@ class ContactWriteEngine(
         val server = fetchServerContact(id) ?: return markConflict(entry, "server state unavailable")
         val serverCanonical = MergeBaseCodec.canonical(server) ?: return markConflict(entry, "server state unavailable")
         settlePendingPush(mapping, serverCanonical)
-        val merged = if (entry.opType == OutboxEntity.OpType.FORCE_UPDATE) {
+        val result = if (entry.opType == OutboxEntity.OpType.FORCE_UPDATE) {
             local
         } else {
             mergeForPush(entry, serverCanonical, local) ?: return null
         }
+        // Proton's photo stays as it is; only one the phone sends is fitted.
+        val sameAsProton = result.photo?.let(::photoHash) == serverCanonical.photo?.let(::photoHash)
+        val merged = if (sameAsProton) result else withFittedPhoto(result)
         val patch = ContactPatch.diff(serverCanonical, merged)
         val cards = when {
             patch.isEmpty -> null
@@ -562,6 +571,14 @@ class ContactWriteEngine(
         }
         return merged to cards
     }
+
+    /** [contact] with its photo fitted as Proton's client fits one; the digest Proton will hold goes with it. */
+    private fun withFittedPhoto(contact: DecryptedContact): DecryptedContact {
+        val fitted = contact.photo?.let(fitPhoto)
+        return contact.copy(photo = fitted, serverPhotoHash = fitted?.let(::photoHash))
+    }
+
+    private fun photoHash(photo: DecryptedPhoto): String = PhotoHash.of(photo.data)
 
     /**
      * An update sent by a run that stopped before recording it: when Proton's state is the one
@@ -647,7 +664,8 @@ class ContactWriteEngine(
         }
         // Rows queued before schema v5 keep the UID derived from their local id.
         val uid = minted ?: ContactSerializer.fallbackUid(localId)
-        val attempt = CreateAttempt(entry, rawContactId, RowToDecryptedContact.convert(row, localId, uid))
+        val contact = withFittedPhoto(RowToDecryptedContact.convert(row, localId, uid))
+        val attempt = CreateAttempt(entry, rawContactId, contact)
         val pushedHash = EmailSyncHash.compute(row)
         return try {
             val earlier = minted?.let { createdUids?.get(it) }
