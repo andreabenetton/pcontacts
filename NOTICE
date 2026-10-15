@@ -44,9 +44,11 @@ specification for this project's contacts, auth, and crypto layers
   packages/shared/lib/contacts/properties.ts
   packages/shared/lib/contacts/surgery.ts
   packages/shared/lib/contacts/constants.ts
+  packages/shared/lib/contacts/property.ts
   packages/shared/lib/interfaces/contacts/Contact.ts
   packages/shared/lib/interfaces/contacts/VCard.ts
   packages/shared/lib/constants.ts (PASSWORD_MODE)
+  packages/components/containers/contacts/edit/ContactEditModal.tsx
   packages/components/containers/login/loginActions.ts
   packages/components/containers/login/loginHelper.ts
   packages/components/containers/login/MinimalLoginContainer.tsx
