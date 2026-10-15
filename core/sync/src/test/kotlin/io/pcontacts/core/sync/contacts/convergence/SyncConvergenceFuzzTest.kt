@@ -3,6 +3,7 @@
 
 package io.pcontacts.core.sync.contacts.convergence
 
+import io.pcontacts.core.contactswriter.ContactRow
 import io.pcontacts.core.contactswriter.PhoneEntry
 import io.pcontacts.core.contactswriter.PhoneType
 import kotlinx.coroutines.CancellationException
@@ -231,11 +232,11 @@ class SyncConvergenceFuzzTest {
             // A conflict settles without an answer only through the merge of a newer phone edit, or
             // because both sides deleted the contact (ADR-0017, 2026-10-01).
             val stillWaiting = waiting.ids intersect world.conflictIds()
-            val touched = world.touchedIds() intersect stillWaiting
-            if (touched.isNotEmpty()) fail("S3", "changed while awaiting the user: $touched")
             val goneEverywhere = waiting.ids.filter { id ->
                 id !in world.server.contacts && world.liveLocalRows().none { it.sourceId == id }
             }
+            val touched = world.touchedIds() intersect stillWaiting - goneEverywhere.toSet() - waiting.editedOnPhone
+            if (touched.isNotEmpty()) fail("S3", "changed while awaiting the user: $touched")
             val dropped = waiting.ids - stillWaiting - waiting.editedOnPhone - goneEverywhere.toSet()
             if (dropped.isNotEmpty()) fail("S3", "a conflict vanished without an answer or a merge: $dropped")
             val purged = world.provider.engineWrites.filter { it.first == "delete" }.map { it.second }
@@ -261,7 +262,7 @@ class SyncConvergenceFuzzTest {
                 val protonRow = world.serverRow(stored)
                 if (raw.data != protonRow) fail("L3", "$marker: ${raw.data} vs $protonRow")
                 val wanted = world.expected[marker]
-                if (marker !in world.contended && wanted != null && raw.data != wanted) {
+                if (marker !in world.contended && wanted != null && unordered(raw.data) != unordered(wanted)) {
                     fail("L4", "$marker (raw ${raw.id}, ${stored.id}): ${raw.data}, expected $wanted")
                 }
             }
@@ -275,6 +276,9 @@ class SyncConvergenceFuzzTest {
                 }
             }
         }
+
+        /** Phones merge per number, so their order may change; it carries nothing (primary is a flag). */
+        private fun unordered(row: ContactRow) = row.copy(phones = row.phones.sortedBy { "${it.number}|${it.type}" })
 
         private fun twice(markers: List<String>): Set<String>? =
             markers.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.takeIf { it.isNotEmpty() }
