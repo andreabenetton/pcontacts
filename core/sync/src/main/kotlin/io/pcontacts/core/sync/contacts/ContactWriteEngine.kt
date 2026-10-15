@@ -394,6 +394,7 @@ class ContactWriteEngine(
                 if (cards == null) {
                     logger.info { "push: nothing left to change on the server idTag=${id.hashCode()}" }
                 } else {
+                    markPendingPush(id, MergeBaseCodec.stateHash(payload))
                     contactsApi.updateContact(id, UpdateContactRequest(cards = cards))
                 }
                 val base = GroupMembershipPusher.split(mapping.serverLabelIds)
@@ -405,6 +406,7 @@ class ContactWriteEngine(
                 // an upsert here would overwrite the sealed base.
                 val after = completeEntry(entry, mapping.androidRawContactId, pushedHash)
                 MergeBaseCodec.save(mergeBases, id, payload, localPhotoHash = after?.photo?.data?.let(PhotoHash::of))
+                markPendingPush(id, null)
                 contactMapDao.markClean(id, clock())
                 WriteReport(pushed = 1, updated = 1)
             }
@@ -540,6 +542,7 @@ class ContactWriteEngine(
         val id = entry.protonContactId
         val server = fetchServerContact(id) ?: return markConflict(entry, "server state unavailable")
         val serverCanonical = MergeBaseCodec.canonical(server) ?: return markConflict(entry, "server state unavailable")
+        settlePendingPush(mapping, serverCanonical)
         val merged = if (entry.opType == OutboxEntity.OpType.FORCE_UPDATE) {
             local
         } else {
@@ -558,6 +561,28 @@ class ContactWriteEngine(
             }
         }
         return merged to cards
+    }
+
+    /**
+     * An update sent by a run that stopped before recording it: when Proton's state is the one
+     * that update was to leave, it landed, and that state is the merge base — otherwise what the
+     * update put on Proton reads as a change made there, and a later removal on the phone is
+     * undone (ADR-0017, 2026-10-15). Either way the record is settled.
+     */
+    private suspend fun settlePendingPush(mapping: ContactMapEntity, serverCanonical: DecryptedContact) {
+        val pending = mapping.pendingPushHash ?: return
+        val id = mapping.protonContactId
+        if (MergeBaseCodec.stateHash(serverCanonical) == pending) {
+            logger.info { "push: an earlier update landed; its result is the base idTag=${id.hashCode()}" }
+            val previous = MergeBaseCodec.load(mergeBases, id)
+            MergeBaseCodec.save(mergeBases, id, serverCanonical, localPhotoHash = previous?.localPhotoHash)
+        }
+        markPendingPush(id, null)
+    }
+
+    /** Re-reads the mapping first: an upsert of a stale copy would overwrite the sealed base. */
+    private suspend fun markPendingPush(id: String, hash: String?) {
+        contactMapDao.findByProtonId(id)?.let { contactMapDao.upsert(it.copy(pendingPushHash = hash)) }
     }
 
     private suspend fun mergeForPush(

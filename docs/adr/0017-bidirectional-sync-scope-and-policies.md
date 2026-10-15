@@ -569,6 +569,14 @@ now fails toward keeping the user's data or asking:
   dying part-way leaves the CREATE queued and the next run records it
   again. Until then the pull leaves that row alone — no rewrite from
   Proton, and no second row for a contact whose row lacks its SOURCE_ID.
+- **An update sent and not recorded is recognised.** Before an update
+  is sent, a digest of the state it will leave on Proton is recorded on
+  the mapping (`pending_push_hash`, schema v6), and cleared once the
+  merge base is saved. Still set on the next push, it is compared with
+  Proton's state: equal, the update landed and that state is the base;
+  otherwise the old base stands. Before, what a lost update put on
+  Proton read as a change made there, and a later removal on the phone
+  was undone.
 - **A change follows the row, not a stale id.** An edit whose row
   still carries a Proton id that has no mapping (after "use phone
   version" for a contact deleted on Proton) is queued under the

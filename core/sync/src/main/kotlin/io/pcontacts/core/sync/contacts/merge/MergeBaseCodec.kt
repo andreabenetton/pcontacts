@@ -8,6 +8,7 @@ import io.pcontacts.core.protoncontacts.DecryptedContactJson
 import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.MergeBaseStore
 import io.pcontacts.core.sync.contacts.DecryptedContactToRow
+import io.pcontacts.core.sync.contacts.EmailSyncHash
 import io.pcontacts.core.sync.contacts.RowToDecryptedContact
 
 /**
@@ -43,6 +44,15 @@ internal object MergeBaseCodec {
         )
         store.save(protonContactId, DecryptedContactJson.encode(base))
     }
+
+    /**
+     * A digest of [contact] in the row shape, as Proton holds it: an update about to be sent is
+     * recorded by it, and found again when Proton's state hashes the same (ADR-0017, 2026-10-15).
+     */
+    fun stateHash(contact: DecryptedContact): String? =
+        DecryptedContactToRow.convert(contact)
+            ?.copy(sourceId = "", groupRowIds = emptyList())
+            ?.let(EmailSyncHash::compute)
 
     /** The row-shaped view of [contact]; the photo digests and the carrier cards ride along untouched. */
     fun canonical(contact: DecryptedContact): DecryptedContact? =

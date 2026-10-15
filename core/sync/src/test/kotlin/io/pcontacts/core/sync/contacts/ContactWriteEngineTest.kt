@@ -40,6 +40,7 @@ import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.protoncontacts.DecryptedContactJson
 import io.pcontacts.core.protoncontacts.DecryptedEmail
+import io.pcontacts.core.protoncontacts.DecryptedPhone
 import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.InMemoryMergeBaseStore
@@ -1493,6 +1494,59 @@ class ContactWriteEngineTest {
 
         val cards = api.lastUpdateRequest!!.cards.joinToString { it.data }
         assertTrue(cards.contains("edited after the create"))
+    }
+
+    // ---- an update sent by a run that died before recording it (ADR-0017, 2026-10-15) ----
+
+    private val withNumber = sampleContact("ct-1").copy(phones = listOf(DecryptedPhone("+15550111", listOf("work"))))
+
+    @Test fun an_update_that_landed_before_the_run_died_is_the_base_of_the_next_merge() = runTest {
+        // The update added the number on Proton and the run died before saving the base; then
+        // the user removed the number. Before, the old base made the number read as Proton's own
+        // addition and the removal was undone.
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val landed = MergeBaseCodec.stateHash(MergeBaseCodec.canonical(withNumber)!!)
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(pendingPushHash = landed))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1")),
+            serverContacts = mapOf("ct-1" to withNumber),
+            bases = mapOf("ct-1" to sampleContact("ct-1"))
+        )
+
+        engine.push(testAccount)
+
+        val cards = api.lastUpdateRequest!!.cards.joinToString { it.data }
+        assertFalse("the removal reaches Proton", cards.contains("+15550111"))
+        assertNull(contactMap.findByProtonId("ct-1")!!.pendingPushHash)
+    }
+
+    @Test fun an_update_is_marked_pending_while_it_is_sent_and_settled_after() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        var pendingDuringRequest: String? = null
+        api.onUpdate = { pendingDuringRequest = contactMap.findByProtonId("ct-1")!!.pendingPushHash }
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to withNumber),
+            serverContacts = mapOf("ct-1" to sampleContact("ct-1")),
+            bases = mapOf("ct-1" to sampleContact("ct-1"))
+        )
+
+        engine.push(testAccount)
+
+        assertEquals(MergeBaseCodec.stateHash(MergeBaseCodec.canonical(withNumber)!!), pendingDuringRequest)
+        assertNull(contactMap.findByProtonId("ct-1")!!.pendingPushHash)
     }
 
     @Test fun a_create_with_a_minted_uid_waits_while_the_contact_list_is_unreadable() = runTest {
