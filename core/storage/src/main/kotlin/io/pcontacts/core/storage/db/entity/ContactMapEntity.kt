@@ -56,7 +56,15 @@ data class ContactMapEntity(
      * is pushed for the contact.
      */
     @ColumnInfo(name = "server_label_ids", defaultValue = "NULL")
-    val serverLabelIds: String? = null
+    val serverLabelIds: String? = null,
+    /**
+     * Digest of the state an update was about to give the contact on Proton, set before the
+     * request and cleared once its merge base is saved (ADR-0017, 2026-10-15). Still set on a
+     * later push, it tells whether that update landed: Proton's state then is the base. No
+     * contact content, a hash only.
+     */
+    @ColumnInfo(name = "pending_push_hash", defaultValue = "NULL")
+    val pendingPushHash: String? = null
 ) {
     /**
      * `sync_status` is stored as an Int rather than an enum so future

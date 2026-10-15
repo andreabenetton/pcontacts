@@ -23,7 +23,8 @@ object DatabaseFactory {
                 PcontactsDatabase.MIGRATION_1_2,
                 PcontactsDatabase.MIGRATION_2_3,
                 PcontactsDatabase.MIGRATION_3_4,
-                PcontactsDatabase.MIGRATION_4_5
+                PcontactsDatabase.MIGRATION_4_5,
+                PcontactsDatabase.MIGRATION_5_6
             )
             // No fallbackToDestructiveMigration — we ship explicit Migration
             // objects per ADR-0008. A missing migration is a build-time bug,
@@ -45,7 +46,8 @@ object DatabaseFactory {
                 PcontactsDatabase.MIGRATION_1_2,
                 PcontactsDatabase.MIGRATION_2_3,
                 PcontactsDatabase.MIGRATION_3_4,
-                PcontactsDatabase.MIGRATION_4_5
+                PcontactsDatabase.MIGRATION_4_5,
+                PcontactsDatabase.MIGRATION_5_6
             )
             .build()
 }

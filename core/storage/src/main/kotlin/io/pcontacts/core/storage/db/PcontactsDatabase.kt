@@ -33,7 +33,7 @@ import io.pcontacts.core.storage.db.entity.SyncStateEntity
         SyncStateEntity::class,
         OutboxEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class PcontactsDatabase : RoomDatabase() {
@@ -101,6 +101,13 @@ abstract class PcontactsDatabase : RoomDatabase() {
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE outbox ADD COLUMN create_uid TEXT DEFAULT NULL")
+            }
+        }
+
+        /** ADR-0017 (2026-10-15): the digest of an update sent and not yet recorded; none is pending. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contact_map ADD COLUMN pending_push_hash TEXT DEFAULT NULL")
             }
         }
     }
