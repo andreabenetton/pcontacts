@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A removal survives an interrupted sync.** If a sync was cut off just
+  after Proton accepted an edit, a phone number or other detail removed on
+  the phone afterwards could come back. The app now recognises an edit
+  Proton already accepted.
+- **No second copy on the phone when Proton's answer to a new contact is
+  lost.** The download could add the contact Proton had just stored as a
+  second row next to the phone's own.
 - **A contact is removed from the phone only when Proton confirms it is
   gone.** A contact missing from Proton's list was deleted on the phone
   straight away; a list that left one out by mistake would have removed
