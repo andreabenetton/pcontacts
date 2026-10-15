@@ -660,8 +660,8 @@ values it is about to send:
   Proton already holds is never rewritten to fit.
 - Each adjustment is recorded in Room by contact id and kind (never the
   value, ADR-0007) and listed in Settings until the user dismisses it.
-  The phone keeps its full value; Proton holds the conformed one, which
-  becomes the merge base, so the same adjustment is not sent or reported
-  again.
+  Proton holds the conformed value, which becomes the merge base; the
+  next pull brings it to the phone as it brings any change made on
+  Proton. The same adjustment is not sent or reported again.
 
 Nothing below permits less than before.
