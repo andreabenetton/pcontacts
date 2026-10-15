@@ -1,0 +1,5 @@
+Version 2.5.0.
+
+* Les noms trop longs pour Proton sont raccourcis et les espaces autour d’une adresse e-mail supprimés avant l’envoi, au lieu d’un refus ; la carte de synchronisation liste chaque ajustement.
+* Les types d’e-mail (domicile, travail) se synchronisent dans les deux sens. Après la mise à jour, chaque contact est réécrit une fois.
+* Une modification refusée indique correctement sa cause.

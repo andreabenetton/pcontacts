@@ -1,0 +1,5 @@
+Version 2.5.0.
+
+* Names too long for Proton are shortened and spaces around an email removed before sending, instead of the change being refused; the Sync card lists each adjustment.
+* Email types (home, work) sync both ways. After the update every contact is rewritten once.
+* A refused change names its cause correctly; docs/ERROR_CODES.md lists every code.

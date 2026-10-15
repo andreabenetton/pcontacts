@@ -1,0 +1,5 @@
+Versión 2.5.0.
+
+* Los nombres demasiado largos para Proton se acortan y se quitan los espacios alrededor de un correo antes de enviar, en lugar de rechazarse el cambio; la tarjeta de sincronización lista cada ajuste.
+* Los tipos de correo (casa, trabajo) se sincronizan en ambos sentidos. Tras la actualización cada contacto se reescribe una vez.
+* Un cambio rechazado indica su causa correctamente.

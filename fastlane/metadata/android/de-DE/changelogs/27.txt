@@ -1,0 +1,5 @@
+Version 2.5.0.
+
+* Zu lange Namen werden für Proton gekürzt und Leerzeichen um E-Mail-Adressen entfernt, statt dass die Änderung abgelehnt wird; die Sync-Karte listet jede Anpassung.
+* E-Mail-Typen (privat, geschäftlich) werden in beide Richtungen synchronisiert. Nach dem Update wird jeder Kontakt einmal neu geschrieben.
+* Eine abgelehnte Änderung nennt ihre Ursache korrekt.

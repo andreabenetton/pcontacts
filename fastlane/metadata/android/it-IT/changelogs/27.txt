@@ -1,0 +1,5 @@
+Versione 2.5.0.
+
+* I nomi troppo lunghi per Proton vengono accorciati e gli spazi attorno a un'email rimossi prima dell'invio, invece di vedere rifiutata la modifica; la scheda di sincronizzazione elenca ogni adattamento.
+* I tipi di email (casa, lavoro) si sincronizzano in entrambe le direzioni. Dopo l'aggiornamento ogni contatto viene riscritto una volta.
+* Una modifica rifiutata indica correttamente la causa.

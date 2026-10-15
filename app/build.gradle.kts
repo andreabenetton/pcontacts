@@ -23,8 +23,8 @@ android {
         applicationId = "io.pcontacts.app"
         minSdk = libs.versions.android.min.sdk.get().toInt()
         targetSdk = libs.versions.android.target.sdk.get().toInt()
-        versionCode = 26
-        versionName = "2.4.2"
+        versionCode = 27
+        versionName = "2.5.0"
         base.archivesName.set("pcontacts")
     }
 
