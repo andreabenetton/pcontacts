@@ -206,6 +206,11 @@ class LiveProtonWriteTest {
             }
             val after = fetchAndDecrypt(crypto.apiFactory, crypto.processor, id)
             println("  phones on Proton: ${after.phones.map { "${it.number}|${it.types}" }}")
+            val photoLine = after.cards.flatMap { it.plaintext.lines() }.firstOrNull { it.startsWith("PHOTO") }
+            val photoOut = System.getenv("PCONTACTS_EDIT_PHOTO_OUT")
+            val bytes = after.photo?.data
+            if (photoOut != null && bytes != null) java.io.File(photoOut).writeBytes(bytes)
+            println("  photo on Proton: ${after.photo?.data?.size ?: 0} bytes, ${photoLine?.substringBefore(",")}")
         } finally {
             runCatching { crypto.apiFactory.auth.revoke() }
         }
