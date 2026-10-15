@@ -90,7 +90,7 @@ object ContactsContractOps {
         for (field in fields) {
             when (field) {
                 is LinkedField.EmailAddress -> {
-                    ops += newEmailInsertForExisting(dataUri, rawContactId, field.address, isPrimary = false)
+                    ops += newEmailInsertForExisting(dataUri, rawContactId, field.address, Email.TYPE_OTHER, isPrimary = false)
                     ops += newSendViaProtonMailInsertForExisting(dataUri, rawContactId, field.address)
                 }
                 is LinkedField.PhoneNumber ->
@@ -243,7 +243,8 @@ object ContactsContractOps {
         row: ContactRow
     ) {
         row.emails.forEachIndexed { idx, address ->
-            ops += newEmailInsertWithBackRef(dataUri, rawIdx, address, isPrimary = idx == 0)
+            val type = EmailTypeMapper.toAndroid(row.emailType(address))
+            ops += newEmailInsertWithBackRef(dataUri, rawIdx, address, type, isPrimary = idx == 0)
             ops += newSendViaProtonMailInsertWithBackRef(dataUri, rawIdx, address)
         }
         val phonePrimaryIdx = resolvePrimaryPhoneIndex(row.phones)
@@ -277,7 +278,8 @@ object ContactsContractOps {
         row: ContactRow
     ) {
         row.emails.forEachIndexed { idx, address ->
-            ops += newEmailInsertForExisting(dataUri, rawContactId, address, isPrimary = idx == 0)
+            val type = EmailTypeMapper.toAndroid(row.emailType(address))
+            ops += newEmailInsertForExisting(dataUri, rawContactId, address, type, isPrimary = idx == 0)
             ops += newSendViaProtonMailInsertForExisting(dataUri, rawContactId, address)
         }
         val phonePrimaryIdx = resolvePrimaryPhoneIndex(row.phones)
@@ -373,13 +375,14 @@ object ContactsContractOps {
         dataUri: Uri,
         rawIdx: Int,
         address: String,
+        type: Int,
         isPrimary: Boolean
     ): ContentProviderOperation =
         ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
             .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
             .withValue(Email.ADDRESS, address)
-            .withValue(Email.TYPE, Email.TYPE_OTHER)
+            .withValue(Email.TYPE, type)
             .apply {
                 if (isPrimary) {
                     withValue(Email.IS_PRIMARY, 1)
@@ -392,13 +395,14 @@ object ContactsContractOps {
         dataUri: Uri,
         rawContactId: Long,
         address: String,
+        type: Int,
         isPrimary: Boolean
     ): ContentProviderOperation =
         ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
             .withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE)
             .withValue(Email.ADDRESS, address)
-            .withValue(Email.TYPE, Email.TYPE_OTHER)
+            .withValue(Email.TYPE, type)
             .apply {
                 if (isPrimary) {
                     withValue(Email.IS_PRIMARY, 1)

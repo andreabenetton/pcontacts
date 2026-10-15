@@ -116,6 +116,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
         private var displayName: String? = null
         private var structuredName: StructuredName? = null
         private val emails = mutableListOf<Pair<String, Boolean>>()
+        private val emailTypes = mutableMapOf<String, EmailType>()
         private val phones = mutableListOf<PhoneEntry>()
         private val addresses = mutableListOf<PostalAddress>()
         private var organization: Organization? = null
@@ -132,7 +133,11 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
             val isPrimary = cursor.getInt(c.primary) == 1
             when (cursor.getString(c.mime) ?: return) {
                 CCStructuredName.CONTENT_ITEM_TYPE -> addName(cursor, c)
-                Email.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { emails += it to isPrimary }
+                Email.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { address ->
+                    emails += address to isPrimary
+                    val type = EmailTypeMapper.fromAndroid(cursor.getInt(c.d2))
+                    if (type != EmailType.OTHER) emailTypes.putIfAbsent(address, type)
+                }
                 Phone.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { number ->
                     phones += PhoneEntry(
                         number = number,
@@ -235,7 +240,8 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
                 nicknames = nicknames,
                 websites = websites,
                 photo = photo,
-                groupRowIds = groupRowIds.distinct().sorted()
+                groupRowIds = groupRowIds.distinct().sorted(),
+                emailTypes = emailTypes.toMap()
             )
         }
     }

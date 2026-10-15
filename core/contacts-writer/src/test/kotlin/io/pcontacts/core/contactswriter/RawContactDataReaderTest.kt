@@ -77,6 +77,24 @@ class RawContactDataReaderTest {
         assertEquals(listOf("https://alice.example"), row.websites)
     }
 
+    @Test fun email_types_home_and_work_are_read_and_any_other_is_left_to_the_default() {
+        val cursor = MatrixCursor(columns).apply {
+            addRow(structuredNameRow("Alice"))
+            addRow(valueRow(Email.CONTENT_ITEM_TYPE, "home@example.com", Email.TYPE_HOME))
+            addRow(valueRow(Email.CONTENT_ITEM_TYPE, "work@example.com", Email.TYPE_WORK))
+            addRow(valueRow(Email.CONTENT_ITEM_TYPE, "mobile@example.com", Email.TYPE_MOBILE))
+            addRow(emailRow("untyped@example.com"))
+        }
+
+        val row = RawContactDataReader.parse(cursor, "c1")!!
+
+        assertEquals(
+            mapOf("home@example.com" to EmailType.HOME, "work@example.com" to EmailType.WORK),
+            row.emailTypes
+        )
+        assertEquals(EmailType.OTHER, row.emailType("mobile@example.com"))
+    }
+
     private fun emailRow(address: String, isPrimary: Boolean = false): Array<Any?> = arrayOf(
         Email.CONTENT_ITEM_TYPE,
         address, null, null, null, null, null, null, null, null, null, null,

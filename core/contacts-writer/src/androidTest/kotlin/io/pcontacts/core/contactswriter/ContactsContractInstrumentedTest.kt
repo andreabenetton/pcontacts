@@ -172,6 +172,29 @@ class ContactsContractInstrumentedTest {
     }
 
     @Test
+    fun email_types_round_trip_through_the_provider() {
+        val row = ContactRow(
+            sourceId = "proton-c3t",
+            displayName = "Bob",
+            emails = listOf("bob@proton.me", "bob.work@company.com", "bob.alt@gmail.com"),
+            emailTypes = mapOf("bob@proton.me" to EmailType.HOME, "bob.work@company.com" to EmailType.WORK)
+        )
+        BatchApplier(testProvider).apply(testAccount, listOf(RawContactOpIntent.CreateContact(row)))
+
+        val rawId = findRawContactBySourceId("proton-c3t")!!
+        val types = queryAllDataRows(rawId, Email.CONTENT_ITEM_TYPE).associate { it[Email.ADDRESS] to it[Email.TYPE] }
+        assertEquals(
+            mapOf(
+                "bob@proton.me" to Email.TYPE_HOME.toString(),
+                "bob.work@company.com" to Email.TYPE_WORK.toString(),
+                "bob.alt@gmail.com" to Email.TYPE_OTHER.toString()
+            ),
+            types
+        )
+        assertEquals(row.emailTypes, RawContactDataReader(testProvider).read(rawId, "proton-c3t")!!.emailTypes)
+    }
+
+    @Test
     fun create_contact_with_phones() {
         val row = ContactRow(
             sourceId = "proton-c4",

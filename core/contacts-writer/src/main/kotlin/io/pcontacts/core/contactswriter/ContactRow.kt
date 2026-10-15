@@ -20,7 +20,9 @@ package io.pcontacts.core.contactswriter
  *   - `structuredName` populates the per-piece columns (GIVEN/FAMILY/
  *     MIDDLE/PREFIX/SUFFIX) on the same Data row when non-null.
  *   - `emails` order is significant: position 0 is the "primary"
- *     (IS_PRIMARY + IS_SUPER_PRIMARY).
+ *     (IS_PRIMARY + IS_SUPER_PRIMARY). `emailTypes` holds the type of
+ *     an address that is home or work; any other is OTHER (ADR-0023,
+ *     2026-10-15).
  *   - `phones` may flag a primary explicitly via PhoneEntry.isPrimary;
  *     otherwise position 0 wins.
  *   - `addresses` likewise (position 0 OR explicit isPrimary).
@@ -61,8 +63,12 @@ data class ContactRow(
      * via LocalGroupsWriter before constructing the ContactRow;
      * this keeps the writer oblivious to Proton's label taxonomy.
      */
-    val groupRowIds: List<Long> = emptyList()
+    val groupRowIds: List<Long> = emptyList(),
+    /** The type of each email that is [EmailType.HOME] or [EmailType.WORK]; an address not here is OTHER. */
+    val emailTypes: Map<String, EmailType> = emptyMap()
 ) {
+    fun emailType(address: String): EmailType = emailTypes[address] ?: EmailType.OTHER
+
     init {
         // A Proton contact needs no phone or email to be valid — a name alone
         // is a contact (a note-only contact still has its FN). Only a row
@@ -97,6 +103,9 @@ data class PhoneEntry(
     val type: PhoneType = PhoneType.OTHER,
     val isPrimary: Boolean = false
 )
+
+/** The email types Proton's editor and Android share; the token mapping lives in [EmailTypeMapper]. */
+enum class EmailType { HOME, WORK, OTHER }
 
 /**
  * MVP subset of `ContactsContract.CommonDataKinds.Phone.TYPE_*`.

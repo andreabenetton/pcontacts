@@ -5,6 +5,7 @@ package io.pcontacts.core.contactswriter
 
 import android.accounts.Account
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Website
@@ -383,6 +384,33 @@ class ContactsContractOpsTest {
         assertEquals(
             "https://alice.example",
             byMime.getValue(Website.CONTENT_ITEM_TYPE).single().getAsString(Website.URL)
+        )
+    }
+
+    @Test fun update_writes_each_emails_type() {
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.UpdateContact(
+                rawContactId = 100L,
+                row = ContactRow(
+                    sourceId = "c1",
+                    displayName = "Alice",
+                    emails = listOf("home@example.com", "work@example.com", "other@example.com"),
+                    emailTypes = mapOf("home@example.com" to EmailType.HOME, "work@example.com" to EmailType.WORK)
+                )
+            ),
+            baseIdx = 0
+        )
+        val emails = ops.map { it.resolveValueBackReferences(emptyArray(), 0) }
+            .filter { it?.getAsString(ContactsContract.Data.MIMETYPE) == Email.CONTENT_ITEM_TYPE }
+            .associate { it!!.getAsString(Email.ADDRESS) to it.getAsInteger(Email.TYPE) }
+        assertEquals(
+            mapOf(
+                "home@example.com" to Email.TYPE_HOME,
+                "work@example.com" to Email.TYPE_WORK,
+                "other@example.com" to Email.TYPE_OTHER
+            ),
+            emails
         )
     }
 
