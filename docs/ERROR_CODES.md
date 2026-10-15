@@ -39,7 +39,7 @@ Two kinds of refusal show in the code line:
 | 2050 `[V]` `[A]` 2026-10-15 | Proton found an email address in this contact invalid ("Email address failed validation"). | Correct the address on the phone, then tap Retry. |
 | 2059 `[V]` | Proton did not accept the domain of an email address (the part after @). | Correct the domain on the phone, then tap Retry. |
 | 2052 `[V]` | Proton found a website address in this contact invalid. | Correct the website on the phone, then tap Retry. |
-| 2024 `[A]` 2026-10-15 | A detail is too long for Proton ("Input string too long"). A contact's name can have at most 190 characters; first and last names of 400 were accepted. | Shorten the name on the phone, then tap Retry. |
+| 2024 `[A]` 2026-10-15 | A detail is too long for Proton ("Input string too long"). A contact's name can have at most 190 characters; pcontacts now shortens a longer one before sending (below), so this code means some other detail. | Shorten it on the phone, then tap Retry. |
 | 2001, 2002, 2011, 13060 `[A]` 2026-10-15 | Proton did not accept the way pcontacts wrote this contact. Seen for: a signature that does not match its card (2001), a vCard version other than 4.0 (2001), an email without its group (2001), a field such as a phone number in the signed card (2001), a missing name or identifier (2002), an unknown card type (2011), two signed cards (13060). | Report it (below). Retry sends the same cards and fails again. |
 | 2061 `[V]`, 2501 `[A]` 2026-10-01 | Proton no longer has this contact. It was deleted on Proton, for example on the web. | Tap Discard. |
 | 2026 `[V]` | Proton does not allow this change on your account. | Check the account on Proton's web app; otherwise Discard. |
@@ -51,6 +51,24 @@ The `[V]` names are those in Proton's web client,
 [ProtonMail/WebClients](https://github.com/ProtonMail/WebClients). Its name
 for 2011, "not allowed", does not fit what a contact update answered with it
 (an unknown card type), so the app goes by the live answer.
+
+## Values adjusted before sending
+
+Proton's own app checks a contact before saving it. pcontacts applies the
+same rules before it sends one, and fixes what it can instead of letting
+Proton refuse the change. Each fix is listed on the **Sync** card as
+**values adjusted for Proton** until you tap **Dismiss**:
+
+| Rule in Proton's app `[V]` | What pcontacts does |
+|---|---|
+| A name has at most 190 characters | Shortens it to 190 |
+| A first or last name has at most 94 characters | Shortens it to 94 |
+| An email address has no spaces around it | Removes the spaces |
+
+Only values that differ from Proton's copy are adjusted. Proton keeps the
+adjusted value, and the phone gets it with the next sync. An email address
+that is still invalid after the spaces are removed is sent as it is: if
+Proton refuses it (code 2050), it is listed as a failed change.
 
 ## Failed changes without a Proton code
 

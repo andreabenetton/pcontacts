@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A contact is fitted to Proton's rules before it is sent.** Proton's
+  own app does not save a name over 190 characters, a first or last name
+  over 94, or an email address with spaces around it. pcontacts now
+  shortens such a name and removes the spaces before sending, instead of
+  having the change refused, and lists each adjustment on the Sync card
+  ("values adjusted for Proton") until you dismiss it. Proton keeps the
+  adjusted value and the phone gets it with the next sync. An email
+  address that is still invalid is sent as it is and, if Proton refuses
+  it, listed as a failed change as before.
+
 ### Fixed
 
 - **A failed change names its cause correctly**
@@ -19,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2001 and 2011 meant a contact Proton cannot take in the form pcontacts
   wrote it, not an invalid detail or a change the account does not allow:
   the app now says so and asks to report it, since correcting the contact
-  cannot help. A contact name over 190 characters (code 2024) now says to
+  cannot help. A detail Proton finds too long (code 2024) now says to
   shorten it. Each meaning was checked against Proton on a test account;
   [docs/ERROR_CODES.md](docs/ERROR_CODES.md) lists them.
 

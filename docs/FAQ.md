@@ -148,7 +148,10 @@ words what Proton refused and what to do, the line below is Proton's code
 (for example `HTTP 422, Proton code 2050`). [Error codes](ERROR_CODES.md)
 lists every code, what it means, and when to tap Retry or Discard. A code
 Proton does not explain asks to retry first; if it fails again, report it
-with that line, as the same page describes.
+with that line, as the same page describes. A name that is too long, or an
+email address with spaces around it, is not refused: pcontacts fits it to
+Proton's rules before sending and lists it as **values adjusted for
+Proton**; the same page explains each adjustment.
 
 ## I deleted a contact on a Samsung and pcontacts asks what to do
 
