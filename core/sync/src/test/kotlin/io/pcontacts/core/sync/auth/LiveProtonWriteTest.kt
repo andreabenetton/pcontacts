@@ -245,7 +245,15 @@ class LiveProtonWriteTest {
             "address country only" to base.copy(addresses = listOf(DecryptedAddress(country = "Italy"))),
             "im" to base.copy(imAccounts = listOf(DecryptedIm("probe.handle", "skype"))),
             "organization title only" to base.copy(organization = DecryptedOrganization(title = "Engineer")),
-            "note long" to base.copy(notes = listOf("x".repeat(LONG_NOTE)))
+            "note long" to base.copy(notes = listOf("x".repeat(LONG_NOTE))),
+            // WebClients contacts/constants.ts: "the backend has a limit of 190 chars for a contact
+            // name", 94 for a first or last name; Proton's editor never sends a longer one.
+            "name 190" to base.copy(fullName = probeName(NAME_LIMIT)),
+            "name 191" to base.copy(fullName = probeName(NAME_LIMIT + 1)),
+            "name 400" to base.copy(fullName = probeName(LONG_NAME)),
+            "given 94" to base.copy(structuredName = DecryptedStructuredName(given = probeName(PART_LIMIT))),
+            "given 95" to base.copy(structuredName = DecryptedStructuredName(given = probeName(PART_LIMIT + 1))),
+            "family 400" to base.copy(structuredName = DecryptedStructuredName(family = probeName(LONG_NAME)))
         )
         // JPEG files named by the env var, sent the way the push sends a phone photo.
         System.getenv("PCONTACTS_PROBE_PHOTOS")?.split(",")?.forEach { path ->
@@ -255,7 +263,8 @@ class LiveProtonWriteTest {
         val created = mutableListOf<String>()
         try {
             for ((tag, contact) in probes) {
-                val probe = contact.copy(fullName = "pcontacts probe $tag", protonUid = "urn:uuid:${UUID.randomUUID()}")
+                val name = contact.fullName.takeIf { it != base.fullName } ?: "pcontacts probe $tag"
+                val probe = contact.copy(fullName = name, protonUid = "urn:uuid:${UUID.randomUUID()}")
                 val request = CreateContactsRequest(listOf(ContactCardBundle(crypto.serializer.serialize(probe))))
                 val item = crypto.apiFactory.contacts.createContacts(request).responses.firstOrNull()?.response
                 item?.contact?.id?.let { created += it }
@@ -274,7 +283,8 @@ class LiveProtonWriteTest {
                 created += id
                 val server = fetchAndDecrypt(crypto.apiFactory, crypto.processor, id)
                 val canonical = MergeBaseCodec.canonical(server)!!
-                val target = contact.copy(fullName = canonical.fullName, protonUid = canonical.protonUid)
+                val name = contact.fullName.takeIf { it != base.fullName } ?: canonical.fullName
+                val target = contact.copy(fullName = name, protonUid = canonical.protonUid)
                 val patch = ContactPatch.diff(canonical, target)
                 val cards = crypto.serializer.serialize(server.cards, patch, "unused")
                 val update = UpdateContactRequest(cards)
@@ -288,6 +298,100 @@ class LiveProtonWriteTest {
             runCatching { crypto.apiFactory.auth.revoke() }
         }
     }
+
+    /**
+     * Probe, not part of the canary: `PCONTACTS_PROBE_STRUCTURE=true` updates one throwaway contact
+     * with hand-built cards that break one rule of the card layout Proton's client always keeps
+     * (`[V]` WebClients `contacts/encrypt.ts`), and prints what Proton answers to each. Value checks
+     * answer HTTP 422; a structural one answered HTTP 400 (2002, missing UID), as #71's 2060 did.
+     */
+    @Suppress("LongMethod")
+    @Test
+    fun live_structure_probe() = runBlocking {
+        assumeTrue("Set env PCONTACTS_PROBE_STRUCTURE=true", System.getenv("PCONTACTS_PROBE_STRUCTURE") == "true")
+        assumeTrue("Set env PCONTACTS_LIVE_TEST=true", System.getenv("PCONTACTS_LIVE_TEST") == "true")
+        val username = System.getenv("PCONTACTS_USERNAME").orEmpty()
+        val password = System.getenv("PCONTACTS_PASSWORD").orEmpty().toCharArray()
+        val crypto = loginAndBuildCrypto(username, password)
+        val uid = "urn:uuid:${UUID.randomUUID()}"
+        val base = buildTestContact("structure").copy(protonUid = uid, fullName = "pcontacts probe structure")
+        val created = crypto.apiFactory.contacts.createContacts(
+            CreateContactsRequest(listOf(ContactCardBundle(crypto.serializer.serialize(base))))
+        ).responses.firstOrNull()?.response?.contact?.id
+        assertNotNull("probe contact created", created)
+        val id = created!!
+
+        fun vcard(vararg lines: String) = (listOf("BEGIN:VCARD", "VERSION:4.0") + lines + "END:VCARD")
+            .joinToString("\r\n")
+        fun signed(text: String) = ContactCardDto(
+            type = CardType.SIGNED.wireValue,
+            data = text,
+            signature = crypto.encryptOp(CardEncryptRequest.SignOnly(text)).signature
+        )
+        fun encrypted(text: String) = crypto.encryptOp(CardEncryptRequest.EncryptAndSign(text)).let {
+            ContactCardDto(type = CardType.ENCRYPTED_AND_SIGNED.wireValue, data = it.data, signature = it.signature)
+        }
+        val fn = "FN:pcontacts probe structure"
+        val uidLine = "UID:$uid"
+        val email = "ITEM1.EMAIL;PREF=1:structure@example.com"
+        val tel = "TEL;TYPE=cell:+1 555 0100"
+        val goodSigned = vcard(fn, uidLine, email)
+        val probes = linkedMapOf(
+            "baseline" to listOf(signed(goodSigned), encrypted(vcard(tel))),
+            "signed bad signature" to listOf(
+                signed(goodSigned).copy(signature = signed(vcard(fn, uidLine)).signature),
+                encrypted(vcard(tel))
+            ),
+            "encrypted bad signature" to listOf(
+                signed(goodSigned),
+                encrypted(vcard(tel)).copy(signature = encrypted(vcard("NOTE:other")).signature)
+            ),
+            "signed no FN" to listOf(signed(vcard(uidLine, email)), encrypted(vcard(tel))),
+            "signed two FN" to listOf(signed(vcard(fn, "FN:other", uidLine, email)), encrypted(vcard(tel))),
+            "signed no UID" to listOf(signed(vcard(fn, email)), encrypted(vcard(tel))),
+            "signed no VERSION" to listOf(
+                signed(listOf("BEGIN:VCARD", fn, uidLine, email, "END:VCARD").joinToString("\r\n")),
+                encrypted(vcard(tel))
+            ),
+            "signed VERSION 3.0" to listOf(signed(goodSigned.replace("VERSION:4.0", "VERSION:3.0")), encrypted(vcard(tel))),
+            "signed email no group" to listOf(
+                signed(vcard(fn, uidLine, "EMAIL;PREF=1:structure@example.com")),
+                encrypted(vcard(tel))
+            ),
+            "TEL in signed card" to listOf(signed(vcard(fn, uidLine, email, tel))),
+            "FN also in encrypted card" to listOf(signed(goodSigned), encrypted(vcard(fn, tel))),
+            "UID also in encrypted card" to listOf(signed(goodSigned), encrypted(vcard(uidLine, tel))),
+            "EMAIL also in encrypted card" to listOf(signed(goodSigned), encrypted(vcard(email, tel))),
+            "two signed cards" to listOf(signed(goodSigned), signed(goodSigned), encrypted(vcard(tel))),
+            "two encrypted cards" to listOf(signed(goodSigned), encrypted(vcard(tel)), encrypted(vcard("NOTE:x"))),
+            "no signed card" to listOf(encrypted(vcard(fn, uidLine, email, tel))),
+            "clear card with TEL" to listOf(
+                signed(goodSigned),
+                ContactCardDto(type = CardType.CLEAR_TEXT.wireValue, data = vcard(tel))
+            ),
+            "CATEGORIES in encrypted card" to listOf(signed(goodSigned), encrypted(vcard(tel, "CATEGORIES:probe"))),
+            "empty encrypted card" to listOf(signed(goodSigned), encrypted(vcard())),
+            "empty TEL value" to listOf(signed(goodSigned), encrypted(vcard("TEL;TYPE=cell:"))),
+            "empty ADR value" to listOf(signed(goodSigned), encrypted(vcard("ADR;TYPE=home:;;;;;;"))),
+            "unknown card type" to listOf(signed(goodSigned), encrypted(vcard(tel)).copy(type = 4)),
+            // Last: a success would change the contact's UID for the probes after it.
+            "UID changed" to listOf(signed(vcard(fn, "UID:urn:uuid:${UUID.randomUUID()}", email)), encrypted(vcard(tel)))
+        )
+        try {
+            for ((tag, cards) in probes) {
+                val update = UpdateContactRequest(cards)
+                val outcome = runCatching { crypto.apiFactory.contacts.updateContact(id, update).code }
+                println("  structure [$tag]: ${outcome.getOrElse(::refusal)}")
+                delay(SEED_PAUSE_MS)
+            }
+        } finally {
+            crypto.apiFactory.contacts.deleteContacts(BulkDeleteRequest(ids = listOf(id)))
+            println("  cleanup: deleted $id")
+            runCatching { crypto.apiFactory.auth.revoke() }
+        }
+    }
+
+    private fun probeName(length: Int) = "pcontacts probe ".padEnd(length, 'x')
 
     private fun refusal(t: Throwable): String = (t as? retrofit2.HttpException)
         ?.let { e -> "HTTP ${e.code()} ${e.response()?.errorBody()?.string()?.take(PROBE_BODY)}" }
@@ -337,6 +441,9 @@ class LiveProtonWriteTest {
         const val SEED_PAUSE_MS = 200L
         const val SUCCESS = 1000
         const val LONG_NOTE = 20_000
+        const val NAME_LIMIT = 190
+        const val PART_LIMIT = 94
+        const val LONG_NAME = 400
         const val KIB = 1024
         const val PROBE_BODY = 160
     }
