@@ -34,6 +34,7 @@ import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.protoncontacts.DecryptedContactJson
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
+import io.pcontacts.core.storage.db.entity.OutboxEntity
 import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.HttpException
 import retrofit2.Response
@@ -84,7 +85,7 @@ internal fun newEngine(
     queueUpdate: suspend (String) -> Unit = {},
     dropQueuedDelete: suspend (String) -> Unit = {},
     readDirtyRawIds: suspend () -> Set<Long> = { emptySet() },
-    queuedCreateRawIds: Set<Long> = emptySet(),
+    queuedCreates: List<OutboxEntity> = emptyList(),
     onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> }
 ): ContactDetailSyncEngine {
     val processor = ContactProcessor(
@@ -110,7 +111,7 @@ internal fun newEngine(
         queueUpdate = queueUpdate,
         dropQueuedDelete = dropQueuedDelete,
         readDirtyRawIds = { readDirtyRawIds() },
-        queuedCreateRawIds = { queuedCreateRawIds },
+        queuedCreates = { queuedCreates },
         saveMergeBase = saveMergeBase,
         readLocalPhotoHash = readLocalPhotoHash,
         clock = { 1_700_000_000L }

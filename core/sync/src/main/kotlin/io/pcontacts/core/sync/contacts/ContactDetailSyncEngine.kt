@@ -23,6 +23,7 @@ import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
+import io.pcontacts.core.storage.db.entity.OutboxEntity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -144,10 +145,11 @@ class ContactDetailSyncEngine(
      */
     private val readDirtyRawIds: suspend (Account) -> Set<Long> = { emptySet() },
     /**
-     * RawContacts whose create is still queued: whatever Proton holds for them is not settled yet,
-     * so the pull neither rewrites the row nor recreates its contact (ADR-0017, 2026-10-15).
+     * The creates still queued, ready or not: whatever Proton holds for them is not settled yet,
+     * so the pull neither rewrites their rows, recreates their contacts, nor inserts the contact a
+     * create made before its recording was cut short (found by its minted UID) (ADR-0017, 2026-10-15).
      */
-    private val queuedCreateRawIds: suspend () -> Set<Long> = { emptySet() },
+    private val queuedCreates: suspend () -> List<OutboxEntity> = { emptyList() },
     /** Drops the contact's queued DELETE: it was deleted on Proton too (ADR-0017, 2026-10-01). */
     private val dropQueuedDelete: suspend (protonContactId: String) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
@@ -197,7 +199,12 @@ class ContactDetailSyncEngine(
         //    RawContacts exist; the Room mapping is only sync metadata
         //    and converges to provider reality (repairMapping below).
         val existingState = readExisting(account)
-        val pendingCreates = queuedCreateRawIds()
+        val queued = queuedCreates()
+        val pendingCreates = queued
+            .mapNotNull { it.protonContactId.removePrefix(LOCAL_ID_PREFIX).toLongOrNull() }
+            .toSet()
+        val pendingCreateUids = queued.mapNotNull { it.createUid }.toSet()
+        val uidOf = metadata.associate { it.id to it.uid }
         val storedMappings: Map<String, ContactMapEntity> = contactMapDao.listLive()
             .associateBy { it.protonContactId }
 
@@ -280,7 +287,7 @@ class ContactDetailSyncEngine(
                 }
                 continue
             }
-            if (unsettledCreate(stored, liveRawId, pendingCreates)) {
+            if (unsettledCreate(stored, liveRawId, pendingCreates) || uidOf[sourceId] in pendingCreateUids) {
                 logger.info { "skip: its create is still queued idTag=${sourceId.hashCode()}" }
                 protectedIds += sourceId
                 continue

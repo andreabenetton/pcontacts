@@ -569,6 +569,9 @@ now fails toward keeping the user's data or asking:
   dying part-way leaves the CREATE queued and the next run records it
   again. Until then the pull leaves that row alone — no rewrite from
   Proton, and no second row for a contact whose row lacks its SOURCE_ID.
+  Nor does it insert a Proton contact carrying the minted UID of a
+  create still queued: that is the create's own copy, whose answer was
+  lost.
 - **An update sent and not recorded is recognised.** Before an update
   is sent, a digest of the state it will leave on Proton is recorded on
   the mapping (`pending_push_hash`, schema v6), and cleared once the

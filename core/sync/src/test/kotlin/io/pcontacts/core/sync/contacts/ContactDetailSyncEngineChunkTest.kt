@@ -5,7 +5,9 @@ package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
 import io.pcontacts.core.contactswriter.RawContactOpIntent
+import io.pcontacts.core.proton.api.contacts.ContactMetadataDto
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
+import io.pcontacts.core.storage.db.entity.OutboxEntity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -82,13 +84,37 @@ class ContactDetailSyncEngineChunkTest {
         )
         val applier = DetailFakeApplier(base = 1L)
 
-        newEngine(api, dao, applier, queuedCreateRawIds = setOf(105L)).sync(account)
+        newEngine(api, dao, applier, queuedCreates = listOf(queuedCreate(105L))).sync(account)
         assertEquals("no second row for a contact whose row lacks its SOURCE_ID", 0, applier.applyCallCount)
 
         applier.seedRow("srv-8", 105L)
-        newEngine(api, dao, applier, queuedCreateRawIds = setOf(105L)).sync(account)
+        newEngine(api, dao, applier, queuedCreates = listOf(queuedCreate(105L))).sync(account)
         assertEquals("the row is not rewritten", 0, applier.applyCallCount)
     }
+
+    @Test fun the_contact_a_create_made_before_its_answer_was_lost_is_not_inserted_again() = runTest {
+        // The POST committed, the answer was lost and the UID lookup failed: the CREATE is still
+        // queued. The pull inserted Proton's copy as a second row (ADR-0017, 2026-10-15).
+        val create = queuedCreate(105L)
+        val page = metaPage(ContactMetadataDto(id = "srv-9", uid = create.createUid!!, modifyTime = 200L))
+        val api = DetailFakeApi(
+            metadataPages = listOf(page),
+            contacts = mapOf("srv-9" to contact("srv-9", 200L, card("srv-9")))
+        )
+        val applier = DetailFakeApplier(base = 1L)
+
+        newEngine(api, DetailFakeContactMapDao(), applier, queuedCreates = listOf(create)).sync(account)
+
+        assertEquals(0, applier.applyCallCount)
+    }
+
+    private fun queuedCreate(rawId: Long) = OutboxEntity(
+        protonContactId = "local-$rawId",
+        opType = OutboxEntity.OpType.CREATE,
+        payloadHash = "h",
+        createdAt = 0L,
+        createUid = "urn:uuid:minted-$rawId"
+    )
 
     @Test fun a_contact_missing_from_the_listing_but_still_on_proton_is_not_deleted() = runTest {
         // [U] paging stability: a page that left a contact out deleted it on the phone
