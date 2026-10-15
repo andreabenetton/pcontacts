@@ -197,7 +197,8 @@ class LiveProtonWriteTest {
                 val edited = canonical.copy(phones = canonical.phones + DecryptedPhone(number, listOf(type)))
                 val patch = ContactPatch.diff(canonical, edited)
                 val cards = crypto.serializer.serialize(server.cards, patch, "unused")
-                println("  edit: Code=${crypto.apiFactory.contacts.updateContact(id, UpdateContactRequest(cards)).code}")
+                val response = crypto.apiFactory.contacts.updateContact(id, UpdateContactRequest(cards))
+                println("  edit: Code=${response.code}")
             }
             val after = fetchAndDecrypt(crypto.apiFactory, crypto.processor, id)
             println("  phones on Proton: ${after.phones.map { "${it.number}|${it.types}" }}")
