@@ -179,11 +179,9 @@ class ContactWriteEngine(
 
     /** A row deleted on the phone: its DELETE, unless it never reached Proton or awaits a decision. */
     private suspend fun enqueueDeletion(dc: DirtyContact, now: Long): EnqueueResult {
-        val protonId = dc.sourceId
-        if (protonId == null) {
-            // Never reached Proton: whatever CREATE is queued has nothing to create any more.
-            outboxDao.findLive("$LOCAL_ID_PREFIX${dc.rawContactId}")?.let { outboxDao.deleteById(it.id) }
-            return EnqueueResult.SKIPPED
+        val protonId = dc.sourceId?.let { mappedIdOf(it, dc.rawContactId) }
+        if (protonId == null || protonId.startsWith(LOCAL_ID_PREFIX)) {
+            return deleteUnconfirmedCreate(protonId ?: "$LOCAL_ID_PREFIX${dc.rawContactId}", now)
         }
         if (contactMapDao.findByProtonId(protonId)?.lastError == SERVER_EDITED_CONFLICT) {
             // The tombstone is read again on every run while the user decides whether to delete
@@ -200,6 +198,27 @@ class ContactWriteEngine(
             .any { it.quarantined && it.opType == OutboxEntity.OpType.DELETE }
         if (failedDelete) return EnqueueResult.SKIPPED
         return outboxDao.enqueue(protonId, OutboxEntity.OpType.DELETE, "", now).toResult()
+    }
+
+    /**
+     * A row deleted before its create was confirmed. A create with a minted UID may have reached
+     * Proton (committed, its acknowledgement cut short): it becomes a delete by that UID, due at
+     * once — no Proton contact was ever confirmed for it, so the grace period has nothing to keep.
+     * A legacy create leaves the queue as before (ADR-0017, 2026-10-15).
+     */
+    private suspend fun deleteUnconfirmedCreate(localId: String, now: Long): EnqueueResult {
+        val live = outboxDao.findLive(localId) ?: return EnqueueResult.SKIPPED
+        return when {
+            live.opType == OutboxEntity.OpType.DELETE -> EnqueueResult.SKIPPED
+            live.createUid != null -> {
+                outboxDao.replaceLive(live.id, OutboxEntity.OpType.DELETE, "", now - GRACE_PERIOD_MS)
+                EnqueueResult.ENQUEUED
+            }
+            else -> {
+                outboxDao.deleteById(live.id)
+                EnqueueResult.SKIPPED
+            }
+        }
     }
 
     private fun OutboxEnqueue.toResult(): EnqueueResult = when (this) {
@@ -256,7 +275,11 @@ class ContactWriteEngine(
         account: Account?,
         createdUids: Map<String, String>?
     ): WriteReport = when (entry.opType) {
-        OutboxEntity.OpType.DELETE -> pushDelete(entry, account)
+        OutboxEntity.OpType.DELETE -> if (entry.protonContactId.startsWith(LOCAL_ID_PREFIX)) {
+            pushUnconfirmedDelete(entry, createdUids)
+        } else {
+            pushDelete(entry, account)
+        }
         OutboxEntity.OpType.UPDATE, OutboxEntity.OpType.FORCE_UPDATE -> pushUpdate(entry, account)
         OutboxEntity.OpType.CREATE -> pushCreate(entry, account, createdUids)
         else -> {
@@ -267,6 +290,28 @@ class ContactWriteEngine(
     }
 
     private fun inGrace(entry: OutboxEntity, now: Long): Boolean = entry.createdAt + GRACE_PERIOD_MS > now
+
+    /** The delete of a create that may have reached Proton: the contact holding its minted UID, if any. */
+    private suspend fun pushUnconfirmedDelete(entry: OutboxEntity, createdUids: Map<String, String>?): WriteReport {
+        createdUids ?: return handleFailure(entry, IOException("contact list unreadable"))
+        val serverId = entry.createUid?.let { createdUids[it] }
+        return try {
+            if (serverId != null) {
+                val response = contactsApi.deleteContacts(BulkDeleteRequest(ids = listOf(serverId)))
+                requireItemAccepted(response, serverId)
+                logger.info { "push: deleted the copy an unconfirmed create left on Proton idTag=${serverId.hashCode()}" }
+            }
+            contactMapDao.deleteByProtonId(entry.protonContactId)
+            outboxDao.deleteById(entry.id)
+            if (serverId != null) WriteReport(pushed = 1, deleted = 1) else WriteReport.EMPTY
+        } catch (e: HumanVerificationRequiredException) {
+            throw e
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFailure(entry, e)
+        }
+    }
 
     private suspend fun pushDelete(entry: OutboxEntity, account: Account?): WriteReport {
         if (inGrace(entry, clock())) {
@@ -636,9 +681,9 @@ class ContactWriteEngine(
         lastSyncedAt = clock()
     )
 
-    /** Proton's `UID → ID` list, read once per run before any POST when a create carries a minted UID. */
+    /** Proton's `UID → ID` list, read once per run before any POST when a create or its delete carries a minted UID. */
     private suspend fun createdUids(entries: List<OutboxEntity>): Map<String, String>? =
-        if (entries.any { it.opType == OutboxEntity.OpType.CREATE && it.createUid != null }) {
+        if (entries.any { it.createUid != null }) {
             serverIdsByUid()
         } else {
             emptyMap()

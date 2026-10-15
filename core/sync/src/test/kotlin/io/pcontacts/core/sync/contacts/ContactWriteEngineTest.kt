@@ -1146,7 +1146,7 @@ class ContactWriteEngineTest {
         assertEquals(EmailSyncHash.compute(rows[500L]!!), live.payloadHash)
     }
 
-    @Test fun detectChanges_delete_of_an_unpushed_create_drops_the_row_and_never_posts() = runTest {
+    @Test fun a_create_deleted_before_it_reached_proton_sends_nothing() = runTest {
         val api = WriteFakeApi()
         val outbox = WriteFakeOutboxDao()
         val rows = mutableMapOf(500L to sampleRow("local-500"))
@@ -1165,11 +1165,52 @@ class ContactWriteEngineTest {
             dirtyContacts = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true)),
             contactRows = rows
         )
-        assertEquals(0, deleting.detectChanges(testAccount))
+        deleting.detectChanges(testAccount)
         deleting.push()
 
         assertTrue(outbox.entries.isEmpty())
         assertNull(api.lastCreateRequest)
+        assertNull("Proton holds no contact with the minted UID", api.lastDeleteRequest)
+    }
+
+    @Test fun a_create_deleted_before_it_was_confirmed_deletes_the_copy_proton_holds() = runTest {
+        // The create committed on Proton and its acknowledgement was cut short; then the user
+        // deleted the contact. Dropping the create brought the contact back (ADR-0017, 2026-10-15).
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        outbox.enqueue("local-500", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        api.listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = outbox.entries.values.single().createUid!!))
+        val engine = newEngine(
+            api = api,
+            outbox = outbox,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true)),
+            contactRows = mapOf(500L to sampleRow("local-500"))
+        )
+
+        engine.detectChanges(testAccount)
+        val report = engine.push(testAccount)
+
+        assertNull(api.lastCreateRequest)
+        assertEquals(listOf("srv-9"), api.lastDeleteRequest!!.ids)
+        assertEquals(1, report.deleted)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun a_legacy_create_deleted_before_it_was_sent_just_leaves_the_queue() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        outbox.insert(legacyCreate("local-500", "h", 1_000_000L))
+        val engine = newEngine(
+            api = api,
+            outbox = outbox,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true))
+        )
+
+        engine.detectChanges(testAccount)
+        engine.push(testAccount)
+
+        assertTrue(outbox.entries.isEmpty())
+        assertNull(api.lastDeleteRequest)
     }
 
     @Test fun detectChanges_delete_supersedes_a_pending_update() = runTest {

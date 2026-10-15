@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A contact deleted right after it was created no longer comes back.**
+  If a sync was cut off just after Proton stored a new contact, and the
+  contact was then deleted on the phone, the next sync brought it back
+  from Proton. The deletion now removes the copy Proton holds.
 - **No stuck "failed change" after keeping the phone's version of a
   contact deleted on Proton.** An edit made on the phone right after that
   choice was queued under the deleted contact's id and failed on every
