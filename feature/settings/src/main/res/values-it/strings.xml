@@ -55,6 +55,12 @@
     <string name="quarantined_retry">Riprova</string>
     <string name="quarantined_discard">Scarta</string>
     <string name="quarantined_reason_refused">Proton ha rifiutato questa modifica.</string>
+    <string name="quarantined_reason_email_format">Proton considera non valido un indirizzo email di questo contatto. Correggilo sul telefono, poi tocca Riprova.</string>
+    <string name="quarantined_reason_email_domain">Proton non ha accettato il dominio di un indirizzo email di questo contatto (la parte dopo @). Correggilo sul telefono, poi tocca Riprova.</string>
+    <string name="quarantined_reason_url">Proton considera non valido un indirizzo web di questo contatto. Correggilo sul telefono, poi tocca Riprova.</string>
+    <string name="quarantined_reason_invalid_value">Proton considera non valido un dato di questo contatto. Controllalo sul telefono, poi tocca Riprova.</string>
+    <string name="quarantined_reason_not_on_proton">Proton non ha più questo contatto.</string>
+    <string name="quarantined_reason_not_allowed">Proton non consente questa modifica sul tuo account.</string>
     <string name="quarantined_reason_not_on_phone">Questo contatto non è più su questo telefono.</string>
     <string name="quarantined_reason_network">Impossibile raggiungere Proton.</string>
     <string name="quarantined_reason_other">Qualcosa è andato storto su questo telefono.</string>

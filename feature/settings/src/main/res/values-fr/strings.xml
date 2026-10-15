@@ -55,6 +55,12 @@
     <string name="quarantined_retry">Réessayer</string>
     <string name="quarantined_discard">Abandonner</string>
     <string name="quarantined_reason_refused">Proton a refusé cette modification.</string>
+    <string name="quarantined_reason_email_format">Proton juge invalide une adresse e-mail de ce contact. Corrigez-la sur le téléphone, puis touchez Réessayer.</string>
+    <string name="quarantined_reason_email_domain">Proton n\'a pas accepté le domaine d\'une adresse e-mail de ce contact (la partie après @). Corrigez-le sur le téléphone, puis touchez Réessayer.</string>
+    <string name="quarantined_reason_url">Proton juge invalide une adresse web de ce contact. Corrigez-la sur le téléphone, puis touchez Réessayer.</string>
+    <string name="quarantined_reason_invalid_value">Proton juge invalide une information de ce contact. Vérifiez-la sur le téléphone, puis touchez Réessayer.</string>
+    <string name="quarantined_reason_not_on_proton">Proton n\'a plus ce contact.</string>
+    <string name="quarantined_reason_not_allowed">Proton n\'autorise pas cette modification sur votre compte.</string>
     <string name="quarantined_reason_not_on_phone">Ce contact n\'est plus sur ce téléphone.</string>
     <string name="quarantined_reason_network">Proton n\'a pas pu être joint.</string>
     <string name="quarantined_reason_other">Un problème est survenu sur ce téléphone.</string>

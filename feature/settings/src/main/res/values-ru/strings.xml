@@ -61,6 +61,12 @@
     <string name="quarantined_retry">Повторить</string>
     <string name="quarantined_discard">Отклонить</string>
     <string name="quarantined_reason_refused">Proton отклонил это изменение.</string>
+    <string name="quarantined_reason_email_format">Proton считает недействительным адрес эл. почты этого контакта. Исправьте его на телефоне и нажмите «Повторить».</string>
+    <string name="quarantined_reason_email_domain">Proton не принял домен адреса эл. почты этого контакта (часть после @). Исправьте его на телефоне и нажмите «Повторить».</string>
+    <string name="quarantined_reason_url">Proton считает недействительным адрес сайта этого контакта. Исправьте его на телефоне и нажмите «Повторить».</string>
+    <string name="quarantined_reason_invalid_value">Proton считает недействительными данные этого контакта. Проверьте их на телефоне и нажмите «Повторить».</string>
+    <string name="quarantined_reason_not_on_proton">У Proton больше нет этого контакта.</string>
+    <string name="quarantined_reason_not_allowed">Proton не разрешает это изменение для вашего аккаунта.</string>
     <string name="quarantined_reason_not_on_phone">Этого контакта больше нет на этом телефоне.</string>
     <string name="quarantined_reason_network">Не удалось связаться с Proton.</string>
     <string name="quarantined_reason_other">На этом телефоне что-то пошло не так.</string>

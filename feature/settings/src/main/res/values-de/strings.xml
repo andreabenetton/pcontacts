@@ -55,6 +55,12 @@
     <string name="quarantined_retry">Wiederholen</string>
     <string name="quarantined_discard">Verwerfen</string>
     <string name="quarantined_reason_refused">Proton hat diese Änderung abgelehnt.</string>
+    <string name="quarantined_reason_email_format">Proton hält eine E-Mail-Adresse dieses Kontakts für ungültig. Korrigieren Sie sie auf dem Telefon und tippen Sie dann auf „Wiederholen“.</string>
+    <string name="quarantined_reason_email_domain">Proton hat die Domain einer E-Mail-Adresse dieses Kontakts nicht akzeptiert (den Teil nach @). Korrigieren Sie sie auf dem Telefon und tippen Sie dann auf „Wiederholen“.</string>
+    <string name="quarantined_reason_url">Proton hält eine Webadresse dieses Kontakts für ungültig. Korrigieren Sie sie auf dem Telefon und tippen Sie dann auf „Wiederholen“.</string>
+    <string name="quarantined_reason_invalid_value">Proton hält eine Angabe dieses Kontakts für ungültig. Prüfen Sie sie auf dem Telefon und tippen Sie dann auf „Wiederholen“.</string>
+    <string name="quarantined_reason_not_on_proton">Proton hat diesen Kontakt nicht mehr.</string>
+    <string name="quarantined_reason_not_allowed">Proton erlaubt diese Änderung für Ihr Konto nicht.</string>
     <string name="quarantined_reason_not_on_phone">Dieser Kontakt ist nicht mehr auf diesem Telefon.</string>
     <string name="quarantined_reason_network">Proton war nicht erreichbar.</string>
     <string name="quarantined_reason_other">Auf diesem Telefon ist etwas schiefgegangen.</string>

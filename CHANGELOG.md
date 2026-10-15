@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the phone is not changed, and a photo already on Proton is not sent
   again. This is a first step on changes Proton refuses with code 2060,
   whose cause is not confirmed yet.
+- **Plain words for a change Proton refuses.** In Settings, a failed
+  change now says what Proton refused, when Proton's code tells it: an
+  invalid email address, the domain of an email address, an invalid
+  website address, an invalid detail, a contact Proton no longer has, or
+  a change not allowed on the account. Where the cause is fixable it says
+  to correct it on the phone and tap Retry. Proton's code stays shown
+  below, for bug reports.
 
 ## [2.4.0] - 2026-10-15
 
