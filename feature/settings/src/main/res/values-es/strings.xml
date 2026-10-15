@@ -54,7 +54,7 @@
     <string name="quarantined_op_unknown">Cambio no reconocido</string>
     <string name="quarantined_retry">Reintentar</string>
     <string name="quarantined_discard">Descartar</string>
-    <string name="quarantined_reason_refused">Proton rechazó este cambio.</string>
+    <string name="quarantined_reason_refused">Proton rechazó este cambio sin indicar el motivo. Toca Reintentar; si vuelve a fallar, infórmalo con el código de abajo.</string>
     <string name="quarantined_reason_email_format">Proton considera no válida una dirección de correo de este contacto. Corrígela en el teléfono y toca Reintentar.</string>
     <string name="quarantined_reason_email_domain">Proton no aceptó el dominio de una dirección de correo de este contacto (la parte después de @). Corrígelo en el teléfono y toca Reintentar.</string>
     <string name="quarantined_reason_url">Proton considera no válida una dirección web de este contacto. Corrígela en el teléfono y toca Reintentar.</string>

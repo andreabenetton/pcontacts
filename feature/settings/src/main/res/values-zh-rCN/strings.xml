@@ -51,7 +51,7 @@
     <string name="quarantined_op_unknown">无法识别的更改</string>
     <string name="quarantined_retry">重试</string>
     <string name="quarantined_discard">放弃</string>
-    <string name="quarantined_reason_refused">Proton 拒绝了此更改。</string>
+    <string name="quarantined_reason_refused">Proton 拒绝了此更改，但未说明原因。请点按“重试”；如果再次失败，请附上下方代码报告此问题。</string>
     <string name="quarantined_reason_email_format">Proton 认为此联系人的某个电子邮件地址无效。请在手机上更正后点按“重试”。</string>
     <string name="quarantined_reason_email_domain">Proton 不接受此联系人某个电子邮件地址的域名（@ 之后的部分）。请在手机上更正后点按“重试”。</string>
     <string name="quarantined_reason_url">Proton 认为此联系人的某个网址无效。请在手机上更正后点按“重试”。</string>

@@ -54,7 +54,7 @@
     <string name="quarantined_op_unknown">Unrecognised change</string>
     <string name="quarantined_retry">Retry</string>
     <string name="quarantined_discard">Discard</string>
-    <string name="quarantined_reason_refused">Proton refused this change.</string>
+    <string name="quarantined_reason_refused">Proton refused this change without saying why. Tap Retry; if it fails again, report it with the code below.</string>
     <string name="quarantined_reason_email_format">Proton found an email address in this contact invalid. Correct it on the phone, then tap Retry.</string>
     <string name="quarantined_reason_email_domain">Proton did not accept the domain of an email address in this contact (the part after @). Correct it on the phone, then tap Retry.</string>
     <string name="quarantined_reason_url">Proton found a website address in this contact invalid. Correct it on the phone, then tap Retry.</string>

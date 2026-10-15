@@ -60,7 +60,7 @@
     <string name="quarantined_op_unknown">Нераспознанное изменение</string>
     <string name="quarantined_retry">Повторить</string>
     <string name="quarantined_discard">Отклонить</string>
-    <string name="quarantined_reason_refused">Proton отклонил это изменение.</string>
+    <string name="quarantined_reason_refused">Proton отклонил это изменение без объяснения причины. Нажмите «Повторить»; если ошибка повторится, сообщите о ней с кодом ниже.</string>
     <string name="quarantined_reason_email_format">Proton считает недействительным адрес эл. почты этого контакта. Исправьте его на телефоне и нажмите «Повторить».</string>
     <string name="quarantined_reason_email_domain">Proton не принял домен адреса эл. почты этого контакта (часть после @). Исправьте его на телефоне и нажмите «Повторить».</string>
     <string name="quarantined_reason_url">Proton считает недействительным адрес сайта этого контакта. Исправьте его на телефоне и нажмите «Повторить».</string>

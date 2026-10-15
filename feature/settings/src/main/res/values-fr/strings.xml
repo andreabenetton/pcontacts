@@ -54,7 +54,7 @@
     <string name="quarantined_op_unknown">Modification non reconnue</string>
     <string name="quarantined_retry">Réessayer</string>
     <string name="quarantined_discard">Abandonner</string>
-    <string name="quarantined_reason_refused">Proton a refusé cette modification.</string>
+    <string name="quarantined_reason_refused">Proton a refusé cette modification sans en donner la raison. Touchez Réessayer ; si l\'échec se répète, signalez-le avec le code ci-dessous.</string>
     <string name="quarantined_reason_email_format">Proton juge invalide une adresse e-mail de ce contact. Corrigez-la sur le téléphone, puis touchez Réessayer.</string>
     <string name="quarantined_reason_email_domain">Proton n\'a pas accepté le domaine d\'une adresse e-mail de ce contact (la partie après @). Corrigez-le sur le téléphone, puis touchez Réessayer.</string>
     <string name="quarantined_reason_url">Proton juge invalide une adresse web de ce contact. Corrigez-la sur le téléphone, puis touchez Réessayer.</string>
