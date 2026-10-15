@@ -8,6 +8,7 @@ import ezvcard.VCard
 import ezvcard.VCardVersion
 import ezvcard.parameter.AddressType
 import ezvcard.parameter.EmailType
+import ezvcard.parameter.ImageType
 import ezvcard.parameter.TelephoneType
 import ezvcard.property.Address
 import ezvcard.property.Email
@@ -221,10 +222,11 @@ class ContactSerializer(
         }
     }
 
+    /** With its media type when known, as Proton's client writes it (ADR-0017, 2026-10-15). */
     private fun buildPhoto(photo: DecryptedPhoto?): Photo? {
         photo ?: return null
         if (photo.data.isEmpty()) return null
-        return Photo(photo.data, null)
+        return Photo(photo.data, photo.mimeType?.let { ImageType.get(null, it, null) })
     }
 
     private fun writeVCard(vcard: VCard): String =

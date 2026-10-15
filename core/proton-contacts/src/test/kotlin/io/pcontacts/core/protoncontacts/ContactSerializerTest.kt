@@ -238,6 +238,14 @@ class ContactSerializerTest {
         assertTrue(vcard.photos[0].data.contentEquals(photoBytes))
     }
 
+    @Test fun a_photo_carries_its_media_type_as_protons_client_writes_it() {
+        val contact = contact(fullName = "Frank", photo = DecryptedPhoto(byteArrayOf(1, 2, 3), mimeType = "image/jpeg"))
+
+        val card = serializer.serialize(contact)[1].data
+
+        assertTrue(card.contains("PHOTO:data:image/jpeg;base64,"))
+    }
+
     @Test fun serialize_handles_im_accounts() {
         val contact = contact(
             fullName = "Grace",
