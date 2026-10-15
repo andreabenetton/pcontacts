@@ -41,6 +41,13 @@ interface UserPreferences {
     var lastSyncRunAtMillis: Long
 
     /**
+     * Wall-clock millis of the last sync this app requested. Android's
+     * "sync pending" flag can stay set after the request is long gone
+     * (issue #70), so it is trusted only shortly after one.
+     */
+    var syncRequestedAtMillis: Long
+
+    /**
      * Stable, non-sensitive code for the most recent sync failure
      * (e.g. `reauth`, `verification`, `app_version`, `io`), or `null`
      * when the last sync attempt succeeded. Lets the UI distinguish

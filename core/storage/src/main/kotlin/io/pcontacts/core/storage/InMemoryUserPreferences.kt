@@ -13,6 +13,7 @@ class InMemoryUserPreferences : UserPreferences {
     override var contactsPermissionRequested: Boolean = false
     override var lastSyncSuccessAtMillis: Long = 0L
     override var lastSyncRunAtMillis: Long = 0L
+    override var syncRequestedAtMillis: Long = 0L
     override var lastSyncErrorCode: String? = null
     override var lastSyncFailedContacts: Int = 0
     override var syncProgressPhase: String? = null
@@ -31,6 +32,7 @@ class InMemoryUserPreferences : UserPreferences {
     override fun clearSyncState() {
         lastSyncSuccessAtMillis = 0L
         lastSyncRunAtMillis = 0L
+        syncRequestedAtMillis = 0L
         lastSyncErrorCode = null
         lastSyncFailedContacts = 0
         syncProgressPhase = null
