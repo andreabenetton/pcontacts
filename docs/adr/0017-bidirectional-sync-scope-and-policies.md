@@ -5,7 +5,7 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice, 2026-10-15 — see *Amendments* at the end)
+- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice, 2026-10-15 twice — see *Amendments* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
@@ -612,5 +612,26 @@ now fails toward keeping the user's data or asking:
   "deleted on Proton while edited here" conflict: a contact the phone
   owns that is missing from the listing is asked about only once Proton
   says it is gone, so "use phone version" cannot make a second copy.
+
+Nothing below permits less than before.
+
+## Amendment (2026-10-15, second): a photo sent to Proton is fitted as Proton's client fits it
+
+The phone's photo was uploaded as the provider holds it, with no media
+type. Proton's own client never sends one that way: `[V]` WebClients
+`ContactImageModal` resizes every contact photo to fit
+`CONTACT_IMG_SIZE` (180 px, `packages/shared/lib/contacts/constants.ts`)
+and stores it as `image/jpeg` at full quality. A user reported updates
+refused with HTTP 400, Code 2060 (`[U]` undocumented; the 2050–2061
+neighbours are format validations, and live probes of the other field
+values did not reproduce it), so pcontacts now sends what Proton's
+client sends:
+
+- A photo taken from the phone is fitted to 180 × 180 px and encoded as
+  JPEG at full quality before it goes into a card, which carries its
+  media type. One already that small and in JPEG is sent as it is.
+- Only the bytes sent change. The phone's photo, and the digest the
+  merge keeps of it, stay as the provider holds them; Proton's photo is
+  never re-encoded, so an unchanged photo is never sent again.
 
 Nothing below permits less than before.
