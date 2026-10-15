@@ -273,7 +273,7 @@ class SyncConvergenceFuzzTest {
         const val EDITS_MAX = 5
         const val MAX_QUIET_RUNS = 10
         const val IDLE_RUNS = 2
-        const val TAIL = 200000
+        const val TAIL = 60
 
         val baseSeed: Long = System.getenv("PCONTACTS_FUZZ_SEED")?.toLongOrNull() ?: BASE_SEED
         val iterations: Int = System.getenv("PCONTACTS_FUZZ_ITERATIONS")?.toIntOrNull() ?: 25

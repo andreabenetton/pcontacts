@@ -44,7 +44,10 @@ internal class Faults(private val rng: Random) {
 
     /** What struck in the current run, for the invariants. */
     val struck = mutableListOf<String>()
-    val listingFailed get() = struck.any { it.contains("list") }
+
+    /** Whether the latest contact listing of the run failed: what a deletion must not follow. */
+    var listingFailed = false
+        private set
     val stopped get() = struck.any { it.startsWith("STOP") || it.startsWith("KILL") }
     val injected: MutableSet<Throwable> = Collections.newSetFromMap(IdentityHashMap())
     val trace = ArrayDeque<String>()
@@ -53,6 +56,7 @@ internal class Faults(private val rng: Random) {
         killed = false
         runJob = job
         struck.clear()
+        listingFailed = false
     }
 
     /** The process comes back: what happens between runs is the user's doing, never faulted. */
@@ -77,6 +81,7 @@ internal class Faults(private val rng: Random) {
         if (killed) throw ProcessKilled()
         val result = commit()
         note("ok $label")
+        if (label.startsWith("list")) listingFailed = false
         strike(site, before = false, label)
         return result
     }
@@ -86,6 +91,7 @@ internal class Faults(private val rng: Random) {
         val event = "$fault ${if (before) "before" else "after"} $label"
         struck += event
         note(event)
+        if (label.startsWith("list")) listingFailed = true
         when (fault) {
             "IO", "LOST" -> throw IOException("injected: $event").also { injected += it }
             "STOP" -> {
@@ -117,7 +123,7 @@ internal class Faults(private val rng: Random) {
         const val DEFAULT_RATE = 0.05
         const val YIELD_RATE = 0.2
         const val MID_RUN_RATE = 0.02
-        const val TRACE_SIZE = 200000
+        const val TRACE_SIZE = 200
         const val CAUSE_DEPTH = 8
     }
 }
