@@ -183,8 +183,9 @@ class LiveProtonWriteTest {
     /**
      * Device-test helper, not part of the canary: edits a contact on Proton the way another client
      * would. `PCONTACTS_EDIT_NAME=<display name>` picks the contact; `PCONTACTS_EDIT_PHONE=<number>|<type>`
-     * adds that phone. Without the phone it only prints the contact's numbers and types (synthetic
-     * test contacts only).
+     * adds that phone; `PCONTACTS_EDIT_EMAIL_TYPE=<address>|<type>` sets an email's type (empty for
+     * none). Without either it only prints the contact's numbers, emails and types (synthetic test
+     * contacts only).
      */
     @Test fun live_edit_by_name() = runBlocking {
         val name = System.getenv("PCONTACTS_EDIT_NAME")
@@ -204,8 +205,19 @@ class LiveProtonWriteTest {
                 val response = crypto.apiFactory.contacts.updateContact(id, UpdateContactRequest(cards))
                 println("  edit: Code=${response.code}")
             }
+            System.getenv("PCONTACTS_EDIT_EMAIL_TYPE")?.split("|")?.let { (address, type) ->
+                val canonical = MergeBaseCodec.canonical(server)!!
+                val types = listOf(type).filter { it.isNotBlank() }
+                val edited = canonical.copy(
+                    emails = canonical.emails.map { if (it.address == address) it.copy(types = types) else it }
+                )
+                val cards = crypto.serializer.serialize(server.cards, ContactPatch.diff(canonical, edited), "unused")
+                val response = crypto.apiFactory.contacts.updateContact(id, UpdateContactRequest(cards))
+                println("  email type: Code=${response.code}")
+            }
             val after = fetchAndDecrypt(crypto.apiFactory, crypto.processor, id)
             println("  phones on Proton: ${after.phones.map { "${it.number}|${it.types}" }}")
+            println("  emails on Proton: ${after.emails.map { "${it.address}|${it.types}" }}")
             val photoLine = after.cards.flatMap { it.plaintext.lines() }.firstOrNull { it.startsWith("PHOTO") }
             val photoOut = System.getenv("PCONTACTS_EDIT_PHOTO_OUT")
             val bytes = after.photo?.data
