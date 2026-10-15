@@ -5,7 +5,7 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice — see *Amendments* at the end)
+- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice, 2026-10-15 — see *Amendments* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
@@ -545,5 +545,42 @@ and dropped Proton's. Both were silent data loss, which §3 rules out.
   place (parameters and `itemN` group kept), the surplus removed with
   its group-mates and the shortfall added. An `EMAIL` is never removed
   for a primary change; its `itemN` `KEY` and `X-PM-*` stay.
+
+Nothing below permits less than before.
+
+## Amendment (2026-10-15): recovery gaps the convergence harness found
+
+A seeded fault-injection harness (`core/sync` tests, `convergence/`)
+drives both engines through interrupted runs and edits on both sides.
+It found five ways a run that stopped, or an edit made at the wrong
+moment, still lost a change or brought a deleted contact back. Each
+now fails toward keeping the user's data or asking:
+
+- **A change follows the row, not a stale id.** An edit whose row
+  still carries a Proton id that has no mapping (after "use phone
+  version" for a contact deleted on Proton) is queued under the
+  mapping the row has now — the queued create — instead of as an
+  update nothing can apply.
+- **Deleting an unconfirmed create deletes what it may have made.** A
+  contact deleted on the phone while its create is queued may already
+  be on Proton (the create committed, its acknowledgement was cut
+  short). The queued create becomes a delete by its minted UID: the
+  contact holding that UID on Proton is deleted, or nothing is sent
+  when none does. It needs no grace period: no Proton contact was ever
+  confirmed for it. Rows queued before schema v5 keep the old rule.
+- **An update without a mapping is not dropped.** When the pull wrote a
+  row and stopped before mapping it, a later edit's update rebuilds the
+  mapping from the provider row; with no merge base it is a §3C
+  conflict, never a silent rewrite from Proton. An update whose row is
+  mapped under another id is stale and leaves the outbox.
+- **The pull does not overwrite a row edited during the run.** Right
+  before a chunk is written, the rows the user has dirtied since the
+  run began are left out; the next run merges them. What remains is
+  the few milliseconds between that read and the batch.
+- **Absent from the listing is not deleted.** `[U]` Proton's paging is
+  not known to be stable while contacts change. Before a contact
+  missing from the listing is deleted on the phone, it is fetched; only
+  "does not exist" (HTTP 404, or 422 with Code 2501) deletes it, any
+  other answer keeps the row for the next run.
 
 Nothing below permits less than before.
