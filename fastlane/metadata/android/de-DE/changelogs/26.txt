@@ -1,3 +1,0 @@
-Version 2.4.1.
-
-* Kontaktfotos gehen so an Proton, wie Protons eigene App sie sendet: auf 180 × 180 Pixel verkleinert und als JPEG gespeichert. Das Foto auf dem Telefon bleibt unverändert, und ein Foto, das schon bei Proton ist, wird nicht erneut gesendet.

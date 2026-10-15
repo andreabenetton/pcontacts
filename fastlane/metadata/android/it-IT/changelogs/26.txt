@@ -1,3 +1,0 @@
-Versione 2.4.1.
-
-* Le foto dei contatti vanno a Proton come le invia l'app di Proton: adattate a 180 × 180 pixel e salvate in JPEG. La foto sul telefono non cambia, e una foto già su Proton non viene inviata di nuovo.
