@@ -29,6 +29,8 @@ import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.PhotoHash
+import io.pcontacts.core.protoncontacts.ProtonAdjustment
+import io.pcontacts.core.protoncontacts.ProtonEditorRules
 import io.pcontacts.core.storage.InMemoryMergeBaseStore
 import io.pcontacts.core.storage.MergeBaseStore
 import io.pcontacts.core.storage.db.dao.ContactMapDao
@@ -78,7 +80,8 @@ import kotlin.math.min
  */
 // Many injectable seams by design (readers, writers, API, clock, logger)
 // so the whole engine stays pure-JVM testable; the count is structural.
-@Suppress("LongParameterList", "TooManyFunctions")
+// One engine owns every outbound operation; splitting it is a follow-up of its own.
+@Suppress("LongParameterList", "TooManyFunctions", "LargeClass")
 class ContactWriteEngine(
     private val contactsApi: ProtonContactsApi,
     private val serializer: ContactSerializer,
@@ -106,6 +109,8 @@ class ContactWriteEngine(
     private val fitPhoto: (DecryptedPhoto) -> DecryptedPhoto? = { it },
     /** `Groups._ID → Proton label ID` for the account's groups (ADR-0027); empty when unreadable. */
     private val groupLabelIds: suspend (Account) -> Map<Long, String> = { emptyMap() },
+    /** Values conformed to Proton's editor rules in a change Proton took, often none (ADR-0017, 2026-10-15). */
+    private val recordAdjustments: suspend (protonContactId: String, Set<ProtonAdjustment>) -> Unit = { _, _ -> },
     /** ([SyncPhase.SENDING], changes sent, changes to send) — a delete still in its grace period is not one. */
     private val onProgress: (phase: SyncPhase, done: Int, total: Int) -> Unit = { _, _, _ -> },
     private val clock: () -> Long = System::currentTimeMillis,
@@ -396,12 +401,13 @@ class ContactWriteEngine(
             if (outcome == null) {
                 WriteReport(conflicted = 1)
             } else {
-                val (payload, cards) = outcome
+                val (payload, cards, adjustments) = outcome
                 if (cards == null) {
                     logger.info { "push: nothing left to change on the server idTag=${id.hashCode()}" }
                 } else {
                     markPendingPush(id, MergeBaseCodec.stateHash(payload))
                     contactsApi.updateContact(id, UpdateContactRequest(cards = cards))
+                    recordAdjustments(id, adjustments)
                 }
                 val base = GroupMembershipPusher.split(mapping.serverLabelIds)
                 if (groups.push(id, base, localLabels(account, row)) == GroupMembershipPusher.Outcome.NEEDS_EMAIL) {
@@ -544,7 +550,7 @@ class ContactWriteEngine(
         entry: OutboxEntity,
         mapping: ContactMapEntity,
         local: DecryptedContact
-    ): Pair<DecryptedContact, List<ContactCardDto>?>? {
+    ): Payload? {
         val id = entry.protonContactId
         val server = fetchServerContact(id) ?: return markConflict(entry, "server state unavailable")
         val serverCanonical = MergeBaseCodec.canonical(server) ?: return markConflict(entry, "server state unavailable")
@@ -556,7 +562,9 @@ class ContactWriteEngine(
         }
         // Proton's photo stays as it is; only one the phone sends is fitted.
         val sameAsProton = result.photo?.let(::photoHash) == serverCanonical.photo?.let(::photoHash)
-        val merged = if (sameAsProton) result else withFittedPhoto(result)
+        val fitted = if (sameAsProton) result else withFittedPhoto(result)
+        // What Proton's editor would not save is fitted to its rules; only values that differ from Proton's.
+        val (merged, adjustments) = ProtonEditorRules.conform(fitted, serverCanonical)
         val patch = ContactPatch.diff(serverCanonical, merged)
         val cards = when {
             patch.isEmpty -> null
@@ -569,7 +577,7 @@ class ContactWriteEngine(
                 serializer.serialize(server.cards, patch, uid)
             }
         }
-        return merged to cards
+        return Payload(merged, cards, adjustments)
     }
 
     /** [contact] with its photo fitted as Proton's client fits one; the digest Proton will hold goes with it. */
@@ -664,8 +672,8 @@ class ContactWriteEngine(
         }
         // Rows queued before schema v5 keep the UID derived from their local id.
         val uid = minted ?: ContactSerializer.fallbackUid(localId)
-        val contact = withFittedPhoto(RowToDecryptedContact.convert(row, localId, uid))
-        val attempt = CreateAttempt(entry, rawContactId, contact)
+        val conformed = ProtonEditorRules.conform(withFittedPhoto(RowToDecryptedContact.convert(row, localId, uid)))
+        val attempt = CreateAttempt(entry, rawContactId, conformed.contact)
         val pushedHash = EmailSyncHash.compute(row)
         return try {
             val earlier = minted?.let { createdUids?.get(it) }
@@ -679,6 +687,7 @@ class ContactWriteEngine(
             val serverContact = created.contact
             val base = baseOf(created, attempt)
             withContext(NonCancellable) { acknowledgeCreate(attempt, created, base, pushedHash, account) }
+            if (created.sentHere) recordAdjustments(serverContact.id, conformed.adjustments)
             val groupReport = if (account != null && row.groupRowIds.isNotEmpty()) {
                 queueGroupsOfNewContact(serverContact, rawContactId, account)
             } else {
@@ -925,3 +934,10 @@ internal fun protonCodeOf(e: HttpException): Int? =
 private const val HTTP_NOT_FOUND = 404
 private const val HTTP_UNPROCESSABLE = 422
 private const val PROTON_NOT_EXISTS = 2501
+
+/** What an update sends: the contact (the next merge base), its cards (null: nothing to send), the adjustments. */
+private data class Payload(
+    val contact: DecryptedContact,
+    val cards: List<ContactCardDto>?,
+    val adjustments: Set<ProtonAdjustment>
+)

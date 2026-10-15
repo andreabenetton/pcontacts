@@ -43,6 +43,7 @@ import io.pcontacts.core.protoncontacts.DecryptedEmail
 import io.pcontacts.core.protoncontacts.DecryptedPhone
 import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.PhotoHash
+import io.pcontacts.core.protoncontacts.ProtonAdjustment
 import io.pcontacts.core.storage.InMemoryMergeBaseStore
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
@@ -1577,6 +1578,89 @@ class ContactWriteEngineTest {
         assertFalse(api.lastUpdateRequest!!.cards.joinToString { it.data }.contains("CQk="))
     }
 
+    // ---- a contact is fitted to Proton's editor rules before it is sent (ADR-0017, 2026-10-15, third) ----
+
+    private val recorded = mutableListOf<Pair<String, Set<ProtonAdjustment>>>()
+
+    // Like the bootstrap's store, an empty set records nothing.
+    private val record: suspend (String, Set<ProtonAdjustment>) -> Unit = { id, kinds ->
+        if (kinds.isNotEmpty()) recorded += id to kinds
+    }
+
+    /** The cards' text with vCard line folding undone. */
+    private fun unfolded(cards: List<ContactCardDto>) = cards.joinToString { it.data.replace("\r\n ", "") }
+
+    @Test fun a_created_contacts_long_name_goes_cut_to_190_and_is_recorded() = runTest {
+        val api = WriteFakeApi().apply { createResponse = createdAs("srv-9", "uid-9") }
+        val outbox = WriteFakeOutboxDao()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contacts = mapOf("local-200" to sampleContact("local-200").copy(fullName = "n".repeat(250))),
+            recordAdjustments = record
+        )
+
+        engine.push(testAccount)
+
+        val cards = unfolded(api.lastCreateRequest!!.contacts.single().cards)
+        assertTrue(cards.contains("FN:" + "n".repeat(190)))
+        assertFalse(cards.contains("n".repeat(191)))
+        assertEquals(listOf("srv-9" to setOf(ProtonAdjustment.NAME_SHORTENED)), recorded)
+    }
+
+    @Test fun an_update_sends_a_long_name_cut_once_and_never_again() = runTest {
+        val phone = sampleContact("ct-1").copy(fullName = "n".repeat(250))
+        val contactMap = WriteFakeContactMapDao().apply { upsert(sampleMapping("ct-1", rawId = 100L)) }
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao().apply { enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L) }
+        newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to phone),
+            serverContacts = mapOf("ct-1" to sampleContact("ct-1")),
+            bases = mapOf("ct-1" to sampleContact("ct-1")),
+            recordAdjustments = record
+        ).push(testAccount)
+
+        val sent = unfolded(api.lastUpdateRequest!!.cards)
+        assertTrue(sent.contains("FN:" + "n".repeat(190)))
+        assertFalse(sent.contains("n".repeat(191)))
+        assertEquals(listOf("ct-1" to setOf(ProtonAdjustment.NAME_SHORTENED)), recorded)
+
+        // Proton now holds the cut name; the phone's longer one is neither sent nor reported again.
+        val onProton = sampleContact("ct-1").copy(fullName = "n".repeat(190))
+        val again = WriteFakeApi()
+        val queue = WriteFakeOutboxDao().apply { enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h2", 1_000_001L) }
+        newEngine(
+            again,
+            queue,
+            contactMap,
+            contacts = mapOf("ct-1" to phone.copy(notes = listOf("edited"))),
+            serverContacts = mapOf("ct-1" to onProton),
+            bases = mapOf("ct-1" to onProton),
+            recordAdjustments = record
+        ).push(testAccount)
+
+        val second = unfolded(again.lastUpdateRequest!!.cards)
+        assertTrue(second.contains("edited"))
+        assertFalse(second.contains("n".repeat(191)))
+        assertEquals(1, recorded.size)
+    }
+
+    @Test fun spaces_around_an_email_are_removed_before_a_create() = runTest {
+        val api = WriteFakeApi().apply { createResponse = createdAs("srv-9", "uid-9") }
+        val outbox = WriteFakeOutboxDao()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val email = DecryptedEmail(" bob@example.com ", isPrimary = true)
+        val spaced = sampleContact("local-200").copy(emails = listOf(email))
+        newEngine(api, outbox, contacts = mapOf("local-200" to spaced), recordAdjustments = record).push(testAccount)
+
+        assertTrue(unfolded(api.lastCreateRequest!!.contacts.single().cards).contains(":bob@example.com\r\n"))
+        assertEquals(listOf("srv-9" to setOf(ProtonAdjustment.EMAIL_TRIMMED)), recorded)
+    }
+
     // ---- an update sent by a run that died before recording it (ADR-0017, 2026-10-15) ----
 
     private val withNumber = sampleContact("ct-1").copy(phones = listOf(DecryptedPhone("+15550111", listOf("work"))))
@@ -2474,7 +2558,8 @@ class ContactWriteEngineTest {
         liveRawIds: Map<String, Long> = emptyMap(),
         fitPhoto: (DecryptedPhoto) -> DecryptedPhoto? = { it },
         onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> },
-        groupLabelIds: Map<Long, String> = emptyMap()
+        groupLabelIds: Map<Long, String> = emptyMap(),
+        recordAdjustments: suspend (String, Set<ProtonAdjustment>) -> Unit = { _, _ -> }
     ): ContactWriteEngine {
         bases.forEach { (id, contact) -> MergeBaseCodec.save(mergeBases, id, contact) }
         return ContactWriteEngine(
@@ -2501,6 +2586,7 @@ class ContactWriteEngineTest {
             fitPhoto = fitPhoto,
             onProgress = onProgress,
             groupLabelIds = { groupLabelIds },
+            recordAdjustments = recordAdjustments,
             clock = clock
         )
     }

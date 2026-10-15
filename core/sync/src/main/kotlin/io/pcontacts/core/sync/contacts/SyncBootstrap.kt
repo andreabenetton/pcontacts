@@ -29,6 +29,7 @@ import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedPhoto
 import io.pcontacts.core.protoncontacts.PhotoHash
+import io.pcontacts.core.protoncontacts.ProtonAdjustment
 import io.pcontacts.core.storage.EncryptedSecretStore
 import io.pcontacts.core.storage.KeystoreMergeBaseStore
 import io.pcontacts.core.storage.MergeBaseStore
@@ -37,6 +38,7 @@ import io.pcontacts.core.storage.db.DatabaseFactory
 import io.pcontacts.core.storage.db.PcontactsDatabase
 import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.storage.db.entity.ProtonAdjustmentEntity
 import io.pcontacts.core.sync.auth.SecretStoreHumanVerificationSource
 import io.pcontacts.core.sync.contacts.decrypt.ContactDecryptBootstrap
 import io.pcontacts.core.sync.contacts.decrypt.DecryptUnavailableException
@@ -130,6 +132,17 @@ object SyncBootstrap {
         discardQuarantinedChange(db.contactMapDao(), db.outboxDao(), outboxId) { id ->
             if (account == null) 0 else restoreTombstone(appContext, account, id)
         }
+    }
+
+    /** Values conformed to Proton's editor rules before they were sent, newest first (ADR-0017, 2026-10-15). */
+    suspend fun listProtonAdjustments(context: Context): List<ProtonAdjustmentRef> {
+        val db = DatabaseFactory.create(context.applicationContext)
+        return buildProtonAdjustmentRefs(db.protonAdjustmentDao(), db.contactMapDao())
+    }
+
+    /** The user has seen an adjustment; it is not listed again unless a later push makes it anew. */
+    suspend fun dismissProtonAdjustment(context: Context, protonContactId: String, adjustment: ProtonAdjustment) {
+        DatabaseFactory.create(context.applicationContext).protonAdjustmentDao().delete(protonContactId, adjustment.key)
     }
 
     suspend fun loadLauncherStatus(context: Context): LauncherStatus {
@@ -382,6 +395,11 @@ object SyncBootstrap {
             fitPhoto = { photo -> PhotoDownscaler.fitForProton(photo.data)?.let { DecryptedPhoto(it, "image/jpeg") } },
             groupLabelIds = { account ->
                 withContext(Dispatchers.IO) { LocalGroupsWriter(provider).labelIdsByRowId(account) }
+            },
+            recordAdjustments = { protonContactId, adjustments ->
+                val now = System.currentTimeMillis()
+                val rows = adjustments.map { ProtonAdjustmentEntity(protonContactId, it.key, now) }
+                if (rows.isNotEmpty()) db.protonAdjustmentDao().upsert(rows)
             },
             onProgress = onProgress
         )
