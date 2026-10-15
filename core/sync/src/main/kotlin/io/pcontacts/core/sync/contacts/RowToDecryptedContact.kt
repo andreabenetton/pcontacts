@@ -4,6 +4,7 @@
 package io.pcontacts.core.sync.contacts
 
 import io.pcontacts.core.contactswriter.ContactRow
+import io.pcontacts.core.contactswriter.EmailTypeMapper
 import io.pcontacts.core.contactswriter.ImProtocol
 import io.pcontacts.core.contactswriter.PhoneType
 import io.pcontacts.core.contactswriter.PostalAddressType
@@ -39,7 +40,11 @@ internal object RowToDecryptedContact {
         fullName = row.displayName,
         structuredName = row.structuredName?.let(::toDecryptedStructured),
         emails = row.emails.mapIndexed { index, addr ->
-            DecryptedEmail(address = addr, isPrimary = index == 0)
+            DecryptedEmail(
+                address = addr,
+                types = EmailTypeMapper.toTokens(row.emailType(addr)),
+                isPrimary = index == 0
+            )
         },
         phones = row.phones.map(::toDecryptedPhone),
         addresses = row.addresses.map(::toDecryptedAddress),

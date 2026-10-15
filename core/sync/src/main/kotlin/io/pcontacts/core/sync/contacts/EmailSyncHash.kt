@@ -49,8 +49,10 @@ object EmailSyncHash {
      *        (ADR-0021). Stored as "v2:<sha-hex>".
      *   v3 — adds birthday, anniversary, nickname and website rows
      *        (ADR-0023, 2026-09-24). Stored as "v3:<sha-hex>".
+     *   v4 — writes each email's type (ADR-0023, 2026-10-15). Stored as
+     *        "v4:<sha-hex>".
      */
-    const val FORMAT_PREFIX = "v3:"
+    const val FORMAT_PREFIX = "v4:"
 
     fun compute(row: ContactRow): String {
         val sink = ByteArrayOutputStream()
@@ -67,7 +69,7 @@ object EmailSyncHash {
         write(sn?.prefix.orEmpty()); sep()
         write(sn?.suffix.orEmpty()); sep()
 
-        write(row.emails.joinToString(",")); sep()
+        write(row.emails.joinToString(",") { "$it|${row.emailType(it)}" }); sep()
         write(row.phones.joinToString(",", transform = ::phoneFingerprint)); sep()
         write(row.addresses.joinToString(",", transform = ::addressFingerprint)); sep()
 

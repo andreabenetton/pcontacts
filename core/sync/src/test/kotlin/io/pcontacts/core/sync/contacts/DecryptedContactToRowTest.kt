@@ -3,6 +3,7 @@
 
 package io.pcontacts.core.sync.contacts
 
+import io.pcontacts.core.contactswriter.EmailType
 import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.protoncontacts.DecryptedEmail
 import io.pcontacts.core.protoncontacts.DecryptedPhone
@@ -134,6 +135,36 @@ class DecryptedContactToRowTest {
         assertEquals(contact.anniversary, back.anniversary)
         assertEquals(contact.websites, back.websites)
         assertNotEquals(EmailSyncHash.compute(row), EmailSyncHash.compute(row.copy(birthday = null)))
-        assertTrue(EmailSyncHash.compute(row).startsWith("v3:"))
+        assertTrue(EmailSyncHash.compute(row).startsWith("v4:"))
+    }
+
+    @Test fun email_types_reach_the_row_round_trip_and_change_the_hash() {
+        val contact = decrypted(
+            protonContactId = "c1",
+            fullName = "Alice",
+            emails = listOf(
+                DecryptedEmail("home@example.com", types = listOf("home"), isPrimary = true),
+                DecryptedEmail("work@example.com", types = listOf("internet", "WORK")),
+                DecryptedEmail("other@example.com", types = listOf("other"))
+            )
+        )
+
+        val row = DecryptedContactToRow.convert(contact)!!
+
+        assertEquals(
+            mapOf("home@example.com" to EmailType.HOME, "work@example.com" to EmailType.WORK),
+            row.emailTypes
+        )
+        val back = RowToDecryptedContact.convert(row, "c1").emails.associate { it.address to it.types }
+        assertEquals(
+            mapOf(
+                "home@example.com" to listOf("home"),
+                "work@example.com" to listOf("work"),
+                "other@example.com" to emptyList()
+            ),
+            back
+        )
+        val untyped = row.copy(emailTypes = emptyMap())
+        assertTrue(EmailSyncHash.compute(row) != EmailSyncHash.compute(untyped))
     }
 }

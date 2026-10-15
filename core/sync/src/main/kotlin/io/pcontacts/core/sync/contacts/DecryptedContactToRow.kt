@@ -5,6 +5,8 @@ package io.pcontacts.core.sync.contacts
 
 import io.pcontacts.core.contactswriter.ContactPhoto
 import io.pcontacts.core.contactswriter.ContactRow
+import io.pcontacts.core.contactswriter.EmailType
+import io.pcontacts.core.contactswriter.EmailTypeMapper
 import io.pcontacts.core.contactswriter.ImAccount
 import io.pcontacts.core.contactswriter.ImProtocol
 import io.pcontacts.core.contactswriter.ImProtocolMapper
@@ -16,6 +18,7 @@ import io.pcontacts.core.contactswriter.PostalAddressTypeMapper
 import io.pcontacts.core.contactswriter.StructuredName
 import io.pcontacts.core.protoncontacts.DecryptedAddress
 import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.protoncontacts.DecryptedEmail
 import io.pcontacts.core.protoncontacts.DecryptedIm
 import io.pcontacts.core.protoncontacts.DecryptedOrganization
 import io.pcontacts.core.protoncontacts.DecryptedPhoto
@@ -50,7 +53,8 @@ internal object DecryptedContactToRow {
 
     fun convert(decrypted: DecryptedContact): ContactRow? {
         val (emailPrimary, emailOthers) = decrypted.emails.partition { it.isPrimary }
-        val emails = (emailPrimary + emailOthers).map { it.address }.filter { it.isNotBlank() }
+        val ordered = (emailPrimary + emailOthers).filter { it.address.isNotBlank() }
+        val emails = ordered.map { it.address }
 
         val (phonePrimary, phoneOthers) = decrypted.phones.partition { it.isPrimary }
         val phones = (phonePrimary + phoneOthers)
@@ -107,8 +111,19 @@ internal object DecryptedContactToRow {
             anniversary = anniversary,
             nicknames = nicknames,
             websites = websites,
-            photo = photo
+            photo = photo,
+            emailTypes = emailTypesOf(ordered)
         )
+    }
+
+    /** Home and work only, the first type of a repeated address winning; any other is the row's default. */
+    private fun emailTypesOf(emails: List<DecryptedEmail>): Map<String, EmailType> {
+        val types = LinkedHashMap<String, EmailType>()
+        emails.forEach { e ->
+            val type = EmailTypeMapper.fromTokens(e.types)
+            if (type != EmailType.OTHER) types.putIfAbsent(e.address, type)
+        }
+        return types
     }
 
     private fun toWriterStructured(decrypted: DecryptedStructuredName?): StructuredName? {

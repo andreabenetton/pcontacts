@@ -1649,6 +1649,25 @@ class ContactWriteEngineTest {
         assertEquals(1, recorded.size)
     }
 
+    @Test fun an_email_type_changed_on_the_phone_is_pushed() = runTest {
+        val onProton = sampleContact("ct-1")
+        val phone = onProton.copy(emails = listOf(DecryptedEmail("alice@proton.me", listOf("work"), isPrimary = true)))
+        val contactMap = WriteFakeContactMapDao().apply { upsert(sampleMapping("ct-1", rawId = 100L)) }
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao().apply { enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L) }
+        newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to phone),
+            serverContacts = mapOf("ct-1" to onProton),
+            bases = mapOf("ct-1" to onProton)
+        ).push(testAccount)
+
+        val email = unfolded(api.lastUpdateRequest!!.cards).lines().single { it.endsWith(":alice@proton.me") }
+        assertTrue(email, email.contains("TYPE=work"))
+    }
+
     @Test fun spaces_around_an_email_are_removed_before_a_create() = runTest {
         val api = WriteFakeApi().apply { createResponse = createdAs("srv-9", "uid-9") }
         val outbox = WriteFakeOutboxDao()
