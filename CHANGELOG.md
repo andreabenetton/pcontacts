@@ -10,16 +10,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- **The build checks dependencies against osv.dev only.** CI's
-  vulnerability check asks osv.dev about every artifact the app ships and
-  fails on any open HIGH or CRITICAL advisory, as the OWASP
-  Dependency-Check scan did at CVSS 7.0, which it replaces. It needs no
-  key, so Dependabot's pull requests are checked like any other.
-
 ## [2.5.0] - 2026-10-15
 
 ### Changed
@@ -40,6 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   update every contact is rewritten once from Proton; a home or work type
   you had set on the phone is sent to Proton first, and a different type
   on each side is shown as a conflict for you to settle.
+
+- **The build checks dependencies against osv.dev only.** CI's
+  vulnerability check asks osv.dev about every artifact the app ships and
+  fails on any open HIGH or CRITICAL advisory, as the OWASP
+  Dependency-Check scan did at CVSS 7.0, which it replaces. It needs no
+  key, so Dependabot's pull requests are checked like any other. Kotlin
+  is updated to 2.4.21.
 
 ### Fixed
 
