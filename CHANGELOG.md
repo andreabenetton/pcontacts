@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An edit made while a sync runs is kept.** A contact changed on the
+  phone while a sync was downloading could be overwritten by the copy
+  from Proton. Such contacts are now left for the next sync, which merges
+  the change.
 - **An edit is no longer lost after a download was cut short.** If a
   sync stopped right after writing a contact to the phone, an edit made
   to it before the next sync was overwritten from Proton. The app now

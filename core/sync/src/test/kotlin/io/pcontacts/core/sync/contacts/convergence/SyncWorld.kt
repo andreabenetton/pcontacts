@@ -124,6 +124,7 @@ internal class SyncWorld(seed: Long) {
         saveMergeBase = { id, contact -> MergeBaseCodec.save(mergeBases, id, contact) },
         hasLocalMutation = { id -> outbox.findByContact(id).isNotEmpty() },
         readLocalRow = { rawId, sourceId -> provider.readRow(rawId, sourceId) },
+        readDirtyRawIds = { provider.readDirty().map { it.rawContactId }.toSet() },
         queueUpdate = { id -> outbox.enqueue(id, OutboxEntity.OpType.UPDATE, "", now) },
         dropQueuedDelete = { id ->
             outbox.findLive(id)?.takeIf { it.opType == OutboxEntity.OpType.DELETE }?.let { outbox.deleteById(it.id) }

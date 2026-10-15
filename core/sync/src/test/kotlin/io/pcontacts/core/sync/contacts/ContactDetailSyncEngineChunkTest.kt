@@ -4,9 +4,11 @@
 package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
+import io.pcontacts.core.contactswriter.RawContactOpIntent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -35,6 +37,21 @@ class ContactDetailSyncEngineChunkTest {
 
         assertEquals("120 contacts in chunks of 50", 3, applier.applyCallCount)
         assertEquals(120, dao.countLive())
+    }
+
+    @Test fun a_row_edited_on_the_phone_during_the_run_is_left_for_the_next_run() = runTest {
+        // Before, the pull's write replaced the edit and the next detect saw the server's version
+        // (ADR-0017, 2026-10-15).
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        newEngine(api(), dao, applier).sync(account)
+        val edited = dao.findByProtonId("c7")!!
+        dao.forceRefetch("c7")
+
+        newEngine(api(), dao, applier, readDirtyRawIds = { setOf(edited.androidRawContactId) }).sync(account)
+
+        assertTrue(applier.lastIntents.none { it is RawContactOpIntent.UpdateContact && it.row.sourceId == "c7" })
+        assertEquals("its mapping is left as it was", 0L, dao.findByProtonId("c7")!!.modifyTime)
     }
 
     @Test fun a_run_stopped_midway_keeps_its_finished_chunks_and_the_next_run_carries_on() = runTest {

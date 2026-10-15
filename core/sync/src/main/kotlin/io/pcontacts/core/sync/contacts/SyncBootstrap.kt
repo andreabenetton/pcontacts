@@ -303,6 +303,7 @@ object SyncBootstrap {
             readLocalPhotoHash = localPhotoHashReader(readDataReader),
             readGroupRowIds = { rawId -> withContext(Dispatchers.IO) { readDataReader.readGroupRowIds(rawId) } },
             readLocalRow = { rawId, sourceId -> withContext(Dispatchers.IO) { readDataReader.read(rawId, sourceId) } },
+            readDirtyRawIds = dirtyRawIds(provider),
             queueUpdate = queueUpdate(db.outboxDao()),
             dropQueuedDelete = dropQueuedDelete(db.outboxDao()),
             // Same production logger as the write engine — the pull path was
@@ -442,6 +443,11 @@ private fun hasPendingOutboxDelete(outboxDao: OutboxDao): suspend (String) -> Bo
 private fun dropQueuedDelete(outboxDao: OutboxDao): suspend (String) -> Unit = { protonContactId ->
     val live = outboxDao.findLive(protonContactId)
     if (live?.opType == OutboxEntity.OpType.DELETE) outboxDao.deleteById(live.id)
+}
+
+/** The rows the user edited or deleted that the push has not picked up yet (ADR-0017, 2026-10-15). */
+private fun dirtyRawIds(provider: ContentProviderClient): suspend (Account) -> Set<Long> = { account ->
+    withContext(Dispatchers.IO) { DirtyContactReader(provider).readDirty(account).map { it.rawContactId }.toSet() }
 }
 
 /** An ordinary UPDATE for the contact; the push merges and sends what only the phone holds (ADR-0023). */

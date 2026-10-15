@@ -69,7 +69,9 @@ internal class Faults(private val rng: Random) {
     suspend fun <T> checkpoint(site: Site, label: String, commit: suspend () -> T): T {
         if (killed) throw ProcessKilled()
         if (enabled && rng.nextDouble() < YIELD_RATE) yield()
-        if (enabled && rng.nextDouble() < MID_RUN_RATE) midRun?.invoke()
+        // Not inside a batch: the pull reads the dirty rows right before one, and the few
+        // milliseconds to the write are the window it cannot close (ADR-0017, 2026-10-15).
+        if (enabled && !label.startsWith("apply") && rng.nextDouble() < MID_RUN_RATE) midRun?.invoke()
         strike(site, before = true, label)
         val result = commit()
         note("ok $label")

@@ -137,6 +137,11 @@ class ContactDetailSyncEngine(
     private val readLocalRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     /** Queues an UPDATE for the contact, so the next push carries what only the phone holds. */
     private val queueUpdate: suspend (protonContactId: String) -> Unit = {},
+    /**
+     * The RawContacts the user has edited or deleted and the push has not picked up yet: read right
+     * before a chunk is written, so a row edited during the run is left for the next one.
+     */
+    private val readDirtyRawIds: suspend (Account) -> Set<Long> = { emptySet() },
     /** Drops the contact's queued DELETE: it was deleted on Proton too (ADR-0017, 2026-10-01). */
     private val dropQueuedDelete: suspend (protonContactId: String) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
@@ -512,14 +517,21 @@ class ContactDetailSyncEngine(
         perContactMeta: MutableMap<String, PerContactMeta>,
         now: Long
     ): ApplyResult {
+        // A row the user edited since the run began is not overwritten: the next run merges it
+        // (ADR-0017, 2026-10-15). Only the milliseconds between this read and the batch remain.
+        val edited = readDirtyRawIds(account)
+        val writable = rows.filter { existing[it.sourceId] !in edited }
+        if (writable.size < rows.size) {
+            logger.info { "pull: ${rows.size - writable.size} row(s) edited on the phone during the run left for the next" }
+        }
         val intents = RawContactDiffer.diff(
-            target = rows,
+            target = writable,
             existing = existing,
             serverSourceIds = serverSourceIds + existing.keys
         )
         val result = applyIntents(account, intents)
         val fresh = readExisting(account).canonicalIds()
-        for (row in rows) {
+        for (row in writable) {
             val rawId = fresh[row.sourceId]
             if (rawId == null) {
                 logger.warn { "post-apply read missed source-id; skipping mapping refresh" }
