@@ -179,12 +179,23 @@ class ContactWriteEngine(
         return contactMapDao.findByRawContactId(rawContactId)?.protonContactId ?: sourceId
     }
 
+    /**
+     * The Proton contact a row without a SOURCE_ID is already mapped to: its create was recorded
+     * as far as the mapping before the run stopped (ADR-0017, 2026-10-15).
+     */
+    private suspend fun mappedServerIdOf(rawContactId: Long): String? =
+        contactMapDao.findByRawContactId(rawContactId)?.protonContactId?.takeIf { !it.startsWith(LOCAL_ID_PREFIX) }
+
     /** A row deleted on the phone: its DELETE, unless it never reached Proton or awaits a decision. */
     private suspend fun enqueueDeletion(dc: DirtyContact, now: Long): EnqueueResult {
-        val protonId = dc.sourceId?.let { mappedIdOf(it, dc.rawContactId) }
+        val localId = "$LOCAL_ID_PREFIX${dc.rawContactId}"
+        val protonId = dc.sourceId?.let { mappedIdOf(it, dc.rawContactId) } ?: mappedServerIdOf(dc.rawContactId)
         if (protonId == null || protonId.startsWith(LOCAL_ID_PREFIX)) {
-            return deleteUnconfirmedCreate(protonId ?: "$LOCAL_ID_PREFIX${dc.rawContactId}", now)
+            return deleteUnconfirmedCreate(protonId ?: localId, now)
         }
+        // A create recorded as far as its mapping: the CREATE left over goes, the deletion is ordinary.
+        val leftover = outboxDao.findLive(localId)?.takeIf { it.opType == OutboxEntity.OpType.CREATE }
+        leftover?.let { outboxDao.deleteById(it.id) }
         if (contactMapDao.findByProtonId(protonId)?.lastError == SERVER_EDITED_CONFLICT) {
             // The tombstone is read again on every run while the user decides whether to delete
             // a contact Proton changed meanwhile: it is the question, not a new deletion

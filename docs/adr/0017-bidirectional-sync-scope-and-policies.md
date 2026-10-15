@@ -580,7 +580,10 @@ now fails toward keeping the user's data or asking:
   short). The queued create becomes a delete by its minted UID: the
   contact holding that UID on Proton is deleted, or nothing is sent
   when none does. It needs no grace period: no Proton contact was ever
-  confirmed for it. Rows queued before schema v5 keep the old rule.
+  confirmed for it. Rows queued before schema v5 keep the old rule. A
+  create recorded as far as its mapping is linked to its Proton copy
+  already, which may have been edited since: its deletion is the
+  ordinary one, with the grace period and the 2026-10-01 check.
 - **An update without a mapping is not dropped.** When the pull wrote a
   row and stopped before mapping it, a later edit's update rebuilds the
   mapping from the provider row; with no merge base it is a §3C

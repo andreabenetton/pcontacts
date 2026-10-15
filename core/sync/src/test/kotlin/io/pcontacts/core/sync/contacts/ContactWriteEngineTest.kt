@@ -1235,6 +1235,27 @@ class ContactWriteEngineTest {
         assertTrue(outbox.entries.isEmpty())
     }
 
+    @Test fun a_create_already_mapped_to_proton_is_deleted_the_ordinary_way() = runTest {
+        // The create's recording got as far as the mapping; Proton's copy may have been edited
+        // since. Its deletion keeps the grace period and the edited-on-Proton check
+        // (ADR-0017, 2026-10-01 and 2026-10-15).
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("srv-5", rawId = 103L))
+        outbox.enqueue("local-103", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(103L, null, isDirty = false, isDeleted = true))
+        )
+
+        engine.detectChanges(testAccount)
+
+        val live = outbox.entries.values.single()
+        assertEquals("srv-5" to OutboxEntity.OpType.DELETE, live.protonContactId to live.opType)
+        assertEquals("the grace period starts now", 2_000_000_000L, live.createdAt)
+    }
+
     @Test fun a_legacy_create_deleted_before_it_was_sent_just_leaves_the_queue() = runTest {
         val api = WriteFakeApi()
         val outbox = WriteFakeOutboxDao()
