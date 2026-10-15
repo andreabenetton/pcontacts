@@ -15,7 +15,6 @@ import android.content.ActivityNotFoundException
 import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
-import android.os.Bundle
 import android.provider.ContactsContract
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -25,6 +24,7 @@ import io.pcontacts.app.account.MissingContactsPermissionException
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.advisories.AdvisoryBootstrap
 import io.pcontacts.app.sync.SyncErrorCodes
+import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.sync.SyncScheduler
 import io.pcontacts.app.sync.hasNetwork
@@ -106,7 +106,8 @@ class SettingsHost(
     private val syncRunningMonitor = SyncRunningMonitor(
         account = ::currentAccount,
         onChange = { running, waiting -> viewModel.updateSyncRunning(running, waiting) },
-        isOnline = { hasNetwork(activity) }
+        isOnline = { hasNetwork(activity) },
+        requestedAt = { userPrefs.syncRequestedAtMillis }
     )
 
     fun actions() = SettingsActions(
@@ -136,11 +137,7 @@ class SettingsHost(
     private suspend fun performSyncNow(): SettingsActionResult {
         val account = currentAccount()
             ?: return SettingsActionResult.Failure(reason = "no_account")
-        val extras = Bundle().apply {
-            putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
-            putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
-        }
-        ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
+        SyncRequests.requestNow(context, account)
         return SettingsActionResult.Success()
     }
 

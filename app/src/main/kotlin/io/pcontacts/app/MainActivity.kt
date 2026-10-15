@@ -279,7 +279,7 @@ class MainActivity : ComponentActivity() {
         val account = AccountManager.get(this)
             .getAccountsByType(PROTON_ACCOUNT_TYPE)
             .firstOrNull() ?: return
-        SyncRequests.requestIfEnabled(account)
+        SyncRequests.requestIfEnabled(this, account)
     }
 
     private fun requestPermissionsOnce() {

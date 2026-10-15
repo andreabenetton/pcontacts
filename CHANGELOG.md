@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The card no longer stays on "Sync in progress" after a sync ended**
+  ([#70](https://github.com/andreabenetton/pcontacts/issues/70)). Android
+  can keep reporting a sync as pending when none is left to run; the card
+  then said "Sync in progress…" with "Sync now" greyed out until the phone
+  restarted. A pending sync now counts only for a short while after the
+  app asked for one; a running sync still shows as before.
 - **A contact created on the phone is never sent to Proton twice.** If
   the sync was stopped, or the connection dropped, right after Proton
   stored a new contact but before the phone recorded it, the next sync

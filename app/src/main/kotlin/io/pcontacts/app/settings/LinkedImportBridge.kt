@@ -6,17 +6,16 @@ package io.pcontacts.app.settings
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.accounts.AuthenticatorDescription
-import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Bitmap
-import android.os.Bundle
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import io.pcontacts.app.R
+import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.core.contactswriter.LinkedField
 import io.pcontacts.core.contactswriter.UncarriedKind
 import io.pcontacts.core.contactswriter.key
@@ -201,13 +200,7 @@ class LinkedImportBridge(
         return ImportStatusMapper.status(mapping, rows)
     }
 
-    private fun requestSync(account: Account) {
-        val extras = Bundle().apply {
-            putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
-            putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
-        }
-        ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
-    }
+    private fun requestSync(account: Account) = SyncRequests.requestNow(context, account)
 
     private fun contactName(contactId: Long): String? =
         context.contentResolver.query(

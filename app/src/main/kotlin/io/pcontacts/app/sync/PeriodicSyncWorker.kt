@@ -32,7 +32,7 @@ class PeriodicSyncWorker(
             .getAccountsByType(PROTON_ACCOUNT_TYPE)
         // No account, or sync switched off → nothing to do. Don't retry; the
         // work-request fires again on its next cadence.
-        accounts.forEach(SyncRequests::requestIfEnabled)
+        accounts.forEach { SyncRequests.requestIfEnabled(applicationContext, it) }
         return Result.success()
     }
 

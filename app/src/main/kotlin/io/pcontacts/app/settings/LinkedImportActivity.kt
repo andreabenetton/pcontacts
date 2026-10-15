@@ -16,6 +16,7 @@ import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.sync.SyncRunningMonitor
 import io.pcontacts.app.sync.hasNetwork
 import io.pcontacts.app.ui.PcontactsTheme
+import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.feature.settings.LinkedImportListViewModel
 import io.pcontacts.feature.settings.LinkedImportScreen
 import io.pcontacts.feature.settings.LinkedImportViewModel
@@ -47,7 +48,8 @@ class LinkedImportActivity : ComponentActivity() {
     private val syncRunningMonitor = SyncRunningMonitor(
         account = ::currentAccount,
         onChange = { running, _ -> listViewModel.updateSyncRunning(running) },
-        isOnline = { hasNetwork(this) }
+        isOnline = { hasNetwork(this) },
+        requestedAt = { SharedPreferencesUserPreferences(this).syncRequestedAtMillis }
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

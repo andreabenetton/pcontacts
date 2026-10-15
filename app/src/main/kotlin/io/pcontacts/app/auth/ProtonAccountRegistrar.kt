@@ -7,10 +7,10 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Context
-import android.os.Bundle
 import android.provider.ContactsContract
 import io.pcontacts.app.account.PROTON_ACCOUNT_TYPE
 import io.pcontacts.app.contacts.ContactsAccountSettings
+import io.pcontacts.app.sync.SyncRequests
 import io.pcontacts.core.logging.Logger
 
 /**
@@ -55,11 +55,7 @@ internal object ProtonAccountRegistrar {
             logger?.warn { "contacts Settings row not initialized after login; next sync retries" }
         }
 
-        val extras = Bundle().apply {
-            putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
-            putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
-        }
-        ContentResolver.requestSync(account, ContactsContract.AUTHORITY, extras)
+        SyncRequests.requestNow(context, account)
         return account
     }
 }

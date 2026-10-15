@@ -16,12 +16,19 @@ import android.provider.ContactsContract
  * ([isOnline] false). [onChange] fires on every framework status event
  * (and once on [start]) and may be invoked on a binder thread.
  *
+ * "Active" is trusted as Android reports it. "Pending" counts only
+ * shortly after the app's own request ([requestedAt]): Android can leave
+ * the flag set with no sync to run, and the card then said "Sync in
+ * progress" with "Sync now" greyed out until a reboot (issue #70).
+ *
  * Call [start] in onResume and [stop] in onPause.
  */
 internal class SyncRunningMonitor(
     private val account: () -> Account?,
     private val onChange: (running: Boolean, waitingForNetwork: Boolean) -> Unit,
     private val isOnline: () -> Boolean,
+    private val requestedAt: () -> Long,
+    private val clock: () -> Long = System::currentTimeMillis,
     private val authority: String = ContactsContract.AUTHORITY
 ) {
     private var handle: Any? = null
@@ -46,10 +53,22 @@ internal class SyncRunningMonitor(
             return
         }
         val active = ContentResolver.isSyncActive(current, authority)
-        val pending = ContentResolver.isSyncPending(current, authority)
-        onChange(active || pending, waitingForNetwork(active, pending, isOnline()))
+        val online = isOnline()
+        val pending = trustedPending(ContentResolver.isSyncPending(current, authority), online, clock() - requestedAt())
+        onChange(active || pending, waitingForNetwork(active, pending, online))
     }
 }
+
+/**
+ * Android's pending flag, counted only for a while after the app requested a sync: a couple of
+ * minutes with a network (an expedited request starts within seconds), an hour without one (it
+ * waits for the connection). Past that the flag is stale (issue #70).
+ */
+internal fun trustedPending(pending: Boolean, online: Boolean, sinceRequestMs: Long): Boolean =
+    pending && sinceRequestMs in 0 until if (online) PENDING_ONLINE_MS else PENDING_OFFLINE_MS
+
+private const val PENDING_ONLINE_MS = 2 * 60 * 1000L
+private const val PENDING_OFFLINE_MS = 60 * 60 * 1000L
 
 /**
  * A requested sync that Android holds because there is no connection: pending, not started, and
