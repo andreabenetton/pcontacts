@@ -16,7 +16,8 @@
   Contacts does not let groups be edited for the account). AOSP
   requires every name attribute, phonetic ones included, to be true,
   and nickname, organization, note, photo and group membership to
-  have maxOccurs="1".
+  have maxOccurs="1". Email types are those Proton's editor offers
+  (ADR-0023, 2026-10-15): home, work, and other for no type.
 -->
 <ContactsAccountType xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -43,6 +44,8 @@
             <Type type="other" />
         </DataKind>
         <DataKind kind="email">
+            <Type type="home" />
+            <Type type="work" />
             <Type type="other" />
         </DataKind>
         <DataKind kind="postal" needsStructured="true">
