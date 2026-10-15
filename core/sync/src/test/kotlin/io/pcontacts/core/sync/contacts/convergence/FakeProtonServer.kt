@@ -56,7 +56,9 @@ internal class FakeProtonServer(private val faults: Faults, private val rng: Ran
         faults.checkpoint(Site.LIST, "list p$page") {
             val all = contacts.values.sortedBy { it.id }
             val full = all.drop(page * pageSize).take(pageSize)
-            val slice = if (omitFromListing && full.isNotEmpty() && rng.nextInt(OMIT_ODDS) == 0) {
+            // Transient, like paging over contacts that change: only while the faulted runs go on.
+            val omit = omitFromListing && faults.enabled && full.isNotEmpty()
+            val slice = if (omit && rng.nextInt(OMIT_ODDS) == 0) {
                 full - full[rng.nextInt(full.size)]
             } else {
                 full
