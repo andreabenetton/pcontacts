@@ -55,7 +55,8 @@
     <string name="quarantined_reason_email_format">Proton 认为此联系人的某个电子邮件地址无效。请在手机上更正后点按“重试”。</string>
     <string name="quarantined_reason_email_domain">Proton 不接受此联系人某个电子邮件地址的域名（@ 之后的部分）。请在手机上更正后点按“重试”。</string>
     <string name="quarantined_reason_url">Proton 认为此联系人的某个网址无效。请在手机上更正后点按“重试”。</string>
-    <string name="quarantined_reason_invalid_value">Proton 认为此联系人的某项信息无效。请在手机上检查后点按“重试”。</string>
+    <string name="quarantined_reason_too_long">此联系人的某项信息对 Proton 来说过长；名称最多 190 个字符。请在手机上缩短后点按“重试”。</string>
+    <string name="quarantined_reason_format">Proton 不接受 pcontacts 写入此联系人的方式。这是 pcontacts 的问题，而非联系人的问题：请附上下方代码报告此问题。</string>
     <string name="quarantined_reason_not_on_proton">Proton 已不再有此联系人。</string>
     <string name="quarantined_reason_not_allowed">Proton 不允许您的账户进行此更改。</string>
     <string name="quarantined_reason_not_on_phone">此联系人已不在此手机上。</string>

@@ -17,26 +17,40 @@ permanently** → **Tap to review**. Each failed change shows two lines:
 when the sentence asks you to. **Discard** drops the change; the next sync
 puts Proton's version back on the phone.
 
-Proton does not document its codes for third-party apps. The meanings below
-come from the source of Proton's web client (`[V]`) or from what Proton
-answered a test account (`[A]`, with the date).
+Proton does not document its codes for third-party apps. The names below
+come from the source of Proton's web client (`[V]`); what each means for a
+contact comes from what Proton answered a test account (`[A]`, with the
+date). Proton's own app checks a contact before saving it, so its users
+never meet most of these.
+
+Two kinds of refusal show in the code line:
+
+- **HTTP 422**: Proton refused a value in the contact, such as an invalid
+  email address or a name that is too long. You can correct it on the
+  phone.
+- **HTTP 400**: Proton refused how pcontacts built the contact (its vCard
+  cards: which fields go in which card, signatures, version). Nothing in
+  the contact needs correcting; pcontacts needs a fix, so report it.
 
 ## Codes on a failed change
 
 | Proton code | What the app says | What to do |
 |---|---|---|
-| 2050 `[V]` | Proton found an email address in this contact invalid. Seen live 2026-10-15 for `not-an-email`. | Correct the address on the phone, then tap Retry. |
+| 2050 `[V]` `[A]` 2026-10-15 | Proton found an email address in this contact invalid ("Email address failed validation"). | Correct the address on the phone, then tap Retry. |
 | 2059 `[V]` | Proton did not accept the domain of an email address (the part after @). | Correct the domain on the phone, then tap Retry. |
 | 2052 `[V]` | Proton found a website address in this contact invalid. | Correct the website on the phone, then tap Retry. |
-| 2001 `[V]` | Proton found a detail of this contact invalid. Proton does not say which. | Check the contact's details on the phone, then tap Retry. |
+| 2024 `[A]` 2026-10-15 | A detail is too long for Proton ("Input string too long"). A contact's name can have at most 190 characters; first and last names of 400 were accepted. | Shorten the name on the phone, then tap Retry. |
+| 2001, 2002, 2011, 13060 `[A]` 2026-10-15 | Proton did not accept the way pcontacts wrote this contact. Seen for: a signature that does not match its card (2001), a vCard version other than 4.0 (2001), an email without its group (2001), a field such as a phone number in the signed card (2001), a missing name or identifier (2002), an unknown card type (2011), two signed cards (13060). | Report it (below). Retry sends the same cards and fails again. |
 | 2061 `[V]`, 2501 `[A]` 2026-10-01 | Proton no longer has this contact. It was deleted on Proton, for example on the web. | Tap Discard. |
-| 2011 `[V]`, 2026 `[V]` | Proton does not allow this change on your account. | Check the account's plan and settings on Proton's web app; otherwise Discard. |
-| 2060 `[U]` | Proton refused this change without saying why. Undocumented, and Proton's own apps do not handle it; under investigation in [#71](https://github.com/andreabenetton/pcontacts/issues/71). | Tap Retry. If it fails again, report it (below). |
+| 2026 `[V]` | Proton does not allow this change on your account. | Check the account on Proton's web app; otherwise Discard. |
+| 2060 `[U]` | Proton refused this change without saying why. Undocumented, not handled by Proton's own apps, and not reproduced on the test account by any value or card layout tried so far; under investigation in [#71](https://github.com/andreabenetton/pcontacts/issues/71). | Tap Retry. If it fails again, report it (below). |
 | any other code | Proton refused this change without saying why. | Tap Retry. If it fails again, report it (below). |
 
-The `[V]` meanings are the names of these codes in Proton's web client,
+The `[V]` names are those in Proton's web client,
 `packages/shared/lib/errors.ts` in
-[ProtonMail/WebClients](https://github.com/ProtonMail/WebClients).
+[ProtonMail/WebClients](https://github.com/ProtonMail/WebClients). Its name
+for 2011, "not allowed", does not fit what a contact update answered with it
+(an unknown card type), so the app goes by the live answer.
 
 ## Failed changes without a Proton code
 

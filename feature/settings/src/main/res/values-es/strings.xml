@@ -58,7 +58,8 @@
     <string name="quarantined_reason_email_format">Proton considera no válida una dirección de correo de este contacto. Corrígela en el teléfono y toca Reintentar.</string>
     <string name="quarantined_reason_email_domain">Proton no aceptó el dominio de una dirección de correo de este contacto (la parte después de @). Corrígelo en el teléfono y toca Reintentar.</string>
     <string name="quarantined_reason_url">Proton considera no válida una dirección web de este contacto. Corrígela en el teléfono y toca Reintentar.</string>
-    <string name="quarantined_reason_invalid_value">Proton considera no válido un dato de este contacto. Revísalo en el teléfono y toca Reintentar.</string>
+    <string name="quarantined_reason_too_long">Un dato de este contacto es demasiado largo para Proton; un nombre puede tener como máximo 190 caracteres. Acórtalo en el teléfono y toca Reintentar.</string>
+    <string name="quarantined_reason_format">Proton no aceptó la forma en que pcontacts escribió este contacto. Es un problema de pcontacts, no del contacto: infórmalo con el código de abajo.</string>
     <string name="quarantined_reason_not_on_proton">Proton ya no tiene este contacto.</string>
     <string name="quarantined_reason_not_allowed">Proton no permite este cambio en tu cuenta.</string>
     <string name="quarantined_reason_not_on_phone">Este contacto ya no está en este teléfono.</string>

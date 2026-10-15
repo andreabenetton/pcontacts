@@ -58,7 +58,8 @@
     <string name="quarantined_reason_email_format">Proton juge invalide une adresse e-mail de ce contact. Corrigez-la sur le téléphone, puis touchez Réessayer.</string>
     <string name="quarantined_reason_email_domain">Proton n\'a pas accepté le domaine d\'une adresse e-mail de ce contact (la partie après @). Corrigez-le sur le téléphone, puis touchez Réessayer.</string>
     <string name="quarantined_reason_url">Proton juge invalide une adresse web de ce contact. Corrigez-la sur le téléphone, puis touchez Réessayer.</string>
-    <string name="quarantined_reason_invalid_value">Proton juge invalide une information de ce contact. Vérifiez-la sur le téléphone, puis touchez Réessayer.</string>
+    <string name="quarantined_reason_too_long">Une information de ce contact est trop longue pour Proton ; un nom peut compter au plus 190 caractères. Raccourcissez-la sur le téléphone, puis touchez Réessayer.</string>
+    <string name="quarantined_reason_format">Proton n\'a pas accepté la façon dont pcontacts a écrit ce contact. C\'est un problème de pcontacts, pas du contact : signalez-le avec le code ci-dessous.</string>
     <string name="quarantined_reason_not_on_proton">Proton n\'a plus ce contact.</string>
     <string name="quarantined_reason_not_allowed">Proton n\'autorise pas cette modification sur votre compte.</string>
     <string name="quarantined_reason_not_on_phone">Ce contact n\'est plus sur ce téléphone.</string>

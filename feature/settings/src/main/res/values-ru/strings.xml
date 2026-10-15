@@ -64,7 +64,8 @@
     <string name="quarantined_reason_email_format">Proton считает недействительным адрес эл. почты этого контакта. Исправьте его на телефоне и нажмите «Повторить».</string>
     <string name="quarantined_reason_email_domain">Proton не принял домен адреса эл. почты этого контакта (часть после @). Исправьте его на телефоне и нажмите «Повторить».</string>
     <string name="quarantined_reason_url">Proton считает недействительным адрес сайта этого контакта. Исправьте его на телефоне и нажмите «Повторить».</string>
-    <string name="quarantined_reason_invalid_value">Proton считает недействительными данные этого контакта. Проверьте их на телефоне и нажмите «Повторить».</string>
+    <string name="quarantined_reason_too_long">Одно из полей этого контакта слишком длинное для Proton; имя может содержать не более 190 символов. Сократите его на телефоне и нажмите «Повторить».</string>
+    <string name="quarantined_reason_format">Proton не принял то, как pcontacts записал этот контакт. Это ошибка pcontacts, а не контакта: сообщите о ней с кодом ниже.</string>
     <string name="quarantined_reason_not_on_proton">У Proton больше нет этого контакта.</string>
     <string name="quarantined_reason_not_allowed">Proton не разрешает это изменение для вашего аккаунта.</string>
     <string name="quarantined_reason_not_on_phone">Этого контакта больше нет на этом телефоне.</string>

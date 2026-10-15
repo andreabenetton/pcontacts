@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A failed change names its cause correctly**
+  ([#71](https://github.com/andreabenetton/pcontacts/issues/71)). Codes
+  2001 and 2011 meant a contact Proton cannot take in the form pcontacts
+  wrote it, not an invalid detail or a change the account does not allow:
+  the app now says so and asks to report it, since correcting the contact
+  cannot help. A contact name over 190 characters (code 2024) now says to
+  shorten it. Each meaning was checked against Proton on a test account;
+  [docs/ERROR_CODES.md](docs/ERROR_CODES.md) lists them.
+
 ## [2.4.2] - 2026-10-15
 
 ### Changed
