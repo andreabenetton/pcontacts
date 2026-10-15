@@ -141,7 +141,7 @@ class ContactWriteEngine(
         if (dc.isDeleted) return enqueueDeletion(dc, now)
 
         val isCreate = dc.sourceId == null
-        val protonId = dc.sourceId ?: "$LOCAL_ID_PREFIX${dc.rawContactId}"
+        val protonId = dc.sourceId?.let { mappedIdOf(it, dc.rawContactId) } ?: "$LOCAL_ID_PREFIX${dc.rawContactId}"
         val row = readContactRow(dc.rawContactId, protonId)
         if (row == null) {
             logger.warn { "enqueue: readContactRow returned null for rawId=${dc.rawContactId}" }
@@ -165,6 +165,16 @@ class ContactWriteEngine(
         }
         val op = if (isCreate) OutboxEntity.OpType.CREATE else OutboxEntity.OpType.UPDATE
         return outboxDao.enqueue(protonId, op, hash, now).toResult()
+    }
+
+    /**
+     * The id the change belongs to: the row's SOURCE_ID, unless no mapping has it while the row is
+     * mapped under another id — "use phone version" for a contact deleted on Proton moves the
+     * mapping to a queued create and leaves the deleted id on the row (ADR-0017, 2026-10-15).
+     */
+    private suspend fun mappedIdOf(sourceId: String, rawContactId: Long): String {
+        if (contactMapDao.findByProtonId(sourceId) != null) return sourceId
+        return contactMapDao.findByRawContactId(rawContactId)?.protonContactId ?: sourceId
     }
 
     /** A row deleted on the phone: its DELETE, unless it never reached Proton or awaits a decision. */

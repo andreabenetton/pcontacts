@@ -573,6 +573,27 @@ class ContactWriteEngineTest {
         assertTrue(cleared.contains(500L))
     }
 
+    @Test fun an_edit_on_a_row_whose_proton_id_has_no_mapping_follows_the_rows_mapping() = runTest {
+        // "Use phone version" for a contact deleted on Proton: the mapping moved to local-102 and a
+        // CREATE is queued, while the row still carries the deleted id (ADR-0017, 2026-10-15).
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("local-102", rawId = 102L))
+        outbox.enqueue("local-102", OutboxEntity.OpType.CREATE, "", 1_000_000L)
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(102L, "srv-gone", isDirty = true, isDeleted = false)),
+            contactRows = mapOf(102L to sampleRow("srv-gone"))
+        )
+
+        engine.detectChanges(testAccount)
+
+        val live = outbox.entries.values.single()
+        assertEquals("local-102", live.protonContactId)
+        assertEquals(OutboxEntity.OpType.CREATE, live.opType)
+    }
+
     @Test fun detectChanges_skips_duplicate_delete() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()

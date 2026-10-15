@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **No stuck "failed change" after keeping the phone's version of a
+  contact deleted on Proton.** An edit made on the phone right after that
+  choice was queued under the deleted contact's id and failed on every
+  sync until discarded; it now goes with the contact's new copy.
 - **The card no longer stays on "Sync in progress" after a sync ended**
   ([#70](https://github.com/andreabenetton/pcontacts/issues/70)). Android
   can keep reporting a sync as pending when none is left to run; the card
