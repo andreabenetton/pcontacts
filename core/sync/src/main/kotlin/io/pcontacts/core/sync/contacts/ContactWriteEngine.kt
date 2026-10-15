@@ -819,27 +819,28 @@ class ContactWriteEngine(
         return WriteReport(quarantined = 1)
     }
 
-    /**
-     * A fetch of a contact deleted on Proton. `[A]` HTTP 404; observed live 2026-10-01: HTTP 422
-     * with Proton Code 2501 ("does not exist") — the answer Proton actually gives.
-     */
-    private fun isGoneOnProton(e: HttpException): Boolean =
-        e.code() == HTTP_NOT_FOUND || (e.code() == HTTP_UNPROCESSABLE && protonCodeOf(e) == PROTON_NOT_EXISTS)
-
-    // Peeks, so a later reader (handleFailure's reason) still sees the body.
-    private fun protonCodeOf(e: HttpException): Int? =
-        runCatching { e.response()?.errorBody()?.source()?.peek()?.readUtf8() }
-            .getOrNull()
-            ?.let(ProtonCodeInterceptor::codeOf)
-
     private class CreateAttempt(val entry: OutboxEntity, val rawContactId: Long, val contact: DecryptedContact)
 
     companion object {
-        private const val HTTP_NOT_FOUND = 404
-        private const val HTTP_UNPROCESSABLE = 422
-        private const val PROTON_NOT_EXISTS = 2501
         const val MAX_CONCURRENT_PUSHES = 4
         const val GRACE_PERIOD_MS = 3_600_000L
         const val MAX_BACKOFF_MS = 3_600_000L
     }
 }
+
+/**
+ * A fetch of a contact deleted on Proton. `[A]` HTTP 404; observed live 2026-10-01: HTTP 422
+ * with Proton Code 2501 ("does not exist") — the answer Proton actually gives.
+ */
+internal fun isGoneOnProton(e: HttpException): Boolean =
+    e.code() == HTTP_NOT_FOUND || (e.code() == HTTP_UNPROCESSABLE && protonCodeOf(e) == PROTON_NOT_EXISTS)
+
+// Peeks, so a later reader (handleFailure's reason) still sees the body.
+internal fun protonCodeOf(e: HttpException): Int? =
+    runCatching { e.response()?.errorBody()?.source()?.peek()?.readUtf8() }
+        .getOrNull()
+        ?.let(ProtonCodeInterceptor::codeOf)
+
+private const val HTTP_NOT_FOUND = 404
+private const val HTTP_UNPROCESSABLE = 422
+private const val PROTON_NOT_EXISTS = 2501

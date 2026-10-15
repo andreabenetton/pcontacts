@@ -371,6 +371,7 @@ class ContactDetailSyncEngineTest {
         val applier = DetailFakeApplier(base = 1L)
         val engine = newEngine(api, dao, applier)
         engine.sync(account)
+        api.goneIds += "c2"
         val report = engine.sync(account)
 
         assertEquals(1, report.deleted)

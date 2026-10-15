@@ -34,6 +34,9 @@ import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.protoncontacts.DecryptedContactJson
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 
 /**
  * Shared fixtures for the ContactDetailSyncEngine test suites
@@ -151,6 +154,9 @@ internal class DetailFakeApi(
     ): ContactEmailsPageResponse =
         error("ContactDetailSyncEngine does not use /emails")
 
+    /** Contacts deleted on Proton: a fetch answers "does not exist", as Proton does (422, Code 2501). */
+    val goneIds = mutableSetOf<String>()
+
     /** The system stopping the run: fetches past this count end it with a cancellation (issue #70). */
     var stopAfterFetches: Int? = null
 
@@ -163,7 +169,10 @@ internal class DetailFakeApi(
             firstRoundDone && secondRoundContacts != null -> secondRoundContacts
             else -> contacts
         }
-        val contact = source[id] ?: error("DetailFakeApi has no fixture for contact id=$id")
+        // What Proton answers for a contact it does not hold (seen live 2026-10-01).
+        val contact = source[id]?.takeIf { id !in goneIds } ?: throw HttpException(
+            Response.error<Unit>(422, """{"Code":2501}""".toResponseBody(null))
+        )
 
         if (!firstRoundDone) {
             firstRoundFetched += id

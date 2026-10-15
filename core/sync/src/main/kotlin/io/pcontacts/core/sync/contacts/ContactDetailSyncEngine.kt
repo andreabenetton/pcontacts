@@ -30,6 +30,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import retrofit2.HttpException
 
 /** Contacts fetched, written and recorded together; a stopped run keeps every finished chunk (issue #70). */
 private const val PULL_CHUNK = 50
@@ -441,7 +442,7 @@ class ContactDetailSyncEngine(
             target = emptyList(),
             existing = existing,
             serverSourceIds = serverSourceIds + protectedIds
-        )
+        ).filter { it !is RawContactOpIntent.DeleteContact || goneFromProton(it.sourceId) }
         if (deletions.isNotEmpty()) {
             // 5. A chunked batch that fails leaves the earlier chunks committed; the mappings
             //    of contacts those chunks deleted are dropped so they do not outlive their rows.
@@ -641,6 +642,26 @@ class ContactDetailSyncEngine(
     }
 
     /** A conflict awaiting the user, or any outbox row (queued or quarantined) for the contact. */
+    /**
+     * `[U]` Proton's paging is not known to be stable while contacts change: a contact missing
+     * from the listing is deleted here only once Proton answers that it does not exist. Any other
+     * answer keeps the row for the next run (ADR-0017, 2026-10-15).
+     */
+    private suspend fun goneFromProton(id: String): Boolean = try {
+        contactsApi.getContact(id)
+        logger.warn { "contact missing from the listing is still on Proton; not deleted idTag=${id.hashCode()}" }
+        false
+    } catch (e: HttpException) {
+        isGoneOnProton(e)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: HumanVerificationRequiredException) {
+        throw e
+    } catch (t: Throwable) {
+        logger.warn { "deletion check failed (${t.javaClass.simpleName}); row kept idTag=${id.hashCode()}" }
+        false
+    }
+
     private suspend fun locallyOwned(stored: ContactMapEntity, sourceId: String): Boolean =
         stored.syncStatus == ContactMapEntity.Status.CONFLICT || hasLocalMutation(sourceId)
 

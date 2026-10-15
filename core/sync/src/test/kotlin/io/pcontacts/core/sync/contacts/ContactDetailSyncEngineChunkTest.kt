@@ -8,6 +8,7 @@ import io.pcontacts.core.contactswriter.RawContactOpIntent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -52,6 +53,27 @@ class ContactDetailSyncEngineChunkTest {
 
         assertTrue(applier.lastIntents.none { it is RawContactOpIntent.UpdateContact && it.row.sourceId == "c7" })
         assertEquals("its mapping is left as it was", 0L, dao.findByProtonId("c7")!!.modifyTime)
+    }
+
+    @Test fun a_contact_missing_from_the_listing_but_still_on_proton_is_not_deleted() = runTest {
+        // [U] paging stability: a page that left a contact out deleted it on the phone
+        // (ADR-0017, 2026-10-15).
+        val full = metaPage(meta("a", 100L), meta("b", 100L))
+        val api = DetailFakeApi(
+            metadataPages = listOf(full, metaPage(meta("b", 100L))),
+            contacts = mapOf("a" to contact("a", 100L, card("a")), "b" to contact("b", 100L, card("b"))),
+            repeatContacts = true
+        )
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        val engine = newEngine(api, dao, applier)
+        engine.sync(account)
+
+        val report = engine.sync(account)
+
+        assertEquals(0, report.deleted)
+        assertEquals(1, applier.rawIdsFor("a").size)
+        assertNotNull(dao.findByProtonId("a"))
     }
 
     @Test fun a_run_stopped_midway_keeps_its_finished_chunks_and_the_next_run_carries_on() = runTest {

@@ -342,6 +342,7 @@ class ContactDetailSyncEngineSelfHealingTest {
         applier.removeRawContact("c1")
         applier.seedRow("c1", rawId, deleted = true)
         deletePending = true
+        api.goneIds += "c1"
 
         engine.sync(account)
 

@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A contact is removed from the phone only when Proton confirms it is
+  gone.** A contact missing from Proton's list was deleted on the phone
+  straight away; a list that left one out by mistake would have removed
+  it. The app now asks Proton about that contact first.
 - **An edit made while a sync runs is kept.** A contact changed on the
   phone while a sync was downloading could be overwritten by the copy
   from Proton. Such contacts are now left for the next sync, which merges

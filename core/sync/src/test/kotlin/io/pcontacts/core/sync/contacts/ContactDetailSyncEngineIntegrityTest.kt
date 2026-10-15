@@ -123,6 +123,7 @@ class ContactDetailSyncEngineIntegrityTest {
         val engine = newEngine(api, dao, applier)
         engine.sync(account)
         assertEquals(setOf("a", "b"), dao.snapshot().keys)
+        api.goneIds += "a"
 
         // Chunk 1 deleted "a"; a later chunk blew up before the mappings were reconciled.
         applier.throwAfterApply = IllegalStateException("chunk 2 failed")
