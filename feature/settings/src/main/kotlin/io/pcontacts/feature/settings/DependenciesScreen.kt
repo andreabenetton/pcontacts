@@ -45,9 +45,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 /**
- * Every artifact the release ships, with version, license and the CVEs the
- * build-time scan matched (ADR-0024). Problem artifacts come first. A CVE id
- * hands its NVD URL to [onOpenLink]; the host opens it with the platform's
+ * Every artifact the release ships, with version, license and the advisories
+ * osv.dev reported when it was built (ADR-0024). Problem artifacts come first.
+ * An advisory id hands its osv.dev URL to [onOpenLink]; the host opens it with the platform's
  * external-link mechanism and returns false when nothing on the device can.
  */
 // One parameter per fact the host knows and the screen shows; there is no state to bundle them in.
