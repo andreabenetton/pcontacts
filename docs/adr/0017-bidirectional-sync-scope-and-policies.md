@@ -5,7 +5,7 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice, 2026-10-15 twice — see *Amendments* at the end)
+- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice, 2026-10-15 three times — see *Amendments* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
@@ -633,5 +633,35 @@ client sends:
 - Only the bytes sent change. The phone's photo, and the digest the
   merge keeps of it, stay as the provider holds them; Proton's photo is
   never re-encoded, so an unchanged photo is never sent again.
+
+Nothing below permits less than before.
+
+## Amendment (2026-10-15, third): a contact is fitted to the rules of Proton's editor before it is sent
+
+Proton's web client checks a contact before it saves one (`[V]` WebClients
+`ContactEditModal`, `ContactFieldFn`, `ContactFieldN`,
+`packages/shared/lib/contacts/property.ts` and `constants.ts`,
+`packages/shared/lib/helpers/email.ts` at `838762f`): a display name of at
+most `CONTACT_NAME_MAX_LENGTH` (190) characters, a first and a last name of
+at most 94 each, and email addresses that pass `validateEmailAddress`.
+Proton's server refuses a longer display name with HTTP 422, Code 2024
+(`[A]` seen live 2026-10-15) and accepted longer first and last names, but
+a contact the web editor cannot save is one the user cannot correct there.
+Before a create or an update leaves the phone, pcontacts now conforms the
+values it is about to send:
+
+- A display name, first name or last name over its limit is cut to the
+  limit (by UTF-16 unit, as the web client counts, never splitting a
+  surrogate pair), after trimming surrounding spaces.
+- Spaces around an email address are removed. An address still invalid
+  after that is sent as it is: Proton's own answer (Code 2050) decides,
+  and the change is listed as failed, as before. Nothing is dropped.
+- Only values that differ from Proton's copy are conformed; a value
+  Proton already holds is never rewritten to fit.
+- Each adjustment is recorded in Room by contact id and kind (never the
+  value, ADR-0007) and listed in Settings until the user dismisses it.
+  The phone keeps its full value; Proton holds the conformed one, which
+  becomes the merge base, so the same adjustment is not sent or reported
+  again.
 
 Nothing below permits less than before.
