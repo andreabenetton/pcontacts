@@ -25,8 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   invalid email address, the domain of an email address, an invalid
   website address, an invalid detail, a contact Proton no longer has, or
   a change not allowed on the account. Where the cause is fixable it says
-  to correct it on the phone and tap Retry. Proton's code stays shown
-  below, for bug reports.
+  to correct it on the phone and tap Retry. A code Proton does not
+  explain, such as 2060, says so and asks to retry, then to report it.
+  Proton's code stays shown below; [docs/ERROR_CODES.md](docs/ERROR_CODES.md)
+  lists every code and what to do.
 
 ## [2.4.0] - 2026-10-15
 

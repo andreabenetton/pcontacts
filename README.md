@@ -53,6 +53,7 @@ Practical questions from real phones, answered in [`docs/FAQ.md`](docs/FAQ.md):
 - [Why did 2.0 ask me to sign in again and download everything?](docs/FAQ.md#why-did-20-ask-me-to-sign-in-again-and-download-everything)
 - [I turned on two-password mode (or changed my password) and pcontacts asks me to sign in again](docs/FAQ.md#i-turned-on-two-password-mode-or-changed-my-password-and-pcontacts-asks-me-to-sign-in-again)
 - [When does pcontacts show a notification?](docs/FAQ.md#when-does-pcontacts-show-a-notification)
+- [A change failed and shows a code. What does it mean?](docs/FAQ.md#a-change-failed-and-shows-a-code-what-does-it-mean)
 - [I deleted a contact on a Samsung and pcontacts asks what to do](docs/FAQ.md#i-deleted-a-contact-on-a-samsung-and-pcontacts-asks-what-to-do)
 - [The sync interval slider has an "Off" position. What does it do?](docs/FAQ.md#the-sync-interval-slider-has-an-off-position-what-does-it-do)
 - [How can I see where a contact is stored?](docs/FAQ.md#how-can-i-see-where-a-contact-is-stored)

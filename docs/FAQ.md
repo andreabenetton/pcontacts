@@ -140,6 +140,16 @@ Only from background work, one trigger each:
 - **New advisories**: only with the opt-in osv.dev check on, once per new
   advisory.
 
+## A change failed and shows a code. What does it mean?
+
+When Proton refuses a change, the **Sync** card lists it under **changes
+failed permanently**; tap it to see each one. The first line says in plain
+words what Proton refused and what to do, the line below is Proton's code
+(for example `HTTP 422, Proton code 2050`). [Error codes](ERROR_CODES.md)
+lists every code, what it means, and when to tap Retry or Discard. A code
+Proton does not explain asks to retry first; if it fails again, report it
+with that line, as the same page describes.
+
 ## I deleted a contact on a Samsung and pcontacts asks what to do
 
 Samsung Contacts moves a deleted contact into its Recycle bin, where no
