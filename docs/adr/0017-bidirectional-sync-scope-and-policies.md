@@ -556,6 +556,13 @@ It found five ways a run that stopped, or an edit made at the wrong
 moment, still lost a change or brought a deleted contact back. Each
 now fails toward keeping the user's data or asking:
 
+- **A create found on Proton is merged, not assumed.** A contact an
+  earlier run created and never recorded may hold older content than
+  the row (the row was edited before the acknowledgement). Found by its
+  UID, it is recorded with Proton's own state as the merge base, and
+  the row goes as an ordinary update merged onto it — instead of the
+  row being taken as what Proton holds and the pull restoring the older
+  copy over the edit.
 - **A change follows the row, not a stale id.** An edit whose row
   still carries a Proton id that has no mapping (after "use phone
   version" for a contact deleted on Proton) is queued under the

@@ -73,6 +73,8 @@ internal class Faults(private val rng: Random) {
         // milliseconds to the write are the window it cannot close (ADR-0017, 2026-10-15).
         if (enabled && !label.startsWith("apply") && rng.nextDouble() < MID_RUN_RATE) midRun?.invoke()
         strike(site, before = true, label)
+        // A call that was waiting when the process died never runs.
+        if (killed) throw ProcessKilled()
         val result = commit()
         note("ok $label")
         strike(site, before = false, label)
@@ -115,7 +117,7 @@ internal class Faults(private val rng: Random) {
         const val DEFAULT_RATE = 0.05
         const val YIELD_RATE = 0.2
         const val MID_RUN_RATE = 0.02
-        const val TRACE_SIZE = 200
+        const val TRACE_SIZE = 200000
         const val CAUSE_DEPTH = 8
     }
 }

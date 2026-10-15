@@ -1423,6 +1423,7 @@ class ContactWriteEngineTest {
             outbox,
             contactMap,
             contacts = mapOf("local-200" to sampleContact("local-200")),
+            serverContacts = mapOf("srv-9" to sampleContact("srv-9")),
             writtenSourceIds = written
         )
 
@@ -1432,7 +1433,45 @@ class ContactWriteEngineTest {
         assertEquals(1, report.created)
         assertEquals(listOf(200L to "srv-9"), written)
         assertEquals(200L, contactMap.findByProtonId("srv-9")!!.androidRawContactId)
-        assertTrue(outbox.entries.isEmpty())
+        // Found, not sent here: the row goes onto Proton's copy as an ordinary update.
+        assertEquals(
+            listOf("srv-9" to OutboxEntity.OpType.UPDATE),
+            outbox.entries.values.map { it.protonContactId to it.opType }
+        )
+    }
+
+    @Test fun a_row_edited_after_its_create_committed_reaches_proton_through_the_next_update() = runTest {
+        // Before, the found copy was recorded with the row as its merge base; Proton held the older
+        // content, and the pull then restored it over the edit (ADR-0017, 2026-10-15).
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val bases = InMemoryMergeBaseStore()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        api.listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = outbox.entries.values.single().createUid!!))
+        val onProton = sampleContact("srv-9")
+        val edited = sampleContact("local-200").copy(notes = listOf("edited after the create"))
+        newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to edited),
+            serverContacts = mapOf("srv-9" to onProton),
+            mergeBases = bases
+        ).push(testAccount)
+
+        assertEquals(onProton.notes, MergeBaseCodec.load(bases, "srv-9")!!.notes)
+        newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("srv-9" to edited),
+            serverContacts = mapOf("srv-9" to onProton),
+            mergeBases = bases
+        ).push(testAccount)
+
+        val cards = api.lastUpdateRequest!!.cards.joinToString { it.data }
+        assertTrue(cards.contains("edited after the create"))
     }
 
     @Test fun a_create_with_a_minted_uid_waits_while_the_contact_list_is_unreadable() = runTest {
@@ -1531,6 +1570,7 @@ class ContactWriteEngineTest {
             outbox,
             contactMap,
             contacts = mapOf("local-200" to sampleContact("local-200")),
+            serverContacts = mapOf("srv-9" to sampleContact("srv-9")),
             writtenSourceIds = written
         )
 
@@ -1541,7 +1581,11 @@ class ContactWriteEngineTest {
         assertNull(contactMap.findByProtonId("local-200"))
         assertEquals(uid, contactMap.findByProtonId("srv-9")!!.protonUid)
         assertEquals(listOf(200L to "srv-9"), written)
-        assertTrue(outbox.entries.isEmpty())
+        // Found, not sent here: the row goes onto Proton's copy as an ordinary update.
+        assertEquals(
+            listOf("srv-9" to OutboxEntity.OpType.UPDATE),
+            outbox.entries.values.map { it.protonContactId to it.opType }
+        )
     }
 
     @Test fun push_create_refused_by_item_code_is_quarantined_with_the_code_unless_the_uid_exists() = runTest {
@@ -1557,7 +1601,8 @@ class ContactWriteEngineTest {
             api,
             outbox,
             contactMap,
-            contacts = mapOf("local-200" to sampleContact("local-200"))
+            contacts = mapOf("local-200" to sampleContact("local-200")),
+            serverContacts = mapOf("srv-9" to sampleContact("srv-9"))
         )
 
         val report = engine.push(testAccount)
@@ -1575,7 +1620,8 @@ class ContactWriteEngineTest {
             api,
             outbox,
             contactMap,
-            contacts = mapOf("local-2" to sampleContact("local-2"))
+            contacts = mapOf("local-2" to sampleContact("local-2")),
+            serverContacts = mapOf("srv-9" to sampleContact("srv-9"))
         )
         assertEquals(1, engine2.push(testAccount).created)
         assertNotNull(contactMap.findByProtonId("srv-9"))
@@ -1623,6 +1669,7 @@ class ContactWriteEngineTest {
             outbox,
             contactMap,
             contacts = mapOf("local-200" to sampleContact("local-200")),
+            serverContacts = mapOf("srv-9" to sampleContact("srv-9")),
             writtenSourceIds = written
         )
 
@@ -1640,7 +1687,11 @@ class ContactWriteEngineTest {
         assertNull(contactMap.findByProtonId("local-200"))
         assertEquals(uid, contactMap.findByProtonId("srv-9")!!.protonUid)
         assertEquals(listOf(200L to "srv-9"), written)
-        assertTrue(outbox.entries.isEmpty())
+        // Found, not sent here: the row goes onto Proton's copy as an ordinary update.
+        assertEquals(
+            listOf("srv-9" to OutboxEntity.OpType.UPDATE),
+            outbox.entries.values.map { it.protonContactId to it.opType }
+        )
     }
 
     // ---- A queued delete meets a change on Proton (ADR-0017, 2026-10-01) ----

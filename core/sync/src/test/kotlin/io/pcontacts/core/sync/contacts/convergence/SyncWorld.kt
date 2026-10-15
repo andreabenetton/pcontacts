@@ -151,8 +151,10 @@ internal class SyncWorld(seed: Long) {
         }
         faults.startRun(job)
         faults.enabled = withFaults
+        faults.note("== run start")
         job.start()
         job.join()
+        faults.note("== run end")
         faults.enabled = false
         faults.endRun()
         return failure ?: CancellationException("run cancelled").takeIf { job.isCancelled }
@@ -355,7 +357,7 @@ internal class SyncWorld(seed: Long) {
         const val START_MS = 1_760_000_000_000L
         const val HOUR_MS = 3_600_000L
         private const val PAGE_SIZE = 4
-        private const val LOG_SIZE = 200
+        private const val LOG_SIZE = 200000
         private const val QUESTION_ODDS = 3
         private const val NUMBERS = 4
         private const val BOUND = 100

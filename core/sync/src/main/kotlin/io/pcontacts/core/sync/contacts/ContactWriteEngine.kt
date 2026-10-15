@@ -615,14 +615,16 @@ class ContactWriteEngine(
         val pushedHash = EmailSyncHash.compute(row)
         return try {
             val earlier = minted?.let { createdUids?.get(it) }
-            val serverContact = if (earlier != null) {
+            val created = if (earlier != null) {
                 logger.info { "push: create already on Proton, acknowledged without a request idTag=${earlier.hashCode()}" }
-                ContactDto(id = earlier, uid = uid)
+                Created(ContactDto(id = earlier, uid = uid), sentHere = false)
             } else {
                 // Only a confirmed server identity lets the CREATE leave the outbox.
                 createOnServer(serializer.serialize(attempt.contact), uid)
             }
-            withContext(NonCancellable) { acknowledgeCreate(attempt, serverContact, pushedHash, account) }
+            val serverContact = created.contact
+            val base = baseOf(created, attempt)
+            withContext(NonCancellable) { acknowledgeCreate(attempt, created, base, pushedHash, account) }
             val groupReport = if (account != null && row.groupRowIds.isNotEmpty()) {
                 queueGroupsOfNewContact(serverContact, rawContactId, account)
             } else {
@@ -639,16 +641,31 @@ class ContactWriteEngine(
     }
 
     /**
+     * The merge base of a created contact: what this run sent, or — for a copy an earlier run made,
+     * which may be older than the row — Proton's own state, onto which the row is then pushed as an
+     * ordinary update (ADR-0017, 2026-10-15).
+     */
+    private suspend fun baseOf(created: Created, attempt: CreateAttempt): DecryptedContact =
+        if (created.sentHere) {
+            attempt.contact
+        } else {
+            fetchServerContact(created.contact.id) ?: throw IOException("created contact not readable")
+        }
+
+    /**
      * Records a create Proton holds: the mapping (so the merge base is kept and a later edit is
      * pushed, not quarantined), the SOURCE_ID, the outbox row. Called under [NonCancellable]: a
      * stopped sync must not leave a committed create unrecorded (ADR-0017, 2026-10-14).
      */
     private suspend fun acknowledgeCreate(
         attempt: CreateAttempt,
-        serverContact: ContactDto,
+        created: Created,
+        base: DecryptedContact,
         pushedHash: String,
         account: Account?
     ) {
+        val serverContact = created.contact
+        val serverHash = if (created.sentHere) pushedHash else ""
         val localId = attempt.entry.protonContactId
         val localMapping = contactMapDao.findByProtonId(localId)
         if (localMapping != null) contactMapDao.deleteByProtonId(localId)
@@ -659,7 +676,7 @@ class ContactWriteEngine(
                     protonUid = serverContact.uid,
                     syncStatus = ContactMapEntity.Status.CLEAN,
                     lastSyncedAt = clock()
-                ) ?: createdMapping(serverContact, attempt.rawContactId, pushedHash)
+                ) ?: createdMapping(serverContact, attempt.rawContactId, serverHash)
             )
         }
         if (account != null) writeSourceId(account, attempt.rawContactId, serverContact.id)
@@ -668,11 +685,11 @@ class ContactWriteEngine(
         MergeBaseCodec.save(
             mergeBases,
             serverContact.id,
-            attempt.contact,
+            base,
             localPhotoHash = nowRow?.photo?.data?.let(PhotoHash::of)
         )
         val nowHash = nowRow?.let(EmailSyncHash::compute)
-        if (nowHash != null && nowHash != pushedHash) {
+        if (nowHash != null && nowHash != serverHash) {
             outboxDao.enqueue(serverContact.id, OutboxEntity.OpType.UPDATE, nowHash, clock())
         }
     }
@@ -754,7 +771,7 @@ class ContactWriteEngine(
      */
     // One throw per outcome that must not count as created: lost response, refusal, no confirmation.
     @Suppress("ThrowsCount")
-    private suspend fun createOnServer(cards: List<ContactCardDto>, uid: String): ContactDto {
+    private suspend fun createOnServer(cards: List<ContactCardDto>, uid: String): Created {
         val response = try {
             contactsApi.createContacts(CreateContactsRequest(contacts = listOf(ContactCardBundle(cards = cards))))
         } catch (e: IOException) {
@@ -762,7 +779,9 @@ class ContactWriteEngine(
         }
         val item = response.responses.firstOrNull()?.response
         val created = item?.contact
-        if (item != null && item.code == ProtonCodeInterceptor.SUCCESS_CODE && created != null) return created
+        if (item != null && item.code == ProtonCodeInterceptor.SUCCESS_CODE && created != null) {
+            return Created(created, sentHere = true)
+        }
         if (item != null && item.code != ProtonCodeInterceptor.SUCCESS_CODE) {
             logger.warn { "create refused with Code:${item.code}; looking the contact up by UID" }
             return findByUid(uid) ?: throw ProtonApiException(item.code, null)
@@ -774,10 +793,13 @@ class ContactWriteEngine(
         return findByUid(uid) ?: throw IOException("create not confirmed by Proton")
     }
 
-    /** The server contact carrying [uid], or null; a failed lookup is not a failure of the create. */
-    private suspend fun findByUid(uid: String): ContactDto? = try {
+    /**
+     * The server contact carrying [uid], or null; a failed lookup is not a failure of the create.
+     * Found this way, it is not known to hold what this run sent ([Created.sentHere] false).
+     */
+    private suspend fun findByUid(uid: String): Created? = try {
         ContactsMetadataPager(contactsApi).metadata().firstOrNull { it.uid == uid }
-            ?.let { ContactDto(id = it.id, uid = it.uid) }
+            ?.let { Created(ContactDto(id = it.id, uid = it.uid), sentHere = false) }
     } catch (e: CancellationException) {
         throw e
     } catch (t: Throwable) {
@@ -820,6 +842,9 @@ class ContactWriteEngine(
     }
 
     private class CreateAttempt(val entry: OutboxEntity, val rawContactId: Long, val contact: DecryptedContact)
+
+    /** The contact a create made; [sentHere] when this run's own POST was answered with it. */
+    private class Created(val contact: ContactDto, val sentHere: Boolean)
 
     companion object {
         const val MAX_CONCURRENT_PUSHES = 4
