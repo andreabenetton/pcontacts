@@ -197,6 +197,31 @@ class MigrationTest {
         migratedDb.close()
     }
 
+    @Test fun migrate_6_to_7_starts_with_no_adjustment() {
+        helper.createDatabase(TEST_DB, 6).apply {
+            execSQL(
+                """INSERT INTO contact_map (
+                    proton_contact_id, proton_uid, android_raw_contact_id,
+                    modify_time, content_hash, is_verified, deleted,
+                    sync_status, last_error, last_synced_at, pending_push_hash
+                ) VALUES ('ct-1', 'uid-1', 100, 1700000000, 'hash-v6', 1, 0, 0, NULL, 1700000001, 'pending')"""
+            )
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(TEST_DB, 7, true, PcontactsDatabase.MIGRATION_6_7)
+
+        migratedDb.query("SELECT COUNT(*) FROM proton_adjustment").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        migratedDb.query("SELECT pending_push_hash FROM contact_map").use { cursor ->
+            assertTrue("contact_map row should survive migration", cursor.moveToFirst())
+            assertEquals("pending", cursor.getString(0))
+        }
+        migratedDb.close()
+    }
+
     private fun outboxRow(contactId: String, opType: Int, hash: String, quarantined: Int): String =
         """INSERT INTO outbox (
             proton_contact_id, op_type, payload_hash, attempts, last_error, next_attempt_at, created_at, quarantined

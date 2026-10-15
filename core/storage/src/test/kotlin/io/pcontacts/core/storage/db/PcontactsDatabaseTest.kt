@@ -13,6 +13,7 @@ import io.pcontacts.core.storage.db.dao.SyncStateDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.GroupMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.storage.db.entity.ProtonAdjustmentEntity
 import io.pcontacts.core.storage.db.entity.SyncStateEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -156,6 +157,27 @@ class PcontactsDatabaseTest {
         val bumped = initial.copy(lastIncrementalSyncAt = 3_000L, lastKnownTotal = 143)
         syncStateDao.upsert(bumped)
         assertEquals(bumped, syncStateDao.get("uid-acct"))
+    }
+
+    @Test fun proton_adjustment_keeps_one_row_per_contact_and_kind() = runTest {
+        val dao = db.protonAdjustmentDao()
+        dao.upsert(listOf(ProtonAdjustmentEntity("ct-1", "name_shortened", 1_000L)))
+        dao.upsert(
+            listOf(
+                ProtonAdjustmentEntity("ct-1", "name_shortened", 2_000L),
+                ProtonAdjustmentEntity("ct-2", "email_trimmed", 1_500L)
+            )
+        )
+        assertEquals(
+            listOf(
+                ProtonAdjustmentEntity("ct-1", "name_shortened", 2_000L),
+                ProtonAdjustmentEntity("ct-2", "email_trimmed", 1_500L)
+            ),
+            dao.listAll()
+        )
+
+        dao.delete("ct-1", "name_shortened")
+        assertEquals(listOf(ProtonAdjustmentEntity("ct-2", "email_trimmed", 1_500L)), dao.listAll())
     }
 
     @Test fun count_live_excludes_deleted_rows() = runTest {

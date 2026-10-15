@@ -10,10 +10,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.GroupMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
+import io.pcontacts.core.storage.db.dao.ProtonAdjustmentDao
 import io.pcontacts.core.storage.db.dao.SyncStateDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.GroupMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.storage.db.entity.ProtonAdjustmentEntity
 import io.pcontacts.core.storage.db.entity.SyncStateEntity
 
 /**
@@ -31,9 +33,10 @@ import io.pcontacts.core.storage.db.entity.SyncStateEntity
         ContactMapEntity::class,
         GroupMapEntity::class,
         SyncStateEntity::class,
-        OutboxEntity::class
+        OutboxEntity::class,
+        ProtonAdjustmentEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class PcontactsDatabase : RoomDatabase() {
@@ -41,6 +44,7 @@ abstract class PcontactsDatabase : RoomDatabase() {
     abstract fun groupMapDao(): GroupMapDao
     abstract fun syncStateDao(): SyncStateDao
     abstract fun outboxDao(): OutboxDao
+    abstract fun protonAdjustmentDao(): ProtonAdjustmentDao
 
     companion object {
         const val DATABASE_NAME = "pcontacts.db"
@@ -108,6 +112,20 @@ abstract class PcontactsDatabase : RoomDatabase() {
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE contact_map ADD COLUMN pending_push_hash TEXT DEFAULT NULL")
+            }
+        }
+
+        /** ADR-0017 (2026-10-15, third): the values conformed to Proton's editor rules; none yet. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS proton_adjustment (
+                        proton_contact_id TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        PRIMARY KEY(proton_contact_id, kind)
+                    )"""
+                )
             }
         }
     }
