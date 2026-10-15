@@ -1,0 +1,6 @@
+Version 2.4.0.
+
+* Les synchronisations interrompues sont plus sûres : un nouveau contact n’est jamais envoyé deux fois, un contact supprimé ne revient pas, et les modifications faites pendant ou juste après une interruption sont conservées.
+* Un numéro ou une adresse enregistrés deux fois avec des libellés différents gardent les deux ; les conflits vous sont soumis.
+* La carte ne reste plus sur « Synchronisation en cours… ».
+* En cas de limitation, chaque essai attend au plus 30 secondes.

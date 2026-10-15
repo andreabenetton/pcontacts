@@ -1,0 +1,6 @@
+Version 2.4.0.
+
+* Interrupted syncs are safer: a new contact is never sent twice, a deleted contact does not come back, and edits made during or right after an interrupted sync are kept.
+* A number or address saved twice with different labels keeps both; different changes on both sides ask you.
+* The card no longer stays on "Sync in progress…" after a sync ended.
+* A rate-limited sync waits at most 30 seconds per retry.

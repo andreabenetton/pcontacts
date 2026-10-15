@@ -1,0 +1,6 @@
+Versione 2.4.0.
+
+* Le sincronizzazioni interrotte sono più sicure: un nuovo contatto non viene mai inviato due volte, un contatto eliminato non ricompare e le modifiche fatte durante o subito dopo un'interruzione restano.
+* Un numero o un indirizzo salvati due volte con etichette diverse le conservano entrambe; i conflitti ti vengono chiesti.
+* La scheda non resta più su «Sincronizzazione in corso…».
+* Con limiti di frequenza, ogni tentativo attende al massimo 30 secondi.

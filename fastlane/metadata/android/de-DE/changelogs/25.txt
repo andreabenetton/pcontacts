@@ -1,0 +1,6 @@
+Version 2.4.0.
+
+* Unterbrochene Synchronisierungen sind sicherer: Neue Kontakte werden nie doppelt gesendet, gelöschte kehren nicht zurück, und Änderungen während oder kurz nach einer Unterbrechung bleiben erhalten.
+* Doppelt gespeicherte Nummern oder Adressen mit verschiedenen Bezeichnungen behalten beide; widersprüchliche Änderungen werden dir vorgelegt.
+* Die Karte bleibt nicht mehr auf „Synchronisierung läuft…“.
+* Bei Drosselung wartet die App höchstens 30 Sekunden pro Versuch.

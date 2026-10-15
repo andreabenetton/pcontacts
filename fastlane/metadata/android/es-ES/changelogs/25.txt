@@ -1,0 +1,6 @@
+Versión 2.4.0.
+
+* Las sincronizaciones interrumpidas son más seguras: un contacto nuevo nunca se envía dos veces, uno eliminado no vuelve y se conservan los cambios hechos durante o justo después de una interrupción.
+* Un número o dirección guardados dos veces con etiquetas distintas conservan ambas; los cambios contradictorios se te consultan.
+* La tarjeta ya no se queda en «Sincronización en curso…».
+* Con límite de peticiones, cada reintento espera 30 segundos como máximo.
