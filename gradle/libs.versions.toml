@@ -44,7 +44,7 @@ bouncycastle                 = "1.86"
 ezvcard                      = "0.12.2"
 # Security pin (constraint in :core:proton-contacts): 2.3.35 fixes CVE-2026-84939. Do not downgrade.
 freemarker                   = "2.3.35"
-jackson-core                 = "2.22.3"
+jackson-core                 = "2.22.4"
 jsoup                        = "1.23.2"
 
 # Test
