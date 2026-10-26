@@ -1,6 +1,6 @@
 {
     "schema": 2,
-    "generatedAt": "2026-10-31T15:39:41Z",
+    "generatedAt": "2026-10-31T15:39:49Z",
     "source": "osv.dev",
     "dependencies": [
         {
@@ -1437,7 +1437,7 @@
         {
             "group": "org.jetbrains.kotlinx",
             "name": "kotlinx-serialization-bom",
-            "version": "1.11.0",
+            "version": "1.12.0",
             "licenses": [
                 "Apache-2.0"
             ],
@@ -1448,7 +1448,7 @@
         {
             "group": "org.jetbrains.kotlinx",
             "name": "kotlinx-serialization-core",
-            "version": "1.11.0",
+            "version": "1.12.0",
             "licenses": [
                 "Apache-2.0"
             ],
@@ -1459,7 +1459,7 @@
         {
             "group": "org.jetbrains.kotlinx",
             "name": "kotlinx-serialization-core-jvm",
-            "version": "1.11.0",
+            "version": "1.12.0",
             "licenses": [
                 "Apache-2.0"
             ],
@@ -1470,7 +1470,7 @@
         {
             "group": "org.jetbrains.kotlinx",
             "name": "kotlinx-serialization-json",
-            "version": "1.11.0",
+            "version": "1.12.0",
             "licenses": [
                 "Apache-2.0"
             ],
@@ -1481,7 +1481,7 @@
         {
             "group": "org.jetbrains.kotlinx",
             "name": "kotlinx-serialization-json-jvm",
-            "version": "1.11.0",
+            "version": "1.12.0",
             "licenses": [
                 "Apache-2.0"
             ],
