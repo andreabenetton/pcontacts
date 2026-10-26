@@ -1,6 +1,6 @@
 {
     "schema": 2,
-    "generatedAt": "2026-10-31T15:39:57Z",
+    "generatedAt": "2026-10-31T15:40:13Z",
     "source": "osv.dev",
     "dependencies": [
         {
@@ -1172,7 +1172,7 @@
         {
             "group": "androidx.work",
             "name": "work-runtime",
-            "version": "2.11.2",
+            "version": "2.12.0",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1183,7 +1183,7 @@
         {
             "group": "androidx.work",
             "name": "work-runtime-ktx",
-            "version": "2.11.2",
+            "version": "2.12.0",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
