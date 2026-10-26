@@ -1,6 +1,6 @@
 {
     "schema": 2,
-    "generatedAt": "2026-10-15T19:51:07Z",
+    "generatedAt": "2026-10-31T15:39:41Z",
     "source": "osv.dev",
     "dependencies": [
         {
@@ -50,7 +50,7 @@
         {
             "group": "androidx.annotation",
             "name": "annotation-experimental",
-            "version": "1.4.1",
+            "version": "1.5.0",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -930,7 +930,7 @@
         {
             "group": "androidx.room",
             "name": "room-common",
-            "version": "2.7.2",
+            "version": "2.8.5",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -941,7 +941,7 @@
         {
             "group": "androidx.room",
             "name": "room-common-jvm",
-            "version": "2.7.2",
+            "version": "2.8.5",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -952,7 +952,7 @@
         {
             "group": "androidx.room",
             "name": "room-ktx",
-            "version": "2.7.2",
+            "version": "2.8.5",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -963,7 +963,7 @@
         {
             "group": "androidx.room",
             "name": "room-runtime",
-            "version": "2.7.2",
+            "version": "2.8.5",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -974,7 +974,7 @@
         {
             "group": "androidx.room",
             "name": "room-runtime-android",
-            "version": "2.7.2",
+            "version": "2.8.5",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1040,7 +1040,7 @@
         {
             "group": "androidx.sqlite",
             "name": "sqlite",
-            "version": "2.5.1",
+            "version": "2.6.2",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1051,7 +1051,7 @@
         {
             "group": "androidx.sqlite",
             "name": "sqlite-android",
-            "version": "2.5.1",
+            "version": "2.6.2",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1062,7 +1062,7 @@
         {
             "group": "androidx.sqlite",
             "name": "sqlite-framework",
-            "version": "2.5.1",
+            "version": "2.6.2",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1073,7 +1073,7 @@
         {
             "group": "androidx.sqlite",
             "name": "sqlite-framework-android",
-            "version": "2.5.1",
+            "version": "2.6.2",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],

@@ -28,7 +28,7 @@ androidx-activity-compose    = "1.9.3"
 androidx-compose-bom         = "2026.05.01"
 androidx-lifecycle-runtime-compose = "2.8.7"
 androidx-core                = "1.13.1"
-androidx-room                = "2.7.2"
+androidx-room                = "2.8.5"
 androidx-work                = "2.11.2"
 
 # Kotlin libs
