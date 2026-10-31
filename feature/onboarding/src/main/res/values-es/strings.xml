@@ -34,6 +34,7 @@
     <string name="login_error_unreachable">No se pudo conectar con Proton. Comprueba tu conexión y vuelve a intentarlo.</string>
     <string name="login_error_srp">Error interno de SRP. Vuelve a intentarlo o repórtalo.</string>
     <string name="login_error_credentials">Error al iniciar sesión. ¿Nombre de usuario o contraseña incorrectos?</string>
+    <string name="login_error_refused">Proton rechazó el inicio de sesión (%1$s). Esto no significa que la contraseña sea incorrecta. Vuelve a intentarlo en unos minutos; si sigue ocurriendo, informa de este mensaje.</string>
     <string name="login_error_proof_mismatch">La prueba del servidor no coincide. Tu conexión podría estar interceptada.</string>
     <string name="login_error_app_version">Proton ya no acepta esta versión de la app. Actualiza pcontacts.</string>
     <string name="login_error_modulus">No se pudo verificar la identidad de Proton. Tu conexión podría estar interceptada; se detuvo el inicio de sesión.</string>

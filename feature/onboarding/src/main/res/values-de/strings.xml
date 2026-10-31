@@ -34,6 +34,7 @@
     <string name="login_error_unreachable">Proton konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>
     <string name="login_error_srp">Interner SRP-Fehler. Versuchen Sie es erneut oder melden Sie dies.</string>
     <string name="login_error_credentials">Anmeldung fehlgeschlagen. Benutzername oder Passwort falsch?</string>
+    <string name="login_error_refused">Proton hat die Anmeldung abgelehnt (%1$s). Das heißt nicht, dass das Passwort falsch ist. Versuchen Sie es in einigen Minuten erneut; wenn es weiterhin passiert, melden Sie bitte diese Meldung.</string>
     <string name="login_error_proof_mismatch">Server-Proof stimmt nicht überein. Ihre Verbindung wird möglicherweise abgehört.</string>
     <string name="login_error_app_version">Diese App-Version wird von Proton nicht mehr akzeptiert. Bitte aktualisieren Sie pcontacts.</string>
     <string name="login_error_modulus">Die Identität von Proton konnte nicht überprüft werden. Ihre Verbindung wird möglicherweise abgehört; die Anmeldung wurde abgebrochen.</string>

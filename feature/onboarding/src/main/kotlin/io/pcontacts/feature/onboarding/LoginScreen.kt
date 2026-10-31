@@ -241,7 +241,7 @@ private fun LoginStatusView(
         is LoginUiState.SecondPasswordSubmitting,
         is LoginUiState.SecondPasswordFailed -> Unit
         is LoginUiState.Failed -> Text(
-            text = friendlyError(state.reason),
+            text = friendlyError(state.reason, state.detail),
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -249,10 +249,12 @@ private fun LoginStatusView(
 }
 
 @Composable
-private fun friendlyError(reason: String): String = when (reason) {
-    "info_failed" -> stringResource(R.string.login_error_unreachable)
+private fun friendlyError(reason: String, detail: String?): String = when (reason) {
+    "info_failed",
+    "auth_unreachable" -> stringResource(R.string.login_error_unreachable)
     "srp_failed" -> stringResource(R.string.login_error_srp)
     "auth_failed" -> stringResource(R.string.login_error_credentials)
+    "auth_refused" -> stringResource(R.string.login_error_refused, detail.orEmpty())
     "server_proof_decode_failed",
     "server_proof_mismatch" -> stringResource(R.string.login_error_proof_mismatch)
     "appversion_rejected" -> stringResource(R.string.login_error_app_version)

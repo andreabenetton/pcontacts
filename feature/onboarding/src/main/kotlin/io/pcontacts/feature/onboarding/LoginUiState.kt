@@ -78,5 +78,6 @@ sealed interface LoginUiState {
         val verificationUrl: String?
     ) : LoginUiState
 
-    data class Failed(val reason: String) : LoginUiState
+    /** [detail] names Proton's answer (HTTP status, code) when it refused the sign-in otherwise. */
+    data class Failed(val reason: String, val detail: String? = null) : LoginUiState
 }

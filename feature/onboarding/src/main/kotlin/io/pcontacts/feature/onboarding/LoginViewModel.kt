@@ -153,7 +153,7 @@ class LoginViewModel(
                 LoginUiState.HumanVerificationRequired(result.verificationUrl)
             is LoginResult.Failed -> {
                 zeroizePendingPassword()
-                LoginUiState.Failed(result.reason)
+                LoginUiState.Failed(result.reason, result.detail)
             }
         }
     }

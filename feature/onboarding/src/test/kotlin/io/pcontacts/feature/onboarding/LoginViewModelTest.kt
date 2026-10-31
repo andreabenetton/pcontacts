@@ -335,6 +335,17 @@ class LoginViewModelTest {
         assertEquals(LoginUiState.Failed(reason = "auth_failed"), vm.uiState.value)
     }
 
+    @Test fun a_refusal_keeps_protons_status_and_code_for_the_message() = runTest {
+        val vm = LoginViewModel(
+            attemptLogin = { _, _ -> LoginResult.Failed(reason = "auth_refused", detail = "HTTP 422, code 2028") },
+            submitTotp = unusedSubmitTotp,
+            workDispatcher = testDispatcher
+        )
+        vm.login("u", "p".toCharArray())
+        advanceUntilIdle()
+        assertEquals(LoginUiState.Failed(reason = "auth_refused", detail = "HTTP 422, code 2028"), vm.uiState.value)
+    }
+
     @Test fun second_tap_while_submitting_is_a_noop() = runTest {
         val gate = CompletableDeferred<LoginResult>()
         var callCount = 0
