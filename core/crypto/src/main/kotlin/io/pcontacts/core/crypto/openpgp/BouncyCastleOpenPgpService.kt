@@ -3,10 +3,6 @@
 
 package io.pcontacts.core.crypto.openpgp
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
-import java.security.SecureRandom
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.BCPGOutputStream
 import org.bouncycastle.bcpg.HashAlgorithmTags
@@ -15,6 +11,7 @@ import org.bouncycastle.openpgp.PGPCompressedData
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator
 import org.bouncycastle.openpgp.PGPEncryptedDataList
+import org.bouncycastle.openpgp.PGPKeyPair
 import org.bouncycastle.openpgp.PGPLiteralData
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator
 import org.bouncycastle.openpgp.PGPObjectFactory
@@ -30,6 +27,10 @@ import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider
 import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.security.SecureRandom
 
 class BouncyCastleOpenPgpService : OpenPgpService {
 
@@ -82,7 +83,8 @@ class BouncyCastleOpenPgpService : OpenPgpService {
         val data = if (canonicalText) TextCanonicalization.canonicalize(plaintext, stripTrailingSpaces) else plaintext
 
         val sigGen = PGPSignatureGenerator(
-            BcPGPContentSignerBuilder(signingKey.pubKey.algorithm, HashAlgorithmTags.SHA512)
+            BcPGPContentSignerBuilder(signingKey.pubKey.algorithm, HashAlgorithmTags.SHA512),
+            signingKey.pubKey
         )
         sigGen.init(signatureType, signingKey.raw)
 
@@ -148,11 +150,12 @@ class BouncyCastleOpenPgpService : OpenPgpService {
         val keyById = decryptionKeys.associateBy { it.raw.keyID }
         val (target, matchedKey) = encList.encryptedDataObjects.asSequence()
             .filterIsInstance<PGPPublicKeyEncryptedData>()
-            .mapNotNull { enc -> keyById[enc.keyID]?.let { enc to it } }
+            .mapNotNull { enc -> keyById[enc.keyIdentifier.keyId]?.let { enc to it } }
             .firstOrNull()
             ?: error("no encrypted data block for any of our ${decryptionKeys.size} key(s)")
 
-        val clearStream = target.getDataStream(BcPublicKeyDataDecryptorFactory(matchedKey.raw))
+        val keyPair = PGPKeyPair(matchedKey.pubKey, matchedKey.raw)
+        val clearStream = target.getDataStream(BcPublicKeyDataDecryptorFactory(keyPair))
         objectFactory = BcPGPObjectFactory(clearStream)
 
         // Strip layers: optional Compressed, then Literal.
