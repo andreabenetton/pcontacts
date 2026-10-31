@@ -3,11 +3,9 @@
 
 package io.pcontacts.core.crypto.openpgp
 
-import java.io.ByteArrayOutputStream
-import java.security.KeyPairGenerator
-import java.util.Date
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.HashAlgorithmTags
+import org.bouncycastle.bcpg.PublicKeyPacket
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags
 import org.bouncycastle.bcpg.sig.KeyFlags
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -21,6 +19,9 @@ import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair
+import java.io.ByteArrayOutputStream
+import java.security.KeyPairGenerator
+import java.util.Date
 
 /**
  * Test-only key generator. Produces an RSA-2048 OpenPGP keypair (chosen
@@ -43,7 +44,7 @@ internal object TestKeyGen {
         rsa.initialize(2048)
         val rsaKeyPair = rsa.generateKeyPair()
         val now = Date()
-        val pgpKeyPair: PGPKeyPair = JcaPGPKeyPair(PGPPublicKey.RSA_GENERAL, rsaKeyPair, now)
+        val pgpKeyPair: PGPKeyPair = JcaPGPKeyPair(PublicKeyPacket.VERSION_4, PGPPublicKey.RSA_GENERAL, rsaKeyPair, now)
 
         // PGPSecretKey checksum calculation requires SHA-1; signing itself
         // uses SHA-512 via BcPGPContentSignerBuilder below.
@@ -90,7 +91,7 @@ internal object TestKeyGen {
         rsa.initialize(2048)
         val rsaKeyPair = rsa.generateKeyPair()
         val now = Date()
-        val pgpKeyPair: PGPKeyPair = JcaPGPKeyPair(PGPPublicKey.RSA_GENERAL, rsaKeyPair, now)
+        val pgpKeyPair: PGPKeyPair = JcaPGPKeyPair(PublicKeyPacket.VERSION_4, PGPPublicKey.RSA_GENERAL, rsaKeyPair, now)
 
         val checksumCalc = BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA1)
         val signSubpacket = PGPSignatureSubpacketGenerator().apply {

@@ -36,7 +36,7 @@ class ProtonModulusEnvelopeTest {
         assertEquals("AAECAwQFBgcICQoLDA0ODw==", decoded.cleartextBase64)
         assertNotNull(decoded.armoredSignature)
         assertTrue(decoded.armoredSignature!!.startsWith("-----BEGIN PGP SIGNATURE-----"))
-        assertTrue(decoded.armoredSignature!!.endsWith("-----END PGP SIGNATURE-----"))
+        assertTrue(decoded.armoredSignature.endsWith("-----END PGP SIGNATURE-----"))
     }
 
     @Test fun envelope_with_crlf_line_endings_extracts_base64_correctly() {
