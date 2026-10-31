@@ -526,6 +526,25 @@ class SrpLoginOrchestratorTest {
         )
     }
 
+    @Test fun submitTwoFactorCode_refusal_inside_a_2xx_is_rejected_not_unreachable() = runTest {
+        enqueueInfoResponse()
+        enqueueAuthResponse(uid = "uid-2fa-refused", twoFactor = 1)
+        val orchestrator = newOrchestrator()
+        orchestrator.login("u", "p".toCharArray())
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"Code":2011,"Error":"Refused"}""")
+        )
+
+        val result = orchestrator.submitTwoFactorCode("000005")
+
+        assertEquals(
+            LoginResult.Failed(reason = "two_factor_rejected", uid = "uid-2fa-refused", username = "u"),
+            result
+        )
+    }
+
     @Test fun submitTwoFactorCode_transport_failure_returns_two_factor_failed() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-2fa-io", twoFactor = 1)

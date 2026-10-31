@@ -28,6 +28,7 @@ import io.pcontacts.core.proton.api.contacts.LabelResponseItem
 import io.pcontacts.core.proton.api.contacts.ProtonContactsApi
 import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.contacts.UpdateContactResponse
+import io.pcontacts.core.proton.api.http.ProtonApiException
 import io.pcontacts.core.protoncontacts.CardCryptoOutcome
 import io.pcontacts.core.protoncontacts.CardCryptoRequest
 import io.pcontacts.core.protoncontacts.CardEncryptOp
@@ -313,6 +314,36 @@ class ContactWriteEngineTest {
         assertTrue(entry.quarantined)
         // The server's text never reaches the reason; its code does.
         assertEquals("HTTP 400, Proton code 2002", entry.lastError)
+    }
+
+    @Test fun push_quarantines_a_refusal_inside_a_2xx_not_retries_it_as_a_network_error() = runTest {
+        // ProtonCodeInterceptor's exception is an IOException for OkHttp; it is still a refusal.
+        val api = WriteFakeApi().apply { failWith = ProtonApiException(2011, null) }
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val contacts = mutableMapOf("ct-1" to sampleContact("ct-1"))
+
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.insert(OutboxEntity(
+            protonContactId = "ct-1",
+            opType = OutboxEntity.OpType.UPDATE,
+            payloadHash = "hash-v2",
+            createdAt = 1_000_000L
+        ))
+
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts.locallyEdited(),
+            serverContacts = contacts,
+            bases = contacts
+        )
+        val report = engine.push()
+
+        assertEquals(0, report.failed)
+        assertEquals(1, report.quarantined)
+        assertEquals("Proton code 2011", outbox.entries.values.single().lastError)
     }
 
     @Test fun push_quarantines_on_4xx() = runTest {

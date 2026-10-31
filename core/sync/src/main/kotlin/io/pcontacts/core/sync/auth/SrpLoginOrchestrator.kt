@@ -310,6 +310,10 @@ class SrpLoginOrchestrator(
     ): LoginResult.Failed {
         val httpCode = t.httpStatusCode()
         val reason = when {
+            t is ProtonApiException -> {
+                logger.warn { "auth2FA refused — Code ${t.protonCode} inside a 2xx" }
+                "two_factor_rejected"
+            }
             httpCode == null -> {
                 logger.error(t) { "auth2FA call failed (transport)" }
                 "two_factor_failed"

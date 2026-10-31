@@ -874,7 +874,9 @@ class ContactWriteEngine(
 
     private suspend fun handleFailure(entry: OutboxEntity, e: Exception): WriteReport {
         val httpCode = (e as? HttpException)?.code()
-        val isTransient = e is IOException || httpCode == 429 || (httpCode != null && httpCode >= 500)
+        // A ProtonApiException is an IOException only for OkHttp's sake: Proton answered and refused.
+        val networkFailure = e is IOException && e !is ProtonApiException
+        val isTransient = networkFailure || httpCode == 429 || (httpCode != null && httpCode >= 500)
         // A stable, non-sensitive reason. NOT e.javaClass.simpleName: R8
         // minifies it to a meaningless letter on release builds (the "p:
         // 400" users saw), and e.message can carry contact content. Proton's
