@@ -10,6 +10,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Sign-in says why Proton refused it.** Every refusal of the sign-in
+  used to read "Wrong username or password?", so a blocked attempt, too
+  many attempts or a lost connection looked like a wrong password
+  ([#81](https://github.com/andreabenetton/pcontacts/issues/81)). Only
+  Proton's wrong-password answer says so now. A lost connection says
+  Proton could not be reached, and any other refusal shows Proton's HTTP
+  status and code, for example "Proton refused the sign-in (HTTP 422,
+  code 2028)", to quote in a report. An account still on one of Proton's
+  oldest sign-in formats is asked to sign in once at proton.me, which
+  updates it, instead of failing as a wrong password.
+
 ## [2.5.0] - 2026-10-15
 
 ### Changed

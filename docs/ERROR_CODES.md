@@ -81,6 +81,22 @@ Proton refuses it (code 2050), it is listed as a failed change.
 | `group needs an email` | Proton groups need an email address, and this contact has none. | Tap Discard; see [contact groups](FAQ.md#how-do-contact-groups-sync-and-what-are-the-limits). |
 | anything else | Something went wrong on this phone. | Tap Retry. If it fails again, report it. |
 
+## Sign-in errors
+
+The sign-in screen shows these under the form:
+
+| What the app says | What it means | What to do |
+|---|---|---|
+| Sign-in failed. Wrong username or password? | Proton's code 8002 `[V]`: the password does not match the account. | Check the username and the password; in two-password mode, this is the login password. |
+| Proton refused the sign-in (HTTP …, code …). This does not mean the password is wrong. | Proton refused for another reason, for example too many attempts (HTTP 429) or an address it distrusts. The brackets hold Proton's HTTP status and code, or the kind of error when Proton sent neither. | Wait a few minutes and try again, without a VPN if you use one. If it keeps happening, report the line in brackets (below). |
+| Could not reach Proton. Check your connection and try again. | No answer from Proton. | Check the connection, then try again. |
+| Your account still uses an old sign-in format that pcontacts does not support. | Proton reports the account on sign-in version 0 to 2 `[V]`; pcontacts supports 3 and 4. | Sign in once at proton.me, which updates the account, then try again. |
+| Signed in, but your account's keys use an old format that pcontacts does not accept. | The account's key has no salt `[V]`. | Sign in once at proton.me, which updates the keys, then try again. |
+| Signed in, but this password does not open your account's encryption keys. | The password signed in but does not unlock the keys. | Sign in once at proton.me, then try again. |
+
+Up to version 2.5.0, every refusal of the sign-in read "Wrong username or
+password?" ([#81](https://github.com/andreabenetton/pcontacts/issues/81)).
+
 ## Codes the app handles on its own
 
 These never appear as a failed change:
@@ -105,7 +121,8 @@ Open an issue at
 [github.com/andreabenetton/pcontacts/issues](https://github.com/andreabenetton/pcontacts/issues)
 with:
 
-- the line below the sentence, for example `HTTP 400, Proton code 2060`;
+- the line below the sentence, for example `HTTP 400, Proton code 2060`
+  (for a sign-in, what the message shows in brackets);
 - the app version (under the app name in pcontacts);
 - what kind of change it was: a new contact, an edit, a deletion, and which
   kind of detail changed (a phone number, a photo, a birthday).
