@@ -58,7 +58,7 @@ internal suspend fun resolveConflict(
     val deleteQueuedAt = if (serverEdited) now - ContactWriteEngine.GRACE_PERIOD_MS else now
     contactMapDao.resolveConflict(protonContactId)
     when {
-        useLocal && serverDeleted && mapping != null -> {
+        useLocal && serverDeleted -> {
             val localId = LOCAL_ID_PREFIX + mapping.androidRawContactId
             outboxDao.deleteByContact(protonContactId)
             contactMapDao.deleteByProtonId(protonContactId)

@@ -379,7 +379,7 @@ class ContactWriteEngine(
     private suspend fun pushUpdate(entry: OutboxEntity, account: Account?): WriteReport {
         val id = entry.protonContactId
         val unmapped = account != null && contactMapDao.findByProtonId(id) == null
-        val unmappedRow = if (unmapped) account?.let { liveRawId(it, id) } else null
+        val unmappedRow = if (unmapped) liveRawId(account, id) else null
         if (unmappedRow != null && contactMapDao.findByRawContactId(unmappedRow) != null) {
             logger.info { "push: update for a row mapped under another id is stale; dropped idTag=${id.hashCode()}" }
             outboxDao.deleteById(entry.id)
