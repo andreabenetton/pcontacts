@@ -29,10 +29,12 @@ internal object PgpProvider {
 }
 
 /** Wrapper so the BouncyCastle type doesn't leak across the service boundary. */
+@ConsistentCopyVisibility
 data class PgpPublicKeyHandle internal constructor(internal val raw: PGPPublicKey) {
     val keyIdHex: String get() = "%016X".format(raw.keyID)
 }
 
+@ConsistentCopyVisibility
 data class PgpPrivateKeyHandle internal constructor(
     internal val raw: PGPPrivateKey,
     internal val pubKey: PGPPublicKey
