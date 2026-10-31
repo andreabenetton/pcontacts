@@ -652,6 +652,28 @@ class SrpLoginOrchestratorTest {
         assertEquals(LoginResult.Failed(reason = "auth_unreachable"), result)
     }
 
+    @Test fun auth_version_below_3_is_refused_before_any_proof_is_sent() = runTest {
+        for (version in 0..2) {
+            enqueueInfoResponse(version = version)
+
+            val result = newOrchestrator().login("u", "p".toCharArray())
+
+            assertEquals(LoginResult.Failed(reason = "auth_version_legacy"), result)
+        }
+        assertEquals("only the three auth/info calls", 3, server.requestCount)
+    }
+
+    @Test fun auth_version_3_signs_in_with_the_same_hash_as_4() = runTest {
+        enqueueInfoResponse(version = 3)
+        enqueueAuthResponse(uid = "uid-v3", twoFactor = 0)
+        enqueueUserResponse(primaryKeyId = "kp-1")
+        enqueueKeySaltsResponse(primaryKeyId = "kp-1", saltB64 = SAMPLE_SALT_B64)
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertEquals(LoginResult.Success(uid = "uid-v3", username = "u"), result)
+    }
+
     @Test fun login_zeros_password_array_on_success() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-zero", twoFactor = 0)
@@ -929,7 +951,7 @@ class SrpLoginOrchestratorTest {
         "-----BEGIN PGP SIGNED MESSAGE-----\\nHash: SHA256\\n\\n$b64\\n" +
             "-----BEGIN PGP SIGNATURE-----\\nFAKE\\n-----END PGP SIGNATURE-----\\n"
 
-    private fun enqueueInfoResponse() {
+    private fun enqueueInfoResponse(version: Int = 4) {
         val modulusB64 = Base64.getEncoder().encodeToString(modulusBytes())
         val saltB64 = Base64.getEncoder().encodeToString(saltBytes)
         val bB64 = Base64.getEncoder().encodeToString(serverEphemeralBytes)
@@ -938,7 +960,7 @@ class SrpLoginOrchestratorTest {
             {
                 "Modulus":"${wrapInPgpEnvelope(modulusB64)}",
                 "ServerEphemeral":"$bB64",
-                "Version":4,
+                "Version":$version,
                 "Salt":"$saltB64",
                 "SRPSession":"session-id",
                 "Code":1000

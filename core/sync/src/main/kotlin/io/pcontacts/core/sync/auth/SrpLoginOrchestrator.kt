@@ -132,7 +132,7 @@ class SrpLoginOrchestrator(
         password.fill('\u0000')
     }
 
-    // Six returns mirror the six SRP phases (info, modulus, proof, auth,
+    // The returns mirror the SRP phases (info, auth version, modulus, proof, auth,
     // 2FA branch, key-derivation). Collapsing them buries the protocol shape.
     @Suppress("ReturnCount")
     private suspend fun loginInternal(username: String, password: CharArray): LoginResult {
@@ -143,6 +143,14 @@ class SrpLoginOrchestrator(
         clearPendingTwoFactorPassword()   // drop any stash from a prior attempt
 
         val info = fetchInfo(username).orReturn { return it }
+        // [V] @protontech/crypto srp passwords.ts hashes versions 3 and 4 alike (ours); 0-2
+        // hash differently, 0 meaning "try 2, 1, 0" (getAuthVersionWithFallback). The web
+        // client upgrades such an account to 4 at sign-in (finalizeLogin, authVersion <
+        // AUTH_VERSION). A proof from our hash could only be refused as a wrong password.
+        if (info.version < MIN_AUTH_VERSION) {
+            logger.warn { "auth/info Version ${info.version} predates 3 — sign in on proton.me first" }
+            return LoginResult.Failed(reason = "auth_version_legacy")
+        }
         val mod = decodeAndVerifyModulus(info).orReturn { return it }
         val proof = computeSrpProof(password, info, mod).orReturn { return it }
         val authResp = submitAuthAndVerifyProof(username, info, proof, mod.padLen).orReturn { return it }
@@ -622,6 +630,7 @@ class SrpLoginOrchestrator(
         const val PROTON_SUCCESS_CODE = 1000
         const val PASSWORD_MODE_TWO_PASSWORD = 2
         const val PROTON_PASSWORD_WRONG = 8002
+        const val MIN_AUTH_VERSION = 3
 
         // The reason (wrong passphrase, or a protection this build cannot open) goes to the log (#65).
         fun opensWithBouncyCastle(armoredKey: String, keyPassword: CharArray, logger: Logger): Boolean = try {
