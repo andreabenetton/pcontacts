@@ -3,16 +3,19 @@
 
 package io.pcontacts.feature.settings
 
+import android.content.ClipboardManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -64,6 +67,20 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Sync now").assertIsDisplayed()
         // The sign-out button sits at the bottom; on tall-inset images (API 35) it starts off-screen.
         composeRule.onNodeWithText("Sign out").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun tapping_the_bitcoin_address_copies_it() {
+        val vm = viewModel()
+        composeRule.setContent {
+            SettingsScreen(vm, SettingsActions(onSignedOut = {}))
+        }
+        composeRule.onNode(hasContentDescription("support_btc_address")).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val clip = context.getSystemService(ClipboardManager::class.java).primaryClip
+        assertEquals(context.getString(R.string.support_btc_address), clip?.getItemAt(0)?.text?.toString())
     }
 
     @Test

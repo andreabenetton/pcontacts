@@ -3,6 +3,7 @@
 
 package io.pcontacts.feature.settings
 
+import android.content.ClipData
 import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -37,22 +38,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
@@ -1014,7 +1017,8 @@ internal fun AdvisoryCheckStatusLine(state: AdvisoryCheckState, checking: Boolea
 @Composable
 private fun ContributeSection() {
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val address = stringResource(R.string.support_btc_address)
     val copied = stringResource(R.string.support_coffee_copied)
     SectionHeader(R.string.contribute_title)
@@ -1032,7 +1036,7 @@ private fun ContributeSection() {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    clipboard.setText(AnnotatedString(address))
+                    scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(null, address))) }
                     Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 }
                 .semantics { contentDescription = "support_btc_address" }
