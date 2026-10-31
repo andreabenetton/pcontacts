@@ -1,6 +1,6 @@
 {
     "schema": 2,
-    "generatedAt": "2026-11-16T18:39:04Z",
+    "generatedAt": "2026-11-17T06:32:16Z",
     "source": "osv.dev",
     "dependencies": [
         {
@@ -1249,7 +1249,7 @@
         {
             "group": "com.squareup.okhttp3",
             "name": "okhttp",
-            "version": "5.4.0",
+            "version": "5.5.1",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1260,7 +1260,7 @@
         {
             "group": "com.squareup.okhttp3",
             "name": "okhttp-android",
-            "version": "5.4.0",
+            "version": "5.5.1",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1271,7 +1271,7 @@
         {
             "group": "com.squareup.okio",
             "name": "okio",
-            "version": "3.17.0",
+            "version": "3.18.1",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
@@ -1282,7 +1282,7 @@
         {
             "group": "com.squareup.okio",
             "name": "okio-jvm",
-            "version": "3.17.0",
+            "version": "3.18.1",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
