@@ -35,6 +35,7 @@
     <string name="login_error_srp">Внутренняя ошибка SRP. Повторите попытку или сообщите об этом.</string>
     <string name="login_error_credentials">Не удалось войти. Неверное имя пользователя или пароль?</string>
     <string name="login_error_refused">Proton отклонил вход (%1$s). Это не значит, что пароль неверный. Повторите попытку через несколько минут; если это повторяется, сообщите нам текст этого сообщения.</string>
+    <string name="login_error_auth_version">Ваш аккаунт всё ещё использует старый формат входа, который pcontacts не поддерживает. Войдите один раз на proton.me — это обновит его — и попробуйте снова.</string>
     <string name="login_error_proof_mismatch">Доказательство сервера не совпадает. Возможно, ваше подключение перехватывается.</string>
     <string name="login_error_app_version">Эта версия приложения больше не принимается Proton. Обновите pcontacts.</string>
     <string name="login_error_modulus">Не удалось проверить подлинность Proton. Возможно, ваше подключение перехватывается; вход остановлен.</string>

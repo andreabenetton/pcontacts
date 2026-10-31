@@ -35,6 +35,7 @@
     <string name="login_error_srp">Errore SRP interno. Riprova o segnala il problema.</string>
     <string name="login_error_credentials">Accesso non riuscito. Nome utente o password errati?</string>
     <string name="login_error_refused">Proton ha rifiutato l\'accesso (%1$s). Non significa che la password sia errata. Riprova tra qualche minuto; se continua a succedere, segnala questo messaggio.</string>
+    <string name="login_error_auth_version">Il tuo account usa ancora un vecchio formato di accesso che pcontacts non supporta. Accedi una volta su proton.me, che lo aggiorna, poi riprova.</string>
     <string name="login_error_proof_mismatch">La prova del server non corrisponde. La tua connessione potrebbe essere intercettata.</string>
     <string name="login_error_app_version">Questa versione dell\'app non è più accettata da Proton. Aggiorna pcontacts.</string>
     <string name="login_error_modulus">Impossibile verificare l\'identità di Proton. La tua connessione potrebbe essere intercettata; accesso interrotto.</string>

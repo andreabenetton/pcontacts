@@ -35,6 +35,7 @@
     <string name="login_error_srp">Internal SRP error. Try again or report this.</string>
     <string name="login_error_credentials">Sign-in failed. Wrong username or password?</string>
     <string name="login_error_refused">Proton refused the sign-in (%1$s). This does not mean the password is wrong. Try again in a few minutes; if it keeps happening, please report this message.</string>
+    <string name="login_error_auth_version">Your account still uses an old sign-in format that pcontacts does not support. Sign in once at proton.me, which updates it, then try again.</string>
     <string name="login_error_proof_mismatch">Server proof mismatch. Your connection may be intercepted.</string>
     <string name="login_error_app_version">This app version is no longer accepted by Proton. Please update pcontacts.</string>
     <string name="login_error_modulus">Couldn\'t verify Proton\'s identity. Your connection may be intercepted; sign-in was stopped.</string>

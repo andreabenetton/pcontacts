@@ -255,6 +255,7 @@ private fun friendlyError(reason: String, detail: String?): String = when (reaso
     "srp_failed" -> stringResource(R.string.login_error_srp)
     "auth_failed" -> stringResource(R.string.login_error_credentials)
     "auth_refused" -> stringResource(R.string.login_error_refused, detail.orEmpty())
+    "auth_version_legacy" -> stringResource(R.string.login_error_auth_version)
     "server_proof_decode_failed",
     "server_proof_mismatch" -> stringResource(R.string.login_error_proof_mismatch)
     "appversion_rejected" -> stringResource(R.string.login_error_app_version)
