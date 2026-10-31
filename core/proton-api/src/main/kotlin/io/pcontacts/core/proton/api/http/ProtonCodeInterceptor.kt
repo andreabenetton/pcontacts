@@ -13,6 +13,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Interceptor
 import okhttp3.Response
+import java.io.IOException
 
 /**
  * Proton reports application-level failure inside HTTP 2xx bodies as a
@@ -84,6 +85,12 @@ class ProtonCodeInterceptor(
  * transport failure and not retryable as one: the request reached
  * Proton and was refused. The message carries the code only; the
  * server's text stays in [error] for the log, never for the user.
+ *
+ * An [IOException] only because it is thrown from an interceptor: OkHttp
+ * hands any other exception to an async call (every Retrofit `suspend`
+ * call) wrapped as "canceled due to …" and rethrows it on its dispatcher
+ * thread, which on Android kills the app. Callers that treat an
+ * IOException as a network failure test for this type first.
  */
 class ProtonApiException(val protonCode: Int, val error: String?) :
-    RuntimeException("Proton Code:$protonCode")
+    IOException("Proton Code:$protonCode")
