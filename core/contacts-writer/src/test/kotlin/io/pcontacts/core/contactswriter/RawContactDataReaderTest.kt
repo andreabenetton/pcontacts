@@ -202,7 +202,7 @@ class RawContactDataReaderTest {
         assertEquals("Alice Smith", row.displayName)
         assertNotNull(row.structuredName)
         assertEquals("Alice", row.structuredName!!.given)
-        assertEquals("Smith", row.structuredName!!.family)
+        assertEquals("Smith", row.structuredName.family)
         assertEquals(1, row.emails.size)
         assertEquals("alice@proton.me", row.emails[0])
     }
@@ -218,8 +218,8 @@ class RawContactDataReaderTest {
         }
         val row = RawContactDataReader.parse(cursor, "ct-1")!!
         assertEquals("Dr.", row.structuredName!!.prefix)
-        assertEquals("Marie", row.structuredName!!.middle)
-        assertEquals("Jr.", row.structuredName!!.suffix)
+        assertEquals("Marie", row.structuredName.middle)
+        assertEquals("Jr.", row.structuredName.suffix)
     }
 
     @Test fun parse_no_structured_name_pieces_produces_null_structured_name() {
@@ -291,8 +291,8 @@ class RawContactDataReaderTest {
         val row = RawContactDataReader.parse(cursor, "ct-1")!!
         assertNotNull(row.organization)
         assertEquals("Acme", row.organization!!.company)
-        assertEquals("Engineer", row.organization!!.title)
-        assertEquals("R&D", row.organization!!.department)
+        assertEquals("Engineer", row.organization.title)
+        assertEquals("R&D", row.organization.department)
     }
 
     @Test fun parse_notes() {
