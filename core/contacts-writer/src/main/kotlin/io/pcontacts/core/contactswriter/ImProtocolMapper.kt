@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // SPDX-FileCopyrightText: 2026 pcontacts contributors
 
+// Maps the IM data kind Android deprecated in API 31 and pcontacts keeps (DeprecatedDataKinds.kt).
+@file:Suppress("DEPRECATION")
+
 package io.pcontacts.core.contactswriter
 
 import android.provider.ContactsContract.CommonDataKinds.Im

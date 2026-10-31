@@ -7,7 +7,6 @@ import android.accounts.Account
 import android.content.ContentProviderClient
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Event
-import android.provider.ContactsContract.CommonDataKinds.Im
 import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Organization
@@ -142,7 +141,7 @@ class LinkedContactsScanner(private val provider: ContentProviderClient) {
             StructuredPostal.CONTENT_ITEM_TYPE,
             Organization.CONTENT_ITEM_TYPE,
             Note.CONTENT_ITEM_TYPE,
-            Im.CONTENT_ITEM_TYPE,
+            IM_ITEM_TYPE,
             Event.CONTENT_ITEM_TYPE,
             Nickname.CONTENT_ITEM_TYPE,
             Website.CONTENT_ITEM_TYPE

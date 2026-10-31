@@ -641,16 +641,18 @@ object ContactsContractOps {
 
     // ---- Im ----
 
+    @Suppress("DEPRECATION") // the IM kind, deprecated in API 31 and kept (DeprecatedDataKinds.kt)
     private fun newImInsertWithBackRef(dataUri: Uri, rawIdx: Int, im: ImAccount): ContentProviderOperation {
         val builder = ContentProviderOperation.newInsert(dataUri)
             .withValueBackReference(Data.RAW_CONTACT_ID, rawIdx)
-            .withValue(Data.MIMETYPE, Im.CONTENT_ITEM_TYPE)
+            .withValue(Data.MIMETYPE, IM_ITEM_TYPE)
             .withValue(Im.DATA, im.handle)
             .withValue(Im.TYPE, ImProtocolMapper.typeToAndroid(im.type))
         applyImProtocolColumns(builder, im)
         return builder.build()
     }
 
+    @Suppress("DEPRECATION") // the IM kind, deprecated in API 31 and kept (DeprecatedDataKinds.kt)
     private fun newImInsertForExisting(
         dataUri: Uri,
         rawContactId: Long,
@@ -658,13 +660,14 @@ object ContactsContractOps {
     ): ContentProviderOperation {
         val builder = ContentProviderOperation.newInsert(dataUri)
             .withValue(Data.RAW_CONTACT_ID, rawContactId)
-            .withValue(Data.MIMETYPE, Im.CONTENT_ITEM_TYPE)
+            .withValue(Data.MIMETYPE, IM_ITEM_TYPE)
             .withValue(Im.DATA, im.handle)
             .withValue(Im.TYPE, ImProtocolMapper.typeToAndroid(im.type))
         applyImProtocolColumns(builder, im)
         return builder.build()
     }
 
+    @Suppress("DEPRECATION") // the IM kind, deprecated in API 31 and kept (DeprecatedDataKinds.kt)
     private fun applyImProtocolColumns(
         builder: ContentProviderOperation.Builder,
         im: ImAccount

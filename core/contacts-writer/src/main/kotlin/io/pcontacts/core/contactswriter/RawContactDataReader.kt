@@ -8,7 +8,6 @@ import android.database.Cursor
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
-import android.provider.ContactsContract.CommonDataKinds.Im
 import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Phone
@@ -162,7 +161,7 @@ class RawContactDataReader(private val provider: ContentProviderClient) {
                     title = cursor.getString(c.d4)
                 )
                 Note.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { notes += it }
-                Im.CONTENT_ITEM_TYPE -> cursor.getString(c.d1)?.let { handle ->
+                IM_ITEM_TYPE -> cursor.getString(c.d1)?.let { handle ->
                     imAccounts += ImAccount(
                         handle = handle,
                         protocol = ImProtocolMapper.fromAndroid(cursor.getInt(c.d5)),

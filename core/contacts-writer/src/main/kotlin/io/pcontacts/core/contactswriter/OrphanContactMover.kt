@@ -7,7 +7,6 @@ import android.accounts.Account
 import android.content.ContentProviderClient
 import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.Relation
-import android.provider.ContactsContract.CommonDataKinds.SipAddress
 import android.provider.ContactsContract.Data
 
 /**
@@ -63,7 +62,7 @@ class OrphanContactMover(private val provider: ContentProviderClient) {
                 Event.CONTENT_ITEM_TYPE ->
                     UncarriedKind.EVENT.takeIf { type != Event.TYPE_BIRTHDAY && type != Event.TYPE_ANNIVERSARY }
                 Relation.CONTENT_ITEM_TYPE -> UncarriedKind.RELATION
-                SipAddress.CONTENT_ITEM_TYPE -> UncarriedKind.SIP_ADDRESS
+                SIP_ADDRESS_ITEM_TYPE -> UncarriedKind.SIP_ADDRESS
                 else -> null
             }
         }.distinct()
