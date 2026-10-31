@@ -545,6 +545,30 @@ class ContactWriteEngineTest {
         assertTrue(cleared.contains(100L))
     }
 
+    @Test fun detectChanges_an_edit_on_a_duplicate_row_makes_that_row_the_contact() = runTest {
+        // Two rows carry ct-1 (an external duplicate cleanup): the mapped 100 and the edited 200.
+        // The push reads the mapped row and the pull deletes the others, so the edited row must
+        // become the mapped one, or the edit is pushed from 100 and deleted with 200.
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val rows = mutableMapOf(
+            100L to sampleRow("ct-1"),
+            200L to sampleRow("ct-1", email = "alice-edited@proton.me")
+        )
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(200L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows
+        )
+
+        assertEquals(1, engine.detectChanges(testAccount))
+
+        assertEquals(200L, contactMap.findByProtonId("ct-1")!!.androidRawContactId)
+        assertEquals(OutboxEntity.OpType.UPDATE, outbox.entries.values.single().opType)
+    }
+
     @Test fun detectChanges_skips_update_when_hash_matches() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()

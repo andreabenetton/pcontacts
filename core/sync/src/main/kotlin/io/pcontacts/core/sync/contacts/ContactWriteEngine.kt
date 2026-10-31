@@ -175,9 +175,24 @@ class ContactWriteEngine(
                 return EnqueueResult.SKIPPED
             }
             logger.info { "enqueue: hash differs stored=${mapping?.contentHash?.take(8)} new=${hash.take(8)}" }
+            if (mapping != null && mapping.androidRawContactId != dc.rawContactId) {
+                followEditedDuplicate(mapping, dc.rawContactId)
+            }
         }
         val op = if (isCreate) OutboxEntity.OpType.CREATE else OutboxEntity.OpType.UPDATE
         return outboxDao.enqueue(protonId, op, hash, now).toResult()
+    }
+
+    /**
+     * An edit on a row that shares its SOURCE_ID with the mapped one (several rows can carry one
+     * after an external duplicate cleanup). The push reads the mapped row and the pull deletes the
+     * others, so the edit would be pushed from the wrong row and then deleted with its own: the
+     * edited row becomes the mapped one instead, and the pull keeps it. The mapping keeps every
+     * other column, the sealed merge base included.
+     */
+    private suspend fun followEditedDuplicate(mapping: ContactMapEntity, rawContactId: Long) {
+        logger.warn { "enqueue: edit on a duplicate row; it becomes the contact idTag=${mapping.protonContactId.hashCode()}" }
+        contactMapDao.upsert(mapping.copy(androidRawContactId = rawContactId))
     }
 
     /**
