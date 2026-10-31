@@ -69,7 +69,7 @@ class AdvisoryBootstrapTest {
             listOf(ArtifactRef("com.example", "lib", "1.0"), ArtifactRef("org.other", "thing", "2.3")),
             sent!!.first
         )
-        assertEquals(setOf("CVE-2015-1"), sent!!.second)
+        assertEquals(setOf("CVE-2015-1"), sent.second)
         assertEquals(listOf(1), notified)
         assertEquals(77L, state.lastCheckedAtMillis)
         assertEquals("GHSA-1", state.advisories.single().id)
