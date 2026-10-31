@@ -1,0 +1,5 @@
+Versión 2.5.1.
+
+* El inicio de sesión indica por qué Proton lo rechazó: solo una contraseña incorrecta se presenta como tal. Cualquier otro rechazo muestra el estado HTTP y el código de Proton, y una conexión perdida indica que no se pudo conectar con Proton.
+* Se pide a una cuenta con el formato de inicio de sesión más antiguo de Proton que inicie sesión una vez en proton.me.
+* Un rechazo que Proton comunica dentro de una respuesta correcta ya no cierra la app.

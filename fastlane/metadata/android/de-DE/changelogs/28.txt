@@ -1,0 +1,5 @@
+Version 2.5.1.
+
+* Die Anmeldung nennt den Grund, wenn Proton sie ablehnt: Nur ein falsches Passwort wird als solches gemeldet. Jede andere Ablehnung zeigt Protons HTTP-Status und Code; eine fehlende Verbindung meldet, dass Proton nicht erreichbar ist.
+* Ein Konto im ältesten Anmeldeformat von Proton wird gebeten, sich einmal auf proton.me anzumelden.
+* Eine Ablehnung, die Proton in einer erfolgreichen Antwort meldet, beendet die App nicht mehr.

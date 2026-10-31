@@ -1,0 +1,5 @@
+Versione 2.5.1.
+
+* L'accesso indica perché Proton lo ha rifiutato: solo una password errata viene segnalata come tale. Ogni altro rifiuto mostra lo stato HTTP e il codice di Proton, e una connessione persa indica che Proton non è raggiungibile.
+* A un account con il formato di accesso più vecchio di Proton viene chiesto di accedere una volta su proton.me.
+* Un rifiuto che Proton segnala in una risposta riuscita non chiude più l'app.

@@ -1,0 +1,5 @@
+Version 2.5.1.
+
+* La connexion indique pourquoi Proton l’a refusée : seul un mot de passe incorrect est signalé comme tel. Tout autre refus affiche le statut HTTP et le code de Proton, et une connexion perdue indique que Proton est injoignable.
+* Un compte dans le plus ancien format de connexion de Proton est invité à se connecter une fois sur proton.me.
+* Un refus que Proton signale dans une réponse réussie ne ferme plus l’application.

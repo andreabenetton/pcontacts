@@ -1,0 +1,5 @@
+Version 2.5.1.
+
+* Sign-in says why Proton refused it: only a wrong password reads as one. Any other refusal shows Proton's HTTP status and code, and a lost connection says Proton could not be reached.
+* An account on Proton's oldest sign-in format is asked to sign in once at proton.me.
+* A refusal Proton reports inside a successful answer no longer closes the app.
