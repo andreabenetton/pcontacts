@@ -78,9 +78,15 @@ class SettingsScreenTest {
         composeRule.onNode(hasContentDescription("support_btc_address")).performScrollTo().performClick()
         composeRule.waitForIdle()
 
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val clip = context.getSystemService(ClipboardManager::class.java).primaryClip
-        assertEquals(context.getString(R.string.support_btc_address), clip?.getItemAt(0)?.text?.toString())
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        var copied: String? = null
+        // On the main thread: before API 28 the clipboard service needs a Looper to be created.
+        instrumentation.runOnMainSync {
+            val clip = context.getSystemService(ClipboardManager::class.java).primaryClip
+            copied = clip?.getItemAt(0)?.text?.toString()
+        }
+        assertEquals(context.getString(R.string.support_btc_address), copied)
     }
 
     @Test
