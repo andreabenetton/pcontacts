@@ -582,6 +582,76 @@ class SrpLoginOrchestratorTest {
         )
     }
 
+    // --- What a refused /auth means (issue #81) ---
+
+    @Test fun auth_wrong_password_code_8002_is_wrong_credentials() = runTest {
+        enqueueInfoResponse()
+        server.enqueue(
+            MockResponse().setResponseCode(422).setBody("""{"Code":8002,"Error":"Incorrect login credentials"}""")
+        )
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertEquals(LoginResult.Failed(reason = "auth_failed"), result)
+        assertNull(secretStore.uid())
+    }
+
+    @Test fun auth_422_with_another_code_is_a_refusal_carrying_status_and_code() = runTest {
+        enqueueInfoResponse()
+        server.enqueue(MockResponse().setResponseCode(422).setBody("""{"Code":2028,"Error":"Blocked"}"""))
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertEquals(LoginResult.Failed(reason = "auth_refused", detail = "HTTP 422, code 2028"), result)
+    }
+
+    @Test fun auth_429_is_a_refusal_not_wrong_credentials() = runTest {
+        enqueueInfoResponse()
+        server.enqueue(MockResponse().setResponseCode(429).setBody("""{"Code":2028,"Error":"Too many"}"""))
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertEquals(LoginResult.Failed(reason = "auth_refused", detail = "HTTP 429, code 2028"), result)
+    }
+
+    @Test fun auth_non_success_code_inside_2xx_is_a_refusal_carrying_the_code() = runTest {
+        enqueueInfoResponse()
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"Code":2011,"Error":"Refused"}""")
+        )
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertEquals(LoginResult.Failed(reason = "auth_refused", detail = "code 2011"), result)
+    }
+
+    @Test fun auth_response_that_does_not_parse_is_a_refusal_not_wrong_credentials() = runTest {
+        enqueueInfoResponse()
+        server.enqueue(MockResponse().setBody("""{"Code":1000,"UID":"uid"}"""))
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertTrue(
+            "expected Failed(auth_refused) with a detail, was $result",
+            result is LoginResult.Failed && result.reason == "auth_refused" && !result.detail.isNullOrBlank()
+        )
+    }
+
+    @Test fun auth_transport_failure_is_unreachable_not_wrong_credentials() = runTest {
+        enqueueInfoResponse()
+        // Every attempt, OkHttp's silent retries included, loses the connection. Per request:
+        // /auth reuses the /info connection, where DISCONNECT_AT_START would not apply.
+        (server.dispatcher as QueueDispatcher).setFailFast(
+            MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)
+        )
+
+        val result = newOrchestrator().login("u", "p".toCharArray())
+
+        assertEquals(LoginResult.Failed(reason = "auth_unreachable"), result)
+    }
+
     @Test fun login_zeros_password_array_on_success() = runTest {
         enqueueInfoResponse()
         enqueueAuthResponse(uid = "uid-zero", twoFactor = 0)

@@ -23,9 +23,13 @@ import io.pcontacts.core.proton.api.auth.InfoResponse
 import io.pcontacts.core.proton.api.auth.ProtonAuthApi
 import io.pcontacts.core.proton.api.auth.TwoFactorRequest
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.proton.api.http.ProtonApiException
 import io.pcontacts.core.proton.api.httpStatusCode
 import io.pcontacts.core.proton.api.users.ProtonUsersApi
+import io.pcontacts.core.sync.contacts.protonCodeOf
 import kotlinx.coroutines.CancellationException
+import retrofit2.HttpException
+import java.io.IOException
 import java.math.BigInteger
 import java.util.Base64
 
@@ -420,9 +424,7 @@ class SrpLoginOrchestrator(
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
-            val code = t.httpStatusCode()
-            logger.error(t) { "auth call failed http=$code" }
-            return Step.Abort(LoginResult.Failed(reason = "auth_failed"))
+            return Step.Abort(authFailure(t))
         }
 
         val serverProof = try {
@@ -440,6 +442,31 @@ class SrpLoginOrchestrator(
         }
 
         return Step.Ok(authResp)
+    }
+
+    /**
+     * Only Proton's wrong-password answer means wrong credentials (`[V]` PASSWORD_WRONG_ERROR
+     * = 8002, WebClients api/auth.ts; loginWithFallback.ts tests `e.data.Code` alone). A lost
+     * connection says so; any other refusal carries its HTTP status and Proton code to the
+     * user, so it can be reported (issue #81: everything used to read as a wrong password).
+     */
+    private fun authFailure(t: Throwable): LoginResult.Failed {
+        val httpCode = t.httpStatusCode()
+        // OkHttp hands a suspend call an interceptor's ProtonApiException wrapped in an
+        // IOException ("canceled due to …"): the refusal is the cause, not the connection.
+        val refusal = generateSequence(t) { it.cause }.filterIsInstance<ProtonApiException>().firstOrNull()
+        val protonCode = refusal?.protonCode ?: (t as? HttpException)?.let(::protonCodeOf)
+        logger.error(t) { "auth call failed http=$httpCode code=$protonCode" }
+        return when {
+            protonCode == PROTON_PASSWORD_WRONG -> LoginResult.Failed(reason = "auth_failed")
+            refusal == null && t is IOException -> LoginResult.Failed(reason = "auth_unreachable")
+            else -> {
+                val detail = listOfNotNull(httpCode?.let { "HTTP $it" }, protonCode?.let { "code $it" })
+                    .joinToString(", ")
+                    .ifEmpty { t.javaClass.simpleName }
+                LoginResult.Failed(reason = "auth_refused", detail = detail)
+            }
+        }
     }
 
     /**
@@ -594,6 +621,7 @@ class SrpLoginOrchestrator(
         const val TWO_FACTOR_TOTP_BIT = 1
         const val PROTON_SUCCESS_CODE = 1000
         const val PASSWORD_MODE_TWO_PASSWORD = 2
+        const val PROTON_PASSWORD_WRONG = 8002
 
         // The reason (wrong passphrase, or a protection this build cannot open) goes to the log (#65).
         fun opensWithBouncyCastle(armoredKey: String, keyPassword: CharArray, logger: Logger): Boolean = try {

@@ -60,9 +60,14 @@ sealed interface LoginResult {
         val stage: HvStage = HvStage.CREDENTIALS
     ) : LoginResult
 
+    /**
+     * [detail] is set for `auth_refused` only: Proton's HTTP status and `Code` (or the exception
+     * type when there is neither), shown to the user so a report can name them (issue #81).
+     */
     data class Failed(
         val reason: String,
         override val uid: String? = null,
-        override val username: String? = null
+        override val username: String? = null,
+        val detail: String? = null
     ) : LoginResult
 }
