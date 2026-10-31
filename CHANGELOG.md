@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   code 2028)", to quote in a report. An account still on one of Proton's
   oldest sign-in formats is asked to sign in once at proton.me, which
   updates it, instead of failing as a wrong password.
+- **A refusal Proton reports inside a successful answer no longer closes
+  the app.** Proton sometimes answers HTTP 200 with an error code. Since
+  2.0.0 such an answer could crash pcontacts in the middle of a sync or a
+  sign-in. It is now handled like any other refusal: a change Proton
+  refused this way is listed as failed with its code, and a sync it stops
+  is not reported as a connection problem.
 
 ## [2.5.0] - 2026-10-15
 
