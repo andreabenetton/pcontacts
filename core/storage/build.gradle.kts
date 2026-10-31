@@ -22,15 +22,15 @@ android {
 
     sourceSets {
         getByName("main") {
-            java.srcDirs("src/main/kotlin")
+            java.directories.add("src/main/kotlin")
         }
         getByName("test") {
-            java.srcDirs("src/test/kotlin")
-            assets.srcDirs("schemas")
+            java.directories.add("src/test/kotlin")
+            assets.directories.add("schemas")
         }
         // The Keystore AEAD can only be exercised against a real AndroidKeyStore.
         getByName("androidTest") {
-            java.srcDirs("src/androidTest/kotlin")
+            java.directories.add("src/androidTest/kotlin")
         }
     }
 
