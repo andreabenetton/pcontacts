@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The build moves to Android Gradle Plugin 9.5, Gradle 9.8 and Android
+  SDK 37.** Nothing changes in the app; building it from source needs the
+  SDK 37 platform, which the build downloads itself.
+
 ### Fixed
 
 - **Sign-in says why Proton refused it.** Every refusal of the sign-in

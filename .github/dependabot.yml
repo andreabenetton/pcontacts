@@ -17,30 +17,6 @@ updates:
       - dependencies
     commit-message:
       prefix: "deps"
-    ignore:
-      # okhttp 5.5.0+ requires compileSdk 37; the app compiles against 36.
-      # Remove this entry after the compileSdk 37 bump.
-      - dependency-name: "com.squareup.okhttp3:*"
-        versions: [">=5.5.0"]
-      # Gradle 9.6 removed an internal API that AGP 8.x still uses, so the
-      # build fails on Gradle >= 9.6 until we move to an AGP that supports it.
-      # Remove this entry after the AGP upgrade.
-      - dependency-name: "gradle-wrapper"
-        versions: [">=9.6"]
-      # AGP 9 needs Gradle >= 9.6 (above) and a DSL migration: one deliberate
-      # change, not a version bump. Remove these entries with the AGP upgrade.
-      - dependency-name: "com.android.application"
-        versions: [">=9.0.0"]
-      - dependency-name: "com.android.library"
-        versions: [">=9.0.0"]
-      - dependency-name: "com.android.lint"
-        versions: [">=9.0.0"]
-      # compose-bom 2026.09.00 pulls Compose UI 1.12, which requires compileSdk 37;
-      # core-ktx 1.19 requires AGP >= 9.1. Remove after the AGP + compileSdk 37 move.
-      - dependency-name: "androidx.compose:compose-bom"
-        versions: [">=2026.09.00"]
-      - dependency-name: "androidx.core:core-ktx"
-        versions: [">=1.19.0"]
 
   - package-ecosystem: github-actions
     directory: /

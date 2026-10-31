@@ -8,8 +8,10 @@
 ## Prerequisites
 
 - JDK 17 (Temurin recommended)
-- Android SDK with platform 34
-- Gradle 8.10+ (the wrapper handles this)
+- Android SDK with platform 37 (the build downloads it when the SDK
+  licenses are accepted)
+- Gradle 9.8 (the wrapper handles this); Android Gradle Plugin 9, which
+  compiles Kotlin itself
 
 ## Debug build
 
