@@ -164,7 +164,7 @@ class VCardMergerTest {
         )
         assertNotNull(out.fullName)
         assertTrue("FN must include given name", out.fullName!!.contains("Alice"))
-        assertTrue("FN must include family name", out.fullName!!.contains("Doe"))
+        assertTrue("FN must include family name", out.fullName.contains("Doe"))
     }
 
     @Test fun malformed_fragment_is_skipped_other_fragments_still_merge() {
