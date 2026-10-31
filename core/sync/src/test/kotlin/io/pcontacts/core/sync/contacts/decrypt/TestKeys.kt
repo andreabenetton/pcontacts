@@ -5,11 +5,9 @@ package io.pcontacts.core.sync.contacts.decrypt
 
 import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
 import io.pcontacts.core.crypto.openpgp.UnlockedKey
-import java.io.ByteArrayOutputStream
-import java.security.KeyPairGenerator
-import java.util.Date
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.HashAlgorithmTags
+import org.bouncycastle.bcpg.PublicKeyPacket
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags
 import org.bouncycastle.bcpg.sig.KeyFlags
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -22,6 +20,9 @@ import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair
+import java.io.ByteArrayOutputStream
+import java.security.KeyPairGenerator
+import java.util.Date
 
 /**
  * Shared test fixture for the decrypt-path tests. Generates real RSA
@@ -47,7 +48,7 @@ internal object TestKeys {
         val kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME)
         kpg.initialize(2048)
         val rsa = kpg.generateKeyPair()
-        val pgpKp: PGPKeyPair = JcaPGPKeyPair(PGPPublicKey.RSA_GENERAL, rsa, Date())
+        val pgpKp: PGPKeyPair = JcaPGPKeyPair(PublicKeyPacket.VERSION_4, PGPPublicKey.RSA_GENERAL, rsa, Date())
         val sha1 = BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA1)
         val subpacket = PGPSignatureSubpacketGenerator().apply {
             setKeyFlags(

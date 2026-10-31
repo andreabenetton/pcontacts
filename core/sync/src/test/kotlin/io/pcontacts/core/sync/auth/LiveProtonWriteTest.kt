@@ -130,8 +130,8 @@ class LiveProtonWriteTest {
      * deletes them again (issue #70: a first sync of a large account).
      */
     @Test fun live_seed_or_clean() = runBlocking {
-        val seed = System.getenv("PCONTACTS_SEED")
-        assumeTrue("Set env PCONTACTS_SEED=<count> or clean", !seed.isNullOrBlank())
+        val seed = System.getenv("PCONTACTS_SEED").orEmpty()
+        assumeTrue("Set env PCONTACTS_SEED=<count> or clean", seed.isNotBlank())
         assumeTrue("Set env PCONTACTS_LIVE_TEST=true", System.getenv("PCONTACTS_LIVE_TEST") == "true")
         val username = System.getenv("PCONTACTS_USERNAME").orEmpty()
         val password = System.getenv("PCONTACTS_PASSWORD").orEmpty().toCharArray()

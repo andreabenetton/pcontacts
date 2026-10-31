@@ -52,6 +52,7 @@ import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
 import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -72,6 +73,7 @@ import java.io.IOException
 // Covers the write engine's many outbox paths (create/update/delete,
 // merge, quarantine, backoff) in one place; large by subject, not by drift.
 @Suppress("LargeClass")
+@OptIn(ExperimentalCoroutinesApi::class)
 class ContactWriteEngineTest {
 
     private val passThrough: CardEncryptOp = { request ->
