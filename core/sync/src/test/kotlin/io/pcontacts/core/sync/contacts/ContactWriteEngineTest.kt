@@ -2086,6 +2086,51 @@ class ContactWriteEngineTest {
         assertNotNull(api.lastDeleteRequest)
     }
 
+    @Test fun a_delete_of_a_contact_with_a_photo_unchanged_on_proton_is_sent() = runTest {
+        // The base keeps the photo bytes; only the photo digests may decide a photo change.
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        queuedDelete(outbox)
+        val withPhoto = sampleContact("ct-1").copy(photo = DecryptedPhoto(data = byteArrayOf(1, 2, 3, 4)))
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            serverContacts = mapOf("ct-1" to withPhoto),
+            bases = mapOf("ct-1" to withPhoto)
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(0, report.conflicted)
+        assertEquals(1, report.deleted)
+        assertNotNull(api.lastDeleteRequest)
+    }
+
+    @Test fun a_delete_of_a_contact_whose_photo_changed_on_proton_is_held_back_as_a_conflict() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        queuedDelete(outbox)
+        val base = sampleContact("ct-1").copy(photo = DecryptedPhoto(data = byteArrayOf(1, 2, 3, 4)))
+        val newPhoto = base.copy(photo = DecryptedPhoto(data = byteArrayOf(5, 6, 7, 8)))
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            serverContacts = mapOf("ct-1" to newPhoto),
+            bases = mapOf("ct-1" to base)
+        )
+
+        val report = engine.push(testAccount)
+
+        assertEquals(1, report.conflicted)
+        assertNull("the delete is not sent", api.lastDeleteRequest)
+    }
+
     @Test fun push_update_of_a_contact_deleted_on_proton_becomes_a_server_deleted_conflict() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
