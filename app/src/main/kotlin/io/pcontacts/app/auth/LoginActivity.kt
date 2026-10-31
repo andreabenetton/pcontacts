@@ -15,7 +15,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -102,8 +106,11 @@ class LoginActivity : ComponentActivity() {
                 // The same shell as the app's first screen, so signing in looks like the screen that follows.
                 Scaffold(topBar = { AppTopBar(audit, ::openRepository) }) { padding ->
                     val state by viewModel.uiState.collectAsStateWithLifecycle()
-                    when {
-                        isSecondPasswordStep(state, viewModel.onSecondPasswordStep) -> SecondPasswordScreen(
+                    var shown by remember { mutableStateOf(SignInStep.CREDENTIALS) }
+                    val step = signInStep(state, viewModel.onSecondPasswordStep, shown)
+                    SideEffect { shown = step }
+                    when (step) {
+                        SignInStep.SECOND_PASSWORD -> SecondPasswordScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onCancel = { viewModel.reset() },
@@ -111,7 +118,7 @@ class LoginActivity : ComponentActivity() {
                             modifier = Modifier.padding(padding),
                             footer = { NotAffiliated(Modifier.padding(bottom = 16.dp)) }
                         )
-                        isTwoFactorStep(state) -> TwoFactorScreen(
+                        SignInStep.TWO_FACTOR -> TwoFactorScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onCancel = { viewModel.reset() },
@@ -119,7 +126,7 @@ class LoginActivity : ComponentActivity() {
                             modifier = Modifier.padding(padding),
                             footer = { NotAffiliated(Modifier.padding(bottom = 16.dp)) }
                         )
-                        else -> LoginScreen(
+                        SignInStep.CREDENTIALS -> LoginScreen(
                             viewModel = viewModel,
                             onSuccess = { uid, username -> finishWithAccount(uid, username) },
                             onTwoFactorRequired = { /* handled by state-driven branch */ },
@@ -200,6 +207,20 @@ class LoginActivity : ComponentActivity() {
         } else {
             intent.getParcelableExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
         }
+}
+
+internal enum class SignInStep { CREDENTIALS, TWO_FACTOR, SECOND_PASSWORD }
+
+/**
+ * The step to show for [state]. Success stays on [shown], the step it happened on, whose screen
+ * finishes the activity: falling back to the sign-in form for that last frame made the empty
+ * form flash after the 2FA code or the second password.
+ */
+internal fun signInStep(state: LoginUiState, onSecondPasswordStep: Boolean, shown: SignInStep): SignInStep = when {
+    state is LoginUiState.Success -> shown
+    isSecondPasswordStep(state, onSecondPasswordStep) -> SignInStep.SECOND_PASSWORD
+    isTwoFactorStep(state) -> SignInStep.TWO_FACTOR
+    else -> SignInStep.CREDENTIALS
 }
 
 /** The second-password step of two-password mode; a captcha raised there resumes on it. */
