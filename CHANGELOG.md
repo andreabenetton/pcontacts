@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Signing in no longer flashes the empty sign-in form** after the 2FA
   code or the second password is accepted; the screen stays on the step
   that finished until the app opens.
+- **An edit made on a duplicate of a synced contact is no longer lost.**
+  When another app left two copies of one Proton contact on the phone,
+  an edit to the second copy was read from the first, and the second was
+  then removed as a duplicate. The edited copy now becomes the contact:
+  its change goes to Proton and the untouched copy is the one removed.
 
 ## [2.5.1] - 2026-10-31
 
