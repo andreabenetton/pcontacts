@@ -14,11 +14,32 @@ Primary sources:
   and official clients use.
 - `ProtonMail/WebClients` (GPL-3.0) — the Proton web client, used
   as a specification source for endpoint paths, DTO shapes, and
-  crypto flows. Pinned commit: `37f1e4d13ca5a31fd9d4578bdaae77080f2385fd`
-  (`main`, read 2026-09-24) — the reference for the vCard field set
-  and formats of the 2026-09-24 ADR-0023 amendment. Claims read from
-  an earlier, unrecorded checkout keep their `[V]` markers; re-read
-  them at this commit when they are next touched.
+  crypto flows. Pinned commit: `8a24e5553f2366c2658299e665a7b657a7943879`
+  (`main`, read 2026-10-31). Claims read from an earlier, unrecorded
+  checkout keep their `[V]` markers; re-read them at this commit when
+  they are next touched.
+
+  The earlier pins, `37f1e4d13ca5a31fd9d4578bdaae77080f2385fd` (read
+  2026-09-24, the reference for the vCard field set and formats of the
+  2026-09-24 ADR-0023 amendment) and `838762f`, are no longer on `main`'s
+  history: GitHub's compare reports both as `diverged` from it, so the
+  mirror's history was rewritten. On 2026-10-31 every WebClients file the
+  port cites was compared between `37f1e4d` and the new pin (and the
+  sources of `ProtonEditorRules.kt` between `838762f` and the new pin):
+  nothing the port depends on changed `[V]`. Contacts endpoints, the
+  `Cards[]` shape, card types, the signed and clear field sets,
+  `PASSWORD_WRONG_ERROR` (8002), the auth-version fallback and the 9001
+  handling are as before; the auth endpoints gained only an optional
+  `ClaimedAddressID` (sign-in to an organization-claimed address), which
+  the port does not send `[D]`.
+
+  The sign-in flow moved. `packages/components/containers/login/loginHelper.ts`
+  and `finalizeLogin.ts` are gone from `main`; `handleUnlockKey` is now in
+  `packages/shared/lib/authentication/unlockKey.ts` and `getAuthTypes` in
+  `packages/shared/lib/authentication/twoFactor.ts`, with the same logic
+  `[V]`. The account app's sign-in lives in
+  `applications/account/src/app/sign-in/`. Code comments that name
+  `loginHelper.*` or `finalizeLogin` refer to the 2026-09-24 pin.
 - Live integration testing against `mail-api.proton.me` (production).
 
 Verification markers: `[V]` verified (source + live test), `[U]`

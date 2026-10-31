@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Proton AG and contributors
 //   (derived from ProtonMail/WebClients: packages/shared/lib/contacts/constants.ts,
 //    packages/shared/lib/contacts/property.ts,
-//    packages/components/containers/contacts/edit/ContactEditModal.tsx; commit 838762f)
+//    packages/components/containers/contacts/edit/ContactEditModal.tsx; commit 8a24e55)
 
 package io.pcontacts.core.protoncontacts
 
