@@ -394,6 +394,8 @@ tasks.register("verifyDependencyAudit") {
         "release classpath; with -PauditLive=true also asks osv.dev and fails on an open advisory the snapshot " +
         "does not list, or on any open HIGH or CRITICAL advisory the suppression file does not assess."
     notCompatibleWithConfigurationCache("walks resolved configurations at execution time")
+    // Read at configuration time: Task.project at execution time fails from Gradle 10 on.
+    val auditLive = providers.gradleProperty("auditLive").orElse("false")
 
     doLast {
         val file = dependencyAuditFile.asFile
@@ -409,7 +411,7 @@ tasks.register("verifyDependencyAudit") {
         (resolved - snapshotCoordinates).sorted().forEach { problems += "on the classpath, not in the snapshot: $it" }
         (snapshotCoordinates - resolved).sorted().forEach { problems += "in the snapshot, not on the classpath: $it" }
 
-        if (project.findProperty("auditLive")?.toString() == "true") {
+        if (auditLive.get() == "true") {
             val snapshotKnown = deps.flatMap { d ->
                 auditCvesOf(d).flatMap { c -> listOf(c["id"] as String) + ((c["aliases"] as? List<*>)?.map { it.toString() } ?: emptyList()) }
             }.toSet()

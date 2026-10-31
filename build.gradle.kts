@@ -17,7 +17,7 @@ apply(plugin = "org.jetbrains.kotlinx.kover")
 
 dependencies {
     subprojects.filter { it.path != ":tools:lint" }.forEach {
-        "kover"(it)
+        "kover"(project(it.path))
     }
 }
 
