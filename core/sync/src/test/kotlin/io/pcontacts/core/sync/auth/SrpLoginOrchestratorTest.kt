@@ -534,8 +534,11 @@ class SrpLoginOrchestratorTest {
         repeat(2) { server.takeRequest() }   // /info, /auth
 
         // No HTTP response at all — the only case that may surface as
-        // "could not reach Proton".
-        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        // "could not reach Proton". Every attempt, OkHttp's silent retries included; per request,
+        // as /auth/2fa reuses the connection, where DISCONNECT_AT_START would serve an empty 200.
+        (server.dispatcher as QueueDispatcher).setFailFast(
+            MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)
+        )
         val result = orchestrator.submitTwoFactorCode("000004")
 
         assertTrue(
