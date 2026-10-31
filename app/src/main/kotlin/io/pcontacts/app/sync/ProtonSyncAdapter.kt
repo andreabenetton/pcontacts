@@ -17,6 +17,7 @@ import io.pcontacts.core.logging.Logger
 import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.proton.api.http.ProtonApiException
 import io.pcontacts.core.proton.api.http.SessionRevokedException
 import io.pcontacts.core.storage.SharedPreferencesUserPreferences
 import io.pcontacts.core.storage.UserPreferences
@@ -146,32 +147,38 @@ class ProtonSyncAdapter(
             logger.warn { "sync stopped — app version rejected (Code ${e.protonCode}), update required" }
             userPreferences.lastSyncErrorCode = SyncErrorCodes.APP_VERSION
             notifier.notifyUpdateRequired()
+        } catch (e: ProtonApiException) {
+            // Before the IOException branch: Proton answered and refused (a Code inside a 2xx);
+            // the type is an IOException only for OkHttp's sake. Not a connection problem.
+            logger.warn { "sync failed — Proton refused with Code ${e.protonCode}" }
+            recordRetryableFailure(account, syncResult, SyncErrorCodes.GENERIC, "Proton code ${e.protonCode}")
         } catch (e: IOException) {
             if (stoppedBySystem) return stoppedRun(startedAt, e)
             // A genuine network/transport failure — the connection really is
             // the problem (this includes cert-pinning rejections).
-            syncResult.stats.numIoExceptions += 1
             logger.error(e) { "sync failed (network)" }
-            userPreferences.lastSyncErrorCode = SyncErrorCodes.NETWORK
-            if (syncResult.tooManyRetries) {
-                notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
-            }
+            recordRetryableFailure(account, syncResult, SyncErrorCodes.NETWORK, e.javaClass.simpleName)
         } catch (e: Exception) {
             if (stoppedBySystem) return stoppedRun(startedAt, e)
             // Anything else (a bug, malformed data) — do NOT blame the
             // connection. The redacted throwable fingerprint is logged so
             // production failures like this are diagnosable.
-            syncResult.stats.numIoExceptions += 1
             logger.error(e) { "sync failed (${e.javaClass.simpleName})" }
-            userPreferences.lastSyncErrorCode = SyncErrorCodes.GENERIC
-            if (syncResult.tooManyRetries) {
-                notifier.notifyPersistentFailure(account, e.javaClass.simpleName)
-            }
+            recordRetryableFailure(account, syncResult, SyncErrorCodes.GENERIC, e.javaClass.simpleName)
         } finally {
             // The in-flight phase and "N of total" are meaningless once the run is over, however it ended.
             userPreferences.syncProgressPhase = null
             userPreferences.syncProgressDone = 0
             userPreferences.syncProgressTotal = 0
+        }
+    }
+
+    /** A failed run Android may retry: an I/O failure to the framework, [code] for the Sync card. */
+    private fun recordRetryableFailure(account: Account, syncResult: SyncResult, code: String, detail: String) {
+        syncResult.stats.numIoExceptions += 1
+        userPreferences.lastSyncErrorCode = code
+        if (syncResult.tooManyRetries) {
+            notifier.notifyPersistentFailure(account, detail)
         }
     }
 

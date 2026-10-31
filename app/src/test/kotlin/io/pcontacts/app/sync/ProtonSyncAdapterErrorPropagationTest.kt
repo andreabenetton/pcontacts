@@ -18,6 +18,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.pcontacts.app.R
 import io.pcontacts.core.proton.api.http.AppVersionRejectedException
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
+import io.pcontacts.core.proton.api.http.ProtonApiException
 import io.pcontacts.core.proton.api.http.SessionRevokedException
 import io.pcontacts.core.storage.InMemoryUserPreferences
 import io.pcontacts.core.storage.UserPreferences
@@ -126,6 +127,17 @@ class ProtonSyncAdapterErrorPropagationTest {
         // A bug/bad-data failure must NOT be labelled a connection problem.
         assertEquals("generic", prefs.lastSyncErrorCode)
         assertEquals(0L, prefs.lastSyncSuccessAtMillis)
+    }
+
+    @Test
+    fun a_proton_refusal_is_recorded_as_generic_not_a_connection_error() {
+        val prefs = InMemoryUserPreferences()
+        val adapter = adapter(prefs) { _, _, _ -> throw ProtonApiException(2011, null) }
+        val syncResult = SyncResult()
+        adapter.onPerformSync(account, extras, authority, provider, syncResult)
+        assertEquals(1L, syncResult.stats.numIoExceptions)
+        // An IOException by type (for OkHttp), but Proton answered: not "network".
+        assertEquals("generic", prefs.lastSyncErrorCode)
     }
 
     @Test
