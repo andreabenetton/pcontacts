@@ -243,7 +243,11 @@ class ContactWriteEngine(
      * A row deleted before its create was confirmed. A create with a minted UID may have reached
      * Proton (committed, its acknowledgement cut short): it becomes a delete by that UID, due at
      * once — no Proton contact was ever confirmed for it, so the grace period has nothing to keep.
-     * A legacy create leaves the queue as before (ADR-0017, 2026-10-15).
+     * A legacy create (queued before schema v5, no minted UID) leaves the queue as before
+     * (ADR-0017, 2026-10-15): its card carried [ContactSerializer.fallbackUid] of the local id,
+     * which another install or phone derives the same way, so a delete by that UID could remove a
+     * contact this phone never made. If such a create did reach Proton, the next pull brings the
+     * contact back and the user's next deletion is an ordinary one: nothing is lost.
      */
     private suspend fun deleteUnconfirmedCreate(localId: String, now: Long): EnqueueResult {
         val live = outboxDao.findLive(localId) ?: return EnqueueResult.SKIPPED
