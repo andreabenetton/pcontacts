@@ -1,6 +1,6 @@
 {
     "schema": 2,
-    "generatedAt": "2026-11-17T06:32:16Z",
+    "generatedAt": "2026-11-17T06:32:30Z",
     "source": "osv.dev",
     "dependencies": [
         {
@@ -1492,7 +1492,7 @@
         {
             "group": "org.jsoup",
             "name": "jsoup",
-            "version": "1.23.2",
+            "version": "1.24.1",
             "licenses": [
                 "The MIT License"
             ],
