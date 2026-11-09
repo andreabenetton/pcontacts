@@ -11,7 +11,7 @@
 # Build tooling
 agp                          = "9.5.0"
 kotlin                       = "2.4.21"
-ksp                          = "2.3.12"
+ksp                          = "2.3.13"
 java                         = "17"
 detekt                       = "1.23.8"
 kover                        = "0.9.11"
