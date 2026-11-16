@@ -1,6 +1,6 @@
 {
     "schema": 2,
-    "generatedAt": "2026-11-17T06:32:40Z",
+    "generatedAt": "2026-11-17T06:33:00Z",
     "source": "osv.dev",
     "dependencies": [
         {
@@ -1194,7 +1194,7 @@
         {
             "group": "com.fasterxml.jackson",
             "name": "jackson-bom",
-            "version": "2.22.4",
+            "version": "2.23.0",
             "licenses": [
                 "Apache License, Version 2.0"
             ],
@@ -1205,7 +1205,7 @@
         {
             "group": "com.fasterxml.jackson.core",
             "name": "jackson-core",
-            "version": "2.22.4",
+            "version": "2.23.0",
             "licenses": [
                 "The Apache Software License, Version 2.0"
             ],
