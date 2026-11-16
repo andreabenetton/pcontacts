@@ -1,6 +1,6 @@
 {
     "schema": 2,
-    "generatedAt": "2026-11-17T06:33:00Z",
+    "generatedAt": "2026-11-17T06:33:18Z",
     "source": "osv.dev",
     "dependencies": [
         {
@@ -1315,7 +1315,7 @@
         {
             "group": "org.bouncycastle",
             "name": "bcpg-jdk18on",
-            "version": "1.86",
+            "version": "1.87",
             "licenses": [
                 "Bouncy Castle Licence",
                 "Apache Software License, Version 2.0"
@@ -1327,7 +1327,7 @@
         {
             "group": "org.bouncycastle",
             "name": "bcprov-jdk18on",
-            "version": "1.86",
+            "version": "1.87",
             "licenses": [
                 "Bouncy Castle Licence"
             ],
@@ -1338,7 +1338,7 @@
         {
             "group": "org.bouncycastle",
             "name": "bcutil-jdk18on",
-            "version": "1.86",
+            "version": "1.87",
             "licenses": [
                 "Bouncy Castle Licence"
             ],
