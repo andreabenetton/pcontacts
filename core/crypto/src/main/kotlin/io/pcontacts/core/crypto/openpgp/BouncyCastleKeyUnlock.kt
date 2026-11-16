@@ -3,14 +3,18 @@
 
 package io.pcontacts.core.crypto.openpgp
 
+import org.bouncycastle.bcpg.sig.KeyFlags
 import org.bouncycastle.openpgp.PGPException
+import org.bouncycastle.openpgp.PGPPublicKey
 import org.bouncycastle.openpgp.PGPSecretKey
 import org.bouncycastle.openpgp.PGPSecretKeyRing
+import org.bouncycastle.openpgp.PGPSignature
 import org.bouncycastle.openpgp.PGPUtil
 import org.bouncycastle.openpgp.bc.BcPGPObjectFactory
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
 import java.io.ByteArrayInputStream
+import java.util.Date
 
 /**
  * Bundle of an unlocked private key + its matching public key. Per
@@ -40,7 +44,9 @@ class KeyUnlockException(message: String, cause: Throwable? = null) : Exception(
  * carries ENCRYPT_COMMS | ENCRYPT_STORAGE. Contacts are encrypted
  * to the encryption subkey, so the decrypt path needs it.
  *
- * `private` is always the primary (signing) key. `allPrivateKeys`
+ * `private` is always the primary (signing) key. `encryptionPublicKeys`
+ * holds the one key a message is encrypted to, or none when no key is
+ * flagged for encryption. `allPrivateKeys`
  * contains all keys in the ring (primary first, then subkeys) so
  * the decrypt path can try each until one matches.
  */
@@ -94,17 +100,62 @@ object BouncyCastleKeyUnlock {
         }
 
         val primaryKey = ring.secretKey
-        val encPubKeys = ring.publicKeys.asSequence()
-            .filter { it.isEncryptionKey }
-            .map { PgpPublicKeyHandle(raw = it) }
-            .toList()
+        val encryptionKey = encryptionKey(primaryKey.publicKey, ring.publicKeys.asSequence().toList())
         return UnlockedKey(
             private = allKeys.first { it.raw.keyID == primaryKey.keyID },
             public = PgpPublicKeyHandle(raw = primaryKey.publicKey),
             allPrivateKeys = allKeys,
-            encryptionPublicKeys = encPubKeys
+            encryptionPublicKeys = listOfNotNull(encryptionKey?.let { PgpPublicKeyHandle(raw = it) })
         )
     }
+
+    /**
+     * The one key a message to this ring is encrypted to, chosen as OpenPGP.js
+     * `Key.getEncryptionKey` chooses it `[V]` (openpgpjs `src/key/key.js`, `src/key/helper.js`):
+     * the newest usable subkey whose binding signature flags it for encryption, else the
+     * primary if its self-signature does. The algorithm alone is not enough: an RSA primary
+     * can encrypt but is flagged sign-only on Proton keys, and a card encrypted to it as well
+     * was refused with Code 2060, `PgpFormat` (issue #71) `[A]`.
+     */
+    private fun encryptionKey(primary: PGPPublicKey, keys: List<PGPPublicKey>): PGPPublicKey? {
+        val now = Date()
+        val subkey = keys
+            .filter { !it.isMasterKey && usable(it, now) }
+            .filter { allowsEncryption(it, signatures(it, primary.keyID, setOf(PGPSignature.SUBKEY_BINDING))) }
+            .maxWithOrNull(compareBy<PGPPublicKey>({ it.creationTime }, { it.algorithm }))
+        return subkey ?: primary.takeIf {
+            usable(it, now) && allowsEncryption(it, signatures(it, it.keyID, SELF_SIGNATURE_TYPES))
+        }
+    }
+
+    private fun usable(key: PGPPublicKey, now: Date): Boolean {
+        val expiresAt = key.creationTime.time + key.validSeconds * MILLIS_PER_SECOND
+        return !key.hasRevocation() && (key.validSeconds == 0L || expiresAt > now.time)
+    }
+
+    /** `key`'s signatures of [types] by [issuer] that carry key flags. */
+    private fun signatures(key: PGPPublicKey, issuer: Long, types: Set<Int>): List<PGPSignature> =
+        key.signatures.asSequence()
+            .filterIsInstance<PGPSignature>()
+            .filter { it.signatureType in types && it.keyID == issuer && keyFlags(it) != 0 }
+            .toList()
+
+    /** The latest flags must allow encryption; a key without any is refused, as OpenPGP.js does by default. */
+    private fun allowsEncryption(key: PGPPublicKey, signatures: List<PGPSignature>): Boolean {
+        val flags = signatures.maxByOrNull { it.creationTime }?.let(::keyFlags) ?: 0
+        return key.isEncryptionKey && flags and (KeyFlags.ENCRYPT_COMMS or KeyFlags.ENCRYPT_STORAGE) != 0
+    }
+
+    private fun keyFlags(signature: PGPSignature): Int = signature.hashedSubPackets?.keyFlags ?: 0
+
+    private const val MILLIS_PER_SECOND = 1000L
+    private val SELF_SIGNATURE_TYPES = setOf(
+        PGPSignature.DEFAULT_CERTIFICATION,
+        PGPSignature.NO_CERTIFICATION,
+        PGPSignature.CASUAL_CERTIFICATION,
+        PGPSignature.POSITIVE_CERTIFICATION,
+        PGPSignature.DIRECT_KEY
+    )
 
     /**
      * Why a key did not open, for a log line (issue #65): the reason BouncyCastle gives plus the

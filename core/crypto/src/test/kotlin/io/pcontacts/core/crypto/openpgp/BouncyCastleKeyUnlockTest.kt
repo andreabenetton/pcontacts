@@ -3,11 +3,18 @@
 
 package io.pcontacts.core.crypto.openpgp
 
+import org.bouncycastle.bcpg.sig.KeyFlags
+import org.bouncycastle.openpgp.PGPEncryptedDataList
+import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData
+import org.bouncycastle.openpgp.PGPSecretKeyRing
+import org.bouncycastle.openpgp.PGPUtil
+import org.bouncycastle.openpgp.bc.BcPGPObjectFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Date
 
 /**
  * Tests for `BouncyCastleKeyUnlock`. Verifies:
@@ -99,5 +106,86 @@ class BouncyCastleKeyUnlockTest {
         assertThrows(KeyUnlockException::class.java) {
             BouncyCastleKeyUnlock.unlock(armoredPrivateKey = "", passphrase = CharArray(0))
         }
+    }
+
+    @Test fun a_sign_only_rsa_primary_is_not_an_encryption_key_its_encryption_subkey_is() {
+        // Issue #71: RSA can encrypt by algorithm, but Proton flags the primary sign-only. A card
+        // encrypted to both the primary and the subkey was refused with Code 2060 (PgpFormat).
+        val armored = TestKeyGen.rsaRingArmored(
+            passphrase = PASSPHRASE.copyOf(),
+            primaryFlags = SIGN_ONLY,
+            subkeys = listOf(ENCRYPT to Date())
+        )
+
+        val unlocked = BouncyCastleKeyUnlock.unlock(armored, PASSPHRASE.copyOf())
+
+        val subkeyId = subkeyIds(armored).single()
+        assertEquals(listOf(subkeyId), unlocked.encryptionPublicKeys.map { it.raw.keyID })
+        val message = BouncyCastleOpenPgpService().encryptAndSignDetached(
+            plaintext = "BEGIN:VCARD\r\nEND:VCARD".toByteArray(),
+            encryptionKeys = unlocked.encryptionPublicKeys,
+            signingKey = unlocked.private
+        ).armoredMessage
+        assertEquals(listOf(subkeyId), recipients(message))
+    }
+
+    @Test fun of_two_encryption_subkeys_the_newest_is_used() {
+        val armored = TestKeyGen.rsaRingArmored(
+            passphrase = PASSPHRASE.copyOf(),
+            primaryFlags = SIGN_ONLY,
+            subkeys = listOf(ENCRYPT to Date(OLDER), ENCRYPT to Date(NEWER))
+        )
+
+        val unlocked = BouncyCastleKeyUnlock.unlock(armored, PASSPHRASE.copyOf())
+
+        assertEquals(listOf(subkeyIds(armored).last()), unlocked.encryptionPublicKeys.map { it.raw.keyID })
+    }
+
+    @Test fun a_primary_flagged_for_encryption_is_used_when_no_subkey_is() {
+        val armored = TestKeyGen.rsaRingArmored(
+            passphrase = PASSPHRASE.copyOf(),
+            primaryFlags = SIGN_ONLY or ENCRYPT,
+            subkeys = listOf(KeyFlags.SIGN_DATA to Date())
+        )
+
+        val unlocked = BouncyCastleKeyUnlock.unlock(armored, PASSPHRASE.copyOf())
+
+        assertEquals(listOf(unlocked.public.raw.keyID), unlocked.encryptionPublicKeys.map { it.raw.keyID })
+    }
+
+    @Test fun a_ring_with_no_key_flagged_for_encryption_has_no_encryption_key() {
+        val armored = TestKeyGen.rsaRingArmored(
+            passphrase = PASSPHRASE.copyOf(),
+            primaryFlags = SIGN_ONLY,
+            subkeys = listOf(KeyFlags.SIGN_DATA to Date())
+        )
+
+        val unlocked = BouncyCastleKeyUnlock.unlock(armored, PASSPHRASE.copyOf())
+
+        assertTrue(unlocked.encryptionPublicKeys.isEmpty())
+    }
+
+    private fun subkeyIds(armored: String): List<Long> {
+        val ring = firstObject(armored) as PGPSecretKeyRing
+        return ring.publicKeys.asSequence().filterNot { it.isMasterKey }.map { it.keyID }.toList()
+    }
+
+    private fun recipients(armoredMessage: String): List<Long> {
+        val list = firstObject(armoredMessage) as PGPEncryptedDataList
+        return list.encryptedDataObjects.asSequence()
+            .filterIsInstance<PGPPublicKeyEncryptedData>()
+            .map { it.keyID }
+            .toList()
+    }
+
+    private fun firstObject(armored: String): Any =
+        BcPGPObjectFactory(PGPUtil.getDecoderStream(armored.byteInputStream())).nextObject()
+
+    private companion object {
+        val PASSPHRASE = "P4ss-Z73-ring".toCharArray()
+        const val SIGN_ONLY = KeyFlags.CERTIFY_OTHER or KeyFlags.SIGN_DATA
+        const val ENCRYPT = KeyFlags.ENCRYPT_COMMS or KeyFlags.ENCRYPT_STORAGE
+        const val OLDER = 1_700_000_000_000L
+        const val NEWER = 1_750_000_000_000L
     }
 }

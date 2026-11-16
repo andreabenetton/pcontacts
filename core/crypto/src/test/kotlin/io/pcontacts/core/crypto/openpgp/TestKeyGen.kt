@@ -119,4 +119,40 @@ internal object TestKeyGen {
         }
         return out.toString(Charsets.US_ASCII)
     }
+
+    /**
+     * An RSA-2048 ring shaped like an older Proton key: a primary flagged
+     * [primaryFlags] (Proton: CERTIFY_OTHER | SIGN_DATA) and one subkey per
+     * entry of [subkeys], each created at its date and bound with its flags
+     * (Proton: ENCRYPT_COMMS | ENCRYPT_STORAGE). Armored, protected by [passphrase].
+     */
+    fun rsaRingArmored(passphrase: CharArray, primaryFlags: Int, subkeys: List<Pair<Int, Date>>): String {
+        val created = subkeys.minOfOrNull { it.second } ?: Date()
+        val primary = JcaPGPKeyPair(PublicKeyPacket.VERSION_4, PGPPublicKey.RSA_GENERAL, rsaKeyPair(), created)
+        val checksumCalc = BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA1)
+        val keyRingGen = PGPKeyRingGenerator(
+            PGPSignature.POSITIVE_CERTIFICATION,
+            primary,
+            "pcontacts-test",
+            checksumCalc,
+            PGPSignatureSubpacketGenerator().apply { setKeyFlags(true, primaryFlags) }.generate(),
+            null,
+            BcPGPContentSignerBuilder(primary.publicKey.algorithm, HashAlgorithmTags.SHA512),
+            BcPBESecretKeyEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256, checksumCalc).build(passphrase)
+        )
+        subkeys.forEach { (flags, date) ->
+            keyRingGen.addSubKey(
+                JcaPGPKeyPair(PublicKeyPacket.VERSION_4, PGPPublicKey.RSA_GENERAL, rsaKeyPair(), date),
+                PGPSignatureSubpacketGenerator().apply { setKeyFlags(true, flags) }.generate(),
+                null
+            )
+        }
+        val out = ByteArrayOutputStream()
+        ArmoredOutputStream(out).use { keyRingGen.generateSecretKeyRing().encode(it) }
+        return out.toString(Charsets.US_ASCII)
+    }
+
+    private fun rsaKeyPair() = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME)
+        .apply { initialize(2048) }
+        .generateKeyPair()
 }
