@@ -32,6 +32,9 @@ internal object PgpProvider {
 @ConsistentCopyVisibility
 data class PgpPublicKeyHandle internal constructor(internal val raw: PGPPublicKey) {
     val keyIdHex: String get() = "%016X".format(raw.keyID)
+
+    /** Public metadata for a log line, e.g. "v4 algorithm 1" for RSA (issue #71). Nothing secret. */
+    val description: String get() = "v${raw.version} algorithm ${raw.algorithm}"
 }
 
 @ConsistentCopyVisibility

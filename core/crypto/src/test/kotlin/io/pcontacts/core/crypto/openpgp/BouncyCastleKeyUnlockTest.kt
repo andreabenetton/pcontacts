@@ -121,6 +121,7 @@ class BouncyCastleKeyUnlockTest {
 
         val subkeyId = subkeyIds(armored).single()
         assertEquals(listOf(subkeyId), unlocked.encryptionPublicKeys.map { it.raw.keyID })
+        assertEquals("v4 algorithm 1", unlocked.public.description)
         val message = BouncyCastleOpenPgpService().encryptAndSignDetached(
             plaintext = "BEGIN:VCARD\r\nEND:VCARD".toByteArray(),
             encryptionKeys = unlocked.encryptionPublicKeys,
