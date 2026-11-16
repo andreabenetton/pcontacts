@@ -1,0 +1,5 @@
+Versione 2.5.2.
+
+* Negli account con chiavi RSA i contatti vengono ora cifrati come fanno le app di Proton. È la causa probabile delle modifiche rifiutate con il codice 2060: dopo l'aggiornamento tocca Riprova su di esse.
+* L'accesso non mostra più per un attimo il modulo vuoto dopo il codice 2FA o la seconda password.
+* Una modifica fatta su una copia duplicata di un contatto sincronizzato non va più persa.

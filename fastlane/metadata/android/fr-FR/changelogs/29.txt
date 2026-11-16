@@ -1,0 +1,5 @@
+Version 2.5.2.
+
+* Sur les comptes à clés RSA, les contacts sont désormais chiffrés comme le font les applications de Proton. C'est la cause probable des modifications refusées avec le code 2060 : après la mise à jour, touchez Réessayer sur celles-ci.
+* La connexion n'affiche plus brièvement le formulaire vide après le code 2FA ou le second mot de passe.
+* Une modification faite sur une copie en double d'un contact synchronisé n'est plus perdue.

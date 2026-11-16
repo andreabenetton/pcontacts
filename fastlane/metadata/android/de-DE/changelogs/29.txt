@@ -1,0 +1,5 @@
+Version 2.5.2.
+
+* Bei Konten mit RSA-Schlüsseln werden Kontakte jetzt so verschlüsselt wie in Protons eigenen Apps. Das ist die wahrscheinliche Ursache für Änderungen, die mit Code 2060 abgelehnt wurden: Tippe nach dem Update bei ihnen auf „Wiederholen“.
+* Die Anmeldung zeigt nach dem 2FA-Code oder dem zweiten Passwort nicht mehr kurz das leere Anmeldeformular.
+* Eine Änderung an einer doppelten Kopie eines synchronisierten Kontakts geht nicht mehr verloren.

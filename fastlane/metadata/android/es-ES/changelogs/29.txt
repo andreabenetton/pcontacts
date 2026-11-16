@@ -1,0 +1,5 @@
+Versión 2.5.2.
+
+* En las cuentas con claves RSA, los contactos se cifran ahora como lo hacen las apps de Proton. Es la causa probable de los cambios rechazados con el código 2060: tras actualizar, toca Reintentar en ellos.
+* El inicio de sesión ya no muestra un instante el formulario vacío tras el código 2FA o la segunda contraseña.
+* Ya no se pierde una edición hecha en una copia duplicada de un contacto sincronizado.

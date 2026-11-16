@@ -1,0 +1,5 @@
+Version 2.5.2.
+
+* On accounts with RSA keys, contacts are now encrypted the way Proton's apps encrypt them. This is the likely cause of changes refused with code 2060: tap Retry on them after updating.
+* Signing in no longer flashes the empty sign-in form after the 2FA code or the second password.
+* An edit made on a duplicate copy of a synced contact is no longer lost.
