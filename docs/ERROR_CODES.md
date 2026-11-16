@@ -40,17 +40,19 @@ Two kinds of refusal show in the code line:
 | 2059 `[V]` | Proton did not accept the domain of an email address (the part after @). | Correct the domain on the phone, then tap Retry. |
 | 2052 `[V]` | Proton found a website address in this contact invalid. | Correct the website on the phone, then tap Retry. |
 | 2024 `[A]` 2026-10-15 | A detail is too long for Proton ("Input string too long"). A contact's name can have at most 190 characters; pcontacts now shortens a longer one before sending (below), so this code means some other detail. | Shorten it on the phone, then tap Retry. |
-| 2001, 2002, 2011, 13060 `[A]` 2026-10-15 | Proton did not accept the way pcontacts wrote this contact. Seen for: a signature that does not match its card (2001), a vCard version other than 4.0 (2001), an email without its group (2001), a field such as a phone number in the signed card (2001), a missing name or identifier (2002), an unknown card type (2011), two signed cards (13060). | Report it (below). Retry sends the same cards and fails again. |
+| 2001, 2002, 2011, 13060 `[A]` 2026-10-15; 2060 `[V]` | Proton did not accept the way pcontacts wrote this contact. Seen for: a signature that does not match its card (2001), a vCard version other than 4.0 (2001), an email without its group (2001), a field such as a phone number in the signed card (2001), a missing name or identifier (2002), an unknown card type (2011), two signed cards (13060). 2060 is "PGP format": Proton refused the encryption or signature of a card. Versions up to 2.5.1 encrypted cards to one key too many on accounts with RSA keys, the likely cause of [#71](https://github.com/andreabenetton/pcontacts/issues/71), changed in 2.5.2. | Report it (below). Retry sends the same cards and fails again, except after an update that fixes the cause: a 2060 from before 2.5.2 goes through with Retry. |
 | 2061 `[V]`, 2501 `[A]` 2026-10-01 | Proton no longer has this contact. It was deleted on Proton, for example on the web. | Tap Discard. |
 | 2026 `[V]` | Proton does not allow this change on your account. | Check the account on Proton's web app; otherwise Discard. |
-| 2060 `[U]` | Proton refused this change without saying why. Undocumented, not handled by Proton's own apps, and not reproduced on the test account by any value or card layout tried so far; under investigation in [#71](https://github.com/andreabenetton/pcontacts/issues/71). | Tap Retry. If it fails again, report it (below). |
 | any other code | Proton refused this change without saying why. | Tap Retry. If it fails again, report it (below). |
 
 The `[V]` names are those in Proton's web client,
 `packages/shared/lib/errors.ts` in
 [ProtonMail/WebClients](https://github.com/ProtonMail/WebClients). Its name
 for 2011, "not allowed", does not fit what a contact update answered with it
-(an unknown card type), so the app goes by the live answer.
+(an unknown card type), so the app goes by the live answer. 2060 is not in
+the web client; it is `PgpFormat` in Proton's Rust clients,
+`project/mail/rust/api/mail-api-session/src/consts.rs` in
+[ProtonMail/clients](https://github.com/ProtonMail/clients).
 
 ## Values adjusted before sending
 

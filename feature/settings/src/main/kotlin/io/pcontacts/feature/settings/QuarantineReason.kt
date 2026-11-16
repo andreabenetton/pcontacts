@@ -24,15 +24,17 @@ internal fun quarantineReasonRes(reason: String): Int = when {
  * WebClients `packages/shared/lib/errors.ts`; `[A]` what they mean for a contact was seen live
  * (2501 on 2026-10-01, the rest on 2026-10-15): 2050 and 2024 (a name over 190 characters) refuse
  * a value the user can correct, while 2001, 2002, 2011 and 13060 refuse how the cards are built,
- * which only a pcontacts fix can change. Any other code — 2060 is undocumented (#71) — keeps the
- * general line, and the stored reason with the code is shown under it either way.
+ * which only a pcontacts fix can change. 2060 is `PgpFormat` `[V]` (ProtonMail/clients
+ * `mail-api-session/src/consts.rs`): the PGP data of a card, which only pcontacts builds (#71).
+ * Any other code keeps the general line, and the stored reason with the code is shown under it
+ * either way.
  */
 private fun protonRefusalRes(reason: String): Int = when (PROTON_CODE.find(reason)?.groupValues?.get(1)?.toInt()) {
     EMAIL_FORMAT -> R.string.quarantined_reason_email_format
     INVALID_DOMAIN_NAME -> R.string.quarantined_reason_email_domain
     INVALID_URL -> R.string.quarantined_reason_url
     TOO_LONG -> R.string.quarantined_reason_too_long
-    INVALID_VALUE, MISSING_FIELD, NOT_ALLOWED, TWO_SIGNED_CARDS -> R.string.quarantined_reason_format
+    INVALID_VALUE, MISSING_FIELD, NOT_ALLOWED, PGP_FORMAT, TWO_SIGNED_CARDS -> R.string.quarantined_reason_format
     INVALID_ID, NOT_EXISTS -> R.string.quarantined_reason_not_on_proton
     PERMISSION_DENIED -> R.string.quarantined_reason_not_allowed
     else -> R.string.quarantined_reason_refused
@@ -47,6 +49,7 @@ private const val PERMISSION_DENIED = 2026
 private const val EMAIL_FORMAT = 2050
 private const val INVALID_URL = 2052
 private const val INVALID_DOMAIN_NAME = 2059
+private const val PGP_FORMAT = 2060
 private const val INVALID_ID = 2061
 private const val NOT_EXISTS = 2501
 private const val TWO_SIGNED_CARDS = 13060

@@ -37,9 +37,13 @@ class QuarantineReasonTest {
         assertEquals(R.string.quarantined_reason_format, quarantineReasonRes("Proton code 2001"))
     }
 
-    @Test fun an_undocumented_code_keeps_the_general_line() {
-        // #71: Proton does not document 2060; the stored reason with the code is shown under the line.
-        assertEquals(R.string.quarantined_reason_refused, quarantineReasonRes("HTTP 400, Proton code 2060"))
+    @Test fun a_pgp_format_refusal_is_a_pcontacts_problem_to_report() {
+        // #71: 2060 is PgpFormat in Proton's own clients; a create answers it without the HTTP status.
+        assertEquals(R.string.quarantined_reason_format, quarantineReasonRes("HTTP 400, Proton code 2060"))
+        assertEquals(R.string.quarantined_reason_format, quarantineReasonRes("Proton code 2060"))
+    }
+
+    @Test fun an_unknown_code_keeps_the_general_line() {
         assertEquals(R.string.quarantined_reason_refused, quarantineReasonRes("Proton code 9999"))
     }
 }
