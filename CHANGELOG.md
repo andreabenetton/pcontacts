@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Contacts on accounts with RSA keys are encrypted the way Proton's
+  apps encrypt them.** Older Proton accounts have RSA keys; newer ones
+  have ECC keys. On an RSA account pcontacts encrypted each contact card
+  to the account's signing key as well as its encryption key. Proton's
+  own apps name code 2060 "PGP format", and this is the likely cause of
+  the changes Proton refused with it
+  ([#71](https://github.com/andreabenetton/pcontacts/issues/71)). A card
+  is now encrypted to the one key flagged for encryption. After the
+  update, tap **Retry** on changes that failed with code 2060. Such a
+  refusal now reads as a pcontacts problem to report, not an unexplained
+  one.
 - **Signing in no longer flashes the empty sign-in form** after the 2FA
   code or the second password is accepted; the screen stays on the step
   that finished until the app opens.
