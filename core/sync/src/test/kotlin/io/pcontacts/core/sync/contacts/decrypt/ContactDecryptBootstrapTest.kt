@@ -181,6 +181,27 @@ class ContactDecryptBootstrapTest {
         assertFalse(line, line.contains("P4ss-Z73"))
     }
 
+    @Test fun the_unlock_line_names_the_user_key_kind_and_how_many_keys_a_card_is_encrypted_to() = runTest {
+        // Issue #71: a refused write on an RSA account looked the same in the log as on an ECC one.
+        val passphrase = "P4ss-Z73-correct".toCharArray()
+        val armored = TestKeys.armoredKey(passphrase.copyOf())
+        val secretStore = InMemorySecretStore().apply { setKeyPassword(String(passphrase).toByteArray()) }
+        val lines = mutableListOf<String>()
+        val logger = io.pcontacts.core.logging.RedactingLogger(tag = "t", sink = { _, _, msg, _ -> lines += msg })
+
+        ContactDecryptBootstrap.unlockAllKeys(
+            secretStore,
+            FakeUsersApi(armoredPrivateKey = armored),
+            FakeAddressesApi.empty(),
+            openPgp,
+            logger
+        )
+
+        val line = lines.single { it.startsWith("unlocked U=") }
+        assertTrue(line, line.contains("user key v4 algorithm 1"))
+        assertTrue(line, line.contains("cards encrypted to 1 key(s)"))
+    }
+
     @Test fun an_extra_user_key_that_does_not_open_is_skipped_not_fatal() = runTest {
         // [V] WebClients getDecryptedUserKeys: the primary key must open; the others that fail
         // are filtered out. Before, any one of them aborted every sync with KEY_UNLOCK_FAILED.

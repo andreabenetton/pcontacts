@@ -140,9 +140,13 @@ object ContactDecryptBootstrap {
             val verificationKeys = allUserUnlocked.map { it.public } +
                 unlockedAddressKeys.map { it.public }
 
+            // The primary's kind and how many keys a card is encrypted to: public metadata that
+            // tells an RSA account from an ECC one when a write is refused (issue #71).
             logger.info {
                 "unlocked U=${allUserUnlocked.size} user keys + " +
-                    "A=${unlockedAddressKeys.size} address keys (skipped=$skipped)"
+                    "A=${unlockedAddressKeys.size} address keys (skipped=$skipped); " +
+                    "user key ${primaryUnlocked.public.description}, " +
+                    "cards encrypted to ${primaryUnlocked.encryptionPublicKeys.size} key(s)"
             }
 
             return UnlockedKeySet(
