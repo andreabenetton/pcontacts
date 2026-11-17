@@ -4,11 +4,16 @@
 package io.pcontacts.core.crypto.openpgp
 
 import org.bouncycastle.bcpg.ArmoredOutputStream
+import org.bouncycastle.bcpg.BCPGOutputStream
+import org.bouncycastle.bcpg.HashAlgorithmTags
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator
 import org.bouncycastle.openpgp.PGPLiteralData
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator
+import org.bouncycastle.openpgp.PGPSignature
+import org.bouncycastle.openpgp.PGPSignatureGenerator
 import org.bouncycastle.openpgp.PGPUtil
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator
 import org.junit.Assert.assertArrayEquals
@@ -114,6 +119,104 @@ class BouncyCastleOpenPgpServiceTest {
         assertThrows(Exception::class.java) {
             service.decryptAndVerify(unprotected, null, listOf(key.priv), emptyList())
         }
+    }
+
+    @Test fun an_inline_signed_message_decrypts_and_its_signature_verifies() {
+        // Review 2026-11-17, F8: a member token is encrypted and signed inline to the organization key.
+        val message = inlineSigned(
+            "bWVtYmVyLXRva2Vu".toByteArray(),
+            signedOver = null,
+            signer = key,
+            recipient = key.pub
+        )
+
+        val result = service.decryptAndVerifyInline(message, listOf(key.priv), listOf(key.pub))
+
+        assertArrayEquals("bWVtYmVyLXRva2Vu".toByteArray(), result.plaintext)
+        assertEquals(VerificationStatus.SIGNED_AND_VALID, result.verificationStatus)
+    }
+
+    @Test fun an_inline_signature_over_other_content_is_invalid() {
+        val message = inlineSigned(
+            "token".toByteArray(),
+            signedOver = "other".toByteArray(),
+            signer = key,
+            recipient = key.pub
+        )
+
+        val result = service.decryptAndVerifyInline(message, listOf(key.priv), listOf(key.pub))
+
+        assertEquals(VerificationStatus.SIGNED_INVALID, result.verificationStatus)
+    }
+
+    @Test fun an_inline_signature_by_a_key_not_trusted_has_no_verifier_and_none_means_not_signed() {
+        val other = TestKeyGen.rsa2048("other")
+        val byOther = inlineSigned(
+            "token".toByteArray(),
+            signedOver = null,
+            signer = other,
+            recipient = key.pub
+        )
+        val unsigned = service.encryptAndSignDetached("token".toByteArray(), listOf(key.pub), key.priv).armoredMessage
+
+        assertEquals(
+            VerificationStatus.SIGNED_NO_VERIFIER,
+            service.decryptAndVerifyInline(byOther, listOf(key.priv), listOf(key.pub)).verificationStatus
+        )
+        assertEquals(
+            VerificationStatus.NOT_SIGNED,
+            service.decryptAndVerifyInline(unsigned, listOf(key.priv), listOf(key.pub)).verificationStatus
+        )
+    }
+
+    @Test fun an_inline_signed_message_whose_integrity_check_fails_is_refused() {
+        val message = inlineSigned(
+            "token".toByteArray(),
+            signedOver = null,
+            signer = key,
+            recipient = key.pub
+        )
+        val bytes = dearmor(message)
+
+        assertThrows(Exception::class.java) {
+            service.decryptAndVerifyInline(rearmor(flipped(bytes, bytes.size - 1)), listOf(key.priv), listOf(key.pub))
+        }
+    }
+
+    /**
+     * One-pass signature, literal data, signature — encrypted, as OpenPGP.js `encrypt({ signingKeys })`
+     * lays it out. With [signedOver], the signature covers those bytes instead of [plaintext].
+     */
+    private fun inlineSigned(
+        plaintext: ByteArray,
+        signedOver: ByteArray?,
+        signer: TestKeyGen.TestKey,
+        recipient: PgpPublicKeyHandle
+    ): String {
+        val generator = PGPSignatureGenerator(
+            BcPGPContentSignerBuilder(signer.pub.raw.algorithm, HashAlgorithmTags.SHA512),
+            signer.pub.raw
+        )
+        generator.init(PGPSignature.BINARY_DOCUMENT, signer.priv.raw)
+        generator.update(signedOver ?: plaintext)
+        val inner = ByteArrayOutputStream()
+        BCPGOutputStream(inner).use { out ->
+            generator.generateOnePassVersion(false).encode(out)
+            PGPLiteralDataGenerator().open(out, PGPLiteralData.BINARY, "", plaintext.size.toLong(), Date())
+                .use { it.write(plaintext) }
+            generator.generate().encode(out)
+        }
+        val encryptor = PGPEncryptedDataGenerator(
+            BcPGPDataEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256)
+                .setWithIntegrityPacket(true)
+                .setSecureRandom(SecureRandom())
+        )
+        encryptor.addMethod(BcPublicKeyKeyEncryptionMethodGenerator(recipient.raw))
+        val out = ByteArrayOutputStream()
+        ArmoredOutputStream(out).use { armored ->
+            encryptor.open(armored, inner.size().toLong()).use { it.write(inner.toByteArray()) }
+        }
+        return out.toString(Charsets.US_ASCII)
     }
 
     private fun flipped(bytes: ByteArray, index: Int): ByteArray =

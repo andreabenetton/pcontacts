@@ -242,6 +242,25 @@ async function captureOpenPgp() {
     armoredDetachedSignature: sig3,
   });
 
+  // Vector 4: a member token, as WebClients `encryptMemberToken` makes it (memberToken.ts):
+  // a text message encrypted and signed, inline, to the organization key. The token itself is
+  // `generateMemberToken()`: 128 random bytes, base64.
+  const token = Buffer.from(crypto.getRandomValues(new Uint8Array(128))).toString('base64');
+  const memberToken = await openpgp.encrypt({
+    message: await openpgp.createMessage({ text: token }),
+    encryptionKeys: publicKey,
+    signingKeys: privateKey,
+    format: 'armored'
+  });
+  vectors.push({
+    label: 'member-token-inline-signed',
+    operation: 'decryptAndVerifyInline',
+    plaintext: token,
+    armoredPublicKey: armoredPublic,
+    armoredPrivateKey: armoredPrivate,
+    armoredMessage: memberToken,
+  });
+
   return vectors;
 }
 

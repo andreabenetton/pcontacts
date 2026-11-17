@@ -15,6 +15,7 @@ import org.bouncycastle.openpgp.PGPKeyPair
 import org.bouncycastle.openpgp.PGPLiteralData
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator
 import org.bouncycastle.openpgp.PGPObjectFactory
+import org.bouncycastle.openpgp.PGPOnePassSignatureList
 import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData
 import org.bouncycastle.openpgp.PGPSignature
 import org.bouncycastle.openpgp.PGPSignatureGenerator
@@ -140,9 +141,50 @@ class BouncyCastleOpenPgpService : OpenPgpService {
     // --- internals ---
 
     private fun decryptToBytes(armoredMessage: String, decryptionKeys: List<PgpPrivateKeyHandle>): ByteArray {
+        val (target, clearStream) = open(armoredMessage, decryptionKeys)
+        val literal = innerPackets(clearStream).second as? PGPLiteralData ?: error("expected PGPLiteralData")
+        val plaintext = literal.inputStream.readBytes()
+        checkIntegrity(target, plaintext)
+        return plaintext
+    }
+
+    override fun decryptAndVerifyInline(
+        armoredMessage: String,
+        decryptionKeys: List<PgpPrivateKeyHandle>,
+        verificationKeys: List<PgpPublicKeyHandle>
+    ): VerifiedDecryptResult {
+        val (target, clearStream) = open(armoredMessage, decryptionKeys)
+        val (factory, first) = innerPackets(clearStream)
+        val onePass = (first as? PGPOnePassSignatureList)?.takeIf { !it.isEmpty }?.get(0)
+        val literal = (if (onePass != null) factory.nextObject() else first) as? PGPLiteralData
+            ?: error("expected PGPLiteralData")
+        val verifier = onePass?.let { ops -> verificationKeys.firstOrNull { it.raw.keyID == ops.keyID } }
+        verifier?.let { onePass.init(BcPGPContentVerifierBuilderProvider(), it.raw) }
+        val plaintext = literal.inputStream.readBytes()
+        verifier?.let { onePass.update(plaintext) }
+        val signature = onePass?.let { (factory.nextObject() as? PGPSignatureList)?.takeIf { !it.isEmpty }?.get(0) }
+        checkIntegrity(target, plaintext)
+        val status = when {
+            onePass == null -> VerificationStatus.NOT_SIGNED
+            verifier == null -> VerificationStatus.SIGNED_NO_VERIFIER
+            signature != null && onePass.verify(signature) -> VerificationStatus.SIGNED_AND_VALID
+            else -> VerificationStatus.SIGNED_INVALID
+        }
+        return VerifiedDecryptResult(plaintext, status)
+    }
+
+    /**
+     * The encrypted packet meant for one of [decryptionKeys], and its decrypted stream. `[V]`
+     * OpenPGP.js refuses an encrypted packet without integrity protection by default
+     * (`config.allowUnauthenticatedMessages = false`); so does this (review 2026-11-17, F2).
+     */
+    private fun open(
+        armoredMessage: String,
+        decryptionKeys: List<PgpPrivateKeyHandle>
+    ): Pair<PGPPublicKeyEncryptedData, InputStream> {
         require(decryptionKeys.isNotEmpty()) { "at least one decryption key required" }
         val decoded: InputStream = PGPUtil.getDecoderStream(ByteArrayInputStream(armoredMessage.toByteArray(Charsets.US_ASCII)))
-        var objectFactory: PGPObjectFactory = BcPGPObjectFactory(decoded)
+        val objectFactory: PGPObjectFactory = BcPGPObjectFactory(decoded)
 
         val encList = (objectFactory.nextObject() as? PGPEncryptedDataList)
             ?: error("expected PGPEncryptedDataList at top of message")
@@ -154,28 +196,30 @@ class BouncyCastleOpenPgpService : OpenPgpService {
             .firstOrNull()
             ?: error("no encrypted data block for any of our ${decryptionKeys.size} key(s)")
 
-        // [V] OpenPGP.js refuses an encrypted packet without integrity protection by default
-        // (`config.allowUnauthenticatedMessages = false`); so does this (review 2026-11-17, F2).
         check(target.isIntegrityProtected || target.isAEAD) { "encrypted data has no integrity protection" }
         val keyPair = PGPKeyPair(matchedKey.pubKey, matchedKey.raw)
-        val clearStream = target.getDataStream(BcPublicKeyDataDecryptorFactory(keyPair))
-        objectFactory = BcPGPObjectFactory(clearStream)
+        return target to target.getDataStream(BcPublicKeyDataDecryptorFactory(keyPair))
+    }
 
-        // Strip layers: optional Compressed, then Literal.
-        var packet = objectFactory.nextObject()
-        if (packet is PGPCompressedData) {
-            objectFactory = BcPGPObjectFactory(packet.dataStream)
-            packet = objectFactory.nextObject()
-        }
-        val literal = packet as? PGPLiteralData ?: error("expected PGPLiteralData")
-        val plaintext = literal.inputStream.readBytes()
-        // Reading the literal data does not check the MDC; verify() drains the rest and does.
-        // An AEAD packet checks its tags while it is read, and a bad one has already thrown.
+    /** The packets inside the encryption, past an optional compression layer, and the first of them. */
+    private fun innerPackets(clearStream: InputStream): Pair<PGPObjectFactory, Any?> {
+        val outer = BcPGPObjectFactory(clearStream)
+        val first = outer.nextObject()
+        if (first !is PGPCompressedData) return outer to first
+        val inner = BcPGPObjectFactory(first.dataStream)
+        return inner to inner.nextObject()
+    }
+
+    /**
+     * Reading the literal data does not check the MDC; verify() drains the rest and does. An AEAD
+     * packet checks its tags while it is read, and a bad one has already thrown. On failure the
+     * plaintext is wiped.
+     */
+    private fun checkIntegrity(target: PGPPublicKeyEncryptedData, plaintext: ByteArray) {
         if (!target.isAEAD && !target.verify()) {
             plaintext.fill(0)
             error("encrypted data failed its integrity check")
         }
-        return plaintext
     }
 
     private fun parseDetachedSignature(armoredSignature: String): PGPSignature? {

@@ -109,6 +109,7 @@ class CapturedVectorsTest {
         when (operation) {
             "signDetached" -> verifySignDetached(service, label, plaintext, entry, unlocked)
             "encryptAndSignDetached" -> verifyEncryptAndSignDetached(service, label, plaintext, entry, unlocked)
+            "decryptAndVerifyInline" -> verifyDecryptAndVerifyInline(service, label, plaintext, entry, unlocked)
             else -> error("unknown openPgp operation: $operation")
         }
     }
@@ -161,6 +162,31 @@ class CapturedVectorsTest {
             "openPgp vector '$label': BC-produced signature should verify",
             VerificationStatus.SIGNED_AND_VALID,
             bcStatus
+        )
+    }
+
+    /** A member token as Proton's `encryptMemberToken` makes it: decrypted, and its inline signature verified. */
+    private fun verifyDecryptAndVerifyInline(
+        service: BouncyCastleOpenPgpService,
+        label: String,
+        plaintext: String,
+        entry: String,
+        unlocked: UnlockedKey,
+    ) {
+        val result = service.decryptAndVerifyInline(
+            armoredMessage = unescapeJson(entry.jsonStringRaw("armoredMessage")!!),
+            decryptionKeys = unlocked.allPrivateKeys,
+            verificationKeys = listOf(unlocked.public)
+        )
+        assertArrayEquals(
+            "openPgp vector '$label': decrypted plaintext should match",
+            plaintext.toByteArray(Charsets.UTF_8),
+            result.plaintext
+        )
+        assertEquals(
+            "openPgp vector '$label': the inline signature made by OpenPGP.js should verify in BC",
+            VerificationStatus.SIGNED_AND_VALID,
+            result.verificationStatus
         )
     }
 

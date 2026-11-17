@@ -45,6 +45,18 @@ interface OpenPgpService {
         verificationKeys: List<PgpPublicKeyHandle>
     ): VerifiedDecryptResult
 
+    /**
+     * Decrypts [armoredMessage] whose signature travels inside it (one-pass signature, literal
+     * data, signature), as OpenPGP.js makes it with `encrypt({ signingKeys })` — Proton's member
+     * tokens are made that way `[V]` (WebClients `memberToken.ts`, `encryptMemberToken`). The
+     * signature is checked against [verificationKeys]; integrity is checked as for [decryptAndVerify].
+     */
+    fun decryptAndVerifyInline(
+        armoredMessage: String,
+        decryptionKeys: List<PgpPrivateKeyHandle>,
+        verificationKeys: List<PgpPublicKeyHandle>
+    ): VerifiedDecryptResult
+
     /** Verifies an ASCII-armored detached signature over `plaintext`. */
     fun verifyDetached(
         plaintext: ByteArray,
