@@ -222,9 +222,13 @@ internal class DetailFakeContactMapDao : ContactMapDao {
     override suspend fun countLive(): Int =
         rows.values.count { !it.deleted }
     override suspend fun countUnverified(): Int =
-        rows.values.count { !it.deleted && !it.isVerified }
+        rows.values.count { !it.deleted && it.isSigned && !it.isVerified }
     override suspend fun listUnverified(): List<ContactMapEntity> =
-        rows.values.filter { !it.deleted && !it.isVerified }
+        rows.values.filter { !it.deleted && it.isSigned && !it.isVerified }
+    override suspend fun countUnsigned(): Int =
+        rows.values.count { !it.deleted && !it.isSigned }
+    override suspend fun listUnsigned(): List<ContactMapEntity> =
+        rows.values.filter { !it.deleted && !it.isSigned }
     override suspend fun markDeleted(id: String) {
         rows[id]?.let { rows[id] = it.copy(deleted = true) }
     }

@@ -103,6 +103,20 @@ object SyncBootstrap {
         }
     }
 
+    /** Live contacts whose Proton copy carries no signed card: not signed, not failed (review 2026-11-17, F7). */
+    suspend fun countUnsignedContacts(context: Context): Int =
+        DatabaseFactory.create(context.applicationContext).contactMapDao().countUnsigned()
+
+    /** The contacts counted by [countUnsignedContacts]; display names are the caller's, as for [listUnverifiedContacts]. */
+    suspend fun listUnsignedContacts(context: Context): List<UnverifiedContactRef> =
+        DatabaseFactory.create(context.applicationContext).contactMapDao().listUnsigned().map {
+            UnverifiedContactRef(
+                protonContactId = it.protonContactId,
+                androidRawContactId = it.androidRawContactId,
+                lastError = it.lastError
+            )
+        }
+
     /**
      * Returns the local edits that failed permanently and are parked in
      * the outbox quarantine. Display name lookup is left to the caller

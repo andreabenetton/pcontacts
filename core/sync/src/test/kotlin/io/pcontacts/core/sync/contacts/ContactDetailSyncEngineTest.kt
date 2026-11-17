@@ -60,7 +60,10 @@ class ContactDetailSyncEngineTest {
         assertNotNull(mapping)
         assertEquals(1000L, mapping!!.androidRawContactId)
         assertEquals(100L, mapping.modifyTime)
-        assertTrue("CLEAR_TEXT-only cards always verify (no signature path)", mapping.isVerified)
+        // CLEAR_TEXT-only cards carry no signature: not signed, which is not a failed signature
+        // and is not counted as unverified (review 2026-11-17, F7).
+        assertFalse(mapping.isSigned)
+        assertFalse(mapping.isVerified)
 
         val createIntent = applier.lastIntents.single() as RawContactOpIntent.CreateContact
         assertEquals("Alice Doe", createIntent.row.displayName)

@@ -54,12 +54,20 @@ internal object MergeBaseCodec {
             ?.copy(sourceId = "", groupRowIds = emptyList())
             ?.let(EmailSyncHash::compute)
 
-    /** The row-shaped view of [contact]; the photo digests and the carrier cards ride along untouched. */
+    /**
+     * The row-shaped view of [contact]; the photo digests, the carrier cards and the trust state
+     * ride along untouched. The row has no trust state of its own, so without them a contact
+     * whose signature failed would read as verified (review 2026-11-17, F3 and F7).
+     */
     fun canonical(contact: DecryptedContact): DecryptedContact? =
         DecryptedContactToRow.convert(contact)?.let { row ->
             RowToDecryptedContact.convert(row, contact.protonContactId, contact.protonUid).copy(
                 serverPhotoHash = contact.serverPhotoHash,
                 localPhotoHash = contact.localPhotoHash,
+                verified = contact.verified,
+                signed = contact.signed,
+                cardCount = contact.cardCount,
+                unverifiedCardCount = contact.unverifiedCardCount,
                 cards = contact.cards
             )
         }

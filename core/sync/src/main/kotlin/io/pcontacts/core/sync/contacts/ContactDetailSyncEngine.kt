@@ -386,6 +386,7 @@ class ContactDetailSyncEngine(
                     // Unknown group state: forget the server time so the next pull refetches the contact.
                     modifyTime = if (labelMap == null) 0L else response.contact.modifyTime,
                     verified = decrypted.verified,
+                    signed = decrypted.signed,
                     protonUid = decrypted.protonUid,
                     hash = newHash,
                     decrypted = decrypted,
@@ -403,6 +404,7 @@ class ContactDetailSyncEngine(
                         repairMapping(stored, liveRawId).copy(
                             modifyTime = meta.modifyTime,
                             isVerified = meta.verified,
+                            isSigned = meta.signed,
                             protonUid = meta.protonUid,
                             syncStatus = ContactMapEntity.Status.CLEAN,
                             lastError = null,
@@ -568,6 +570,7 @@ class ContactDetailSyncEngine(
                     modifyTime = meta.modifyTime,
                     contentHash = meta.hash,
                     isVerified = meta.verified,
+                    isSigned = meta.signed,
                     deleted = false,
                     syncStatus = ContactMapEntity.Status.CLEAN,
                     lastError = null,
@@ -718,6 +721,8 @@ class ContactDetailSyncEngine(
     private data class PerContactMeta(
         val modifyTime: Long,
         val verified: Boolean,
+        /** Proton's copy has a card meant to be signed (review 2026-11-17, F7). */
+        val signed: Boolean,
         val protonUid: String?,
         val hash: String,
         /** Heap only, same lifetime as the target row; becomes the sealed merge base after the write. */
