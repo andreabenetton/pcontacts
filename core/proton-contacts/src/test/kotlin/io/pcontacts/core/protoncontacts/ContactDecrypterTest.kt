@@ -60,6 +60,21 @@ class ContactDecrypterTest {
         assertFalse(out.verified)
     }
 
+    @Test fun a_signature_that_fails_is_logged_without_the_card() {
+        // Review 2026-11-17: a present but failing signature left no trace in the log.
+        val lines = mutableListOf<String>()
+        val decrypter = ContactDecrypter(
+            cryptoOp = { _ -> CardCryptoOutcome(plaintext = "FN:Alice", verified = false) },
+            logger = io.pcontacts.core.logging.RedactingLogger(tag = "t", sink = { _, _, msg, _ -> lines += msg })
+        )
+
+        decrypter.decryptOne(ContactCardDto(type = 2, data = "FN:Alice", signature = "tampered"))
+        decrypter.decryptOne(ContactCardDto(type = 3, data = "cipher", signature = "tampered"))
+
+        assertEquals(2, lines.count { it.contains("failed verification") })
+        assertFalse(lines.any { it.contains("Alice") })
+    }
+
     @Test fun signed_card_missing_signature_marks_unverified_and_skips_crypto() {
         var called = false
         val decrypter = ContactDecrypter(cryptoOp = { called = true; error("must not be called") })

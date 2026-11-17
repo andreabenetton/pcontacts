@@ -13,8 +13,9 @@ import kotlinx.serialization.Transient
  * the public surface and downstream modules don't pick up ez-vcard at
  * compile time.
  *
- * `verified` is true iff every SIGNED / ENCRYPTED_AND_SIGNED card on
- * the source contact verified successfully. The flag lands in
+ * `verified` is true iff the contact has at least one SIGNED /
+ * ENCRYPTED_AND_SIGNED card and every such card verified successfully;
+ * [signed] tells an unsigned contact from one whose signature failed. The flag lands in
  * `contact_map.is_verified` (ADR-0008) so a future settings screen can
  * surface "X contacts could not be verified" without exposing which.
  *
@@ -67,6 +68,13 @@ data class DecryptedContact(
     val serverPhotoHash: String? = null,
     val localPhotoHash: String? = null,
     val verified: Boolean,
+    /**
+     * At least one card is meant to carry a signature (SIGNED or ENCRYPTED_AND_SIGNED). A contact
+     * with none — cleartext and unsigned encrypted cards only, as some imports and auto-saved
+     * contacts are — is not signed, which is not the same as signed and failed (review
+     * 2026-11-17, F7). Defaults to true so merge bases stored before it still read.
+     */
+    val signed: Boolean = true,
     val cardCount: Int,
     val unverifiedCardCount: Int,
     @Transient val cards: List<DecryptedCard> = emptyList()
@@ -84,7 +92,8 @@ data class DecryptedContact(
             notes = emptyList(),
             imAccounts = emptyList(),
             photo = null,
-            verified = true,
+            verified = false,
+            signed = false,
             cardCount = 0,
             unverifiedCardCount = 0
         )

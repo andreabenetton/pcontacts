@@ -17,7 +17,9 @@ import io.pcontacts.core.proton.api.contacts.ContactCardDto
  * types from leaking across module boundaries.
  *
  * Verification policy mirrors Plan §10.1 and ADR-0007:
- *   - CLEAR_TEXT and ENCRYPTED have no signature requirement; verified=true.
+ *   - CLEAR_TEXT and ENCRYPTED have no signature requirement; verified=true here means
+ *     "nothing failed", and the contact built only from such cards is not signed
+ *     ([DecryptedContact.signed]).
  *   - SIGNED and ENCRYPTED_AND_SIGNED must produce a valid signature;
  *     a missing or failing signature yields verified=false but the
  *     plaintext is retained (a downgrade-resistant warning beats data loss).
@@ -47,6 +49,7 @@ class ContactDecrypter(
                     DecryptedCard(type, card.data, verified = false)
                 } else {
                     val outcome = cryptoOp(CardCryptoRequest.VerifyOnly(card.data, signature))
+                    if (!outcome.verified) logger.warn { "SIGNED card failed verification; retaining plaintext as unverified" }
                     DecryptedCard(type, plaintext = outcome.plaintext, verified = outcome.verified)
                 }
             }
@@ -67,6 +70,9 @@ class ContactDecrypter(
                     DecryptedCard(type, plaintext = outcome.plaintext, verified = false)
                 } else {
                     val outcome = cryptoOp(CardCryptoRequest.DecryptAndVerify(card.data, signature))
+                    if (!outcome.verified) {
+                        logger.warn { "ENCRYPTED_AND_SIGNED card failed verification; retaining plaintext as unverified" }
+                    }
                     DecryptedCard(type, plaintext = outcome.plaintext, verified = outcome.verified)
                 }
             }

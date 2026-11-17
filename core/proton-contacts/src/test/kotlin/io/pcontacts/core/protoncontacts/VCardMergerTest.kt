@@ -36,7 +36,8 @@ class VCardMergerTest {
         )
         assertEquals("Alice", out.fullName)
         assertEquals(emptyList<DecryptedEmail>(), out.emails)
-        assertTrue(out.verified)
+        assertFalse("a cleartext card carries no signature", out.signed)
+        assertFalse(out.verified)
         assertEquals(0, out.unverifiedCardCount)
     }
 
@@ -145,9 +146,36 @@ class VCardMergerTest {
                 """.trimIndent(), verified = false)
             )
         )
-        // The contact-level rule counts only SIGNED / ENCRYPTED_AND_SIGNED.
-        assertTrue(out.verified)
+        // The contact-level rule counts only SIGNED / ENCRYPTED_AND_SIGNED: nothing failed, and
+        // nothing was signed either (review 2026-11-17, F7).
+        assertFalse(out.signed)
+        assertFalse(out.verified)
         assertEquals(0, out.unverifiedCardCount)
+    }
+
+    @Test fun a_contact_with_a_valid_signed_card_is_signed_and_verified() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(
+                card(CardType.SIGNED, "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nEND:VCARD", verified = true),
+                card(CardType.CLEAR_TEXT, "BEGIN:VCARD\nVERSION:4.0\nEND:VCARD", verified = true)
+            )
+        )
+        assertTrue(out.signed)
+        assertTrue(out.verified)
+    }
+
+    @Test fun a_failed_signature_is_signed_and_unverified_not_unsigned() {
+        val out = merger.merge(
+            protonContactId = "c1",
+            decrypted = listOf(
+                card(CardType.ENCRYPTED_AND_SIGNED, "BEGIN:VCARD\nVERSION:4.0\nTEL:+1555\nEND:VCARD", verified = false),
+                card(CardType.ENCRYPTED, "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nEND:VCARD", verified = true)
+            )
+        )
+        assertTrue(out.signed)
+        assertFalse(out.verified)
+        assertEquals(1, out.unverifiedCardCount)
     }
 
     @Test fun structured_name_drives_fullName_when_FN_is_missing() {

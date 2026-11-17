@@ -107,12 +107,13 @@ internal class VCardMerger(
         val websites = merged.urls.orEmpty().mapNotNull { u -> u.value?.trim()?.takeIf { it.isNotEmpty() } }
         val photo = projectPhoto(merged)
 
-        // A contact is verified only if every card that should have been
-        // signed actually verified.
-        val unverified = sourceCards.count {
-            !it.verified && (it.originalType == CardType.SIGNED ||
-                it.originalType == CardType.ENCRYPTED_AND_SIGNED)
+        // A contact is verified only if it has a card meant to be signed and every such card
+        // verified. [V] WebClients `decrypt.ts` needs at least one signed card; Proton Core Android
+        // keeps NotSigned apart from Success and Failure (review 2026-11-17, F7).
+        val signedCards = sourceCards.filter {
+            it.originalType == CardType.SIGNED || it.originalType == CardType.ENCRYPTED_AND_SIGNED
         }
+        val unverified = signedCards.count { !it.verified }
 
         return DecryptedContact(
             protonContactId = protonContactId,
@@ -131,7 +132,8 @@ internal class VCardMerger(
             websites = websites,
             photo = photo,
             serverPhotoHash = photo?.let { PhotoHash.of(it.data) },
-            verified = unverified == 0,
+            verified = signedCards.isNotEmpty() && unverified == 0,
+            signed = signedCards.isNotEmpty(),
             cardCount = sourceCards.size,
             unverifiedCardCount = unverified,
             cards = sourceCards
