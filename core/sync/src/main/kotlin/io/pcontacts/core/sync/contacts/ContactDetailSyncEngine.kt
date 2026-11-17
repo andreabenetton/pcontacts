@@ -4,6 +4,7 @@
 package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
+import android.content.OperationApplicationException
 import io.pcontacts.core.contactswriter.ApplyResult
 import io.pcontacts.core.contactswriter.ContactRow
 import io.pcontacts.core.contactswriter.ExistingRawContacts
@@ -541,18 +542,17 @@ class ContactDetailSyncEngine(
         now: Long
     ): ApplyResult {
         // A row the user edited since the run began is not overwritten: the next run merges it
-        // (ADR-0017, 2026-10-15). Only the milliseconds between this read and the batch remain.
-        val edited = readDirtyRawIds(account)
-        val writable = rows.filter { existing[it.sourceId] !in edited }
-        if (writable.size < rows.size) {
-            logger.info { "pull: ${rows.size - writable.size} row(s) edited on the phone during the run left for the next" }
+        // (ADR-0017, 2026-10-15). An edit after this check fails the batch through the update's
+        // assert (ADR-0010, 2026-11-17); what the phone holds is then read again, once.
+        var writable = notEdited(account, rows, existing)
+        val result = try {
+            applyRows(account, writable, existing, serverSourceIds)
+        } catch (_: OperationApplicationException) {
+            logger.info { "pull: a row was edited while its batch was written; checking the rows again" }
+            existing.putAll(readExisting(account).canonicalIds())
+            writable = notEdited(account, rows, existing)
+            applyRows(account, writable, existing, serverSourceIds)
         }
-        val intents = RawContactDiffer.diff(
-            target = writable,
-            existing = existing,
-            serverSourceIds = serverSourceIds + existing.keys
-        )
-        val result = applyIntents(account, intents)
         val fresh = readExisting(account).canonicalIds()
         for (row in writable) {
             val rawId = fresh[row.sourceId]
@@ -717,6 +717,25 @@ class ContactDetailSyncEngine(
             .filter { it !in present }
         if (gone.isNotEmpty()) contactMapDao.deleteByProtonIds(gone)
     }
+
+    private suspend fun notEdited(account: Account, rows: List<ContactRow>, existing: Map<String, Long>): List<ContactRow> {
+        val edited = readDirtyRawIds(account)
+        val writable = rows.filter { existing[it.sourceId] !in edited }
+        if (writable.size < rows.size) {
+            logger.info { "pull: ${rows.size - writable.size} row(s) edited on the phone during the run left for the next" }
+        }
+        return writable
+    }
+
+    private suspend fun applyRows(
+        account: Account,
+        rows: List<ContactRow>,
+        existing: Map<String, Long>,
+        serverSourceIds: Set<String>
+    ): ApplyResult = applyIntents(
+        account,
+        RawContactDiffer.diff(target = rows, existing = existing, serverSourceIds = serverSourceIds + existing.keys)
+    )
 
     /**
      * The phone's photo digest for a merge base, or null when the row was edited after it was read:

@@ -58,6 +58,27 @@ class ContactDetailSyncEngineChunkTest {
         assertEquals("its mapping is left as it was", 0L, dao.findByProtonId("c7")!!.modifyTime)
     }
 
+    @Test fun a_row_edited_while_its_batch_is_written_is_left_and_the_others_are_written() = runTest {
+        // Review 2026-11-17, F5: the edit lands after the pull's check; the batch's assert refuses
+        // it, and the rows are checked again once, without the edited one.
+        val dao = DetailFakeContactMapDao()
+        val applier = DetailFakeApplier(base = 1L)
+        newEngine(api(), dao, applier).sync(account)
+        val edited = dao.findByProtonId("c7")!!.androidRawContactId
+        dao.forceRefetch("c7")
+        dao.forceRefetch("c8")
+        val dirty = mutableSetOf<Long>()
+        applier.editBeforeNextApply = { dirty += edited }
+        val callsBefore = applier.applyCallCount
+
+        newEngine(api(), dao, applier, readDirtyRawIds = { dirty }).sync(account)
+
+        assertEquals("refused once, then written", callsBefore + 2, applier.applyCallCount)
+        val updated = applier.lastIntents.filterIsInstance<RawContactOpIntent.UpdateContact>().map { it.row.sourceId }
+        assertEquals(listOf("c8"), updated)
+        assertEquals("the edited row's mapping is left as it was", 0L, dao.findByProtonId("c7")!!.modifyTime)
+    }
+
     @Test fun a_row_whose_create_is_still_queued_is_neither_rewritten_nor_recreated() = runTest {
         // The create's recording was cut short: the mapping exists, the row may or may not carry the
         // SOURCE_ID yet. The pull rewrote the row, or recreated the contact as a second row

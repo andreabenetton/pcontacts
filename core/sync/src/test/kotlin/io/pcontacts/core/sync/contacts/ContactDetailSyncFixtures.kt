@@ -276,6 +276,12 @@ internal class DetailFakeApplier(base: Long) {
     /** Thrown after the intents were applied: a later chunk failing while earlier ones are committed. */
     var throwAfterApply: Throwable? = null
 
+    /**
+     * Runs once, before the next apply, as the user's edit between the pull's check and its batch;
+     * that apply then fails as the batch's assert does, with nothing applied (ADR-0010, 2026-11-17).
+     */
+    var editBeforeNextApply: (() -> Unit)? = null
+
     /** A provider that hides deleted rows in a recycle bin (Samsung) instead of leaving tombstones. */
     var hasRecycleBin = false
 
@@ -299,6 +305,11 @@ internal class DetailFakeApplier(base: Long) {
     @Suppress("UnusedParameter")
     suspend fun apply(account: Account, intents: List<RawContactOpIntent>): ApplyResult {
         applyCallCount += 1
+        editBeforeNextApply?.let { edit ->
+            editBeforeNextApply = null
+            edit()
+            throw android.content.OperationApplicationException("assert failed: row edited")
+        }
         lastIntents = intents
         for (intent in intents) when (intent) {
             is RawContactOpIntent.CreateContact -> seedRow(intent.row.sourceId, nextId++)

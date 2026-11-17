@@ -145,6 +145,15 @@ class ContactWriteEngine(
                     clearDirtyFlag(account, dc.rawContactId)
                 }
                 EnqueueResult.SKIPPED -> clearDirtyFlag(account, dc.rawContactId)
+                EnqueueResult.UNCHANGED -> {
+                    clearDirtyFlag(account, dc.rawContactId)
+                    // An edit between the read and the clear lost its DIRTY flag with it; read the
+                    // row again after the clear, once (review 2026-11-17, F5).
+                    if (enqueueChange(dc) == EnqueueResult.ENQUEUED) {
+                        logger.info { "detectChanges: rawId=${dc.rawContactId} edited while it was checked; queued" }
+                        enqueued++
+                    }
+                }
                 EnqueueResult.PURGE -> purgeRow(account, dc.rawContactId)
                 EnqueueResult.FAILED -> Unit
             }
@@ -152,8 +161,11 @@ class ContactWriteEngine(
         return enqueued
     }
 
-    /** [PURGE]: a deleted row with nothing left to send; it goes, or it is read again on every run. */
-    private enum class EnqueueResult { ENQUEUED, SKIPPED, PURGE, FAILED }
+    /**
+     * [UNCHANGED]: the row's content matches what Proton has; [PURGE]: a deleted row with nothing
+     * left to send, which goes, or it is read again on every run.
+     */
+    private enum class EnqueueResult { ENQUEUED, SKIPPED, UNCHANGED, PURGE, FAILED }
 
     private suspend fun enqueueChange(dc: DirtyContact): EnqueueResult {
         val now = clock()
@@ -178,7 +190,7 @@ class ContactWriteEngine(
                     logger.info { "enqueue: row restored; queued delete cancelled idTag=${protonId.hashCode()}" }
                 }
                 logger.info { "enqueue: hash unchanged, skipping (stored=${mapping.contentHash.take(8)})" }
-                return EnqueueResult.SKIPPED
+                return EnqueueResult.UNCHANGED
             }
             logger.info { "enqueue: hash differs stored=${mapping?.contentHash?.take(8)} new=${hash.take(8)}" }
             if (mapping != null && mapping.androidRawContactId != dc.rawContactId) {

@@ -1168,6 +1168,27 @@ class ContactWriteEngineTest {
         assertEquals(1, outbox.findByContact("ct-1").size)
     }
 
+    @Test fun an_edit_landing_between_the_check_and_the_clear_of_dirty_is_still_queued() = runTest {
+        // Review 2026-11-17, F5: the row read matched Proton, the user edited it, then DIRTY was
+        // cleared with the edit's flag. Nothing was queued and later scans could not see it.
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val rows = mutableMapOf(100L to sampleRow("ct-1"))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(contentHash = EmailSyncHash.compute(rows[100L]!!)))
+        val engine = newEngine(
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(100L, "ct-1", isDirty = true, isDeleted = false)),
+            contactRows = rows,
+            onClearDirty = { rows[100L] = sampleRow("ct-1", email = "edited@proton.me") }
+        )
+
+        val queued = engine.detectChanges(testAccount)
+
+        assertEquals(1, queued)
+        assertEquals(OutboxEntity.OpType.UPDATE, outbox.findLive("ct-1")!!.opType)
+    }
+
     @Test fun detectChanges_clears_dirty_flag_when_hash_unchanged() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
@@ -2947,6 +2968,7 @@ class ContactWriteEngineTest {
         contactRows: Map<Long, ContactRow> = emptyMap(),
         clearedFlags: MutableList<Long>? = null,
         purgedRows: MutableList<Long>? = null,
+        onClearDirty: (Long) -> Unit = {},
         serverContacts: Map<String, DecryptedContact> = emptyMap(),
         writtenSourceIds: MutableList<Pair<Long, String>>? = null,
         clock: () -> Long = { 2_000_000_000L },
@@ -2974,7 +2996,10 @@ class ContactWriteEngineTest {
                 contactRows[rawId]
                     ?: contacts[sourceId]?.let { DecryptedContactToRow.convert(it)?.copy(sourceId = sourceId) }
             },
-            clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
+            clearDirtyFlag = { _, rawId ->
+                clearedFlags?.add(rawId)
+                onClearDirty(rawId)
+            },
             purgeRow = { _, rawId -> purgedRows?.add(rawId) },
             // Like the provider write's withContext, it notices a cancelled run.
             writeSourceId = { _, rawId, sourceId ->
