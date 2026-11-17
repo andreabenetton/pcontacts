@@ -10,6 +10,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A contact deleted before it reached Proton is removed for good.** When
+  a contact was deleted on the phone before pcontacts had sent it to
+  Proton, for example one whose creation Proton had refused, its deleted
+  row stayed behind and was checked again on every sync. It is now removed.
+  A refused creation of such a contact is dropped with it: **Retry** on it
+  would have sent Proton the contact you had deleted.
+
 ## [2.5.2] - 2026-11-16
 
 ### Fixed
