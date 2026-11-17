@@ -12,14 +12,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **A contact is encrypted only to a key whose signatures check out.** The
+  key a card is encrypted to was chosen from flags that were read, not
+  verified, and a ring with no suitable key fell back to its primary key.
+  Every signature that decides it must now verify against the account's
+  primary key, and a change that has no key to encrypt to fails, listed
+  as "no encryption key", instead of using another key.
+- **A damaged or altered encrypted card is refused.** Decryption returned
+  the card without checking its integrity, and accepted a card with no
+  integrity protection at all. Both are refused now, as Proton's apps
+  refuse them.
+- **An edit on the phone no longer vouches for a contact whose signature
+  failed.** Every change signs all of the contact's cards again with your
+  key, so an edit to one field signed whatever Proton held, including a
+  card whose signature had failed. Such a change now waits in the
+  conflicts list: **Use phone version** signs and sends it, **Use Proton
+  version** drops it.
+
+### Added
+
+- **Accounts whose keys an organization manages can sign in and sync.**
+  Their user keys open with a token the organization key decrypts, as in
+  Proton's web app. Not yet tried with a real organization account.
+
 ### Fixed
 
+- **Contacts without a signature are no longer counted as verified.**
+  Some contacts, such as imported or automatically saved ones, carry no
+  signature at all. They were counted as verified; they now have their
+  own neutral line on the Sync card, apart from contacts whose signature
+  failed. After the update every contact is fetched once more to record
+  this; nothing is rewritten on the phone.
+- **A photo changed while a change was being sent is no longer lost.**
+  The new photo was recorded as already synced and was replaced by the
+  one sent before it.
+- **An edit made while a sync writes to the phone is no longer
+  overwritten.** A contact edited between the sync's check and its write
+  was replaced by Proton's copy; an edit made while the sync cleared its
+  "changed" mark could be forgotten. Both are kept and sent now.
+- **Contacts with large photos no longer stop the download.** Many
+  contacts with photos were written in one batch too large for Android,
+  and the same batch failed on every sync.
 - **A contact deleted before it reached Proton is removed for good.** When
   a contact was deleted on the phone before pcontacts had sent it to
   Proton, for example one whose creation Proton had refused, its deleted
   row stayed behind and was checked again on every sync. It is now removed.
   A refused creation of such a contact is dropped with it, instead of
   staying among the failed changes.
+
+### Changed
+
+- **Dependencies updated:** OkHttp 5.5.1, BouncyCastle 1.87,
+  kotlinx-serialization 1.13.0, jsoup 1.24.1, jackson-core 2.23.0; the
+  build moves to Android Gradle Plugin 9.5.1, Gradle 9.9.1 and KSP 2.3.13.
 
 ## [2.5.2] - 2026-11-16
 
