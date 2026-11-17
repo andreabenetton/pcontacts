@@ -18,8 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a contact was deleted on the phone before pcontacts had sent it to
   Proton, for example one whose creation Proton had refused, its deleted
   row stayed behind and was checked again on every sync. It is now removed.
-  A refused creation of such a contact is dropped with it: **Retry** on it
-  would have sent Proton the contact you had deleted.
+  A refused creation of such a contact is dropped with it, instead of
+  staying among the failed changes.
 
 ## [2.5.2] - 2026-11-16
 

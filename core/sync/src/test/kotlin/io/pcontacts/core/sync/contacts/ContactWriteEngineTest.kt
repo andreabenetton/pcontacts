@@ -1352,7 +1352,7 @@ class ContactWriteEngineTest {
     }
 
     @Test fun a_create_proton_refused_goes_with_its_deleted_row() = runTest {
-        // Retry would have read the deleted row and sent the contact the user had deleted.
+        // It stayed among the failed changes, for a contact the user had deleted.
         val api = WriteFakeApi()
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()

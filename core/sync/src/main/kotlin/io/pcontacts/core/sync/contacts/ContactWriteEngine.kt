@@ -254,9 +254,9 @@ class ContactWriteEngine(
      * contact back and the user's next deletion is an ordinary one: nothing is lost.
      *
      * Once nothing is left to send, the row is purged: no pull removes a row without a SOURCE_ID,
-     * so it was read again on every run. A create Proton refused goes with it — Retry would send
-     * the contact the user deleted, read from the row. A refused delete by UID stays, with its row,
-     * until Retry or Discard, as a refused delete does.
+     * so it was read again on every run. A create Proton refused goes with it rather than staying
+     * among the failed changes for a contact that no longer exists. A refused delete by UID stays,
+     * with its row, until Retry or Discard, as a refused delete does.
      */
     private suspend fun deleteUnconfirmedCreate(localId: String, now: Long): EnqueueResult {
         val live = outboxDao.findLive(localId) ?: return purgeUnsent(localId)
