@@ -3,11 +3,23 @@
 
 package io.pcontacts.core.crypto.openpgp
 
+import org.bouncycastle.bcpg.ArmoredOutputStream
+import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags
+import org.bouncycastle.openpgp.PGPEncryptedDataGenerator
+import org.bouncycastle.openpgp.PGPLiteralData
+import org.bouncycastle.openpgp.PGPLiteralDataGenerator
+import org.bouncycastle.openpgp.PGPUtil
+import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.BeforeClass
 import org.junit.Test
+import java.io.ByteArrayOutputStream
+import java.security.SecureRandom
+import java.util.Date
 
 class BouncyCastleOpenPgpServiceTest {
 
@@ -69,6 +81,71 @@ class BouncyCastleOpenPgpServiceTest {
         assertEquals(VerificationStatus.SIGNED_AND_VALID, verified.verificationStatus)
     }
 
+    @Test fun a_message_whose_integrity_check_fails_is_refused_even_when_its_signature_verifies() {
+        // Review 2026-11-17, F2: the last ciphertext byte is the last byte of the MDC; flipping it
+        // leaves the literal data intact, so only the integrity check can notice.
+        val plaintext = "BEGIN:VCARD\r\nTEL:+15550100\r\nEND:VCARD".toByteArray()
+        val encrypted = service.encryptAndSignDetached(plaintext, listOf(key.pub), key.priv)
+        val bytes = dearmor(encrypted.armoredMessage)
+        val tampered = rearmor(flipped(bytes, bytes.size - 1))
+
+        assertThrows(Exception::class.java) {
+            service.decryptAndVerify(tampered, encrypted.armoredDetachedSignature, listOf(key.priv), listOf(key.pub))
+        }
+    }
+
+    @Test fun altered_or_truncated_ciphertext_is_refused() {
+        val plaintext = "BEGIN:VCARD\r\nEND:VCARD".toByteArray()
+        val bytes = dearmor(service.encryptAndSignDetached(plaintext, listOf(key.pub), key.priv).armoredMessage)
+        val altered = flipped(bytes, bytes.size - MIDDLE_OFFSET)
+        val truncated = bytes.copyOf(bytes.size - TRUNCATED_BYTES)
+
+        for (message in listOf(altered, truncated)) {
+            assertThrows(Exception::class.java) {
+                service.decryptAndVerify(rearmor(message), null, listOf(key.priv), emptyList())
+            }
+        }
+    }
+
+    @Test fun a_message_without_integrity_protection_is_refused() {
+        // [V] OpenPGP.js refuses these by default (config.allowUnauthenticatedMessages = false).
+        val unprotected = encryptWithoutIntegrity("BEGIN:VCARD\r\nEND:VCARD".toByteArray(), key.pub)
+
+        assertThrows(Exception::class.java) {
+            service.decryptAndVerify(unprotected, null, listOf(key.priv), emptyList())
+        }
+    }
+
+    private fun flipped(bytes: ByteArray, index: Int): ByteArray =
+        bytes.copyOf().also { it[index] = (it[index].toInt() xor 1).toByte() }
+
+    private fun dearmor(armored: String): ByteArray =
+        PGPUtil.getDecoderStream(armored.byteInputStream()).readBytes()
+
+    private fun rearmor(bytes: ByteArray): String {
+        val out = ByteArrayOutputStream()
+        ArmoredOutputStream(out).use { it.write(bytes) }
+        return out.toString(Charsets.US_ASCII)
+    }
+
+    /** A symmetrically encrypted data packet (tag 9): encrypted, but with no MDC. */
+    private fun encryptWithoutIntegrity(plaintext: ByteArray, recipient: PgpPublicKeyHandle): String {
+        val literal = ByteArrayOutputStream()
+        PGPLiteralDataGenerator().open(literal, PGPLiteralData.BINARY, "_", plaintext.size.toLong(), Date())
+            .use { it.write(plaintext) }
+        val generator = PGPEncryptedDataGenerator(
+            BcPGPDataEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256)
+                .setWithIntegrityPacket(false)
+                .setSecureRandom(SecureRandom())
+        )
+        generator.addMethod(BcPublicKeyKeyEncryptionMethodGenerator(recipient.raw))
+        val out = ByteArrayOutputStream()
+        ArmoredOutputStream(out).use { armored ->
+            generator.open(armored, literal.size().toLong()).use { it.write(literal.toByteArray()) }
+        }
+        return out.toString(Charsets.US_ASCII)
+    }
+
     @Test fun decrypt_with_no_detached_signature_yields_NOT_SIGNED() {
         val plaintext = "x".toByteArray()
         val encrypted = service.encryptAndSignDetached(
@@ -106,6 +183,8 @@ class BouncyCastleOpenPgpServiceTest {
         // Reuse one keypair across the suite — RSA-2048 generation is the
         // slowest single operation in this test file.
         private lateinit var key: TestKeyGen.TestKey
+        private const val MIDDLE_OFFSET = 40
+        private const val TRUNCATED_BYTES = 10
 
         @BeforeClass @JvmStatic fun makeKey() {
             key = TestKeyGen.rsa2048()

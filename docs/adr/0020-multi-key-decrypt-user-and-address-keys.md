@@ -1,6 +1,6 @@
 # ADR-0020: Decrypt path tries all unlocked user + address keys
 
-- **Status:** Accepted (amended 2026-09-22 — Token signature verification is mandatory; amended 2026-11-17 — the encryption key is chosen from signatures that verify)
+- **Status:** Accepted (amended 2026-09-22 — Token signature verification is mandatory; amended 2026-11-17 — the encryption key is chosen from signatures that verify, and an encrypted message must prove its integrity)
 - **Date:** 2026-05-29
 - **Deciders:** pcontacts maintainers
 - **Related:** ADR-0002 (native Kotlin crypto), ADR-0007 (client-side
@@ -218,3 +218,28 @@ still decrypts what was encrypted to it.
 Validation: `BouncyCastleKeyUnlockTest` — a planted subkey with a forged
 binding, a forged revocation, a revocation by the primary, an expired
 binding, a forged self-certification (review of 2026-11-17, F1).
+
+## Amendment (2026-11-17, second): an encrypted message must prove its integrity
+
+Decryption returns plaintext only from an integrity-protected packet
+whose check passed. Reading the literal data never checked the MDC
+(modification detection code) of a SEIPD v1 packet, and a packet without
+any protection (symmetrically encrypted data, tag 9) decrypted as if it
+were sound. Now:
+
+- a packet that is neither integrity-protected nor AEAD is refused, as
+  OpenPGP.js refuses it by default `[V]`
+  (`config.allowUnauthenticatedMessages = false`);
+- after the literal data is read, the MDC is verified; on failure the
+  plaintext is wiped and the decryption fails;
+- an AEAD packet checks its tags while it is read.
+
+A failure is handled like any other decryption failure: the pull skips
+that contact, a push backs off, an address key whose token fails is
+skipped. This applies to every caller — contact cards, address-key
+tokens and, later, member tokens.
+
+Validation: `BouncyCastleOpenPgpServiceTest` — a flipped MDC byte with
+intact literal data and a valid signature, altered and truncated
+ciphertext, a packet without integrity protection; the captured
+OpenPGP.js vectors still decrypt (review of 2026-11-17, F2).

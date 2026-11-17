@@ -154,6 +154,9 @@ class BouncyCastleOpenPgpService : OpenPgpService {
             .firstOrNull()
             ?: error("no encrypted data block for any of our ${decryptionKeys.size} key(s)")
 
+        // [V] OpenPGP.js refuses an encrypted packet without integrity protection by default
+        // (`config.allowUnauthenticatedMessages = false`); so does this (review 2026-11-17, F2).
+        check(target.isIntegrityProtected || target.isAEAD) { "encrypted data has no integrity protection" }
         val keyPair = PGPKeyPair(matchedKey.pubKey, matchedKey.raw)
         val clearStream = target.getDataStream(BcPublicKeyDataDecryptorFactory(keyPair))
         objectFactory = BcPGPObjectFactory(clearStream)
@@ -165,7 +168,14 @@ class BouncyCastleOpenPgpService : OpenPgpService {
             packet = objectFactory.nextObject()
         }
         val literal = packet as? PGPLiteralData ?: error("expected PGPLiteralData")
-        return literal.inputStream.readBytes()
+        val plaintext = literal.inputStream.readBytes()
+        // Reading the literal data does not check the MDC; verify() drains the rest and does.
+        // An AEAD packet checks its tags while it is read, and a bad one has already thrown.
+        if (!target.isAEAD && !target.verify()) {
+            plaintext.fill(0)
+            error("encrypted data failed its integrity check")
+        }
+        return plaintext
     }
 
     private fun parseDetachedSignature(armoredSignature: String): PGPSignature? {
