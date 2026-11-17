@@ -12,6 +12,7 @@ import org.bouncycastle.openpgp.PGPSignature
 import org.bouncycastle.openpgp.PGPUtil
 import org.bouncycastle.openpgp.bc.BcPGPObjectFactory
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
 import java.io.ByteArrayInputStream
 import java.util.Date
@@ -116,40 +117,75 @@ object BouncyCastleKeyUnlock {
      * primary if its self-signature does. The algorithm alone is not enough: an RSA primary
      * can encrypt but is flagged sign-only on Proton keys, and a card encrypted to it as well
      * was refused with Code 2060, `PgpFormat` (issue #71) `[A]`.
+     *
+     * Only signatures that verify count, as in OpenPGP.js: the ring arrives from the server,
+     * so a subkey with a binding that merely names the primary as its issuer, or a revocation
+     * nobody signed, says nothing. A primary without a valid self-certification, or revoked,
+     * or expired, gives no encryption key at all (review 2026-11-17, F1).
      */
     private fun encryptionKey(primary: PGPPublicKey, keys: List<PGPPublicKey>): PGPPublicKey? {
         val now = Date()
+        val selfSignature = latestValid(primary, primary, SELF_CERTIFICATIONS)
+        val primaryUsable = selfSignature != null &&
+            !revoked(primary, primary, PGPSignature.KEY_REVOCATION) &&
+            unexpired(primary, selfSignature, now)
+        if (!primaryUsable) return null
         val subkey = keys
-            .filter { !it.isMasterKey && usable(it, now) }
-            .filter { allowsEncryption(it, signatures(it, primary.keyID, setOf(PGPSignature.SUBKEY_BINDING))) }
-            .maxWithOrNull(compareBy<PGPPublicKey>({ it.creationTime }, { it.algorithm }))
-        return subkey ?: primary.takeIf {
-            usable(it, now) && allowsEncryption(it, signatures(it, it.keyID, SELF_SIGNATURE_TYPES))
-        }
+            .filter { !it.isMasterKey && !revoked(it, primary, PGPSignature.SUBKEY_REVOCATION) }
+            .mapNotNull { sub -> latestValid(sub, primary, setOf(PGPSignature.SUBKEY_BINDING))?.let { sub to it } }
+            .filter { (sub, binding) -> unexpired(sub, binding, now) && allowsEncryption(sub, binding) }
+            .maxWithOrNull(compareBy({ it.first.creationTime }, { it.first.algorithm }))
+            ?.first
+        return subkey ?: primary.takeIf { allowsEncryption(it, selfSignature) }
     }
 
-    private fun usable(key: PGPPublicKey, now: Date): Boolean {
-        val expiresAt = key.creationTime.time + key.validSeconds * MILLIS_PER_SECOND
-        return !key.hasRevocation() && (key.validSeconds == 0L || expiresAt > now.time)
-    }
-
-    /** `key`'s signatures of [types] by [issuer] that carry key flags. */
-    private fun signatures(key: PGPPublicKey, issuer: Long, types: Set<Int>): List<PGPSignature> =
+    /** The latest of [key]'s signatures of [types] that [signer] really made, or null. */
+    private fun latestValid(key: PGPPublicKey, signer: PGPPublicKey, types: Set<Int>): PGPSignature? =
         key.signatures.asSequence()
             .filterIsInstance<PGPSignature>()
-            .filter { it.signatureType in types && it.keyID == issuer && keyFlags(it) != 0 }
-            .toList()
+            .filter { it.signatureType in types && it.keyID == signer.keyID && verifies(it, key, signer) }
+            .maxByOrNull { it.creationTime }
 
-    /** The latest flags must allow encryption; a key without any is refused, as OpenPGP.js does by default. */
-    private fun allowsEncryption(key: PGPPublicKey, signatures: List<PGPSignature>): Boolean {
-        val flags = signatures.maxByOrNull { it.creationTime }?.let(::keyFlags) ?: 0
+    private fun revoked(key: PGPPublicKey, signer: PGPPublicKey, type: Int): Boolean =
+        latestValid(key, signer, setOf(type)) != null
+
+    /**
+     * Whether [signature] over [key] verifies with [signer]: a subkey binding or revocation
+     * covers primary and subkey, a direct-key signature or key revocation the key alone, a
+     * certification one of the key's user IDs. A signature BouncyCastle cannot check is false.
+     */
+    private fun verifies(signature: PGPSignature, key: PGPPublicKey, signer: PGPPublicKey): Boolean = try {
+        signature.init(BcPGPContentVerifierBuilderProvider(), signer)
+        when (signature.signatureType) {
+            PGPSignature.SUBKEY_BINDING, PGPSignature.SUBKEY_REVOCATION -> signature.verifyCertification(signer, key)
+            PGPSignature.DIRECT_KEY, PGPSignature.KEY_REVOCATION -> signature.verifyCertification(key)
+            else -> key.rawUserIDs.asSequence().any { userId ->
+                key.getSignaturesForID(userId)?.asSequence()?.any { it === signature } == true &&
+                    signature.verifyCertification(userId, key)
+            }
+        }
+    } catch (_: PGPException) {
+        false
+    }
+
+    /** Key expiry and signature expiry, both read from the verified [signature]. */
+    private fun unexpired(key: PGPPublicKey, signature: PGPSignature, now: Date): Boolean {
+        val keyExpiry = signature.hashedSubPackets?.keyExpirationTime ?: 0L
+        val signatureExpiry = signature.hashedSubPackets?.signatureExpirationTime ?: 0L
+        val keyLive = keyExpiry == 0L || key.creationTime.time + keyExpiry * MILLIS_PER_SECOND > now.time
+        val signatureLive = signatureExpiry == 0L ||
+            signature.creationTime.time + signatureExpiry * MILLIS_PER_SECOND > now.time
+        return keyLive && signatureLive
+    }
+
+    /** The flags must allow encryption; a signature without any is refused, as OpenPGP.js does by default. */
+    private fun allowsEncryption(key: PGPPublicKey, signature: PGPSignature): Boolean {
+        val flags = signature.hashedSubPackets?.keyFlags ?: 0
         return key.isEncryptionKey && flags and (KeyFlags.ENCRYPT_COMMS or KeyFlags.ENCRYPT_STORAGE) != 0
     }
 
-    private fun keyFlags(signature: PGPSignature): Int = signature.hashedSubPackets?.keyFlags ?: 0
-
     private const val MILLIS_PER_SECOND = 1000L
-    private val SELF_SIGNATURE_TYPES = setOf(
+    private val SELF_CERTIFICATIONS = setOf(
         PGPSignature.DEFAULT_CERTIFICATION,
         PGPSignature.NO_CERTIFICATION,
         PGPSignature.CASUAL_CERTIFICATION,

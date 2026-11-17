@@ -1,6 +1,6 @@
 # ADR-0020: Decrypt path tries all unlocked user + address keys
 
-- **Status:** Accepted (amended 2026-09-22 — Token signature verification is mandatory)
+- **Status:** Accepted (amended 2026-09-22 — Token signature verification is mandatory; amended 2026-11-17 — the encryption key is chosen from signatures that verify)
 - **Date:** 2026-05-29
 - **Deciders:** pcontacts maintainers
 - **Related:** ADR-0002 (native Kotlin crypto), ADR-0007 (client-side
@@ -188,3 +188,33 @@ active user key that does not open (e.g. one from before a password
 reset) is now **skipped** and logged with its id only, as address keys
 already were; before, one such key stopped every sync (issue #65).
 Validation: `ContactDecryptBootstrapTest.an_extra_user_key_that_does_not_open_is_skipped_not_fatal`.
+
+## Amendment (2026-11-17): the encryption key is chosen from signatures that verify
+
+A card is encrypted to one key of the user's primary ring, picked as
+OpenPGP.js `Key.getEncryptionKey` picks it `[V]` (openpgpjs
+`src/key/key.js`, `src/key/helper.js`): the newest usable subkey whose
+binding signature flags it for encryption, else the primary if its own
+self-signature does (issue #71, 2.5.2).
+
+Every signature that decides this must now verify against the primary
+key; matching the issuer key ID is no longer enough. The ring arrives
+from the server, so a subkey whose binding only names the primary as
+issuer, or a revocation the primary did not make, is ignored:
+
+- the primary needs a self-certification (user ID or direct-key) that
+  verifies, no revocation of its own that verifies, and no expiry passed
+  according to that verified signature; otherwise the ring has no
+  encryption key at all;
+- a subkey needs a binding signature that verifies, flags and key expiry
+  are read from that signature, and a subkey revocation counts only if
+  it verifies;
+- a ring with no usable encryption key encrypts nothing: the write fails
+  instead of falling back to the primary key.
+
+Decryption is unchanged: every unlocked key of the ring, current or not,
+still decrypts what was encrypted to it.
+
+Validation: `BouncyCastleKeyUnlockTest` — a planted subkey with a forged
+binding, a forged revocation, a revocation by the primary, an expired
+binding, a forged self-certification (review of 2026-11-17, F1).

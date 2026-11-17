@@ -11,10 +11,16 @@ import org.bouncycastle.bcpg.sig.KeyFlags
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPKeyPair
 import org.bouncycastle.openpgp.PGPKeyRingGenerator
+import org.bouncycastle.openpgp.PGPPrivateKey
 import org.bouncycastle.openpgp.PGPPublicKey
+import org.bouncycastle.openpgp.PGPSecretKey
 import org.bouncycastle.openpgp.PGPSecretKeyRing
 import org.bouncycastle.openpgp.PGPSignature
+import org.bouncycastle.openpgp.PGPSignatureGenerator
 import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator
+import org.bouncycastle.openpgp.PGPUtil
+import org.bouncycastle.openpgp.bc.BcPGPObjectFactory
+import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
@@ -71,7 +77,7 @@ internal object TestKeyGen {
         val secretKey = secretRing.secretKey
 
         val pgpPrivateKey = secretKey.extractPrivateKey(
-            org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder(BcPGPDigestCalculatorProvider())
+            BcPBESecretKeyDecryptorBuilder(BcPGPDigestCalculatorProvider())
                 .build(CharArray(0))
         )
 
@@ -151,6 +157,65 @@ internal object TestKeyGen {
         ArmoredOutputStream(out).use { keyRingGen.generateSecretKeyRing().encode(it) }
         return out.toString(Charsets.US_ASCII)
     }
+
+    fun parseRing(armored: String): PGPSecretKeyRing =
+        BcPGPObjectFactory(PGPUtil.getDecoderStream(armored.byteInputStream())).nextObject() as PGPSecretKeyRing
+
+    fun armor(ring: PGPSecretKeyRing): String {
+        val out = ByteArrayOutputStream()
+        ArmoredOutputStream(out).use { ring.encode(it) }
+        return out.toString(Charsets.US_ASCII)
+    }
+
+    fun primaryPrivate(ring: PGPSecretKeyRing, passphrase: CharArray): PGPPrivateKey {
+        val decryptor = BcPBESecretKeyDecryptorBuilder(BcPGPDigestCalculatorProvider()).build(passphrase)
+        return ring.secretKey.extractPrivateKey(decryptor)
+    }
+
+    /**
+     * A signature of [type] made with [signer]: over [subkey] bound to [primary] for a subkey
+     * binding or revocation, else over [userId] of [primary]. With [claimedIssuer] the signature
+     * names that key as its issuer although [signer] made it: a forgery.
+     */
+    @Suppress("LongParameterList") // test fixture: every part of the signature is a parameter
+    fun signature(
+        type: Int,
+        signer: PGPPrivateKey,
+        primary: PGPPublicKey,
+        subkey: PGPPublicKey? = null,
+        userId: String? = null,
+        flags: Int = 0,
+        keyExpirySeconds: Long = 0L,
+        claimedIssuer: Long? = null
+    ): PGPSignature {
+        val signingKey = claimedIssuer?.let { PGPPrivateKey(it, signer.publicKeyPacket, signer.privateKeyDataPacket) }
+            ?: signer
+        val generator = PGPSignatureGenerator(
+            BcPGPContentSignerBuilder(signer.publicKeyPacket.algorithm, HashAlgorithmTags.SHA512)
+        )
+        generator.init(type, signingKey)
+        generator.setHashedSubpackets(
+            PGPSignatureSubpacketGenerator().apply {
+                if (flags != 0) setKeyFlags(true, flags)
+                if (keyExpirySeconds != 0L) setKeyExpirationTime(true, keyExpirySeconds)
+            }.generate()
+        )
+        return when {
+            subkey != null -> generator.generateCertification(primary, subkey)
+            userId != null -> generator.generateCertification(userId, primary)
+            else -> generator.generateCertification(primary)
+        }
+    }
+
+    /** [ring] with [secret]'s public key replaced by [public]. */
+    fun withPublic(ring: PGPSecretKeyRing, secret: PGPSecretKey, public: PGPPublicKey): PGPSecretKeyRing =
+        PGPSecretKeyRing.insertSecretKey(ring, PGPSecretKey.replacePublicKey(secret, public))
+
+    /** [key] without any of its own signatures of [type]. */
+    fun withoutSignatures(key: PGPPublicKey, type: Int): PGPPublicKey =
+        key.getSignaturesOfType(type).asSequence().toList().fold(key) { stripped, signature ->
+            PGPPublicKey.removeCertification(stripped, signature)
+        }
 
     private fun rsaKeyPair() = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME)
         .apply { initialize(2048) }
