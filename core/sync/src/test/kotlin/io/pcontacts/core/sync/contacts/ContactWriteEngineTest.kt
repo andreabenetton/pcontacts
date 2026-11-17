@@ -50,6 +50,7 @@ import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.sync.contacts.encrypt.NoEncryptionKeyException
 import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -2459,6 +2460,37 @@ class ContactWriteEngineTest {
         assertFalse(encrypted.contains("NOTE:old"))
     }
 
+    @Test fun an_update_without_an_encryption_key_is_set_aside_not_encrypted_to_another_key() = runTest {
+        // Review 2026-11-17, F1: the primary ring has no key flagged for encryption.
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val server = richServerContact(note = "old")
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val noEncryptionKey: CardEncryptOp = { request ->
+            when (request) {
+                is CardEncryptRequest.SignOnly -> CardEncryptOutcome(data = request.plaintext, signature = "sig")
+                is CardEncryptRequest.EncryptAndSign -> throw NoEncryptionKeyException()
+            }
+        }
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to MergeBaseCodec.canonical(server)!!.copy(notes = listOf("new"))),
+            serverContacts = mapOf("ct-1" to server),
+            bases = mapOf("ct-1" to server),
+            serializer = ContactSerializer(encryptOp = noEncryptionKey)
+        )
+
+        val report = engine.push()
+
+        assertEquals(1, report.quarantined)
+        assertNull(api.lastUpdateRequest)
+        assertEquals("no encryption key", outbox.entries.values.single().lastError)
+    }
+
     @Test fun push_update_with_nothing_left_to_change_completes_without_a_PUT() = runTest {
         val api = WriteFakeApi()
         val outbox = WriteFakeOutboxDao()
@@ -2762,7 +2794,8 @@ class ContactWriteEngineTest {
         fitPhoto: (DecryptedPhoto) -> DecryptedPhoto? = { it },
         onProgress: (SyncPhase, Int, Int) -> Unit = { _, _, _ -> },
         groupLabelIds: Map<Long, String> = emptyMap(),
-        recordAdjustments: suspend (String, Set<ProtonAdjustment>) -> Unit = { _, _ -> }
+        recordAdjustments: suspend (String, Set<ProtonAdjustment>) -> Unit = { _, _ -> },
+        serializer: ContactSerializer = this.serializer
     ): ContactWriteEngine {
         bases.forEach { (id, contact) -> MergeBaseCodec.save(mergeBases, id, contact) }
         return ContactWriteEngine(

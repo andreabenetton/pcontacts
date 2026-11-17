@@ -9,6 +9,8 @@ import io.pcontacts.core.protoncontacts.CardEncryptRequest
 import io.pcontacts.core.sync.contacts.decrypt.TestKeys
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -33,6 +35,17 @@ class OpenPgpCardEncryptOpTest {
             encryptionKeys = listOf(unlocked.public),
             signingKey = unlocked.private
         )
+    }
+
+    @Test fun without_an_encryption_key_nothing_is_encrypted_and_signing_still_works() {
+        // Review 2026-11-17, F1: no fallback to a key that is not meant for encryption.
+        val (_, unlocked) = TestKeys.armoredAndUnlocked("no-enc-pass".toCharArray())
+        val op = OpenPgpCardEncryptOp.build(openPgp, encryptionKeys = emptyList(), signingKey = unlocked.private)
+
+        assertThrows(NoEncryptionKeyException::class.java) {
+            op(CardEncryptRequest.EncryptAndSign("BEGIN:VCARD\r\nEND:VCARD"))
+        }
+        assertNotNull(op(CardEncryptRequest.SignOnly("BEGIN:VCARD\r\nEND:VCARD")).signature)
     }
 
     @Test fun sign_only_returns_plaintext_data_and_valid_signature() {

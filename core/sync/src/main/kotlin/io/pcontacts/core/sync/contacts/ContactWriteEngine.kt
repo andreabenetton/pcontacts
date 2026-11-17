@@ -38,6 +38,7 @@ import io.pcontacts.core.storage.db.dao.OutboxDao
 import io.pcontacts.core.storage.db.dao.OutboxEnqueue
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.sync.contacts.encrypt.NoEncryptionKeyException
 import io.pcontacts.core.sync.contacts.merge.MergeBaseCodec
 import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
 import kotlinx.coroutines.CancellationException
@@ -924,6 +925,7 @@ class ContactWriteEngine(
             httpCode != null && protonCode != null -> "HTTP $httpCode, Proton code $protonCode"
             httpCode != null -> "HTTP $httpCode"
             e is ProtonApiException -> "Proton code ${e.protonCode}"
+            e is NoEncryptionKeyException -> "no encryption key"
             e is IOException -> "network error"
             else -> "internal error"
         }

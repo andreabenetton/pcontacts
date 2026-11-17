@@ -25,12 +25,11 @@ object ContactEncryptBootstrap {
         openPgp: OpenPgpService,
         unlocked: UnlockedKey
     ): ContactSerializer {
-        val encryptionKeys = unlocked.encryptionPublicKeys.ifEmpty {
-            listOf(unlocked.public)
-        }
+        // No fallback to the primary: a ring without an encryption key fails each encrypted
+        // card instead (ADR-0020, amendment of 2026-11-17).
         val encryptOp = OpenPgpCardEncryptOp.build(
             openPgp = openPgp,
-            encryptionKeys = encryptionKeys,
+            encryptionKeys = unlocked.encryptionPublicKeys,
             signingKey = unlocked.private
         )
         return ContactSerializer(encryptOp = encryptOp)

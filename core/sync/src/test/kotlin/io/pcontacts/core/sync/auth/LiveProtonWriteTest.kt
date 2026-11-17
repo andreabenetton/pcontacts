@@ -514,7 +514,7 @@ class LiveProtonWriteTest {
             processor = ContactProcessor(ContactDecrypter(cryptoOp)),
             encryptOp = OpenPgpCardEncryptOp.build(
                 openPgp = openPgp,
-                encryptionKeys = unlockedKey.encryptionPublicKeys.ifEmpty { listOf(unlockedKey.public) },
+                encryptionKeys = unlockedKey.encryptionPublicKeys,
                 signingKey = unlockedKey.private
             )
         )

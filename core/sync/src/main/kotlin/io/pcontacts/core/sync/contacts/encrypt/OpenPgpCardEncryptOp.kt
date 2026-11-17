@@ -42,6 +42,7 @@ object OpenPgpCardEncryptOp {
                 CardEncryptOutcome(data = request.plaintext, signature = sig)
             }
             is CardEncryptRequest.EncryptAndSign -> {
+                if (encryptionKeys.isEmpty()) throw NoEncryptionKeyException()
                 val result = openPgp.encryptAndSignDetached(
                     plaintext = request.plaintext.toByteArray(Charsets.UTF_8),
                     encryptionKeys = encryptionKeys,
@@ -55,3 +56,10 @@ object OpenPgpCardEncryptOp {
         }
     }
 }
+
+/**
+ * The user's primary ring has no key that may encrypt (none whose verified signature flags it
+ * for encryption). Fail closed: no card is encrypted to a key that is not meant for it
+ * (ADR-0020, amendment of 2026-11-17).
+ */
+class NoEncryptionKeyException : IllegalStateException("no usable encryption key in the primary user key")
