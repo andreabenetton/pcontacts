@@ -18,6 +18,7 @@ import io.pcontacts.core.storage.db.entity.SyncStateEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -232,6 +233,19 @@ class PcontactsDatabaseTest {
         assertEquals(listOf("failed"), contactMapDao.listUnverified().map { it.protonContactId })
         assertEquals(1, contactMapDao.countUnsigned())
         assertEquals(listOf("unsigned"), contactMapDao.listUnsigned().map { it.protonContactId })
+    }
+
+    @Test fun mark_signature_failed_records_a_failed_signature_and_keeps_the_merge_base() = runTest {
+        contactMapDao.upsert(sampleContact(id = "ct-1", rawId = 1L, verified = true))
+        contactMapDao.setMergeBase("ct-1", byteArrayOf(1, 2, 3))
+
+        contactMapDao.markSignatureFailed("ct-1")
+
+        val row = contactMapDao.findByProtonId("ct-1")!!
+        assertTrue(row.isSigned)
+        assertFalse(row.isVerified)
+        assertEquals(3, row.lastKnownServerPayload!!.size)
+        assertEquals(1, contactMapDao.countUnverified())
     }
 
     @Test fun list_unverified_returns_only_live_unverified_rows() = runTest {

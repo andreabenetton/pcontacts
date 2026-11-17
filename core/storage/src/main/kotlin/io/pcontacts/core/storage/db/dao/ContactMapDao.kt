@@ -96,6 +96,14 @@ interface ContactMapDao {
     @Query("UPDATE contact_map SET sync_status = 3, last_error = :error WHERE proton_contact_id = :id")
     suspend fun markConflict(id: String, error: String)
 
+    /**
+     * Proton's copy is signed and failed verification: recorded by the push that found it, so the
+     * user's decision is asked once (review 2026-11-17, F3). One column pair, like the other
+     * push-path updates, so the sealed merge base is never rewritten.
+     */
+    @Query("UPDATE contact_map SET is_signed = 1, is_verified = 0 WHERE proton_contact_id = :id")
+    suspend fun markSignatureFailed(id: String)
+
     /** Makes the next pull treat the contact as changed on the server, so it rewrites the local row. */
     @Query("UPDATE contact_map SET modify_time = 0, content_hash = '' WHERE proton_contact_id = :id")
     suspend fun forceRefetch(id: String)
