@@ -216,6 +216,24 @@ class PcontactsDatabaseTest {
         assertEquals(0, contactMapDao.countUnverified())
     }
 
+    @Test fun an_unsigned_contact_is_counted_as_not_signed_and_not_as_unverified() = runTest {
+        // Review 2026-11-17, F7: a contact with no signed card is not a failed signature.
+        contactMapDao.upsertAll(
+            listOf(
+                sampleContact(id = "verified", rawId = 1L, verified = true),
+                sampleContact(id = "failed", rawId = 2L, verified = false),
+                sampleContact(id = "unsigned", rawId = 3L, verified = false).copy(isSigned = false),
+                sampleContact(id = "deleted-unsigned", rawId = 4L, verified = false).copy(isSigned = false)
+            )
+        )
+        contactMapDao.markDeleted("deleted-unsigned")
+
+        assertEquals(1, contactMapDao.countUnverified())
+        assertEquals(listOf("failed"), contactMapDao.listUnverified().map { it.protonContactId })
+        assertEquals(1, contactMapDao.countUnsigned())
+        assertEquals(listOf("unsigned"), contactMapDao.listUnsigned().map { it.protonContactId })
+    }
+
     @Test fun list_unverified_returns_only_live_unverified_rows() = runTest {
         contactMapDao.upsertAll(
             listOf(

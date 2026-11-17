@@ -51,11 +51,19 @@ interface ContactMapDao {
     @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0")
     suspend fun countLive(): Int
 
-    @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0 AND is_verified = 0")
+    /** Signed on Proton and failed verification; an unsigned contact is not counted here. */
+    @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0 AND is_signed = 1 AND is_verified = 0")
     suspend fun countUnverified(): Int
 
-    @Query("SELECT * FROM contact_map WHERE deleted = 0 AND is_verified = 0")
+    @Query("SELECT * FROM contact_map WHERE deleted = 0 AND is_signed = 1 AND is_verified = 0")
     suspend fun listUnverified(): List<ContactMapEntity>
+
+    /** Proton's copy carries no signed card at all (review 2026-11-17, F7). */
+    @Query("SELECT COUNT(*) FROM contact_map WHERE deleted = 0 AND is_signed = 0")
+    suspend fun countUnsigned(): Int
+
+    @Query("SELECT * FROM contact_map WHERE deleted = 0 AND is_signed = 0")
+    suspend fun listUnsigned(): List<ContactMapEntity>
 
     @Query("SELECT MAX(last_synced_at) FROM contact_map WHERE deleted = 0")
     suspend fun maxLastSyncedAt(): Long?

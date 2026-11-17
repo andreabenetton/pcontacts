@@ -64,7 +64,14 @@ data class ContactMapEntity(
      * contact content, a hash only.
      */
     @ColumnInfo(name = "pending_push_hash", defaultValue = "NULL")
-    val pendingPushHash: String? = null
+    val pendingPushHash: String? = null,
+    /**
+     * Proton's copy has at least one card meant to be signed. False for a contact made only of
+     * cleartext and unsigned encrypted cards: `is_verified` is then false too, and the contact
+     * is "not signed", not "failed verification" (review 2026-11-17, F7).
+     */
+    @ColumnInfo(name = "is_signed", defaultValue = "1")
+    val isSigned: Boolean = true
 ) {
     /**
      * `sync_status` is stored as an Int rather than an enum so future

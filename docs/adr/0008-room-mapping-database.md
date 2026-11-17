@@ -1,6 +1,6 @@
 # ADR-0008: Local mapping store — Room for ProtonID ↔ RawContactID
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-11-17 — "not signed" is recorded apart from "failed verification")
 - **Date:** 2026-05-22
 - **Deciders:** project owner
 - **Related:** ADR-0006, ADR-0007, ADR-0009
@@ -100,3 +100,25 @@ Schema v1 is shipped:
 - `PcontactsDatabase` + `DatabaseFactory` at `core/storage/src/main/kotlin/io/pcontacts/core/storage/db/`. Schema JSON exported to `core/storage/schemas/io.pcontacts.core.storage.db.PcontactsDatabase/1.json` — input for the `MigrationTestHelper`-driven test when v2 ships.
 - Robolectric `PcontactsDatabaseTest` covers: upsert/replace, both secondary-index lookups, soft-delete tombstones, hard delete, multi-entity round-trips.
 - Engine consumption: `ContactDetailSyncEngine` queries `listLive()` + per-row `contentHash` for the two-tier sync skip (modifyTime then content_hash); `EmailSyncHash` covers every writer-visible field so any contact change invalidates the cached hash. Logout drives `deleteAll()` on contact_map + per-account `delete(accountName)` on sync_state.
+
+## Amendment (2026-11-17): "not signed" is recorded apart from "failed verification"
+
+`contact_map` gains `is_signed` (schema v8). A contact whose Proton copy
+has no SIGNED or ENCRYPTED_AND_SIGNED card — only cleartext and unsigned
+encrypted cards — is stored with `is_signed = 0` and `is_verified = 0`;
+before, it was stored as verified. `is_verified = 1` now means signed and
+every signed card verified `[V]` (WebClients `decrypt.ts` needs at least
+one signed card; Proton Core Android keeps NotSigned apart from Success
+and Failure).
+
+- The unverified count and list (`countUnverified`, `listUnverified`) are
+  the rows with `is_signed = 1 AND is_verified = 0`: a failed signature.
+- `countUnsigned` / `listUnsigned` are the rows with `is_signed = 0`.
+- `MIGRATION_7_8` adds the column with default 1 and sets every
+  `modify_time` to 0, so the next pull fetches each contact once and
+  records its real state. The content hashes stay, so no contact is
+  rewritten on the phone.
+
+Validation: `MigrationTest.migrate_7_to_8_starts_signed_and_refetches_every_contact_once`,
+`PcontactsDatabaseTest.an_unsigned_contact_is_counted_as_not_signed_and_not_as_unverified`
+(review of 2026-11-17, F7).

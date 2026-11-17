@@ -197,6 +197,30 @@ class MigrationTest {
         migratedDb.close()
     }
 
+    @Test fun migrate_7_to_8_starts_signed_and_refetches_every_contact_once() {
+        helper.createDatabase(TEST_DB, 7).apply {
+            execSQL(
+                """INSERT INTO contact_map (
+                    proton_contact_id, proton_uid, android_raw_contact_id,
+                    modify_time, content_hash, is_verified, deleted,
+                    sync_status, last_error, last_synced_at
+                ) VALUES ('ct-1', 'uid-1', 100, 1700000000, 'hash-v7', 1, 0, 0, NULL, 1700000001)"""
+            )
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(TEST_DB, 8, true, PcontactsDatabase.MIGRATION_7_8)
+
+        migratedDb.query("SELECT is_signed, modify_time, content_hash, is_verified FROM contact_map").use { cursor ->
+            assertTrue("contact_map row should survive migration", cursor.moveToFirst())
+            assertEquals("signed until the next pull says otherwise", 1, cursor.getInt(0))
+            assertEquals("fetched once more", 0L, cursor.getLong(1))
+            assertEquals("the content hash is kept: nothing is rewritten", "hash-v7", cursor.getString(2))
+            assertEquals(1, cursor.getInt(3))
+        }
+        migratedDb.close()
+    }
+
     @Test fun migrate_6_to_7_starts_with_no_adjustment() {
         helper.createDatabase(TEST_DB, 6).apply {
             execSQL(

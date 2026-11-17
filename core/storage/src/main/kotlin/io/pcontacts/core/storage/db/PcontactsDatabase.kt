@@ -36,7 +36,7 @@ import io.pcontacts.core.storage.db.entity.SyncStateEntity
         OutboxEntity::class,
         ProtonAdjustmentEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class PcontactsDatabase : RoomDatabase() {
@@ -126,6 +126,18 @@ abstract class PcontactsDatabase : RoomDatabase() {
                         PRIMARY KEY(proton_contact_id, kind)
                     )"""
                 )
+            }
+        }
+
+        /**
+         * Review 2026-11-17, F7: whether Proton's copy is signed at all. Rows start as signed, and
+         * every contact is fetched once more so the next pull records the real state (its content
+         * hash is kept, so nothing is rewritten on the phone).
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contact_map ADD COLUMN is_signed INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("UPDATE contact_map SET modify_time = 0")
             }
         }
     }
