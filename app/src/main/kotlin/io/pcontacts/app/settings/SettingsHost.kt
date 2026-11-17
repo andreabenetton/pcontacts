@@ -37,6 +37,7 @@ import io.pcontacts.core.sync.contacts.LOCAL_REMOVED_CONFLICT
 import io.pcontacts.core.sync.contacts.SERVER_DELETED_CONFLICT
 import io.pcontacts.core.sync.contacts.SERVER_EDITED_CONFLICT
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.core.sync.contacts.UnverifiedContactRef
 import io.pcontacts.feature.settings.AdjustedContact
 import io.pcontacts.feature.settings.ConflictInfo
 import io.pcontacts.feature.settings.ConflictResolution
@@ -80,7 +81,9 @@ class SettingsHost(
             syncNow = ::performSyncNow,
             signOut = ::performSignOut,
             queryVerificationStats = ::queryVerificationStats,
-            queryUnverifiedContacts = ::queryUnverifiedContacts,
+            queryUnverifiedContacts = { summaries(SyncBootstrap.listUnverifiedContacts(context)) },
+            // Contacts Proton holds without a signature: listed apart, not as a failure (review 2026-11-17, F7).
+            queryUnsignedContacts = { summaries(SyncBootstrap.listUnsignedContacts(context)) },
             queryLastSync = ::queryLastSync,
             openContactInSystem = ::openContactInSystem,
             queryOutboxStats = ::queryOutboxStats,
@@ -185,8 +188,8 @@ class SettingsHost(
         return VerificationStats(totalContacts = total, unverifiedContacts = unverified)
     }
 
-    private suspend fun queryUnverifiedContacts(): List<UnverifiedContactSummary> {
-        val refs = SyncBootstrap.listUnverifiedContacts(context)
+    /** The unverified or unsigned contacts, with the names the Contacts apps show. */
+    private suspend fun summaries(refs: List<UnverifiedContactRef>): List<UnverifiedContactSummary> {
         if (refs.isEmpty()) return emptyList()
         val names = resolveDisplayNames(refs.map { it.androidRawContactId })
         return refs.map { ref ->
