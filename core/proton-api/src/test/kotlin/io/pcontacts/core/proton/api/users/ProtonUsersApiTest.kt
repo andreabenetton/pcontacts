@@ -11,6 +11,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -101,6 +102,34 @@ class ProtonUsersApiTest {
 
         val recorded = server.takeRequest()
         assertEquals("/core/v4/keys/salts", recorded.path)
+    }
+
+    @Test fun getUser_carries_the_organization_key_and_member_tokens() = runTest {
+        // Review 2026-11-17, F8: an organization member's user key opens with a member token.
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"Code":1000,"User":{"ID":"u1","OrganizationPrivateKey":"org-armored",
+                    "Keys":[{"ID":"k1","PrivateKey":"pk","Primary":1,"Token":"token-armored"}]}}"""
+            )
+        )
+
+        val user = api.getUser().user
+
+        assertEquals("org-armored", user.organizationPrivateKey)
+        assertEquals("token-armored", user.keys.single().token)
+    }
+
+    @Test fun an_ordinary_account_has_no_organization_key_or_tokens() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"Code":1000,"User":{"ID":"u1","Keys":[{"ID":"k1","PrivateKey":"pk","Primary":1}]}}"""
+            )
+        )
+
+        val user = api.getUser().user
+
+        assertNull(user.organizationPrivateKey)
+        assertNull(user.keys.single().token)
     }
 
     @Test fun getUser_tolerates_unknown_top_level_and_per_key_fields() = runTest {

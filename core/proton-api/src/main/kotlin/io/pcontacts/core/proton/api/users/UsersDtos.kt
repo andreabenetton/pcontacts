@@ -30,7 +30,13 @@ data class UserKeyDto(
     @SerialName("Active") val active: Int = 1,
     @SerialName("PrivateKey") val privateKey: String,
     @SerialName("Fingerprint") val fingerprint: String = "",
-    @SerialName("Flags") val flags: Int = 0
+    @SerialName("Flags") val flags: Int = 0,
+    /**
+     * `[V]` WebClients `interfaces/Key.ts` `Token?`: on a user key of an organization member, the
+     * key's passphrase, encrypted and signed to the organization key (`memberToken.ts`). Null on
+     * an ordinary account, whose key opens with the key password itself.
+     */
+    @SerialName("Token") val token: String? = null
 )
 
 @Serializable
@@ -39,7 +45,13 @@ data class UserDto(
     @SerialName("Name") val name: String = "",
     @SerialName("DisplayName") val displayName: String = "",
     @SerialName("Email") val email: String = "",
-    @SerialName("Keys") val keys: List<UserKeyDto> = emptyList()
+    @SerialName("Keys") val keys: List<UserKeyDto> = emptyList(),
+    /**
+     * `[V]` WebClients `interfaces/User.ts` `OrganizationPrivateKey?`: the organization key, which
+     * opens with the user's key password and decrypts the user keys' [UserKeyDto.token]s
+     * (`getDecryptedUserKeys.ts`, `getDecryptedUserKeysHelper`). Null on an ordinary account.
+     */
+    @SerialName("OrganizationPrivateKey") val organizationPrivateKey: String? = null
 )
 
 @Serializable
