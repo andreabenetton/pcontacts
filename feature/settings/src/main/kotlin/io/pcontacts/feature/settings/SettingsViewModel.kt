@@ -40,6 +40,8 @@ class SettingsViewModel(
     private val signOut: suspend () -> SettingsActionResult,
     private val queryVerificationStats: suspend () -> VerificationStats? = { null },
     private val queryUnverifiedContacts: suspend () -> List<UnverifiedContactSummary> = { emptyList() },
+    /** Contacts whose Proton copy carries no signature: not a failure, listed apart (review 2026-11-17, F7). */
+    private val queryUnsignedContacts: suspend () -> List<UnverifiedContactSummary> = { emptyList() },
     private val queryLastSync: suspend () -> LastSyncSummary? = { null },
     private val openContactInSystem: (Long) -> Unit = {},
     private val queryOutboxStats: suspend () -> OutboxStats = { OutboxStats(0, 0) },
@@ -92,6 +94,12 @@ class SettingsViewModel(
 
     private val _unverifiedDialogOpen = MutableStateFlow(false)
     val unverifiedDialogOpen: StateFlow<Boolean> = _unverifiedDialogOpen.asStateFlow()
+
+    private val _unsignedContacts = MutableStateFlow<List<UnverifiedContactSummary>>(emptyList())
+    val unsignedContacts: StateFlow<List<UnverifiedContactSummary>> = _unsignedContacts.asStateFlow()
+
+    private val _unsignedDialogOpen = MutableStateFlow(false)
+    val unsignedDialogOpen: StateFlow<Boolean> = _unsignedDialogOpen.asStateFlow()
 
     private val _outboxStats = MutableStateFlow(OutboxStats(0, 0))
     val outboxStats: StateFlow<OutboxStats> = _outboxStats.asStateFlow()
@@ -177,6 +185,7 @@ class SettingsViewModel(
             _lastSync.value = orDefault(null) { queryLastSync() }
             _verificationStats.value = orDefault(null) { queryVerificationStats() }
             _unverifiedContacts.value = orDefault(emptyList()) { queryUnverifiedContacts() }
+            _unsignedContacts.value = orDefault(emptyList()) { queryUnsignedContacts() }
             _outboxStats.value = orDefault(OutboxStats(0, 0)) { queryOutboxStats() }
             _pendingDeletes.value = orDefault(emptyList()) { queryPendingDeletes() }
             _conflicts.value = orDefault(emptyList()) { queryConflicts() }
@@ -254,6 +263,14 @@ class SettingsViewModel(
 
     fun dismissUnverifiedContactsDialog() {
         _unverifiedDialogOpen.value = false
+    }
+
+    fun showUnsignedContactsDialog() {
+        _unsignedDialogOpen.value = true
+    }
+
+    fun dismissUnsignedContactsDialog() {
+        _unsignedDialogOpen.value = false
     }
 
     fun openUnverifiedContactInSystem(rawContactId: Long) {

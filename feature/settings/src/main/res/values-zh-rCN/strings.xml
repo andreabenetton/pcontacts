@@ -28,6 +28,12 @@
     <string name="unverified_dialog_empty">没有未验证的联系人。</string>
     <string name="unverified_dialog_close">关闭</string>
     <string name="unverified_no_name">（无姓名）</string>
+    <plurals name="unsigned_contacts">
+        <item quantity="other">%d 个联系人没有签名</item>
+    </plurals>
+    <string name="unsigned_dialog_title">没有签名的联系人</string>
+    <string name="unsigned_dialog_detail">Proton 存储这些联系人时没有签名，一些导入或自动保存的联系人就是这样。这不是错误：在手机上编辑联系人时，pcontacts 会为其签名。</string>
+    <string name="unsigned_dialog_empty">没有缺少签名的联系人。</string>
 
     <string name="contacts_access_tap_to_review">点按查看列表</string>
     <string name="contacts_access_dialog_title">可访问联系人的应用</string>

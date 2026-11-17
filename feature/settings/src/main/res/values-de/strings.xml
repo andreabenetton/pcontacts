@@ -29,6 +29,13 @@
     <string name="unverified_dialog_empty">Keine nicht verifizierten Kontakte.</string>
     <string name="unverified_dialog_close">Schließen</string>
     <string name="unverified_no_name">(ohne Name)</string>
+    <plurals name="unsigned_contacts">
+        <item quantity="one">%d Kontakt hat keine Signatur</item>
+        <item quantity="other">%d Kontakte haben keine Signatur</item>
+    </plurals>
+    <string name="unsigned_dialog_title">Kontakte ohne Signatur</string>
+    <string name="unsigned_dialog_detail">Proton speichert diese Kontakte ohne Signatur, wie manche importierten oder automatisch gespeicherten Kontakte. Es ist nichts fehlgeschlagen: pcontacts signiert einen Kontakt, wenn Sie ihn auf dem Telefon bearbeiten.</string>
+    <string name="unsigned_dialog_empty">Keine Kontakte ohne Signatur.</string>
 
     <string name="contacts_access_tap_to_review">Zum Anzeigen der Liste tippen</string>
     <string name="contacts_access_dialog_title">Apps mit Kontaktzugriff</string>

@@ -383,9 +383,6 @@ private fun LastSyncLine(info: LastSyncSummary, now: Long, contacts: Int?, pendi
 /** The attention rows of the status card and the dialogs they open. */
 @Composable
 private fun StatusRows(viewModel: SettingsViewModel) {
-    val verificationStats by viewModel.verificationStats.collectAsStateWithLifecycle()
-    val unverifiedContacts by viewModel.unverifiedContacts.collectAsStateWithLifecycle()
-    val unverifiedDialogOpen by viewModel.unverifiedDialogOpen.collectAsStateWithLifecycle()
     val outboxStats by viewModel.outboxStats.collectAsStateWithLifecycle()
     val pendingDeletes by viewModel.pendingDeletes.collectAsStateWithLifecycle()
     val conflicts by viewModel.conflicts.collectAsStateWithLifecycle()
@@ -393,14 +390,7 @@ private fun StatusRows(viewModel: SettingsViewModel) {
     val quarantinedDialogOpen by viewModel.quarantinedDialogOpen.collectAsStateWithLifecycle()
     val pendingDeletesDialogOpen by viewModel.pendingDeletesDialogOpen.collectAsStateWithLifecycle()
 
-    verificationStats?.takeIf { it.unverifiedContacts > 0 }?.let { stats ->
-        StatusRow(
-            text = stringResource(R.string.verification_warning, stats.unverifiedContacts, stats.totalContacts),
-            detail = stringResource(R.string.verification_tap_to_review),
-            error = true,
-            onClick = viewModel::showUnverifiedContactsDialog
-        )
-    }
+    SignatureRows(viewModel)
     val otherPending = otherPendingChanges(outboxStats.pending, pendingDeletes.size)
     if (otherPending > 0) {
         StatusRow(
@@ -431,13 +421,6 @@ private fun StatusRows(viewModel: SettingsViewModel) {
     if (conflicts.isNotEmpty()) ConflictRows(conflicts, viewModel::resolveContactConflict)
     AdjustedContactsRow(viewModel)
 
-    if (unverifiedDialogOpen) {
-        UnverifiedContactsDialog(
-            contacts = unverifiedContacts,
-            onOpenContact = viewModel::openUnverifiedContactInSystem,
-            onDismiss = viewModel::dismissUnverifiedContactsDialog
-        )
-    }
     if (pendingDeletesDialogOpen) {
         PendingDeletesDialog(
             deletes = pendingDeletes,
@@ -691,59 +674,6 @@ private fun SyncIntervalSelector(
 }
 
 // ---- Dialogs ----
-
-@Composable
-private fun UnverifiedContactsDialog(
-    contacts: List<UnverifiedContactSummary>,
-    onOpenContact: (Long) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.unverified_dialog_title)) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(
-                    text = stringResource(R.string.verification_detail),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(Modifier.height(12.dp))
-                if (contacts.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.unverified_dialog_empty),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                } else {
-                    contacts.forEach { c ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onOpenContact(c.rawContactId) }
-                                .padding(vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = c.displayName ?: stringResource(R.string.unverified_no_name),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            c.lastError?.takeIf { it.isNotBlank() }?.let { err ->
-                                Text(
-                                    text = err,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.unverified_dialog_close))
-            }
-        }
-    )
-}
 
 /**
  * Lists the changes that failed permanently, so "1 change failed" can

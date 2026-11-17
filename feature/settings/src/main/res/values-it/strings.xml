@@ -29,6 +29,13 @@
     <string name="unverified_dialog_empty">Nessun contatto non verificato.</string>
     <string name="unverified_dialog_close">Chiudi</string>
     <string name="unverified_no_name">(senza nome)</string>
+    <plurals name="unsigned_contacts">
+        <item quantity="one">%d contatto non ha firma</item>
+        <item quantity="other">%d contatti non hanno firma</item>
+    </plurals>
+    <string name="unsigned_dialog_title">Contatti senza firma</string>
+    <string name="unsigned_dialog_detail">Proton conserva questi contatti senza firma, come avviene per alcuni contatti importati o salvati automaticamente. Non è fallito nulla: pcontacts firma un contatto quando lo modifichi sul telefono.</string>
+    <string name="unsigned_dialog_empty">Nessun contatto senza firma.</string>
 
     <string name="contacts_access_tap_to_review">Tocca per vedere l\'elenco</string>
     <string name="contacts_access_dialog_title">App con accesso ai contatti</string>

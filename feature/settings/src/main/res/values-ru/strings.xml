@@ -31,6 +31,15 @@
     <string name="unverified_dialog_empty">Непроверенных контактов нет.</string>
     <string name="unverified_dialog_close">Закрыть</string>
     <string name="unverified_no_name">(без имени)</string>
+    <plurals name="unsigned_contacts">
+        <item quantity="one">%d контакт без подписи</item>
+        <item quantity="few">%d контакта без подписи</item>
+        <item quantity="many">%d контактов без подписи</item>
+        <item quantity="other">%d контакта без подписи</item>
+    </plurals>
+    <string name="unsigned_dialog_title">Контакты без подписи</string>
+    <string name="unsigned_dialog_detail">Proton хранит эти контакты без подписи, как и некоторые импортированные или автоматически сохранённые контакты. Ошибки нет: pcontacts подписывает контакт, когда вы изменяете его на телефоне.</string>
+    <string name="unsigned_dialog_empty">Нет контактов без подписи.</string>
 
     <string name="contacts_access_tap_to_review">Нажмите, чтобы открыть список</string>
     <string name="contacts_access_dialog_title">Приложения с доступом к контактам</string>

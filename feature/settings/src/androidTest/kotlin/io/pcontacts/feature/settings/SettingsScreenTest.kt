@@ -34,6 +34,7 @@ class SettingsScreenTest {
         syncNow: suspend () -> SettingsActionResult = { SettingsActionResult.Success("Sync requested") },
         signOut: suspend () -> SettingsActionResult = { SettingsActionResult.Success() },
         queryVerificationStats: suspend () -> VerificationStats? = { null },
+        queryUnsignedContacts: suspend () -> List<UnverifiedContactSummary> = { emptyList() },
         queryOutboxStats: suspend () -> OutboxStats = { OutboxStats(0, 0) },
         queryPendingDeletes: suspend () -> List<PendingDelete> = { emptyList() },
         queryConflicts: suspend () -> List<ConflictInfo> = { emptyList() },
@@ -46,6 +47,7 @@ class SettingsScreenTest {
             syncNow = syncNow,
             signOut = signOut,
             queryVerificationStats = queryVerificationStats,
+            queryUnsignedContacts = queryUnsignedContacts,
             queryOutboxStats = queryOutboxStats,
             queryPendingDeletes = queryPendingDeletes,
             queryConflicts = queryConflicts,
@@ -346,5 +348,27 @@ class SettingsScreenTest {
 
         composeRule.onNode(hasText("3 of 10 contacts could not be verified", substring = true))
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun unsigned_contacts_show_a_neutral_row_that_opens_their_list() {
+        val vm = viewModel(
+            queryUnsignedContacts = {
+                listOf(
+                    UnverifiedContactSummary(5L, "ct-5", "Eve", null),
+                    UnverifiedContactSummary(6L, "ct-6", "Mallory", null)
+                )
+            }
+        )
+
+        composeRule.setContent {
+            SettingsScreen(vm, SettingsActions(onSignedOut = {}))
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNode(hasText("2 contacts have no signature", substring = true)).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Contacts without a signature").assertIsDisplayed()
+        composeRule.onNodeWithText("Mallory").assertIsDisplayed()
     }
 }
