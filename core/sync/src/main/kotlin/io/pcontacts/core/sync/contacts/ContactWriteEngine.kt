@@ -99,6 +99,8 @@ class ContactWriteEngine(
     private val liveRawId: suspend (Account, String) -> Long? = { _, _ -> null },
     private val readContactRow: suspend (rawContactId: Long, sourceId: String) -> ContactRow? = { _, _ -> null },
     private val clearDirtyFlag: suspend (Account, Long) -> Unit = { _, _ -> },
+    /** Removes a deleted row Proton never had, through the sync-adapter URI (ADR-0010). */
+    private val purgeRow: suspend (Account, Long) -> Unit = { _, _ -> },
     private val writeSourceId: suspend (Account, Long, String) -> Unit = { _, _, _ -> },
     /** Server-current contact; throws on transport failure (handled like any push failure), null if there is none. */
     private val fetchServerContact: suspend (protonContactId: String) -> DecryptedContact? = { null },
@@ -141,13 +143,15 @@ class ContactWriteEngine(
                     clearDirtyFlag(account, dc.rawContactId)
                 }
                 EnqueueResult.SKIPPED -> clearDirtyFlag(account, dc.rawContactId)
+                EnqueueResult.PURGE -> purgeRow(account, dc.rawContactId)
                 EnqueueResult.FAILED -> Unit
             }
         }
         return enqueued
     }
 
-    private enum class EnqueueResult { ENQUEUED, SKIPPED, FAILED }
+    /** [PURGE]: a deleted row with nothing left to send; it goes, or it is read again on every run. */
+    private enum class EnqueueResult { ENQUEUED, SKIPPED, PURGE, FAILED }
 
     private suspend fun enqueueChange(dc: DirtyContact): EnqueueResult {
         val now = clock()
@@ -248,9 +252,14 @@ class ContactWriteEngine(
      * which another install or phone derives the same way, so a delete by that UID could remove a
      * contact this phone never made. If such a create did reach Proton, the next pull brings the
      * contact back and the user's next deletion is an ordinary one: nothing is lost.
+     *
+     * Once nothing is left to send, the row is purged: no pull removes a row without a SOURCE_ID,
+     * so it was read again on every run. A create Proton refused goes with it — Retry would send
+     * the contact the user deleted, read from the row. A refused delete by UID stays, with its row,
+     * until Retry or Discard, as a refused delete does.
      */
     private suspend fun deleteUnconfirmedCreate(localId: String, now: Long): EnqueueResult {
-        val live = outboxDao.findLive(localId) ?: return EnqueueResult.SKIPPED
+        val live = outboxDao.findLive(localId) ?: return purgeUnsent(localId)
         return when {
             live.opType == OutboxEntity.OpType.DELETE -> EnqueueResult.SKIPPED
             live.createUid != null -> {
@@ -259,9 +268,18 @@ class ContactWriteEngine(
             }
             else -> {
                 outboxDao.deleteById(live.id)
-                EnqueueResult.SKIPPED
+                purgeUnsent(localId)
             }
         }
+    }
+
+    private suspend fun purgeUnsent(localId: String): EnqueueResult {
+        val refused = outboxDao.findByContact(localId).filter { it.quarantined }
+        if (refused.any { it.opType == OutboxEntity.OpType.DELETE }) return EnqueueResult.SKIPPED
+        refused.forEach { outboxDao.deleteById(it.id) }
+        contactMapDao.deleteByProtonId(localId)
+        logger.info { "deleted before it reached Proton; row purged (${refused.size} refused create(s) dropped)" }
+        return EnqueueResult.PURGE
     }
 
     private fun OutboxEnqueue.toResult(): EnqueueResult = when (this) {

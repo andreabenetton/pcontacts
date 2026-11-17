@@ -1332,6 +1332,87 @@ class ContactWriteEngineTest {
         assertNull(api.lastDeleteRequest)
     }
 
+    @Test fun a_deleted_row_that_never_reached_proton_is_purged() = runTest {
+        // Seen on two phones (#71, 2026-11-16): a row deleted before any create was queued for it
+        // was read again on every run, since no pull removes a row without a SOURCE_ID.
+        val api = WriteFakeApi()
+        val purged = mutableListOf<Long>()
+        val engine = newEngine(
+            api = api,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true)),
+            purgedRows = purged
+        )
+
+        engine.detectChanges(testAccount)
+        engine.push(testAccount)
+
+        assertEquals(listOf(500L), purged)
+        assertNull(api.lastCreateRequest)
+        assertNull(api.lastDeleteRequest)
+    }
+
+    @Test fun a_create_proton_refused_goes_with_its_deleted_row() = runTest {
+        // Retry would have read the deleted row and sent the contact the user had deleted.
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        outbox.enqueue("local-500", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        outbox.quarantine(outbox.entries.keys.single(), "Proton code 2060")
+        contactMap.upsert(sampleMapping("local-500", rawId = 500L))
+        val purged = mutableListOf<Long>()
+        val engine = newEngine(
+            api = api,
+            outbox = outbox,
+            contactMap = contactMap,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true)),
+            contactRows = mapOf(500L to sampleRow("local-500")),
+            purgedRows = purged
+        )
+
+        engine.detectChanges(testAccount)
+        engine.push(testAccount)
+
+        assertEquals(listOf(500L), purged)
+        assertTrue(outbox.entries.isEmpty())
+        assertNull(contactMap.findByProtonId("local-500"))
+        assertNull(api.lastCreateRequest)
+    }
+
+    @Test fun a_refused_delete_by_uid_keeps_its_row_until_retry_or_discard() = runTest {
+        val outbox = WriteFakeOutboxDao()
+        outbox.enqueue("local-500", OutboxEntity.OpType.DELETE, "", 1_000_000L)
+        outbox.quarantine(outbox.entries.keys.single(), "Proton code 2001")
+        val purged = mutableListOf<Long>()
+        val engine = newEngine(
+            outbox = outbox,
+            dirtyContacts = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true)),
+            purgedRows = purged
+        )
+
+        engine.detectChanges(testAccount)
+
+        assertTrue(purged.isEmpty())
+        assertEquals(1, outbox.entries.size)
+    }
+
+    @Test fun a_row_whose_delete_by_uid_was_sent_is_purged_on_the_next_run() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        outbox.enqueue("local-500", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        api.listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = outbox.entries.values.single().createUid!!))
+        val purged = mutableListOf<Long>()
+        val tombstone = listOf(DirtyContact(500L, null, isDirty = false, isDeleted = true))
+        val engine = newEngine(api = api, outbox = outbox, dirtyContacts = tombstone, purgedRows = purged)
+
+        engine.detectChanges(testAccount)
+        engine.push(testAccount)
+        assertTrue("the row stays while its delete is queued", purged.isEmpty())
+        engine.detectChanges(testAccount)
+
+        assertEquals(listOf("srv-9"), api.lastDeleteRequest!!.ids)
+        assertEquals(listOf(500L), purged)
+    }
+
     @Test fun detectChanges_delete_supersedes_a_pending_update() = runTest {
         val outbox = WriteFakeOutboxDao()
         val contactMap = WriteFakeContactMapDao()
@@ -2669,6 +2750,7 @@ class ContactWriteEngineTest {
         dirtyContacts: List<DirtyContact> = emptyList(),
         contactRows: Map<Long, ContactRow> = emptyMap(),
         clearedFlags: MutableList<Long>? = null,
+        purgedRows: MutableList<Long>? = null,
         serverContacts: Map<String, DecryptedContact> = emptyMap(),
         writtenSourceIds: MutableList<Pair<Long, String>>? = null,
         clock: () -> Long = { 2_000_000_000L },
@@ -2696,6 +2778,7 @@ class ContactWriteEngineTest {
                     ?: contacts[sourceId]?.let { DecryptedContactToRow.convert(it)?.copy(sourceId = sourceId) }
             },
             clearDirtyFlag = { _, rawId -> clearedFlags?.add(rawId) },
+            purgeRow = { _, rawId -> purgedRows?.add(rawId) },
             // Like the provider write's withContext, it notices a cancelled run.
             writeSourceId = { _, rawId, sourceId ->
                 currentCoroutineContext().ensureActive()

@@ -13,6 +13,7 @@ import io.pcontacts.core.contactswriter.DirtyFlagClearer
 import io.pcontacts.core.contactswriter.LocalGroupsWriter
 import io.pcontacts.core.contactswriter.PhotoDownscaler
 import io.pcontacts.core.contactswriter.RawContactDataReader
+import io.pcontacts.core.contactswriter.RawContactOpIntent
 import io.pcontacts.core.contactswriter.RawContactReader
 import io.pcontacts.core.contactswriter.SourceIdWriter
 import io.pcontacts.core.contactswriter.TombstoneRestorer
@@ -384,6 +385,11 @@ object SyncBootstrap {
             },
             clearDirtyFlag = { account, rawContactId ->
                 withContext(Dispatchers.IO) { dirtyClearer.clearDirty(account, rawContactId) }
+            },
+            purgeRow = { account, rawContactId ->
+                withContext(Dispatchers.IO) {
+                    BatchApplier(provider).apply(account, listOf(RawContactOpIntent.DeleteRawContact(rawContactId)))
+                }
             },
             writeSourceId = { account, rawContactId, sourceId ->
                 withContext(Dispatchers.IO) { sourceIdWriter.writeSourceId(account, rawContactId, sourceId) }
