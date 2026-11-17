@@ -153,10 +153,11 @@ class ContactsContractOpsTest {
                 )
             )
         )
-        // 1 Delete (wipe child rows) + 1 Phone — no StructuredName re-insert.
-        assertEquals(2, ops.size)
-        assertTrue("op 0 must be delete", ops[0].isDelete)
-        assertTrue("op 1 must be Phone insert", ops[1].isInsert)
+        // 1 Assert (still clean) + 1 Delete (wipe child rows) + 1 Phone — no StructuredName re-insert.
+        assertEquals(3, ops.size)
+        assertTrue("op 0 must be the assert", ops[0].isAssertQuery)
+        assertTrue("op 1 must be delete", ops[1].isDelete)
+        assertTrue("op 2 must be Phone insert", ops[2].isInsert)
     }
 
     @Test fun update_emits_delete_data_then_StructuredName_plus_Email_plus_chip_reinserts() {
@@ -167,13 +168,30 @@ class ContactsContractOpsTest {
                 row = ContactRow(sourceId = "c1", displayName = "Alice", emails = listOf("alice@proton.me"))
             )
         )
-        // 1 Delete + 1 StructuredName + 1 Email + 1 Send-via-Proton-Mail chip = 4.
-        assertEquals(4, ops.size)
-        assertTrue("op 0 must be delete", ops[0].isDelete)
-        assertTrue("ops 1..n must be inserts", ops.drop(1).all { it.isInsert })
+        // 1 Assert + 1 Delete + 1 StructuredName + 1 Email + 1 Send-via-Proton-Mail chip = 5.
+        assertEquals(5, ops.size)
+        assertTrue("op 0 must be the assert", ops[0].isAssertQuery)
+        assertTrue("op 1 must be delete", ops[1].isDelete)
+        assertTrue("ops 2..n must be inserts", ops.drop(2).all { it.isInsert })
 
-        // Delete URI must carry CALLER_IS_SYNCADAPTER to avoid tombstone resurrection.
-        assertEquals("true", ops[0].uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER))
+        // Every URI carries CALLER_IS_SYNCADAPTER (ADR-0010); the delete's avoids tombstone resurrection.
+        assertTrue(ops.all { it.uri.getQueryParameter(ContactsContract.CALLER_IS_SYNCADAPTER) == "true" })
+    }
+
+    @Test fun an_update_overwrites_only_a_row_still_clean_in_the_same_batch() {
+        // Review 2026-11-17, F5: a user edit between the pull's check and its batch set DIRTY;
+        // the assert fails the batch instead of the edit being overwritten.
+        val ops = ContactsContractOps.build(
+            account = account,
+            intent = RawContactOpIntent.UpdateContact(
+                rawContactId = 100L,
+                row = ContactRow(sourceId = "c1", displayName = "Alice", emails = emptyList())
+            )
+        )
+
+        val assert = ops.first()
+        assertTrue(assert.isAssertQuery)
+        assertEquals(RawContacts.CONTENT_URI.path, assert.uri.path)
     }
 
     @Test fun delete_emits_single_RawContacts_delete_with_selection_on_source_id() {
@@ -235,9 +253,10 @@ class ContactsContractOpsTest {
             )
         )
         // 1 Delete + 1 StructuredName + 2 Email + 2 chip = 6 ops.
-        assertEquals(6, ops.size)
-        assertTrue(ops[0].isDelete)        // wipe child Data rows
-        assertTrue("ops 1..n must be inserts", ops.drop(1).all { it.isInsert })
+        assertEquals(7, ops.size)
+        assertTrue(ops[0].isAssertQuery)   // still clean
+        assertTrue(ops[1].isDelete)        // wipe child Data rows
+        assertTrue("ops 2..n must be inserts", ops.drop(2).all { it.isInsert })
     }
 
     @Test fun contact_row_with_only_a_name_is_valid() {
@@ -309,9 +328,10 @@ class ContactsContractOpsTest {
             )
         )
         // 1 Delete + 1 StructuredName + 1 Email + 1 chip + 2 Phone = 6 ops.
-        assertEquals(6, ops.size)
-        assertTrue(ops[0].isDelete)
-        assertTrue(ops.drop(1).all { it.isInsert })
+        assertEquals(7, ops.size)
+        assertTrue(ops[0].isAssertQuery)
+        assertTrue(ops[1].isDelete)
+        assertTrue(ops.drop(2).all { it.isInsert })
     }
 
     @Test fun create_with_full_field_set_emits_one_row_per_each() {
@@ -374,8 +394,8 @@ class ContactsContractOpsTest {
             baseIdx = 0
         )
         // 1 delete + StructuredName + 2 Event + Nickname + Website.
-        assertEquals(6, ops.size)
-        val values = ops.drop(2).map { it.resolveValueBackReferences(emptyArray(), 0)!! }
+        assertEquals(7, ops.size)
+        val values = ops.drop(3).map { it.resolveValueBackReferences(emptyArray(), 0)!! }
         val byMime = values.groupBy { it.getAsString(ContactsContract.Data.MIMETYPE) }
         val events = byMime.getValue(Event.CONTENT_ITEM_TYPE)
             .associate { it.getAsInteger(Event.TYPE) to it.getAsString(Event.START_DATE) }
@@ -432,9 +452,10 @@ class ContactsContractOpsTest {
         )
         // 1 Delete + 1 StructuredName + 1 Email + 1 chip + 1 Postal
         //   + 1 Organization + 1 Note + 1 Im = 8.
-        assertEquals(8, ops.size)
-        assertTrue(ops[0].isDelete)
-        assertTrue(ops.drop(1).all { it.isInsert })
+        assertEquals(9, ops.size)
+        assertTrue(ops[0].isAssertQuery)
+        assertTrue(ops[1].isDelete)
+        assertTrue(ops.drop(2).all { it.isInsert })
     }
 
     @Test fun contact_row_now_accepts_address_or_im_only_contacts() {

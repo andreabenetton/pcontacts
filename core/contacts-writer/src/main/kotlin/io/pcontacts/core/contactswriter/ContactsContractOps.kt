@@ -203,8 +203,19 @@ object ContactsContractOps {
         rawContactId: Long,
         row: ContactRow
     ): List<ContentProviderOperation> {
-        val ops = ArrayList<ContentProviderOperation>(estimateOps(row) + 1)
+        val ops = ArrayList<ContentProviderOperation>(estimateOps(row) + 2)
         val dataUri = SyncAdapterUri.decorate(Data.CONTENT_URI, account.name, account.type)
+
+        // 0) Only a row nobody edited since it was checked is overwritten. A user edit sets DIRTY;
+        //    in the same batch this assert fails it, and nothing of this batch is applied
+        //    (review 2026-11-17, F5; ADR-0010 amendment). [A] ContactsProvider applies a batch in
+        //    one transaction when no operation allows a yield, as none here does.
+        ops += ContentProviderOperation.newAssertQuery(
+            SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
+        )
+            .withSelection("${RawContacts._ID} = ? AND ${RawContacts.DIRTY} = 0", arrayOf(rawContactId.toString()))
+            .withExpectedCount(1)
+            .build()
 
         // 1) Wipe existing Data rows for this RawContact.
         ops += ContentProviderOperation.newDelete(dataUri)

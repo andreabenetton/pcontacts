@@ -60,18 +60,20 @@ class BatchPlannerTest {
     @Test fun mixed_intent_kinds_pack_within_limit() {
         val intents = listOf(
             RawContactOpIntent.CreateContact(ContactRow("c1", "Alice", emails = listOf("a@x"))),         // 4 ops
-            RawContactOpIntent.UpdateContact(rawContactId = 100L, row = ContactRow("c2", "Bob", emails = listOf("b@x"))), // 4 ops
+            RawContactOpIntent.UpdateContact(rawContactId = 100L, row = ContactRow("c2", "Bob", emails = listOf("b@x"))), // 5 ops
             RawContactOpIntent.DeleteContact(sourceId = "c3"),                          // 1 op
             RawContactOpIntent.DeleteContact(sourceId = "c4")                           // 1 op
         )
-        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 5)
-        // Greedy layout: pack until the next intent would overflow.
-        //   chunk 0: [Create 4]                       size 4 (Update next would be 8 > 5 → split)
-        //   chunk 1: [Update 4, Delete 1]             size 5 (fits exactly; second Delete would overflow)
+        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 6)
+        // Greedy layout: pack until the next intent would overflow. An update starts with its
+        // assert (review 2026-11-17, F5), so it is 5 ops and stays whole in its batch.
+        //   chunk 0: [Create 4]                       size 4 (Update next would be 9 > 6 → split)
+        //   chunk 1: [Update 5, Delete 1]             size 6 (fits exactly; second Delete would overflow)
         //   chunk 2: [Delete 1]                       size 1
         assertEquals(3, chunks.size)
         assertEquals(4, chunks[0].size)
-        assertEquals(5, chunks[1].size)
+        assertEquals(6, chunks[1].size)
+        assertTrue("the assert travels with its update", chunks[1][0].isAssertQuery)
         assertEquals(1, chunks[2].size)
     }
 

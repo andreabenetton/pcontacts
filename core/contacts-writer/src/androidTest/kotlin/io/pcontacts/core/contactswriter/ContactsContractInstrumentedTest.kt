@@ -11,6 +11,7 @@ import android.accounts.Account
 import android.content.ContentProviderClient
 import android.content.ContentUris
 import android.content.ContentValues
+import android.content.OperationApplicationException
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.provider.ContactsContract
@@ -35,6 +36,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -389,6 +391,39 @@ class ContactsContractInstrumentedTest {
         val phones = queryAllDataRows(rawId, Phone.CONTENT_ITEM_TYPE)
         assertEquals(1, phones.size)
         assertEquals("+1 555 9999", phones[0]["data1"])
+    }
+
+    @Test
+    fun an_update_does_not_overwrite_a_row_edited_since_it_was_checked() {
+        // Review 2026-11-17, F5: the user edits the contact after the pull checked DIRTY and before
+        // its batch runs. The assert in the same batch fails it; the user's edit stays.
+        val applier = BatchApplier(testProvider)
+        applier.apply(
+            testAccount,
+            listOf(
+                RawContactOpIntent.CreateContact(
+                    ContactRow(sourceId = "proton-race", displayName = "Alice", emails = listOf("alice@proton.me"))
+                )
+            )
+        )
+        val rawId = findRawContactBySourceId("proton-race")!!
+        assertEquals(0, rawContactFlag(rawId, RawContacts.DIRTY))
+        val userEdit = ContentValues().apply { put(Email.ADDRESS, "alice.edited@proton.me") }
+        testProvider.update(
+            Data.CONTENT_URI,
+            userEdit,
+            "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?",
+            arrayOf(rawId.toString(), Email.CONTENT_ITEM_TYPE)
+        )
+        assertEquals("a user edit sets DIRTY", 1, rawContactFlag(rawId, RawContacts.DIRTY))
+
+        val fromProton = ContactRow(sourceId = "proton-race", displayName = "Alice", emails = listOf("alice@proton.me"))
+        assertThrows(OperationApplicationException::class.java) {
+            applier.apply(testAccount, listOf(RawContactOpIntent.UpdateContact(rawId, fromProton)))
+        }
+
+        val emails = queryAllDataRows(rawId, Email.CONTENT_ITEM_TYPE).map { it[Email.ADDRESS] }
+        assertEquals(listOf("alice.edited@proton.me"), emails)
     }
 
     // ---- Delete ----

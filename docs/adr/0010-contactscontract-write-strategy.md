@@ -1,6 +1,6 @@
 # ADR-0010: ContactsContract write strategy — delete-and-reinsert child rows
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-11-17 — an update asserts the row is still clean)
 - **Date:** 2026-05-22
 - **Deciders:** project owner
 - **Related:** ADR-0004, ADR-0008
@@ -123,3 +123,22 @@ Init guard widened from "≥ 1 email" to "≥ 1 of {email, phone, address, im}" 
 Deferred:
 
 - The four Validation instrumented tests (idempotency, update-shape, aggregator, delete-tombstone) need an emulator pipeline. Robolectric `ContactsContractOpsTest` / `BatchPlannerTest` / `RawContactDifferTest` / `LocalGroupsWriterTest` cover structural assertions; the provider-hitting paths land with the device-validation chain.
+
+## Amendment (2026-11-17): an update asserts the row is still clean, in the same batch
+
+The pull checks which rows the user edited (DIRTY) before it writes, and
+leaves those for the next run. A user edit landing between that check
+and the batch was overwritten: the delete-and-reinsert replaced it, and
+the next run found nothing to send.
+
+Every update now starts with an assert operation on its RawContact,
+`_ID = ? AND DIRTY = 0` with an expected count of 1, in the same batch as
+its delete and re-inserts (the batch planner never splits an intent).
+A row edited in the meantime fails the batch; nothing of it is applied,
+and the pull leaves that row to the next run. `[A]` ContactsProvider
+applies a batch in one transaction when no operation allows a yield, and
+none of ours does.
+
+Validation: `ContactsContractInstrumentedTest.an_update_does_not_overwrite_a_row_edited_since_it_was_checked`
+passed on Android 11 (Samsung SM-A405FN), 2026-11-17; the existing update
+tests show a clean row is still updated (review of 2026-11-17, F5).
