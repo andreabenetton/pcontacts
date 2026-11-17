@@ -1,0 +1,7 @@
+Version 2.6.0.
+
+* Accounts whose keys an organization manages can sign in and sync.
+* Contacts without a signature have their own line, apart from failed signatures.
+* An edit no longer re-signs a contact whose signature failed: it waits for your choice.
+* Encryption keys and encrypted cards are checked more strictly.
+* Edits and photos changed during a sync are no longer lost; large photos no longer stop the download.

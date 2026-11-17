@@ -1,0 +1,7 @@
+Versión 2.6.0.
+
+* Las cuentas cuyas claves gestiona una organización pueden iniciar sesión y sincronizar.
+* Los contactos sin firma tienen su propia línea, aparte de las firmas fallidas.
+* Una edición ya no vuelve a firmar un contacto cuya firma falló: espera tu decisión.
+* Las claves y las tarjetas cifradas se comprueban con más rigor.
+* Ya no se pierden ediciones ni fotos cambiadas durante una sincronización; las fotos grandes ya no detienen la descarga.

@@ -1,0 +1,7 @@
+Version 2.6.0.
+
+* Les comptes dont une organisation gère les clés peuvent se connecter et synchroniser.
+* Les contacts sans signature ont leur propre ligne, à part des signatures en échec.
+* Une modification ne signe plus un contact dont la signature a échoué : elle attend votre choix.
+* Les clés et les cartes chiffrées sont vérifiées plus strictement.
+* Les modifications et photos changées pendant une synchronisation ne sont plus perdues ; les grandes photos ne bloquent plus le téléchargement.

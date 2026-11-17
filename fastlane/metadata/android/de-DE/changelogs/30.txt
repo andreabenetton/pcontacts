@@ -1,0 +1,7 @@
+Version 2.6.0.
+
+* Konten, deren Schlüssel eine Organisation verwaltet, können sich anmelden und synchronisieren.
+* Kontakte ohne Signatur haben eine eigene Zeile, getrennt von fehlgeschlagenen Signaturen.
+* Eine Änderung signiert einen Kontakt mit fehlgeschlagener Signatur nicht mehr neu: Sie entscheiden.
+* Schlüssel und verschlüsselte Karten werden strenger geprüft.
+* Beim Synchronisieren geänderte Kontakte und Fotos gehen nicht verloren; große Fotos stoppen den Download nicht mehr.

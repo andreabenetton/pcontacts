@@ -1,0 +1,7 @@
+Versione 2.6.0.
+
+* Gli account le cui chiavi sono gestite da un'organizzazione possono accedere e sincronizzare.
+* I contatti senza firma hanno una riga propria, separata dalle firme non valide.
+* Una modifica non firma più un contatto la cui firma non è valida: attende la tua scelta.
+* Chiavi e schede cifrate sono verificate in modo più rigoroso.
+* Modifiche e foto cambiate durante una sincronizzazione non vanno più perse; le foto grandi non bloccano più il download.
