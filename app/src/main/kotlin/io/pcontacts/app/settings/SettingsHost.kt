@@ -37,6 +37,7 @@ import io.pcontacts.core.sync.contacts.LOCAL_REMOVED_CONFLICT
 import io.pcontacts.core.sync.contacts.SERVER_DELETED_CONFLICT
 import io.pcontacts.core.sync.contacts.SERVER_EDITED_CONFLICT
 import io.pcontacts.core.sync.contacts.SyncBootstrap
+import io.pcontacts.core.sync.contacts.UNVERIFIED_CONFLICT
 import io.pcontacts.core.sync.contacts.UnverifiedContactRef
 import io.pcontacts.feature.settings.AdjustedContact
 import io.pcontacts.feature.settings.ConflictInfo
@@ -349,10 +350,12 @@ class SettingsHost(
             ConflictInfo(
                 protonContactId = entity.protonContactId,
                 displayName = names[entity.androidRawContactId],
-                conflictFields = entity.lastError?.removePrefix("conflict: "),
+                // A failed signature is the whole reason: no fields conflict, and the stored text is not for display.
+                conflictFields = entity.lastError?.takeIf { it != UNVERIFIED_CONFLICT }?.removePrefix("conflict: "),
                 serverDeleted = entity.lastError == SERVER_DELETED_CONFLICT,
                 localRemoved = entity.lastError == LOCAL_REMOVED_CONFLICT,
-                serverEdited = entity.lastError == SERVER_EDITED_CONFLICT
+                serverEdited = entity.lastError == SERVER_EDITED_CONFLICT,
+                signatureFailed = entity.isSigned && !entity.isVerified
             )
         }
     }
