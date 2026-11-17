@@ -1,6 +1,6 @@
 # ADR-0010: ContactsContract write strategy — delete-and-reinsert child rows
 
-- **Status:** Accepted (amended 2026-11-17 — an update asserts the row is still clean)
+- **Status:** Accepted (amended 2026-11-17 — an update asserts the row is still clean; a batch is bounded in bytes)
 - **Date:** 2026-05-22
 - **Deciders:** project owner
 - **Related:** ADR-0004, ADR-0008
@@ -142,3 +142,24 @@ none of ours does.
 Validation: `ContactsContractInstrumentedTest.an_update_does_not_overwrite_a_row_edited_since_it_was_checked`
 passed on Android 11 (Samsung SM-A405FN), 2026-11-17; the existing update
 tests show a clean row is still updated (review of 2026-11-17, F5).
+
+## Amendment (2026-11-17, second): a batch is bounded in bytes as well as in operations
+
+The 450-operation cap was the only bound on an `applyBatch`, but one
+batch travels in a single Binder transaction, whose 1 MiB buffer the
+whole process shares. Twenty contacts with a photo just under the 96 KiB
+inline limit are about 80 operations and 1.7 MB: Android refused the
+batch with `TransactionTooLargeException`, and the next run built the
+same batch again, so the pull never got past it.
+
+The batch planner now also closes a batch before it would exceed
+384 KiB `[A]` (headroom under the shared buffer), measuring each intent
+as it is parcelled. An intent is never split, so a contact's operations
+and back-references stay together; one contact over the budget on its
+own travels alone.
+
+Validation: `BatchPlannerTest.contacts_with_large_photos_are_split_by_bytes_not_only_by_op_count`;
+`ContactsContractInstrumentedTest.twenty_contacts_with_large_photos_are_written_in_batches_binder_can_carry`
+on Android 11 (Samsung SM-A405FN), 2026-11-17: without the budget the batch
+was 1,738,548 bytes and failed with `TransactionTooLargeException`; with
+it, all twenty were written (review of 2026-11-17, F6).

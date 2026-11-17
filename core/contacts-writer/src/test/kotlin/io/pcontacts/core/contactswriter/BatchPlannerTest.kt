@@ -111,4 +111,43 @@ class BatchPlannerTest {
             BatchPlanner.plan(account, emptyList(), maxOpsPerBatch = 0)
         }
     }
+
+    @Test fun contacts_with_large_photos_are_split_by_bytes_not_only_by_op_count() {
+        // Review 2026-11-17, F6: 20 contacts with a 90 KiB photo are far under 450 ops but ~1.8 MB,
+        // past Binder's 1 MiB transaction buffer, and the same batch failed again on every run.
+        val photo = ContactPhoto(ByteArray(90 * 1024) { it.toByte() })
+        val intents = (1..20).map {
+            RawContactOpIntent.CreateContact(
+                ContactRow("c$it", "Contact $it", emails = emptyList(), photo = photo)
+            )
+        }
+
+        val chunks = BatchPlanner.plan(account, intents)
+
+        assertTrue("several batches, not one", chunks.size >= 5)
+        val isRawInsert = { op: android.content.ContentProviderOperation ->
+            op.isInsert && op.uri.path!!.endsWith("raw_contacts")
+        }
+        assertEquals(20, chunks.sumOf { chunk -> chunk.count(isRawInsert) })
+        for (chunk in chunks) {
+            assertTrue("every batch starts with its own RawContacts insert", isRawInsert(chunk.first()))
+            val parcel = android.os.Parcel.obtain()
+            chunk.forEach { it.writeToParcel(parcel, 0) }
+            assertTrue("batch of ${parcel.dataSize()} bytes", parcel.dataSize() <= BatchPlanner.MAX_BYTES_PER_BATCH)
+            parcel.recycle()
+        }
+    }
+
+    @Test fun one_contact_over_the_byte_budget_travels_alone() {
+        val big = ContactPhoto(ByteArray(64 * 1024))
+        val intents = listOf(
+            RawContactOpIntent.CreateContact(ContactRow("a", "A", emails = emptyList())),
+            RawContactOpIntent.CreateContact(ContactRow("b", "B", emails = emptyList(), photo = big)),
+            RawContactOpIntent.CreateContact(ContactRow("c", "C", emails = emptyList()))
+        )
+
+        val chunks = BatchPlanner.plan(account, intents, maxBytesPerBatch = 16 * 1024)
+
+        assertEquals(3, chunks.size)
+    }
 }

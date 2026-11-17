@@ -706,6 +706,29 @@ class ContactsContractInstrumentedTest {
     }
 
     @Test
+    fun twenty_contacts_with_large_photos_are_written_in_batches_binder_can_carry() {
+        // Review 2026-11-17, F6: about 80 ops but ~1.8 MB of photos in one applyBatch, past the
+        // 1 MiB Binder buffer. The planner now bounds each batch in bytes too.
+        val photo = noisyJpeg()
+        assertTrue("near the inline limit: ${photo.size} bytes", photo.size in 60 * 1024..PhotoDownscaler.MAX_INLINE_PHOTO_BYTES)
+        val intents = (1..20).map {
+            RawContactOpIntent.CreateContact(
+                ContactRow(
+                    sourceId = "proton-photo$it",
+                    displayName = "Photo $it",
+                    emails = emptyList(),
+                    photo = ContactPhoto(photo)
+                )
+            )
+        }
+
+        val result = BatchApplier(testProvider).apply(testAccount, intents)
+
+        assertEquals(20, result.insertedContacts)
+        assertEquals(20, countRawContactsForAccount())
+    }
+
+    @Test
     fun write_source_id_stamps_server_id_onto_a_local_raw_contact() {
         // A locally-created contact starts with no SOURCE_ID; once the CREATE
         // reaches Proton, SourceIdWriter stamps the server id so the next pull
@@ -1028,6 +1051,23 @@ class ContactsContractInstrumentedTest {
         return cursor.use { it.count }
     }
 
+    /** A JPEG of random pixels, which compresses badly: just under the inline photo limit. */
+    private fun noisyJpeg(): ByteArray {
+        val random = java.util.Random(F6_SEED)
+        val side = NOISE_SIDE
+        val bitmap = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+        bitmap.setPixels(IntArray(side * side) { random.nextInt() or OPAQUE }, 0, side, 0, 0, side, side)
+        var quality = MAX_QUALITY
+        var bytes: ByteArray
+        do {
+            val out = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            bytes = out.toByteArray()
+            quality -= QUALITY_STEP
+        } while (bytes.size > PhotoDownscaler.MAX_INLINE_PHOTO_BYTES && quality > 0)
+        return bytes
+    }
+
     private fun createSmallJpeg(): ByteArray {
         val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(0xFFFF0000.toInt())
@@ -1037,3 +1077,9 @@ class ContactsContractInstrumentedTest {
         return out.toByteArray()
     }
 }
+
+private const val F6_SEED = 17L
+private const val NOISE_SIDE = 320
+private const val OPAQUE = 0xFF000000.toInt()
+private const val MAX_QUALITY = 95
+private const val QUALITY_STEP = 5
