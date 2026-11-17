@@ -412,7 +412,7 @@ class ContactDetailSyncEngine(
                             serverLabelIds = meta.labelBase
                         )
                     )
-                    saveMergeBase(sourceId, decrypted.copy(localPhotoHash = readLocalPhotoHash(liveRawId)))
+                    saveMergeBase(sourceId, decrypted.copy(localPhotoHash = settledPhotoHash(account, liveRawId)))
                     continue
                 }
 
@@ -578,7 +578,7 @@ class ContactDetailSyncEngine(
                     serverLabelIds = meta.labelBase
                 )
             )
-            saveMergeBase(row.sourceId, meta.decrypted.copy(localPhotoHash = readLocalPhotoHash(rawId)))
+            saveMergeBase(row.sourceId, meta.decrypted.copy(localPhotoHash = settledPhotoHash(account, rawId)))
         }
         return result
     }
@@ -716,6 +716,18 @@ class ContactDetailSyncEngine(
             .map { it.sourceId }
             .filter { it !in present }
         if (gone.isNotEmpty()) contactMapDao.deleteByProtonIds(gone)
+    }
+
+    /**
+     * The phone's photo digest for a merge base, or null when the row was edited after it was read:
+     * the digest may then be of a new photo, and as the baseline it would make that photo read as
+     * unchanged (review 2026-11-17, F4). Read first, check DIRTY after, so a row still clean proves
+     * the digest predates any edit. An unknown baseline makes the phone's photo count as a change:
+     * at worst it is sent once more, never lost.
+     */
+    private suspend fun settledPhotoHash(account: Account, rawContactId: Long): String? {
+        val digest = readLocalPhotoHash(rawContactId)
+        return digest.takeIf { rawContactId !in readDirtyRawIds(account) }
     }
 
     private data class PerContactMeta(

@@ -4,6 +4,7 @@
 package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
+import io.pcontacts.core.contactswriter.ContactPhoto
 import io.pcontacts.core.contactswriter.ContactRow
 import io.pcontacts.core.contactswriter.DirtyContact
 import io.pcontacts.core.proton.api.contacts.BulkDeleteRequest
@@ -1715,6 +1716,42 @@ class ContactWriteEngineTest {
 
         assertEquals(0, fits)
         assertFalse(api.lastUpdateRequest!!.cards.joinToString { it.data }.contains("CQk="))
+    }
+
+    @Test fun a_photo_changed_while_its_update_is_sent_goes_up_next() = runTest {
+        // Review 2026-11-17, F4: Proton has A, the phone B; while B is sent the user picks C.
+        // The base recorded C as the phone's photo already, so C read as unchanged and was lost.
+        val photoA = DecryptedPhoto(byteArrayOf(1, 1, 1), "image/jpeg")
+        val photoB = byteArrayOf(2, 2, 2)
+        val photoC = byteArrayOf(3, 3, 3)
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val bases = InMemoryMergeBaseStore()
+        val rows = mutableMapOf(100L to sampleRow("ct-1").copy(photo = ContactPhoto(photoB)))
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, EmailSyncHash.compute(rows[100L]!!), 1_000_000L)
+        var proton = sampleContact("ct-1").copy(photo = photoA)
+        api.onUpdate = { rows[100L] = sampleRow("ct-1").copy(photo = ContactPhoto(photoC)) }
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contactRows = rows,
+            fetchServerContact = { proton },
+            mergeBases = bases,
+            bases = mapOf("ct-1" to proton.copy(serverPhotoHash = PhotoHash.of(photoA.data), localPhotoHash = null))
+        )
+
+        engine.push(testAccount)
+        assertTrue(api.lastUpdateRequest!!.cards.joinToString { it.data }.contains("AgIC"))
+        proton = sampleContact("ct-1").copy(photo = DecryptedPhoto(photoB, "image/jpeg"))
+        api.onUpdate = {}
+        engine.push(testAccount)
+
+        val sent = api.lastUpdateRequest!!.cards.joinToString { it.data }
+        assertTrue("C is sent, not taken as already synced", sent.contains("AwMD"))
+        assertEquals(PhotoHash.of(photoC), MergeBaseCodec.load(bases, "ct-1")!!.localPhotoHash)
     }
 
     // ---- a contact is fitted to Proton's editor rules before it is sent (ADR-0017, 2026-10-15, third) ----

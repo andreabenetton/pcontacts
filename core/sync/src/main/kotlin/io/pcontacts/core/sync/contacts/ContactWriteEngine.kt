@@ -455,8 +455,11 @@ class ContactWriteEngine(
                 // [A] Proton stores exactly the cards it accepted, so the payload is the
                 // server state until the next pull re-captures it. Column updates only:
                 // an upsert here would overwrite the sealed base.
-                val after = completeEntry(entry, mapping.androidRawContactId, pushedHash)
-                MergeBaseCodec.save(mergeBases, id, payload, localPhotoHash = after?.photo?.data?.let(PhotoHash::of))
+                completeEntry(entry, mapping.androidRawContactId, pushedHash)
+                // The baseline is the photo this update was built from, not the one the row holds
+                // now: a photo changed during the request must still read as a change, and it is
+                // queued by completeEntry (review 2026-11-17, F4).
+                MergeBaseCodec.save(mergeBases, id, payload, localPhotoHash = row.photo?.data?.let(PhotoHash::of))
                 markPendingPush(id, null)
                 contactMapDao.markClean(id, clock())
                 WriteReport(pushed = 1, updated = 1)
@@ -688,9 +691,8 @@ class ContactWriteEngine(
     /**
      * ADR-0017 §5: the row is done only if it still describes what was
      * pushed; if the contact changed meanwhile, the new state is queued.
-     * Returns the row as it is now (its photo digest goes into the base).
      */
-    private suspend fun completeEntry(entry: OutboxEntity, rawContactId: Long, pushedHash: String): ContactRow? {
+    private suspend fun completeEntry(entry: OutboxEntity, rawContactId: Long, pushedHash: String) {
         outboxDao.deleteIfUnchanged(entry.id, entry.opType, entry.payloadHash)
         val now = readContactRow(rawContactId, entry.protonContactId)
         val nowHash = now?.let(EmailSyncHash::compute)
@@ -698,7 +700,6 @@ class ContactWriteEngine(
             logger.info { "push: contact changed during push, re-queued idTag=${entry.protonContactId.hashCode()}" }
             outboxDao.enqueue(entry.protonContactId, OutboxEntity.OpType.UPDATE, nowHash, clock())
         }
-        return now
     }
 
     /**
@@ -728,7 +729,7 @@ class ContactWriteEngine(
         // Rows queued before schema v5 keep the UID derived from their local id.
         val uid = minted ?: ContactSerializer.fallbackUid(localId)
         val conformed = ProtonEditorRules.conform(withFittedPhoto(RowToDecryptedContact.convert(row, localId, uid)))
-        val attempt = CreateAttempt(entry, rawContactId, conformed.contact)
+        val attempt = CreateAttempt(entry, rawContactId, conformed.contact, row.photo?.data?.let(PhotoHash::of))
         val pushedHash = EmailSyncHash.compute(row)
         return try {
             val earlier = minted?.let { createdUids?.get(it) }
@@ -800,11 +801,13 @@ class ContactWriteEngine(
             )
         }
         val nowRow = readContactRow(attempt.rawContactId, localId)
+        // The photo this create was built from; for a copy an earlier run made, none is known, so
+        // the phone's photo counts as a change rather than being taken as synced (review 2026-11-17, F4).
         MergeBaseCodec.save(
             mergeBases,
             serverContact.id,
             base,
-            localPhotoHash = nowRow?.photo?.data?.let(PhotoHash::of)
+            localPhotoHash = if (created.sentHere) attempt.localPhotoHash else null
         )
         val nowHash = nowRow?.let(EmailSyncHash::compute)
         if (nowHash != null && nowHash != serverHash) {
@@ -964,7 +967,13 @@ class ContactWriteEngine(
         return WriteReport(quarantined = 1)
     }
 
-    private class CreateAttempt(val entry: OutboxEntity, val rawContactId: Long, val contact: DecryptedContact)
+    /** [localPhotoHash]: the digest of the phone's photo as the row held it when the create was built. */
+    private class CreateAttempt(
+        val entry: OutboxEntity,
+        val rawContactId: Long,
+        val contact: DecryptedContact,
+        val localPhotoHash: String?
+    )
 
     /** The contact a create made; [sentHere] when this run's own POST was answered with it. */
     private class Created(val contact: ContactDto, val sentHere: Boolean)
