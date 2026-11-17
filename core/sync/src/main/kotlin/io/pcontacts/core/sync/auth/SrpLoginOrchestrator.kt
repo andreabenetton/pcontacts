@@ -5,6 +5,7 @@ package io.pcontacts.core.sync.auth
 
 import io.pcontacts.core.crypto.bcrypt.ComputeKeyPassword
 import io.pcontacts.core.crypto.openpgp.BouncyCastleKeyUnlock
+import io.pcontacts.core.crypto.openpgp.BouncyCastleOpenPgpService
 import io.pcontacts.core.crypto.openpgp.KeyUnlockException
 import io.pcontacts.core.crypto.srp.BouncyCastleProtonModulusVerifier
 import io.pcontacts.core.crypto.srp.ProtonModulusEnvelope
@@ -26,6 +27,9 @@ import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.proton.api.http.ProtonApiException
 import io.pcontacts.core.proton.api.httpStatusCode
 import io.pcontacts.core.proton.api.users.ProtonUsersApi
+import io.pcontacts.core.proton.api.users.UserDto
+import io.pcontacts.core.proton.api.users.UserKeyDto
+import io.pcontacts.core.sync.contacts.decrypt.UserKeyPassphrases
 import io.pcontacts.core.sync.contacts.protonCodeOf
 import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
@@ -506,11 +510,32 @@ class SrpLoginOrchestrator(
         val keyPassword = ComputeKeyPassword.derive(password, saltB64)
         val keyPasswordChars = keyPassword.toCharArray()
         try {
-            if (!primaryKeyOpens(primary.privateKey, keyPasswordChars)) throw KeyPasswordRejectedException()
+            // An organization member's primary key opens with its member token, not the key
+            // password itself (review 2026-11-17, F8; WebClients getDecryptedUserKeysHelper).
+            val passphrase = primaryPassphrase(user, primary, keyPasswordChars)
+            try {
+                if (!primaryKeyOpens(primary.privateKey, passphrase)) throw KeyPasswordRejectedException()
+            } finally {
+                passphrase.fill('\u0000')
+            }
         } finally {
             keyPasswordChars.fill('\u0000')
         }
         secretStore.setKeyPassword(keyPassword.toByteArray(Charsets.UTF_8))
+    }
+
+    /** The primary key's passphrase; an organization key or member token that does not hold is a rejection. */
+    private fun primaryPassphrase(user: UserDto, primary: UserKeyDto, keyPassword: CharArray): CharArray = try {
+        UserKeyPassphrases.of(user, keyPassword.copyOf(), BouncyCastleOpenPgpService()).let { passphrases ->
+            try {
+                passphrases.forKey(primary)
+            } finally {
+                passphrases.wipe()
+            }
+        }
+    } catch (e: KeyUnlockException) {
+        logger.warn { "organization key or member token did not open at sign-in: ${e.message}" }
+        throw KeyPasswordRejectedException()
     }
 
     /**

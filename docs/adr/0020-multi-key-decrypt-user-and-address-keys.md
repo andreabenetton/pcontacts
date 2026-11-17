@@ -1,6 +1,6 @@
 # ADR-0020: Decrypt path tries all unlocked user + address keys
 
-- **Status:** Accepted (amended 2026-09-22 — Token signature verification is mandatory; amended 2026-11-17 — the encryption key is chosen from signatures that verify, and an encrypted message must prove its integrity)
+- **Status:** Accepted (amended 2026-09-22 — Token signature verification is mandatory; amended 2026-11-17 — the encryption key is chosen from signatures that verify, an encrypted message must prove its integrity, and an organization member's user keys open with their member tokens)
 - **Date:** 2026-05-29
 - **Deciders:** pcontacts maintainers
 - **Related:** ADR-0002 (native Kotlin crypto), ADR-0007 (client-side
@@ -243,3 +243,35 @@ Validation: `BouncyCastleOpenPgpServiceTest` — a flipped MDC byte with
 intact literal data and a valid signature, altered and truncated
 ciphertext, a packet without integrity protection; the captured
 OpenPGP.js vectors still decrypt (review of 2026-11-17, F2).
+
+## Amendment (2026-11-17, third): an organization member's user keys open with their member tokens
+
+Every user key was opened with the key password. On an account whose
+keys an organization manages that cannot work: WebClients
+`getDecryptedUserKeysHelper` `[V]` (`getDecryptedUserKeys.ts`,
+`memberToken.ts`, `getDecryptedOrganizationKey.ts`, WebClients @ 444df12)
+opens them another way, and pcontacts now does the same, at sign-in and
+at every sync:
+
+- `User.OrganizationPrivateKey`, when present, opens with the key
+  password; if it does not, no user key opens (sign-in is refused, a
+  sync stops with `KEY_UNLOCK_FAILED`), as in WebClients;
+- a user key with a `Token` opens with that member token: the token is
+  decrypted with the organization key and must carry a valid signature
+  by it (`decryptMemberToken`), else the key does not open;
+- a user key without a token, and every key of an ordinary account,
+  opens with the key password as before.
+
+Nothing new is stored: the key password is still the only secret kept,
+and the organization key and tokens are opened in memory on each run and
+wiped. The member token is a message signed inline, which
+`OpenPgpService.decryptAndVerifyInline` reads, integrity-checked as every
+decryption is.
+
+`[A]` Not validated against a live organization account: the test
+account and the owner's account are ordinary ones. Validation so far:
+`OrganizationKeyUnlockTest` (generated organization and member keys: a
+valid chain, a token signed by another key, an organization key that
+does not open, an ordinary account) and the `member-token-inline-signed`
+vector, made with OpenPGP.js as `encryptMemberToken` makes it and read by
+BouncyCastle (review of 2026-11-17, F8).

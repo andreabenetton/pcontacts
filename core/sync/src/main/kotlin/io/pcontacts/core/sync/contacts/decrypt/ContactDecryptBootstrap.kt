@@ -16,6 +16,7 @@ import io.pcontacts.core.logging.RedactingLogger
 import io.pcontacts.core.proton.api.addresses.AddressKeyDto
 import io.pcontacts.core.proton.api.addresses.ProtonAddressesApi
 import io.pcontacts.core.proton.api.users.ProtonUsersApi
+import io.pcontacts.core.proton.api.users.UserDto
 import io.pcontacts.core.proton.api.users.UserKeyDto
 import io.pcontacts.core.protoncontacts.ContactDecrypter
 import io.pcontacts.core.protoncontacts.ContactProcessor
@@ -117,13 +118,18 @@ object ContactDecryptBootstrap {
             val primaryDto = user.keys.firstOrNull { it.primary == 1 && it.active == 1 }
                 ?: throw DecryptUnavailableException("NO_PRIMARY_KEY")
 
-            val primaryUnlocked = unlockPrimaryUserKey(primaryDto, keyPasswordBytes, logger)
-            // [V] WebClients getDecryptedUserKeys: only the primary key must open; another one
-            // that does not (e.g. from before a password reset) is left out, not fatal (#65).
-            val nonPrimaryUnlocked = user.keys
-                .filter { it.active == 1 && it.id != primaryDto.id }
-                .mapNotNull { tryUnlockUserKey(it, keyPasswordBytes, logger) }
-            val allUserUnlocked = listOf(primaryUnlocked) + nonPrimaryUnlocked
+            val passphrases = userKeyPassphrases(user, keyPasswordBytes, openPgp, logger)
+            val allUserUnlocked = try {
+                val primary = unlockPrimaryUserKey(primaryDto, passphrases, logger)
+                // [V] WebClients getDecryptedUserKeys: only the primary key must open; another one
+                // that does not (e.g. from before a password reset) is left out, not fatal (#65).
+                listOf(primary) + user.keys
+                    .filter { it.active == 1 && it.id != primaryDto.id }
+                    .mapNotNull { tryUnlockUserKey(it, passphrases, logger) }
+            } finally {
+                passphrases.wipe()
+            }
+            val primaryUnlocked = allUserUnlocked.first()
 
             val addresses = fetchAddressesOrEmpty(addressesApi, logger)
             val activeAddressKeys = addresses.flatMap { it.keys }.filter { it.active == 1 }
@@ -160,23 +166,47 @@ object ContactDecryptBootstrap {
     }
 
     /** The primary key must open; when it does not, the log says why, without secrets (#65). */
-    private fun unlockPrimaryUserKey(uk: UserKeyDto, keyPasswordBytes: ByteArray, logger: Logger): UnlockedKey = try {
-        unlockUserKey(uk, keyPasswordBytes)
+    /**
+     * The passphrases of the user keys (review 2026-11-17, F8): an organization key that does not
+     * open stops the run, as no user key opens without it.
+     */
+    private fun userKeyPassphrases(
+        user: UserDto,
+        keyPasswordBytes: ByteArray,
+        openPgp: OpenPgpService,
+        logger: Logger
+    ): UserKeyPassphrases {
+        val keyPassword = String(keyPasswordBytes, Charsets.UTF_8).toCharArray()
+        return try {
+            UserKeyPassphrases.of(user, keyPassword, openPgp)
+        } catch (e: KeyUnlockException) {
+            keyPassword.fill(' ')
+            logger.warn { "organization key did not open: ${e.message}" }
+            throw DecryptUnavailableException("KEY_UNLOCK_FAILED", e)
+        }
+    }
+
+    private fun unlockPrimaryUserKey(uk: UserKeyDto, passphrases: UserKeyPassphrases, logger: Logger): UnlockedKey = try {
+        unlockUserKey(uk, passphrases)
     } catch (e: DecryptUnavailableException) {
         // A wrong passphrase, or a key protection this build cannot open.
         logger.warn { "primary user key ${uk.id} did not open: ${e.cause?.message}" }
         throw e
     }
 
-    private fun tryUnlockUserKey(uk: UserKeyDto, keyPasswordBytes: ByteArray, logger: Logger): UnlockedKey? = try {
-        unlockUserKey(uk, keyPasswordBytes)
+    private fun tryUnlockUserKey(uk: UserKeyDto, passphrases: UserKeyPassphrases, logger: Logger): UnlockedKey? = try {
+        unlockUserKey(uk, passphrases)
     } catch (e: DecryptUnavailableException) {
         logger.warn { "skipped user key ${uk.id}: ${e.cause?.message}" }
         null
     }
 
-    private fun unlockUserKey(uk: UserKeyDto, keyPasswordBytes: ByteArray): UnlockedKey {
-        val passphrase = String(keyPasswordBytes, Charsets.UTF_8).toCharArray()
+    private fun unlockUserKey(uk: UserKeyDto, passphrases: UserKeyPassphrases): UnlockedKey {
+        val passphrase = try {
+            passphrases.forKey(uk)
+        } catch (kue: KeyUnlockException) {
+            throw DecryptUnavailableException("KEY_UNLOCK_FAILED", kue)
+        }
         return try {
             BouncyCastleKeyUnlock.unlock(uk.privateKey, passphrase)
         } catch (kue: KeyUnlockException) {

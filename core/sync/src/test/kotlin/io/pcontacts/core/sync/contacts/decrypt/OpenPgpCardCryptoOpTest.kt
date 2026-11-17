@@ -120,6 +120,12 @@ class OpenPgpCardCryptoOpTest {
             signingKey: PgpPrivateKeyHandle
         ): EncryptedSignedResult = error("not used in adapter tests")
 
+        override fun decryptAndVerifyInline(
+            armoredMessage: String,
+            decryptionKeys: List<PgpPrivateKeyHandle>,
+            verificationKeys: List<PgpPublicKeyHandle>
+        ): VerifiedDecryptResult = error("not used in adapter tests")
+
         override fun signDetached(
             plaintext: ByteArray,
             signingKey: PgpPrivateKeyHandle,
