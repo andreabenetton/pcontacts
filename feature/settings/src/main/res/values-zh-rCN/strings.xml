@@ -99,6 +99,8 @@
     <string name="conflict_use_local">使用手机版本</string>
     <string name="conflict_use_server">使用 Proton 版本</string>
     <string name="conflict_detail_server_deleted">在此手机上更改后已在 Proton 上被删除。</string>
+    <string name="conflict_detail_unverified">Proton 上的副本未通过签名验证。</string>
+    <string name="conflict_dialog_unverified">此联系人在 Proton 上的副本未通过签名验证，可能在没有您的密钥的情况下被更改过。手机版本会用您的密钥签名并发送到 Proton；Proton 版本会放弃在此手机上所做的更改。</string>
     <string name="conflict_dialog_server_deleted">此联系人在此手机上更改后已在 Proton 上被删除。手机版本会在 Proton 上重新创建它；Proton 版本会在此处也将其删除。</string>
     <string name="conflict_detail_local_removed">已从此手机移除——可能已移到回收站。</string>
     <string name="conflict_dialog_local_removed">此联系人已从此手机消失，可能进入了通讯录应用的回收站。要同时从 Proton 删除，还是恢复到此手机？</string>

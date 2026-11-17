@@ -106,6 +106,8 @@
     <string name="conflict_use_local">Telefonversion verwenden</string>
     <string name="conflict_use_server">Proton-Version verwenden</string>
     <string name="conflict_detail_server_deleted">Auf Proton gelöscht, nachdem es auf diesem Telefon geändert wurde.</string>
+    <string name="conflict_detail_unverified">Die Kopie bei Proton hat die Signaturprüfung nicht bestanden.</string>
+    <string name="conflict_dialog_unverified">Die Kopie dieses Kontakts bei Proton hat die Signaturprüfung nicht bestanden und wurde möglicherweise ohne Ihren Schlüssel geändert. Die Version des Telefons wird mit Ihrem Schlüssel signiert und an Proton gesendet; die Version von Proton verwirft die Änderung auf diesem Telefon.</string>
     <string name="conflict_dialog_server_deleted">Dieser Kontakt wurde auf Proton gelöscht, nachdem er auf diesem Telefon geändert wurde. Die Telefon-Version legt ihn auf Proton neu an; die Proton-Version löscht ihn auch hier.</string>
     <string name="conflict_detail_local_removed">Von diesem Telefon entfernt – vermutlich in den Papierkorb verschoben.</string>
     <string name="conflict_dialog_local_removed">Dieser Kontakt ist von diesem Telefon verschwunden, vermutlich in den Papierkorb der Kontakte-App. Auch bei Proton löschen oder auf diesem Telefon wiederherstellen?</string>

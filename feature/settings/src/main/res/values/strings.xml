@@ -106,6 +106,8 @@
     <string name="conflict_use_local">Use phone version</string>
     <string name="conflict_use_server">Use Proton version</string>
     <string name="conflict_detail_server_deleted">Deleted on Proton after it was changed on this phone.</string>
+    <string name="conflict_detail_unverified">Proton\'s copy failed its signature check.</string>
+    <string name="conflict_dialog_unverified">Proton\'s copy of this contact failed its signature check, so it may have been changed without your key. The phone version is signed with your key and sent to Proton; the Proton version drops the change made on this phone.</string>
     <string name="conflict_dialog_server_deleted">This contact was deleted on Proton after it was changed on this phone. The phone version creates it on Proton again; the Proton version deletes it here too.</string>
     <string name="conflict_detail_local_removed">Removed from this phone — probably moved to the Recycle bin.</string>
     <string name="conflict_dialog_local_removed">This contact disappeared from this phone, probably into the Recycle bin of the Contacts app. Delete it from Proton too, or put it back on this phone?</string>

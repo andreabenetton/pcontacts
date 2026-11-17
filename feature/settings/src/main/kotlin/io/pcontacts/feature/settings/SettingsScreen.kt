@@ -799,6 +799,13 @@ private fun ConflictResolutionDialog(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
+                if (conflict.signatureFailed && !explained) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.conflict_dialog_unverified),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = stringResource(texts.prompt),
@@ -861,6 +868,7 @@ private fun conflictReasonRes(conflict: ConflictInfo): Int = when {
     conflict.serverEdited -> R.string.conflict_detail_server_edited
     conflict.localRemoved -> R.string.conflict_detail_local_removed
     conflict.serverDeleted -> R.string.conflict_detail_server_deleted
+    conflict.signatureFailed -> R.string.conflict_detail_unverified
     else -> R.string.conflict_detail
 }
 

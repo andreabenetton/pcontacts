@@ -120,6 +120,8 @@
     <string name="conflict_use_local">Использовать версию с телефона</string>
     <string name="conflict_use_server">Использовать версию Proton</string>
     <string name="conflict_detail_server_deleted">Удалён в Proton после изменения на этом телефоне.</string>
+    <string name="conflict_detail_unverified">Копия в Proton не прошла проверку подписи.</string>
+    <string name="conflict_dialog_unverified">Копия этого контакта в Proton не прошла проверку подписи, поэтому её могли изменить без вашего ключа. Версия с телефона подписывается вашим ключом и отправляется в Proton; версия из Proton отменяет изменение, сделанное на этом телефоне.</string>
     <string name="conflict_dialog_server_deleted">Этот контакт был удалён в Proton после изменения на этом телефоне. Версия с телефона создаст его в Proton заново; версия Proton удалит его и здесь.</string>
     <string name="conflict_detail_local_removed">Удалён с этого телефона — вероятно, перемещён в корзину.</string>
     <string name="conflict_dialog_local_removed">Этот контакт исчез с этого телефона, вероятно, в корзину приложения «Контакты». Удалить его и из Proton или вернуть на этот телефон?</string>

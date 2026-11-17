@@ -123,6 +123,15 @@ class SyncHealthTest {
         assertEquals(R.string.conflict_detail, conflictDetailRes(listOf(edited)))
     }
 
+    @Test fun a_conflict_over_a_failed_signature_says_so() {
+        // Review 2026-11-17, F3: the change waits because Proton's copy failed its signature.
+        val failed = ConflictInfo("ct-1", "Alice", conflictFields = null, signatureFailed = true)
+
+        assertEquals(R.string.conflict_detail_unverified, conflictDetailRes(listOf(failed)))
+        assertEquals(R.string.conflict_use_local, conflictDialogTexts(failed).useLocal)
+        assertEquals(R.string.conflict_use_server, conflictDialogTexts(failed).useServer)
+    }
+
     @Test fun the_count_after_pending_deletions_shows_only_while_some_are_queued() {
         assertEquals(null, contactsAfterDeletes(contacts = 6, pendingDeletes = 0))
         assertEquals(4, contactsAfterDeletes(contacts = 6, pendingDeletes = 2))

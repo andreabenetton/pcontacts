@@ -106,6 +106,8 @@
     <string name="conflict_use_local">Usa la versione del telefono</string>
     <string name="conflict_use_server">Usa la versione Proton</string>
     <string name="conflict_detail_server_deleted">Eliminato su Proton dopo essere stato modificato su questo telefono.</string>
+    <string name="conflict_detail_unverified">La copia di Proton non ha superato la verifica della firma.</string>
+    <string name="conflict_dialog_unverified">La copia di questo contatto su Proton non ha superato la verifica della firma, quindi potrebbe essere stata modificata senza la tua chiave. La versione del telefono viene firmata con la tua chiave e inviata a Proton; la versione di Proton annulla la modifica fatta su questo telefono.</string>
     <string name="conflict_dialog_server_deleted">Questo contatto è stato eliminato su Proton dopo essere stato modificato su questo telefono. La versione del telefono lo ricrea su Proton; la versione Proton lo elimina anche qui.</string>
     <string name="conflict_detail_local_removed">Rimosso da questo telefono — probabilmente spostato nel cestino.</string>
     <string name="conflict_dialog_local_removed">Questo contatto è sparito da questo telefono, probabilmente nel cestino dell\'app Contatti. Eliminarlo anche da Proton o rimetterlo su questo telefono?</string>
