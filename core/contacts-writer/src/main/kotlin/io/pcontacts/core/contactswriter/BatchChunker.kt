@@ -31,8 +31,13 @@ object BatchPlanner {
 
     const val MAX_OPS_PER_BATCH = 450
 
-    /** `[A]` Well under Binder's 1 MiB transaction buffer, which the whole process shares. */
-    const val MAX_BYTES_PER_BATCH = 384 * 1024
+    /**
+     * `[A]` Well under Binder's 1 MiB transaction buffer, which the whole process shares. The CI
+     * emulators on Android 8 and 13 refused a 347 KB batch that a Samsung on Android 11 took
+     * (2026-11-17), so the budget leaves a wide margin: one contact with a photo near the 96 KiB
+     * inline limit travels alone.
+     */
+    const val MAX_BYTES_PER_BATCH = 128 * 1024
 
     fun plan(
         account: Account,

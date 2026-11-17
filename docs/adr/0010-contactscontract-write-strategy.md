@@ -153,8 +153,11 @@ batch with `TransactionTooLargeException`, and the next run built the
 same batch again, so the pull never got past it.
 
 The batch planner now also closes a batch before it would exceed
-384 KiB `[A]` (headroom under the shared buffer), measuring each intent
-as it is parcelled. An intent is never split, so a contact's operations
+128 KiB `[A]`, measuring each intent as it is parcelled. A first budget
+of 384 KiB passed on the Samsung but failed on the CI emulators on
+Android 8 and 13, which refused a 347 KB batch: the buffer is shared, so
+the budget keeps a wide margin, and a contact with a photo near the
+96 KiB inline limit travels alone. An intent is never split, so a contact's operations
 and back-references stay together; one contact over the budget on its
 own travels alone.
 
@@ -162,4 +165,5 @@ Validation: `BatchPlannerTest.contacts_with_large_photos_are_split_by_bytes_not_
 `ContactsContractInstrumentedTest.twenty_contacts_with_large_photos_are_written_in_batches_binder_can_carry`
 on Android 11 (Samsung SM-A405FN), 2026-11-17: without the budget the batch
 was 1,738,548 bytes and failed with `TransactionTooLargeException`; with
-it, all twenty were written (review of 2026-11-17, F6).
+it, all twenty were written. On the CI emulators (Android 8, 13, 15) the
+same test sets the budget above (review of 2026-11-17, F6).
