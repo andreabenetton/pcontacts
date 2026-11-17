@@ -225,6 +225,9 @@ internal class DetailFakeContactMapDao : ContactMapDao {
         rows.values.count { !it.deleted && it.isSigned && !it.isVerified }
     override suspend fun listUnverified(): List<ContactMapEntity> =
         rows.values.filter { !it.deleted && it.isSigned && !it.isVerified }
+    override suspend fun markSignatureFailed(id: String) {
+        rows[id]?.let { rows[id] = it.copy(isSigned = true, isVerified = false) }
+    }
     override suspend fun countUnsigned(): Int =
         rows.values.count { !it.deleted && !it.isSigned }
     override suspend fun listUnsigned(): List<ContactMapEntity> =

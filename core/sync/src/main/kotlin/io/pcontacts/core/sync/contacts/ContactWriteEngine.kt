@@ -24,6 +24,7 @@ import io.pcontacts.core.proton.api.contacts.UpdateContactRequest
 import io.pcontacts.core.proton.api.http.HumanVerificationRequiredException
 import io.pcontacts.core.proton.api.http.ProtonApiException
 import io.pcontacts.core.proton.api.http.ProtonCodeInterceptor
+import io.pcontacts.core.protoncontacts.CardType
 import io.pcontacts.core.protoncontacts.ContactPatch
 import io.pcontacts.core.protoncontacts.ContactSerializer
 import io.pcontacts.core.protoncontacts.DecryptedContact
@@ -591,6 +592,17 @@ class ContactWriteEngine(
     ): Payload? {
         val id = entry.protonContactId
         val server = fetchServerContact(id) ?: return markConflict(entry, "server state unavailable")
+        if (signatureFailed(server)) {
+            // Every card is signed again on the way out, so an unrelated edit would vouch for
+            // content whose signature failed. Only a "Use phone version" the user chose with the
+            // failure shown goes ahead (review 2026-11-17, F3).
+            val chosen = entry.opType == OutboxEntity.OpType.FORCE_UPDATE && mapping.isSigned && !mapping.isVerified
+            if (!chosen) {
+                contactMapDao.markSignatureFailed(id)
+                return markConflict(entry, UNVERIFIED_REASON)
+            }
+            logger.warn { "pushUpdate: re-signing a copy that failed verification, as chosen idTag=${id.hashCode()}" }
+        }
         val serverCanonical = MergeBaseCodec.canonical(server) ?: return markConflict(entry, "server state unavailable")
         settlePendingPush(mapping, serverCanonical)
         val result = if (entry.opType == OutboxEntity.OpType.FORCE_UPDATE) {
@@ -659,6 +671,11 @@ class ContactWriteEngine(
             is ThreeWayMerger.MergeResult.Conflicted ->
                 markConflict(entry, result.conflicts.joinToString { it.fieldName })
         }
+    }
+
+    /** A card of Proton's copy that is meant to be signed did not verify. */
+    private fun signatureFailed(server: DecryptedContact): Boolean = server.cards.any {
+        !it.verified && (it.originalType == CardType.SIGNED || it.originalType == CardType.ENCRYPTED_AND_SIGNED)
     }
 
     private suspend fun markConflict(entry: OutboxEntity, reason: String): Nothing? {

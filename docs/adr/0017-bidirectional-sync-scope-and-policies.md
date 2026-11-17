@@ -5,7 +5,7 @@
 
 # ADR-0017: Bidirectional sync — scope and policies
 
-- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice, 2026-10-15 three times — see *Amendments* at the end)
+- **Status:** Accepted (amended 2026-09-22 twice, 2026-10-01, 2026-10-07, 2026-10-14 twice, 2026-10-15 three times, 2026-11-17 — see *Amendments* at the end)
 - **Date:** 2026-05-24
 - **Deciders:** project owner
 - **Related:** ADR-0006 (MVP read-only), ADR-0007 (client-side decrypt), ADR-0008 (Room mapping), ADR-0009 (secrets storage), ADR-0010 (ContactsContract write strategy), ADR-0014 (modulus pinning), ADR-0018 (at-rest protection of the merge base)
@@ -665,3 +665,32 @@ values it is about to send:
   Proton. The same adjustment is not sent or reported again.
 
 Nothing below permits less than before.
+
+## Amendment (2026-11-17): a change never re-signs a failed signature without the user's decision
+
+Every update re-signs all of the contact's signed cards with the user's
+key, including the ones the change did not touch. When Proton's copy had
+a card whose signature failed, an unrelated edit on the phone therefore
+vouched for content nobody had verified: after it, the contact verified
+cleanly, and the warning was gone.
+
+Now, before an update is built, Proton's copy is checked: if any SIGNED
+or ENCRYPTED_AND_SIGNED card did not verify,
+
+- the update is not sent; the contact becomes a conflict with the reason
+  "Proton's copy failed its signature check", and the mapping records the
+  failure (`is_signed = 1`, `is_verified = 0`) even when the pull had not
+  seen it yet;
+- "Use phone version" sends the phone's version, signed with the user's
+  key — the user chose it with the failure shown;
+- "Use Proton version" drops the change and fetches Proton's copy again.
+
+A contact with no signature at all is not held: an edit signs it, as
+Proton's web app does when it saves one. Deletions and group changes
+sign no card and are not held.
+
+Validation: `ContactWriteEngineTest` — an unrelated edit on a copy whose
+signature failed sends nothing and asks once; "Use phone version" then
+sends it; "Use Proton version" sends nothing; an unsigned contact is
+sent as before (review of 2026-11-17, F3). Not validated live: no
+contact with a failed signature exists on the test account.

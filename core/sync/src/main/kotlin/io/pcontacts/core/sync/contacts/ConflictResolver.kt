@@ -28,6 +28,16 @@ const val LOCAL_REMOVED_CONFLICT = "conflict: removed on this phone"
  */
 const val SERVER_EDITED_CONFLICT = "conflict: edited on Proton after it was deleted here"
 
+/** Why [UNVERIFIED_CONFLICT] was set, as the push's conflict reason. */
+internal const val UNVERIFIED_REASON = "Proton's copy failed its signature check"
+
+/**
+ * The mapping's `lastError` when a change would re-sign a Proton copy whose signature failed:
+ * the push is held and the user decides. "Use phone version" sends it signed with the user's
+ * key; "Use Proton version" drops the change (review 2026-11-17, F3; ADR-0017 amendment).
+ */
+const val UNVERIFIED_CONFLICT = "conflict: $UNVERIFIED_REASON"
+
 /**
  * Settles a conflict the user decided (ADR-0017 §3C). "Use phone
  * version" queues a FORCE_UPDATE — the next push sends the local row

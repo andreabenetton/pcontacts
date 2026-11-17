@@ -2491,6 +2491,133 @@ class ContactWriteEngineTest {
         assertEquals("no encryption key", outbox.entries.values.single().lastError)
     }
 
+    /** Proton's copy as [richServerContact] builds it, with signatures that do not verify. */
+    private fun tamperedServerContact(note: String = "old"): DecryptedContact {
+        val failing = ContactProcessor(
+            ContactDecrypter(
+                cryptoOp = { request ->
+                    when (request) {
+                        is CardCryptoRequest.VerifyOnly -> CardCryptoOutcome(request.data, verified = false)
+                        is CardCryptoRequest.DecryptAndVerify -> CardCryptoOutcome(request.armored, verified = false)
+                        is CardCryptoRequest.DecryptOnly -> CardCryptoOutcome(request.armored, verified = false)
+                    }
+                }
+            )
+        )
+        val signed = "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nUID:uid-1\nitem1.EMAIL;PREF=1:alice@proton.me\nEND:VCARD"
+        val encrypted = "BEGIN:VCARD\nVERSION:4.0\nTEL;TYPE=cell:+15550001\nNOTE:$note\nEND:VCARD"
+        return failing.process(
+            ContactDto(
+                id = "ct-1",
+                uid = "uid-1",
+                cards = listOf(
+                    ContactCardDto(type = CardType.SIGNED.wireValue, data = signed, signature = "s"),
+                    ContactCardDto(type = CardType.ENCRYPTED_AND_SIGNED.wireValue, data = encrypted, signature = "s")
+                )
+            )
+        )
+    }
+
+    @Test fun an_edit_does_not_re_sign_a_copy_whose_signature_failed_until_the_user_chooses() = runTest {
+        // Review 2026-11-17, F3: every card is signed again on the way out, so an unrelated edit
+        // would have vouched for Proton's copy with the user's key. The mapping still says
+        // "verified" (the pull has not seen the failure), and the user is asked once, not forever.
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val server = tamperedServerContact()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to MergeBaseCodec.canonical(server)!!.copy(notes = listOf("new"))),
+            serverContacts = mapOf("ct-1" to server),
+            bases = mapOf("ct-1" to server)
+        )
+
+        engine.push()
+
+        assertNull("nothing is signed before the user decides", api.lastUpdateRequest)
+        val parked = contactMap.findByProtonId("ct-1")!!
+        assertEquals(UNVERIFIED_CONFLICT, parked.lastError)
+        assertTrue(parked.isSigned)
+        assertFalse(parked.isVerified)
+        assertTrue(outbox.entries.isEmpty())
+
+        resolveConflict(contactMap, outbox, "ct-1", useLocal = true, now = 1_000_000L)
+        engine.push()
+
+        assertNotNull("the user chose the phone version: it is signed and sent", api.lastUpdateRequest)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun keeping_proton_version_of_a_copy_whose_signature_failed_sends_nothing() = runTest {
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val server = tamperedServerContact()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to MergeBaseCodec.canonical(server)!!.copy(notes = listOf("new"))),
+            serverContacts = mapOf("ct-1" to server),
+            bases = mapOf("ct-1" to server)
+        )
+        engine.push()
+
+        resolveConflict(contactMap, outbox, "ct-1", useLocal = false, now = 1_000_000L)
+        engine.push()
+
+        assertNull(api.lastUpdateRequest)
+        assertTrue(outbox.entries.isEmpty())
+    }
+
+    @Test fun an_edit_of_a_contact_with_no_signature_is_signed_and_sent_as_before() = runTest {
+        // Only a failed signature asks first; an unsigned contact is signed on save, as
+        // Proton's web app does (owner's decision, 2026-11-17).
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val server = carrierProcessor.process(
+            ContactDto(
+                id = "ct-1",
+                uid = "uid-1",
+                cards = listOf(
+                    ContactCardDto(
+                        type = CardType.CLEAR_TEXT.wireValue,
+                        data = "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nUID:uid-1\nEND:VCARD",
+                        signature = null
+                    ),
+                    ContactCardDto(
+                        type = CardType.ENCRYPTED.wireValue,
+                        data = "BEGIN:VCARD\nVERSION:4.0\nNOTE:old\nEND:VCARD",
+                        signature = null
+                    )
+                )
+            )
+        )
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L).copy(isSigned = false, isVerified = false))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+        val engine = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to MergeBaseCodec.canonical(server)!!.copy(notes = listOf("new"))),
+            serverContacts = mapOf("ct-1" to server),
+            bases = mapOf("ct-1" to server)
+        )
+
+        val report = engine.push()
+
+        assertEquals(1, report.updated)
+        assertNotNull(api.lastUpdateRequest)
+    }
+
     @Test fun push_update_with_nothing_left_to_change_completes_without_a_PUT() = runTest {
         val api = WriteFakeApi()
         val outbox = WriteFakeOutboxDao()
@@ -3039,6 +3166,9 @@ internal class WriteFakeContactMapDao : ContactMapDao {
         rows.values.count { !it.deleted && it.isSigned && !it.isVerified }
     override suspend fun listUnverified(): List<ContactMapEntity> =
         rows.values.filter { !it.deleted && it.isSigned && !it.isVerified }
+    override suspend fun markSignatureFailed(id: String) {
+        rows[id]?.let { rows[id] = it.copy(isSigned = true, isVerified = false) }
+    }
     override suspend fun countUnsigned(): Int =
         rows.values.count { !it.deleted && !it.isSigned }
     override suspend fun listUnsigned(): List<ContactMapEntity> =
