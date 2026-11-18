@@ -10,6 +10,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **An encrypted card is read to its end before it is trusted.** A card
+  in the newer AEAD encryption format that was altered or cut short after
+  the part pcontacts reads was accepted as sound. The whole message is now
+  read and checked first. Proton's apps are not known to send that format
+  today.
+- **The key a contact is encrypted to follows the dates on the key's
+  signatures, as Proton's apps do.** A key signature that had lapsed could
+  hide an older one still in force, leaving "no encryption key"; a
+  signature or a key dated in the future was accepted early. The newest
+  signature in force now decides, and future-dated ones wait.
+
+### Fixed
+
+- **An edit made while a sync runs no longer disappears with a contact
+  deleted on Proton.** When a contact was deleted on Proton and edited on
+  the phone during the same sync, the contact was removed with the edit in
+  it. It is now kept and listed as a conflict, as an edit made before the
+  sync already was. The same holds for a duplicate copy being cleaned up.
+- **A photo removed right after a sync wrote it is no longer kept on
+  Proton unasked.** The removal looked like no change and Proton's photo
+  stayed. The contact is now listed as a conflict: **Use phone version**
+  removes the photo on Proton, **Use Proton version** puts it back.
+
 ## [2.6.0] - 2026-11-17
 
 ### Security
