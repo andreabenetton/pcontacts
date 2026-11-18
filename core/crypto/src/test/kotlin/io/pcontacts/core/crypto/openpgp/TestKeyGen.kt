@@ -175,7 +175,8 @@ internal object TestKeyGen {
     /**
      * A signature of [type] made with [signer]: over [subkey] bound to [primary] for a subkey
      * binding or revocation, else over [userId] of [primary]. With [claimedIssuer] the signature
-     * names that key as its issuer although [signer] made it: a forgery.
+     * names that key as its issuer although [signer] made it: a forgery. [created] dates it other
+     * than now; [signatureExpirySeconds] is the signature's own lifetime.
      */
     @Suppress("LongParameterList") // test fixture: every part of the signature is a parameter
     fun signature(
@@ -186,7 +187,9 @@ internal object TestKeyGen {
         userId: String? = null,
         flags: Int = 0,
         keyExpirySeconds: Long = 0L,
-        claimedIssuer: Long? = null
+        claimedIssuer: Long? = null,
+        created: Date? = null,
+        signatureExpirySeconds: Long = 0L
     ): PGPSignature {
         val signingKey = claimedIssuer?.let { PGPPrivateKey(it, signer.publicKeyPacket, signer.privateKeyDataPacket) }
             ?: signer
@@ -198,6 +201,8 @@ internal object TestKeyGen {
             PGPSignatureSubpacketGenerator().apply {
                 if (flags != 0) setKeyFlags(true, flags)
                 if (keyExpirySeconds != 0L) setKeyExpirationTime(true, keyExpirySeconds)
+                if (created != null) setSignatureCreationTime(true, created)
+                if (signatureExpirySeconds != 0L) setSignatureExpirationTime(true, signatureExpirySeconds)
             }.generate()
         )
         return when {

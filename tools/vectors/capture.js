@@ -265,13 +265,85 @@ async function captureOpenPgp() {
 }
 
 // ---------------------------------------------------------------------------
+// Which key OpenPGP.js encrypts to, for rings whose signatures and keys carry
+// unusual dates (review 2026-11-18, R3). `Key.getEncryptionKey()` is asked at
+// capture time; the dates are decades away from it on either side, so the
+// answers hold whenever the Kotlin test runs. Primary: certify + sign, as on
+// an older Proton RSA key; subkeys: encrypt.
+// ---------------------------------------------------------------------------
+
+async function captureKeySelection() {
+  const openpgp = await import('openpgp');
+  const OLD = new Date('2020-01-01T00:00:00Z');
+  const LATER = new Date('2022-01-01T00:00:00Z');
+  const FUTURE = new Date('2090-01-01T00:00:00Z');
+  const ENCRYPT = openpgp.enums.keyFlags.encryptCommunication | openpgp.enums.keyFlags.encryptStorage;
+  const HOUR = 3600;
+
+  const generate = (date, subkeys) => openpgp.generateKey({
+    type: 'rsa',
+    rsaBits: 2048,
+    userIDs: [{ name: 'Test', email: 'test@example.com' }],
+    date,
+    subkeys,
+    format: 'object'
+  }).then(({ privateKey }) => privateKey);
+
+  // A subkey binding the primary really makes, dated `created`.
+  const binding = async (key, created, { lifetime = 0, flags = ENCRYPT } = {}) => {
+    const signature = new openpgp.SignaturePacket();
+    signature.signatureType = openpgp.enums.signature.subkeyBinding;
+    signature.publicKeyAlgorithm = key.keyPacket.algorithm;
+    signature.hashAlgorithm = openpgp.enums.hash.sha512;
+    signature.keyFlags = [flags];
+    if (lifetime) {
+      signature.signatureExpirationTime = lifetime;
+      signature.signatureNeverExpires = false;
+    }
+    await signature.sign(key.keyPacket, { key: key.keyPacket, bind: key.subkeys[0].keyPacket }, created);
+    return signature;
+  };
+
+  const vectors = [];
+  const record = async (label, key) => {
+    // Through armor and back: what is asked is what the Kotlin side reads.
+    const armoredPrivateKey = key.armor();
+    const read = await openpgp.readPrivateKey({ armoredKey: armoredPrivateKey });
+    const chosen = await read.getEncryptionKey().then((k) => k.getKeyID().toHex(), () => '');
+    vectors.push({ label, operation: 'selectEncryptionKey', plaintext: '', armoredPrivateKey, encryptionKeyId: chosen });
+  };
+
+  let key = await generate(OLD, [{}]);
+  key.subkeys[0].bindingSignatures.push(await binding(key, LATER, { lifetime: HOUR }));
+  await record('key-selection-newer-binding-lapsed', key);
+
+  key = await generate(OLD, [{}]);
+  key.subkeys[0].bindingSignatures = [await binding(key, LATER, { lifetime: HOUR })];
+  await record('key-selection-only-binding-lapsed', key);
+
+  key = await generate(OLD, [{}]);
+  key.subkeys[0].bindingSignatures = [await binding(key, FUTURE)];
+  await record('key-selection-only-binding-future', key);
+
+  key = await generate(OLD, [{}]);
+  key.subkeys[0].bindingSignatures.push(await binding(key, FUTURE, { flags: openpgp.enums.keyFlags.signData }));
+  await record('key-selection-future-binding-beside-one-in-force', key);
+
+  await record('key-selection-future-subkey-beside-existing', await generate(OLD, [{}, { date: FUTURE }]));
+  await record('key-selection-only-encryption-subkey-future', await generate(OLD, [{ date: FUTURE }]));
+  await record('key-selection-primary-future', await generate(FUTURE, [{}]));
+
+  return vectors;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 try {
   const keyPasswordVectors = await captureKeyPassword();
   const srpVectors = await captureSrp();
-  const openPgpVectors = await captureOpenPgp();
+  const openPgpVectors = [...await captureOpenPgp(), ...await captureKeySelection()];
 
   const out = {
     generatedAt: new Date().toISOString(),

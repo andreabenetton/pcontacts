@@ -122,32 +122,44 @@ object BouncyCastleKeyUnlock {
      * so a subkey with a binding that merely names the primary as its issuer, or a revocation
      * nobody signed, says nothing. A primary without a valid self-certification, or revoked,
      * or expired, gives no encryption key at all (review 2026-11-17, F1).
+     *
+     * Time is part of the choice, as in OpenPGP.js `getLatestValidSignature` and `isDataExpired`
+     * `[V]`: the signature that decides is the newest one in force now, so an older binding still
+     * in force outlives a newer one that has lapsed, and a signature or a key dated in the future
+     * does not count yet. A revocation counts whatever its date (`config.revocationsExpire` is
+     * false by default) (review 2026-11-18, R3).
      */
     private fun encryptionKey(primary: PGPPublicKey, keys: List<PGPPublicKey>): PGPPublicKey? {
         val now = Date()
-        val selfSignature = latestValid(primary, primary, SELF_CERTIFICATIONS)
+        val selfSignature = latestValid(primary, primary, SELF_CERTIFICATIONS, now)
         val primaryUsable = selfSignature != null &&
             !revoked(primary, primary, PGPSignature.KEY_REVOCATION) &&
-            unexpired(primary, selfSignature, now)
+            inForce(primary, selfSignature, now)
         if (!primaryUsable) return null
         val subkey = keys
             .filter { !it.isMasterKey && !revoked(it, primary, PGPSignature.SUBKEY_REVOCATION) }
-            .mapNotNull { sub -> latestValid(sub, primary, setOf(PGPSignature.SUBKEY_BINDING))?.let { sub to it } }
-            .filter { (sub, binding) -> unexpired(sub, binding, now) && allowsEncryption(sub, binding) }
+            .mapNotNull { sub ->
+                latestValid(sub, primary, setOf(PGPSignature.SUBKEY_BINDING), now)?.let { sub to it }
+            }
+            .filter { (sub, binding) -> inForce(sub, binding, now) && allowsEncryption(sub, binding) }
             .maxWithOrNull(compareBy({ it.first.creationTime }, { it.first.algorithm }))
             ?.first
         return subkey ?: primary.takeIf { allowsEncryption(it, selfSignature) }
     }
 
-    /** The latest of [key]'s signatures of [types] that [signer] really made, or null. */
-    private fun latestValid(key: PGPPublicKey, signer: PGPPublicKey, types: Set<Int>): PGPSignature? =
+    /**
+     * The latest of [key]'s signatures of [types] that [signer] really made and that is in force
+     * at [at], or null. Without [at] the signature's own dates are not looked at.
+     */
+    private fun latestValid(key: PGPPublicKey, signer: PGPPublicKey, types: Set<Int>, at: Date?): PGPSignature? =
         key.signatures.asSequence()
             .filterIsInstance<PGPSignature>()
-            .filter { it.signatureType in types && it.keyID == signer.keyID && verifies(it, key, signer) }
+            .filter { it.signatureType in types && it.keyID == signer.keyID }
+            .filter { (at == null || inForce(it, at)) && verifies(it, key, signer) }
             .maxByOrNull { it.creationTime }
 
     private fun revoked(key: PGPPublicKey, signer: PGPPublicKey, type: Int): Boolean =
-        latestValid(key, signer, setOf(type)) != null
+        latestValid(key, signer, setOf(type), at = null) != null
 
     /**
      * Whether [signature] over [key] verifies with [signer]: a subkey binding or revocation
@@ -168,14 +180,18 @@ object BouncyCastleKeyUnlock {
         false
     }
 
-    /** Key expiry and signature expiry, both read from the verified [signature]. */
-    private fun unexpired(key: PGPPublicKey, signature: PGPSignature, now: Date): Boolean {
-        val keyExpiry = signature.hashedSubPackets?.keyExpirationTime ?: 0L
-        val signatureExpiry = signature.hashedSubPackets?.signatureExpirationTime ?: 0L
-        val keyLive = keyExpiry == 0L || key.creationTime.time + keyExpiry * MILLIS_PER_SECOND > now.time
-        val signatureLive = signatureExpiry == 0L ||
-            signature.creationTime.time + signatureExpiry * MILLIS_PER_SECOND > now.time
-        return keyLive && signatureLive
+    /** Whether [signature] was made by [at] and its own lifetime, if it has one, has not run out. */
+    private fun inForce(signature: PGPSignature, at: Date): Boolean {
+        val lifetime = signature.hashedSubPackets?.signatureExpirationTime ?: 0L
+        val made = signature.creationTime.time
+        return made <= at.time && (lifetime == 0L || made + lifetime * MILLIS_PER_SECOND > at.time)
+    }
+
+    /** Whether [key] exists at [at] and is within the key lifetime the verified [signature] gives it. */
+    private fun inForce(key: PGPPublicKey, signature: PGPSignature, at: Date): Boolean {
+        val lifetime = signature.hashedSubPackets?.keyExpirationTime ?: 0L
+        val made = key.creationTime.time
+        return made <= at.time && (lifetime == 0L || made + lifetime * MILLIS_PER_SECOND > at.time)
     }
 
     /** The flags must allow encryption; a signature without any is refused, as OpenPGP.js does by default. */

@@ -110,6 +110,12 @@ class CapturedVectorsTest {
             "signDetached" -> verifySignDetached(service, label, plaintext, entry, unlocked)
             "encryptAndSignDetached" -> verifyEncryptAndSignDetached(service, label, plaintext, entry, unlocked)
             "decryptAndVerifyInline" -> verifyDecryptAndVerifyInline(service, label, plaintext, entry, unlocked)
+            // The key a message to this ring is encrypted to, or none: OpenPGP.js's answer (review 2026-11-18, R3).
+            "selectEncryptionKey" -> assertEquals(
+                "openPgp vector '$label': the encryption key should be the one OpenPGP.js chose",
+                entry.jsonString("encryptionKeyId")!!,
+                unlocked.encryptionPublicKeys.joinToString { "%016x".format(it.raw.keyID) }
+            )
             else -> error("unknown openPgp operation: $operation")
         }
     }

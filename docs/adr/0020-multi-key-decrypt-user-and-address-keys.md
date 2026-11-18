@@ -299,3 +299,28 @@ chunk altered and a message cut short are refused, plain, compressed and
 signed inline (review of 2026-11-18, R4). `[A]` Proton's clients are not
 known to send AEAD messages today; the vectors are made by BouncyCastle,
 not by OpenPGP.js.
+
+## Amendment (2026-11-18, second): the deciding signature is the newest one in force now
+
+The first amendment of 2026-11-17 picked the newest signature that
+verifies and looked at its dates afterwards. Time is now part of the
+choice, as in OpenPGP.js `getLatestValidSignature` and `isDataExpired`
+`[V]` (openpgpjs `src/key/helper.js`):
+
+- a signature counts only if it was made by now and its own lifetime, if
+  it has one, has not run out; among those, the newest decides. An older
+  binding still in force therefore outlives a newer one that has lapsed,
+  where the subkey used to be dropped and, on a sign-only primary, the
+  ring left without an encryption key;
+- a signature dated in the future does not count yet, and neither does a
+  key created in the future;
+- a revocation counts whatever its date, as OpenPGP.js treats it by
+  default (`config.revocationsExpire = false`).
+
+Validation: `KeySelectionTimeTest` (a newer binding lapsed beside an
+older one in force, only a lapsed binding, only a future binding, a
+future binding beside one in force, a future subkey beside an existing
+one, only a future encryption subkey), and seven `key-selection-*`
+vectors: rings made by OpenPGP.js with those dates, each with the key
+`Key.getEncryptionKey()` chose, which `CapturedVectorsTest` requires
+BouncyCastle to choose too (review of 2026-11-18, R3).
