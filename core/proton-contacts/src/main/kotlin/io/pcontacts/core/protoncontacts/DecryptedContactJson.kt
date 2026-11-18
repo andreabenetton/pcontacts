@@ -20,8 +20,20 @@ import kotlinx.serialization.json.Json
  */
 object DecryptedContactJson {
 
-    /** 2 since the photo digests joined the envelope (ADR-0018); a v1 blob reads as "no base". */
-    const val VERSION = 2
+    /**
+     * 3 since the phone's photo digest tells "no photo" (null) from "not known"
+     * ([PhotoHash.UNKNOWN]); 2 since the photo digests joined the envelope (ADR-0018). A v1 blob
+     * reads as "no base".
+     */
+    const val VERSION = 3
+
+    /**
+     * Still read. In a v2 blob a missing phone digest meant "no photo" and, in bases 2.6.0 saved
+     * for a row edited during a pull, "not known"; nothing tells the two apart, so it is read as
+     * not known: a photo removed on the phone is then asked about, never put back unasked
+     * (review 2026-11-18).
+     */
+    private const val LEGACY_VERSION = 2
 
     @Serializable
     private data class Envelope(val v: Int, val contact: DecryptedContact)
@@ -42,6 +54,10 @@ object DecryptedContactJson {
         } catch (_: IllegalArgumentException) {
             return null
         }
-        return envelope.contact.takeIf { envelope.v == VERSION }
+        return when (envelope.v) {
+            VERSION -> envelope.contact
+            LEGACY_VERSION -> envelope.contact.run { copy(localPhotoHash = localPhotoHash ?: PhotoHash.UNKNOWN) }
+            else -> null
+        }
     }
 }

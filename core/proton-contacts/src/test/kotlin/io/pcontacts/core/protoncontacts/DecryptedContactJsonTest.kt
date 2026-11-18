@@ -55,9 +55,42 @@ class DecryptedContactJsonTest {
     }
 
     @Test fun version_mismatch_decodes_to_null() {
-        val text = DecryptedContactJson.encode(contact).decodeToString().replaceFirst("\"v\":2", "\"v\":1")
+        val text = DecryptedContactJson.encode(contact).decodeToString().replaceFirst("\"v\":3", "\"v\":1")
 
         assertNull(DecryptedContactJson.decode(text.encodeToByteArray()))
+    }
+
+    // ---- a base saved before the phone's photo digest could say "not known" (review 2026-11-18) ----
+
+    private fun asVersion2(contact: DecryptedContact): ByteArray {
+        val text = DecryptedContactJson.encode(contact).decodeToString()
+        assertEquals("precondition: the envelope is version 3", true, text.contains("\"v\":3"))
+        return text.replaceFirst("\"v\":3", "\"v\":2").encodeToByteArray()
+    }
+
+    @Test fun an_older_base_without_a_phone_photo_digest_reads_as_not_known() {
+        // 2.6.0 saved "none" both for "no photo" and for "the row was edited, not known".
+        val decoded = DecryptedContactJson.decode(asVersion2(contact.copy(serverPhotoHash = "ab".repeat(32))))
+
+        assertEquals(PhotoHash.UNKNOWN, decoded?.localPhotoHash)
+        assertEquals("the rest of the base is kept", "ab".repeat(32), decoded?.serverPhotoHash)
+        assertEquals(contact.phones, decoded?.phones)
+    }
+
+    @Test fun an_older_base_with_a_phone_photo_digest_keeps_it() {
+        val decoded = DecryptedContactJson.decode(asVersion2(contact.copy(localPhotoHash = "cd".repeat(32))))
+
+        assertEquals("cd".repeat(32), decoded?.localPhotoHash)
+    }
+
+    @Test fun a_current_base_tells_no_photo_from_not_known() {
+        val none = DecryptedContactJson.decode(DecryptedContactJson.encode(contact.copy(localPhotoHash = null)))
+        val unknown = DecryptedContactJson.decode(
+            DecryptedContactJson.encode(contact.copy(localPhotoHash = PhotoHash.UNKNOWN))
+        )
+
+        assertNull(none?.localPhotoHash)
+        assertEquals(PhotoHash.UNKNOWN, unknown?.localPhotoHash)
     }
 
     @Test fun photo_digests_round_trip_without_the_bytes() {

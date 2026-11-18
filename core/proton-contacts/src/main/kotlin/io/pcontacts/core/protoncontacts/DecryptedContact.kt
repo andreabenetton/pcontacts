@@ -41,7 +41,8 @@ import kotlinx.serialization.Transient
  * part in the merge through two digests instead (ADR-0017 second
  * amendment): [serverPhotoHash] is the digest of the server's bytes,
  * [localPhotoHash] the digest of the bytes as the provider stored
- * them (it re-encodes inline photos, so the two never agree).
+ * them (it re-encodes inline photos, so the two never agree), null
+ * when the phone had no photo, or [PhotoHash.UNKNOWN].
  *
  * [cards] are the decrypted server cards this contact was projected
  * from — the carrier an update is patched onto ([ContactSerializer]).
