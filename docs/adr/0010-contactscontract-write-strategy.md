@@ -191,3 +191,30 @@ and the edited duplicate were deleted; with it both stay, a clean row is
 deleted by `SOURCE_ID` and by `_ID`, and a dirty tombstone is removed
 either way (review of 2026-11-18, R2). `[A]` on other providers until
 the CI emulators (Android 8, 13, 15) run the same test.
+
+## Amendment (2026-11-18, second): one contact too large does not stop the others
+
+The second amendment of 2026-11-17 let a contact over the byte budget
+travel alone. Alone was not enough: when Binder refused that batch, the
+failure ended the whole apply and no later batch was written, on every
+run. A contact with more operations than a batch may hold was worse: it
+failed the plan before anything was written.
+
+Such a contact is now set apart:
+
+- one with more than 450 operations is in no batch;
+- one over the byte budget is alone in its batch, and when Binder
+  refuses that batch (`TransactionTooLargeException`) the apply goes on
+  with the next;
+- both are named in the result, so the caller records them as not
+  written.
+
+A batch within the budget that Binder refuses is different: the buffer
+is shared and was full. That still fails the run and is tried again.
+
+Validation: `BatchPlannerTest` (a contact with too many operations set
+apart, only the contact over the budget marked so);
+`OversizedContactInstrumentedTest` on Android 11 (Samsung SM-A405FN),
+2026-11-18: a contact with a 2 MB note between two others is left out
+and the two are written. `[U]` Whether Proton accepts a contact that
+large is not known; none has been seen (review of 2026-11-18).

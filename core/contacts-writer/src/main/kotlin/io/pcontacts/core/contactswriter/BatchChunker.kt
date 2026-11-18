@@ -26,8 +26,23 @@ import android.os.Parcel
  * Binder transaction, whose buffer is 1 MiB shared by the process. Each
  * intent is measured as it is parcelled; an intent never splits, and one
  * over the budget on its own travels alone (review 2026-11-17, F6).
+ *
+ * One contact can be too much by itself: more operations than a batch may
+ * hold, or more bytes than Binder carries. It is set apart, never mixed
+ * into a batch with others, so that it alone fails and the contacts
+ * around it are written (review 2026-11-18).
  */
 object BatchPlanner {
+
+    /** One `applyBatch`: its operations, the intents they came from, and whether it is over the byte budget. */
+    class Batch(
+        val ops: List<ContentProviderOperation>,
+        val intents: List<RawContactOpIntent>,
+        val overBudget: Boolean
+    )
+
+    /** [tooManyOps]: intents that no batch can hold; they are in none of [batches]. */
+    class Plan(val batches: List<Batch>, val tooManyOps: List<RawContactOpIntent>)
 
     const val MAX_OPS_PER_BATCH = 450
 
@@ -44,35 +59,45 @@ object BatchPlanner {
         intents: List<RawContactOpIntent>,
         maxOpsPerBatch: Int = MAX_OPS_PER_BATCH,
         maxBytesPerBatch: Int = MAX_BYTES_PER_BATCH
-    ): List<List<ContentProviderOperation>> {
+    ): Plan {
         require(maxOpsPerBatch > 0) { "maxOpsPerBatch must be positive" }
 
-        val chunks = ArrayList<List<ContentProviderOperation>>()
-        var current = ArrayList<ContentProviderOperation>()
-        var currentBytes = 0
+        val batches = ArrayList<Batch>()
+        val tooManyOps = ArrayList<RawContactOpIntent>()
+        var ops = ArrayList<ContentProviderOperation>()
+        var held = ArrayList<RawContactOpIntent>()
+        var bytes = 0
+        fun close() {
+            if (ops.isNotEmpty()) batches += Batch(ops, held, overBudget = bytes > maxBytesPerBatch)
+            ops = ArrayList()
+            held = ArrayList()
+            bytes = 0
+        }
 
         for (intent in intents) {
-            var built = ContactsContractOps.build(account, intent, baseIdx = current.size)
-            require(built.size <= maxOpsPerBatch) {
-                "Single intent produced ${built.size} ops; exceeds maxOpsPerBatch=$maxOpsPerBatch"
+            var built = ContactsContractOps.build(account, intent, baseIdx = ops.size)
+            if (built.size > maxOpsPerBatch) {
+                tooManyOps += intent
+                continue
             }
             val builtBytes = parcelledSize(built)
 
-            val overflows = current.size + built.size > maxOpsPerBatch || currentBytes + builtBytes > maxBytesPerBatch
-            if (overflows && current.isNotEmpty()) {
-                chunks += current
-                current = ArrayList(maxOpsPerBatch)
-                currentBytes = 0
+            val overflows = ops.size + built.size > maxOpsPerBatch || bytes + builtBytes > maxBytesPerBatch
+            if (overflows && ops.isNotEmpty()) {
+                close()
                 // Re-anchor back-refs for the new chunk — only matters when the
                 // intent uses them, but cheap to redo unconditionally.
                 built = ContactsContractOps.build(account, intent, baseIdx = 0)
             }
-            current.addAll(built)
-            currentBytes += builtBytes
+            ops.addAll(built)
+            held += intent
+            bytes += builtBytes
+            // Over the budget by itself: nothing else joins it.
+            if (bytes > maxBytesPerBatch) close()
         }
 
-        if (current.isNotEmpty()) chunks += current
-        return chunks
+        close()
+        return Plan(batches, tooManyOps)
     }
 
     /** The bytes [ops] take in the Binder parcel `applyBatch` sends. */

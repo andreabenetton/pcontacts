@@ -19,7 +19,7 @@ class BatchPlannerTest {
     private val account = Account("alice@proton.me", "io.pcontacts.account")
 
     @Test fun empty_intents_yields_no_chunks() {
-        val chunks = BatchPlanner.plan(account, emptyList())
+        val chunks = BatchPlanner.plan(account, emptyList()).batches.map { it.ops }
         assertTrue(chunks.isEmpty())
     }
 
@@ -29,7 +29,7 @@ class BatchPlannerTest {
                 ContactRow(sourceId = "c$it", displayName = "Name $it", emails = listOf("n$it@x"))
             )
         }
-        val chunks = BatchPlanner.plan(account, intents)
+        val chunks = BatchPlanner.plan(account, intents).batches.map { it.ops }
         assertEquals(1, chunks.size)
         // 10 contacts × 4 ops each (RawContacts + StructuredName + Email + chip) = 40.
         assertEquals(40, chunks[0].size)
@@ -44,7 +44,7 @@ class BatchPlannerTest {
                 ContactRow(sourceId = "c$it", displayName = "Name $it", emails = listOf("n$it@x"))
             )
         }
-        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 12)
+        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 12).batches.map { it.ops }
         assertTrue(
             "each chunk must fit under the limit",
             chunks.all { it.size <= 12 }
@@ -64,7 +64,7 @@ class BatchPlannerTest {
             RawContactOpIntent.DeleteContact(sourceId = "c3"),                          // 1 op
             RawContactOpIntent.DeleteContact(sourceId = "c4")                           // 1 op
         )
-        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 6)
+        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 6).batches.map { it.ops }
         // Greedy layout: pack until the next intent would overflow. An update starts with its
         // assert (review 2026-11-17, F5), so it is 5 ops and stays whole in its batch.
         //   chunk 0: [Create 4]                       size 4 (Update next would be 9 > 6 → split)
@@ -89,21 +89,28 @@ class BatchPlannerTest {
                 ContactRow(sourceId = "c$it", displayName = "n$it", emails = listOf("$it@x"))
             )
         }
-        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 9)
+        val chunks = BatchPlanner.plan(account, intents, maxOpsPerBatch = 9).batches.map { it.ops }
         assertEquals(2, chunks.size)
         assertEquals(8, chunks[0].size)
         assertEquals(8, chunks[1].size)
         assertTrue(chunks.all { it.size <= 9 })
     }
 
-    @Test fun rejects_intent_that_would_alone_exceed_max() {
-        // Single Create intent emits 4 ops; with max=2 we can't fit it.
+    @Test fun a_contact_with_more_ops_than_a_batch_holds_is_set_apart_and_the_others_are_planned() {
+        // Review 2026-11-18: it used to fail the whole plan, so nothing around it was written.
+        val manyPhones = (1..20).map { PhoneEntry(number = "+1555000$it", type = PhoneType.MOBILE) }
+        val huge = create(ContactRow("huge", "Huge", emails = emptyList(), phones = manyPhones))
         val intents = listOf(
-            RawContactOpIntent.CreateContact(ContactRow("c1", "Alice", emails = listOf("a@x")))
+            RawContactOpIntent.CreateContact(ContactRow("a", "A", emails = listOf("a@x"))),
+            huge,
+            RawContactOpIntent.CreateContact(ContactRow("c", "C", emails = listOf("c@x")))
         )
-        assertThrows(IllegalArgumentException::class.java) {
-            BatchPlanner.plan(account, intents, maxOpsPerBatch = 2)
-        }
+
+        val plan = BatchPlanner.plan(account, intents, maxOpsPerBatch = 8)
+
+        assertEquals(listOf(huge), plan.tooManyOps)
+        assertEquals(listOf(listOf("a", "c")), plan.batches.map(::sourceIds))
+        assertTrue(plan.batches.all { it.ops.first().isInsert })
     }
 
     @Test fun rejects_non_positive_maxOpsPerBatch() {
@@ -122,7 +129,7 @@ class BatchPlannerTest {
             )
         }
 
-        val chunks = BatchPlanner.plan(account, intents)
+        val chunks = BatchPlanner.plan(account, intents).batches.map { it.ops }
 
         assertTrue("several batches, not one", chunks.size >= 5)
         val isRawInsert = { op: android.content.ContentProviderOperation ->
@@ -146,8 +153,28 @@ class BatchPlannerTest {
             RawContactOpIntent.CreateContact(ContactRow("c", "C", emails = emptyList()))
         )
 
-        val chunks = BatchPlanner.plan(account, intents, maxBytesPerBatch = 16 * 1024)
+        val chunks = BatchPlanner.plan(account, intents, maxBytesPerBatch = 16 * 1024).batches.map { it.ops }
 
         assertEquals(3, chunks.size)
     }
+
+    @Test fun only_a_contact_over_the_byte_budget_by_itself_is_marked_so() {
+        val big = ContactPhoto(ByteArray(64 * 1024))
+        val intents = listOf(
+            RawContactOpIntent.CreateContact(ContactRow("a", "A", emails = emptyList())),
+            RawContactOpIntent.CreateContact(ContactRow("b", "B", emails = emptyList(), photo = big)),
+            RawContactOpIntent.CreateContact(ContactRow("c", "C", emails = emptyList())),
+            RawContactOpIntent.CreateContact(ContactRow("d", "D", emails = emptyList()))
+        )
+
+        val plan = BatchPlanner.plan(account, intents, maxBytesPerBatch = 16 * 1024)
+
+        assertEquals(listOf(listOf("a"), listOf("b"), listOf("c", "d")), plan.batches.map(::sourceIds))
+        assertEquals(listOf(false, true, false), plan.batches.map { it.overBudget })
+    }
+
+    private fun create(row: ContactRow): RawContactOpIntent = RawContactOpIntent.CreateContact(row)
+
+    private fun sourceIds(batch: BatchPlanner.Batch): List<String> =
+        batch.intents.map { (it as RawContactOpIntent.CreateContact).row.sourceId }
 }
