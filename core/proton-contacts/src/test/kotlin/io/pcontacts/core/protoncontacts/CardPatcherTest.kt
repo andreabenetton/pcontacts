@@ -182,6 +182,90 @@ class CardPatcherTest {
         assertNull(signed.getExtendedProperty("X-PM-SIGN"))
     }
 
+    // ---- removing one property leaves the others of its group (review 2026-11-18) ----
+
+    private val groupedCard = """
+        BEGIN:VCARD
+        VERSION:4.0
+        item1.TEL:+390212345678
+        item1.X-ABLabel:Ufficio
+        item3.TEL:+390298765432
+        item3.URL:https://example.com
+        item3.X-ABLabel:Studio
+        item4.ADR:;;Via Roma 1;Milano;;20100;Italia
+        item4.TEL:+390211111111
+        END:VCARD
+    """.trimIndent()
+
+    private fun groupedCarrier() = listOf(
+        DecryptedCard(CardType.SIGNED, signedCard, verified = true),
+        DecryptedCard(CardType.ENCRYPTED_AND_SIGNED, groupedCard, verified = true)
+    )
+
+    @Test fun removing_a_phone_leaves_a_website_of_the_same_group_and_their_label() {
+        val out = rendered(
+            ContactPatch(phones = ContactPatch.ListPatch(removed = listOf(DecryptedPhone("+390298765432")))),
+            groupedCarrier()
+        )
+
+        val enc = out.getValue(CardType.ENCRYPTED_AND_SIGNED)
+        assertEquals(listOf("+390212345678", "+390211111111"), enc.telephoneNumbers.map { it.text })
+        assertEquals(listOf("https://example.com"), enc.urls.map { it.value })
+        assertEquals("the label still describes the website", listOf("Ufficio", "Studio"), labels(enc))
+    }
+
+    @Test fun removing_a_website_leaves_a_phone_of_the_same_group() {
+        val out = rendered(ContactPatch(websites = ContactPatch.Change(emptyList())), groupedCarrier())
+
+        val enc = out.getValue(CardType.ENCRYPTED_AND_SIGNED)
+        assertTrue(enc.urls.isEmpty())
+        assertEquals(3, enc.telephoneNumbers.size)
+    }
+
+    @Test fun removing_an_address_leaves_a_phone_of_the_same_group() {
+        val address = DecryptedAddress(
+            street = "Via Roma 1",
+            locality = "Milano",
+            postalCode = "20100",
+            country = "Italia"
+        )
+        val out = rendered(
+            ContactPatch(addresses = ContactPatch.ListPatch(removed = listOf(address))),
+            groupedCarrier()
+        )
+
+        val enc = out.getValue(CardType.ENCRYPTED_AND_SIGNED)
+        assertTrue(enc.addresses.isEmpty())
+        assertEquals(3, enc.telephoneNumbers.size)
+    }
+
+    @Test fun removing_a_phone_leaves_an_email_that_uses_the_same_group_name_in_another_card() {
+        // An imported card can number its own groups from item1, as the signed card does for emails.
+        val out = rendered(
+            ContactPatch(phones = ContactPatch.ListPatch(removed = listOf(DecryptedPhone("+390212345678")))),
+            groupedCarrier()
+        )
+
+        val signed = out.getValue(CardType.SIGNED)
+        assertEquals(listOf("alice@example.com", "alice@work.example"), signed.emails.map { it.value })
+        assertEquals(1, signed.keys.size)
+        assertNotNull(signed.getExtendedProperty("X-PM-ENCRYPT"))
+    }
+
+    @Test fun a_label_goes_with_the_last_property_of_its_group() {
+        val out = rendered(
+            ContactPatch(
+                phones = ContactPatch.ListPatch(removed = listOf(DecryptedPhone("+390298765432"))),
+                websites = ContactPatch.Change(emptyList())
+            ),
+            groupedCarrier()
+        )
+
+        assertEquals(listOf("Ufficio"), labels(out.getValue(CardType.ENCRYPTED_AND_SIGNED)))
+    }
+
+    private fun labels(card: VCard) = card.getExtendedProperties("X-ABLabel").map { it.value }
+
     @Test fun pref_is_written_only_when_primary_changed() {
         val untouched = rendered(ContactPatch())
         assertNull(untouched.getValue(CardType.SIGNED).emails[1].pref)

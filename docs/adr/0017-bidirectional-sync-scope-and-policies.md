@@ -749,3 +749,30 @@ photo and for a removed one; clean row: its digest or none);
 `ContactWriteEngineTest` runs the whole cycle, pull, removal, base saved,
 push, and the same for a create found again by its UID: nothing is sent
 back and the change waits as a conflict (review of 2026-11-18, R1).
+
+## Amendment (2026-11-18, third): removing a property removes that property, not its group
+
+§2 (Choice 2C) patches the server's cards and leaves what the app does
+not own in place. Removing a property also removed every property of the
+same vCard group, in every card. That was meant for an email's key and
+send settings (`itemN.KEY`, `itemN.X-PM-*`), but ran for phones,
+addresses, websites and IM handles too: with `item1.TEL` and `item1.URL`
+in one group, removing the phone removed the website, and nothing in the
+patch put it back. Where an imported card numbers its groups from
+`item1`, as the signed card does for emails, removing that phone removed
+an email and its key.
+
+Now, as in Proton's web client `[V]` (`removeVCardProperty`,
+`packages/shared/lib/contacts/properties.ts` @ 444df12):
+
+- removing an email removes its whole group;
+- removing any other property removes that property alone. The group's
+  vendor labels (`itemN.X-ABLabel` and other `X-` properties) are removed
+  only once no other property is left in the group; this last step is
+  ours, Proton's client leaves such a label behind.
+
+Validation: `CardPatcherTest` — a phone removed beside a website of its
+group, a website and an address removed beside a phone of theirs, a
+phone removed whose group name an email uses in another card, a label
+that goes with the last property of its group, and the existing email
+case (review of 2026-11-18, roadmap item).

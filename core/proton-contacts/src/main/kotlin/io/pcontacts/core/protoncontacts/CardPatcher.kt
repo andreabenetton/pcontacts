@@ -35,9 +35,9 @@ import java.net.URI
  * Applies a [ContactPatch] onto the contact's current cards (ADR-0017
  * §2, Choice 2C). Every property the app does not own stays where it
  * was, with its parameters and group; owned properties are edited in
- * place so their parameters survive too. Removing a property removes
+ * place so their parameters survive too. Removing an email removes
  * its group-mates (`itemN.KEY`, `itemN.X-PM-*`) so no later property
- * inherits them.
+ * inherits them; any other property is removed alone.
  *
  * Placement of new properties follows Proton's own client: `[V]`
  * WebClients `packages/shared/lib/contacts/constants.ts` keeps `FN`,
@@ -225,7 +225,7 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
 
     private fun applyWebsites(wanted: List<String>) {
         val existing = cards.flatMap { it.vcard.urls }
-        existing.filter { it.value?.trim() !in wanted }.forEach(::removeWithGroup)
+        existing.filter { it.value?.trim() !in wanted }.forEach(::remove)
         val present = existing.mapNotNull { it.value?.trim() }.toSet()
         wanted.filter { it !in present }.forEach { encrypted.vcard.addUrl(Url(it)) }
     }
@@ -246,7 +246,7 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
     private fun allEmails(): List<Email> = cards.flatMap { it.vcard.emails }
 
     private fun applyEmails(patch: ContactPatch.ListPatch<DecryptedEmail>) {
-        patch.removed.forEach { e -> allEmails().filter { it.value == e.address }.forEach(::removeWithGroup) }
+        patch.removed.forEach { e -> allEmails().filter { it.value == e.address }.forEach(::removeEmailWithGroup) }
         // Only the home/work tokens are Android's; any other type, the group and the keys stay (ADR-0023, 2026-10-15).
         fun setTypes(email: Email, e: DecryptedEmail) {
             email.types.removeAll { it.value.lowercase() in ANDROID_EMAIL_TOKENS }
@@ -284,7 +284,7 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
             encrypted.vcard.addTelephoneNumber(t)
         }
         val all = { cards.flatMap { it.vcard.telephoneNumbers } }
-        patch.removed.forEach { p -> all().filter { matches(it, p.number) }.forEach(::removeWithGroup) }
+        patch.removed.forEach { p -> all().filter { matches(it, p.number) }.forEach(::remove) }
         patch.modified.groupBy { it.number }.forEach { (number, wanted) ->
             replaceGroup(all().filter { matches(it, number) }, wanted, ::says, ::edit, ::add)
         }
@@ -302,7 +302,7 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
             addr.pref = if (a.isPrimary) 1 else null
         }
         val all = { cards.flatMap { it.vcard.addresses } }
-        patch.removed.forEach { a -> all().filter { key(it) == ContactPatch.addressKey(a) }.forEach(::removeWithGroup) }
+        patch.removed.forEach { a -> all().filter { key(it) == ContactPatch.addressKey(a) }.forEach(::remove) }
         patch.modified.groupBy(ContactPatch::addressKey).forEach { (k, wanted) ->
             replaceGroup(all().filter { key(it) == k }, wanted, ::says, ::edit, ::addAddress)
         }
@@ -326,7 +326,7 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
     private fun applyIms(patch: ContactPatch.ListPatch<DecryptedIm>) {
         fun key(i: Impp) = "${i.uri?.schemeSpecificPart}|${i.uri?.scheme}"
         val all = { cards.flatMap { it.vcard.impps } }
-        patch.removed.forEach { im -> all().filter { key(it) == ContactPatch.imKey(im) }.forEach(::removeWithGroup) }
+        patch.removed.forEach { im -> all().filter { key(it) == ContactPatch.imKey(im) }.forEach(::remove) }
         patch.added.forEach { im ->
             val scheme = im.protocol?.takeIf { it.isNotBlank() } ?: return@forEach
             val impp = try {
@@ -355,16 +355,38 @@ internal class CardPatcher(carrier: List<DecryptedCard>, private val fallbackUid
         val free = present.toMutableList()
         val rest = wanted.filterNot { w -> free.firstOrNull { same(it, w) }?.let(free::remove) == true }
         rest.forEachIndexed { i, w -> if (i < free.size) edit(free[i], w) else add(w) }
-        free.drop(rest.size).forEach(::removeWithGroup)
+        free.drop(rest.size).forEach(::remove)
     }
 
-    private fun removeWithGroup(property: VCardProperty) {
-        val group = property.group
+    /**
+     * An email goes with everything in its group: its key and send settings (`itemN.KEY`,
+     * `itemN.X-PM-*`), as `[V]` WebClients `removeVCardProperty` removes them
+     * (`packages/shared/lib/contacts/properties.ts` @ 444df12), for an email only.
+     */
+    private fun removeEmailWithGroup(email: Email) {
+        val group = email.group
         for (card in cards) {
-            card.vcard.removeProperty(property)
+            card.vcard.removeProperty(email)
             if (group != null) {
                 card.vcard.properties.filter { it.group == group }.forEach { card.vcard.removeProperty(it) }
             }
+        }
+    }
+
+    /**
+     * Any other property goes alone: a group only ties properties together for display, and a
+     * phone removed with its whole group took a website, an address or, where an imported card
+     * numbers its groups like the signed card does, an email and its key with it (review
+     * 2026-11-18). The group's vendor labels (`itemN.X-ABLabel`) go once nothing is left in the
+     * group for them to describe.
+     */
+    private fun remove(property: VCardProperty) {
+        val group = property.group
+        cards.forEach { it.vcard.removeProperty(property) }
+        if (group == null) return
+        val mates = cards.flatMap { card -> card.vcard.properties.filter { it.group == group }.map { card to it } }
+        if (mates.all { (_, mate) -> mate is RawProperty }) {
+            mates.forEach { (card, mate) -> card.vcard.removeProperty(mate) }
         }
     }
 
