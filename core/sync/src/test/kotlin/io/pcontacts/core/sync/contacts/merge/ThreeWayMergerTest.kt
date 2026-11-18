@@ -94,7 +94,7 @@ class ThreeWayMergerTest {
     private val unknownBase = contact(
         photo = null,
         serverPhotoHash = hash(serverA),
-        localPhotoHash = ThreeWayMerger.UNKNOWN_LOCAL_PHOTO
+        localPhotoHash = PhotoHash.UNKNOWN
     )
 
     @Test fun with_the_phone_baseline_unknown_a_missing_phone_photo_is_the_users_call() {

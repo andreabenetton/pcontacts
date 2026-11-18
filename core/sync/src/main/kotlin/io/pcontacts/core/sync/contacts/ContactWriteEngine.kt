@@ -821,7 +821,7 @@ class ContactWriteEngine(
             mergeBases,
             serverContact.id,
             base,
-            localPhotoHash = if (created.sentHere) attempt.localPhotoHash else ThreeWayMerger.UNKNOWN_LOCAL_PHOTO
+            localPhotoHash = if (created.sentHere) attempt.localPhotoHash else PhotoHash.UNKNOWN
         )
         val nowHash = nowRow?.let(EmailSyncHash::compute)
         if (nowHash != null && nowHash != serverHash) {

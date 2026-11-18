@@ -776,3 +776,24 @@ group, a website and an address removed beside a phone of theirs, a
 phone removed whose group name an email uses in another card, a label
 that goes with the last property of its group, and the existing email
 case (review of 2026-11-18, roadmap item).
+
+## Amendment (2026-11-18, fourth): bases saved before "not known" existed are read as not known
+
+The second amendment of today left bases already on a device as they
+were: saved by 2.6.0 without a phone photo digest, where that meant "no
+photo" and also "the row was edited, not known". Read as written, such a
+base still let a removed photo count as unchanged after the update.
+
+The merge base envelope is now version 3. A version 2 base is still
+read; one without a phone photo digest is read as "not known". Nothing
+in it tells the two meanings apart, so the cautious one is taken: a
+phone without a photo beside a Proton copy with one is then a conflict
+the user settles, where a base known to mean "no photo" would have taken
+Proton's photo by itself. A version 2 base with a digest is unchanged.
+Each base is rewritten in version 3 the next time its contact is pulled
+or pushed.
+
+Validation: `DecryptedContactJsonTest` (a version 2 base without a
+digest, one with a digest, version 3 telling the two states apart) and
+`ContactWriteEngineTest.a_photo_removed_before_the_update_from_2_6_0_is_not_put_back_without_asking`
+(review of 2026-11-18, roadmap item).

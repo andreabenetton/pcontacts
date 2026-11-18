@@ -5,7 +5,7 @@ package io.pcontacts.core.sync.contacts
 
 import android.accounts.Account
 import io.pcontacts.core.protoncontacts.DecryptedContactJson
-import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
+import io.pcontacts.core.protoncontacts.PhotoHash
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -37,7 +37,7 @@ class ContactDetailSyncPhotoBaselineTest {
 
         engine.sync(account)
 
-        assertEquals(ThreeWayMerger.UNKNOWN_LOCAL_PHOTO, savedBase(dao).localPhotoHash)
+        assertEquals(PhotoHash.UNKNOWN, savedBase(dao).localPhotoHash)
     }
 
     @Test fun a_photo_removed_on_the_phone_right_after_the_pull_leaves_the_baseline_unknown_not_empty() = runTest {
@@ -57,7 +57,7 @@ class ContactDetailSyncPhotoBaselineTest {
 
         engine.sync(account)
 
-        assertEquals(ThreeWayMerger.UNKNOWN_LOCAL_PHOTO, savedBase(dao).localPhotoHash)
+        assertEquals(PhotoHash.UNKNOWN, savedBase(dao).localPhotoHash)
     }
 
     @Test fun a_row_nobody_edited_records_what_the_phone_holds_a_digest_or_no_photo() = runTest {

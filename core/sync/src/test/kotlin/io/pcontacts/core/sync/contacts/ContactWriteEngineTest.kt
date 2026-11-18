@@ -1819,6 +1819,35 @@ class ContactWriteEngineTest {
         assertEquals(ContactMapEntity.Status.CONFLICT, contactMap.findByProtonId("ct-1")!!.syncStatus)
     }
 
+    @Test fun a_photo_removed_before_the_update_from_2_6_0_is_not_put_back_without_asking() = runTest {
+        // Review 2026-11-18: 2.6.0 saved the base of a row edited during a pull without a phone
+        // digest, in a version 2 envelope where that also meant "no photo". Read as it was
+        // written, the removal still looked like no change after the update.
+        val onProton = sampleContact("ct-1").copy(photo = DecryptedPhoto(byteArrayOf(2, 2, 2), "image/jpeg"))
+        val bases = InMemoryMergeBaseStore()
+        val savedBy260 = DecryptedContactJson.encode(
+            MergeBaseCodec.canonical(onProton)!!.copy(serverPhotoHash = PhotoHash.of(byteArrayOf(2, 2, 2)))
+        ).decodeToString().replaceFirst("\"v\":3", "\"v\":2")
+        bases.save("ct-1", savedBy260.encodeToByteArray())
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(sampleMapping("ct-1", rawId = 100L))
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, "h", 1_000_000L)
+
+        val report = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("ct-1" to sampleContact("ct-1")),
+            serverContacts = mapOf("ct-1" to onProton),
+            mergeBases = bases
+        ).push(testAccount)
+
+        assertFalse(api.lastUpdateRequest?.cards.orEmpty().let(::unfolded).contains("PHOTO"))
+        assertEquals(1, report.conflicted)
+    }
+
     @Test fun a_photo_removed_after_a_create_an_earlier_run_sent_is_not_put_back_without_asking() = runTest {
         // Review 2026-11-18, R1: the create with its photo reached Proton, the run died, and the
         // user removed the photo before the next run found the copy by its UID.

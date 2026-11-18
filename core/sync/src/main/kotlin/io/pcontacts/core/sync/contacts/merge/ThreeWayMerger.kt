@@ -41,20 +41,15 @@ import io.pcontacts.core.protoncontacts.PhotoHash
  * `localPhotoHash` (the provider re-encodes photos, so the two digests
  * of one photo never agree with each other — only with themselves).
  * The base's `localPhotoHash` has three states: a digest, null for "the
- * phone had no photo", and [ThreeWayMerger.UNKNOWN_LOCAL_PHOTO] for "not
- * known" (review 2026-11-18, R1; ADR-0017 amendment). With it unknown, a
- * photo on the phone counts as changed; a phone without one beside a
- * Proton copy with one is a conflict, because a removal cannot be told
- * from a photo that never arrived.
+ * phone had no photo", and [PhotoHash.UNKNOWN] for "not known" (review
+ * 2026-11-18, R1; ADR-0017 amendment): the row was edited before it
+ * could be read, the base is the Proton copy of a create an earlier run
+ * sent, or the base was saved before the two could be told apart. With
+ * it unknown, a photo on the phone counts as changed; a phone without
+ * one beside a Proton copy with one is a conflict, because a removal
+ * cannot be told from a photo that never arrived.
  */
 object ThreeWayMerger {
-
-    /**
-     * The base's `localPhotoHash` when the phone's photo at the time of the base is not known:
-     * the row was edited before it could be read, or the base is the Proton copy of a create an
-     * earlier run sent. Never a digest: those are 64 hex digits.
-     */
-    const val UNKNOWN_LOCAL_PHOTO = "unknown"
 
     data class MergeInput(
         val base: DecryptedContact,
@@ -172,7 +167,7 @@ object ThreeWayMerger {
         val serverHash = input.server.serverPhotoHash ?: input.server.photo?.let { PhotoHash.of(it.data) }
         val localHash = input.local.photo?.let { PhotoHash.of(it.data) }
         val serverChanged = serverHash != input.base.serverPhotoHash
-        val baseUnknown = input.base.localPhotoHash == UNKNOWN_LOCAL_PHOTO
+        val baseUnknown = input.base.localPhotoHash == PhotoHash.UNKNOWN
         val localChanged = baseUnknown || localHash != input.base.localPhotoHash
         val removalInDoubt = baseUnknown && localHash == null && serverHash != null
         return when {

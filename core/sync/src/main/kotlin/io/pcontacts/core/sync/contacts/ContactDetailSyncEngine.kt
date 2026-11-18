@@ -22,10 +22,10 @@ import io.pcontacts.core.proton.api.labels.LabelType
 import io.pcontacts.core.proton.api.labels.ProtonLabelsApi
 import io.pcontacts.core.protoncontacts.ContactProcessor
 import io.pcontacts.core.protoncontacts.DecryptedContact
+import io.pcontacts.core.protoncontacts.PhotoHash
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
-import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -750,7 +750,7 @@ class ContactDetailSyncEngine(
 
     /**
      * The phone's photo digest for a merge base: null when the phone has no photo, and
-     * [ThreeWayMerger.UNKNOWN_LOCAL_PHOTO] when the row was edited after it was read. The digest
+     * [PhotoHash.UNKNOWN] when the row was edited after it was read. The digest
      * may then be of a new photo, and as the baseline it would make that photo read as unchanged
      * (review 2026-11-17, F4); and null would make a photo just removed read as "never had one"
      * (review 2026-11-18, R1). Read first, check DIRTY after, so a row still clean proves the
@@ -758,7 +758,7 @@ class ContactDetailSyncEngine(
      */
     private suspend fun settledPhotoHash(account: Account, rawContactId: Long): String? {
         val digest = readLocalPhotoHash(rawContactId)
-        return if (rawContactId in readDirtyRawIds(account)) ThreeWayMerger.UNKNOWN_LOCAL_PHOTO else digest
+        return if (rawContactId in readDirtyRawIds(account)) PhotoHash.UNKNOWN else digest
     }
 
     private data class PerContactMeta(
