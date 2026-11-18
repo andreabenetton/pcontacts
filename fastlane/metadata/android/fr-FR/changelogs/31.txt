@@ -1,0 +1,7 @@
+Version 2.6.1.
+
+* Une modification faite pendant une synchronisation ne disparaît plus avec un contact supprimé sur Proton : elle reste comme conflit.
+* Une photo retirée juste après une synchronisation n'est plus gardée sur Proton sans demander : vous choisissez.
+* Retirer un numéro, une adresse ou un site web ne retire plus les autres champs du même groupe.
+* Un contact trop volumineux n'arrête plus le téléchargement.
+* Les cartes chiffrées et les clés sont vérifiées plus strictement.

@@ -1,0 +1,7 @@
+Version 2.6.1.
+
+* An edit made during a sync no longer disappears with a contact deleted on Proton: it is kept as a conflict.
+* A photo removed right after a sync is no longer kept on Proton unasked: you choose.
+* Removing a phone number, address or website no longer removes other fields of the same group.
+* One contact too large for the phone no longer stops the download.
+* Encrypted cards and encryption keys are checked more strictly.

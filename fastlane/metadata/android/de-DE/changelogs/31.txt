@@ -1,0 +1,7 @@
+Version 2.6.1.
+
+* Eine Änderung während der Synchronisierung geht nicht mehr mit einem bei Proton gelöschten Kontakt verloren: Sie bleibt als Konflikt erhalten.
+* Ein direkt nach der Synchronisierung entferntes Foto bleibt nicht ungefragt bei Proton: Sie entscheiden.
+* Das Entfernen einer Telefonnummer, Adresse oder Website entfernt keine anderen Felder derselben Gruppe mehr.
+* Ein zu großer Kontakt stoppt den Download nicht mehr.
+* Verschlüsselte Karten und Schlüssel werden strenger geprüft.
