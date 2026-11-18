@@ -291,6 +291,9 @@ internal class DetailFakeApplier(base: Long) {
      */
     val editedRawIds = mutableSetOf<Long>()
 
+    /** Contacts the provider cannot be handed at all: left out of the write and named in the result. */
+    val tooLargeSourceIds = mutableSetOf<String>()
+
     private fun deletable(row: ExistingRawContact) = row.deleted || row.rawContactId !in editedRawIds
 
     fun knownState(): ExistingRawContacts =
@@ -319,7 +322,8 @@ internal class DetailFakeApplier(base: Long) {
             throw android.content.OperationApplicationException("assert failed: row edited")
         }
         lastIntents = intents
-        for (intent in intents) when (intent) {
+        val tooLarge = intents.filter { it is RawContactOpIntent.CreateContact && it.row.sourceId in tooLargeSourceIds }
+        for (intent in intents - tooLarge.toSet()) when (intent) {
             is RawContactOpIntent.CreateContact -> seedRow(intent.row.sourceId, nextId++)
             is RawContactOpIntent.DeleteContact -> {
                 rows[intent.sourceId]?.removeAll(::deletable)
@@ -333,9 +337,10 @@ internal class DetailFakeApplier(base: Long) {
         }
         throwAfterApply?.let { throw it }
         return ApplyResult(
-            insertedContacts = intents.count { it is RawContactOpIntent.CreateContact },
+            insertedContacts = intents.count { it is RawContactOpIntent.CreateContact } - tooLarge.size,
             updatedContacts = intents.count { it is RawContactOpIntent.UpdateContact },
-            deletedContacts = intents.count { it is RawContactOpIntent.DeleteContact }
+            deletedContacts = intents.count { it is RawContactOpIntent.DeleteContact },
+            tooLargeSourceIds = tooLarge.map { (it as RawContactOpIntent.CreateContact).row.sourceId }
         )
     }
 }

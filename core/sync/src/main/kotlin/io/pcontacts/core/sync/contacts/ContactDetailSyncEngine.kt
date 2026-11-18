@@ -495,6 +495,7 @@ class ContactDetailSyncEngine(
         logger.info {
             "contact-detail sync done — $writes" +
                 "unchanged=$unchanged modifyTimeSkips=$modifyTimeSkips fetchFailures=$fetchFailures " +
+                "tooLarge=${applied.tooLargeSourceIds.size} " +
                 "unverified=$unverified in ${clock() - startedAt} ms"
         }
         return SyncReport(
@@ -504,7 +505,7 @@ class ContactDetailSyncEngine(
             deleted = deletedCount,
             unchanged = unchanged,
             unverifiedCount = unverified,
-            failed = fetchFailures
+            failed = fetchFailures + applied.tooLargeSourceIds.size
         )
     }
 
@@ -553,6 +554,12 @@ class ContactDetailSyncEngine(
             writable = notEdited(account, rows, existing)
             applyRows(account, writable, existing, serverSourceIds)
         }
+        // A contact too large to hand to the provider was left out (ADR-0010, 2026-11-18). It is
+        // not recorded as written, so it counts as failed and every run tries it again.
+        if (result.tooLargeSourceIds.isNotEmpty()) {
+            logger.warn { "pull: ${result.tooLargeSourceIds.size} contact(s) too large for the phone's contacts, not written" }
+            writable = writable.filter { it.sourceId !in result.tooLargeSourceIds }
+        }
         val fresh = readExisting(account).canonicalIds()
         for (row in writable) {
             val rawId = fresh[row.sourceId]
@@ -587,7 +594,8 @@ class ContactDetailSyncEngine(
         insertedContacts = insertedContacts + other.insertedContacts,
         updatedContacts = updatedContacts + other.updatedContacts,
         deletedContacts = deletedContacts + other.deletedContacts,
-        totalOpsApplied = totalOpsApplied + other.totalOpsApplied
+        totalOpsApplied = totalOpsApplied + other.totalOpsApplied,
+        tooLargeSourceIds = tooLargeSourceIds + other.tooLargeSourceIds
     )
 
     /**
