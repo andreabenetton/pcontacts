@@ -16,13 +16,20 @@ What has shipped is recorded in the [CHANGELOG](../CHANGELOG.md).
 
 ## To investigate
 
-From the reviews of 2026-11-17 and 2026-11-18; not confirmed as failures yet.
+Risks the reviews of 2026-11-17 and 2026-11-18 found in the code; whether Proton's side can
+produce them is not known.
 
-- [ ] Contacts whose `ModifyTime` does not change between two versions: the pull skips on an equal time
-- [ ] Card types this version does not know are dropped when a contact is written back
-- [ ] Removing a property removes every property of its vCard group, across cards
-- [ ] Unchanged signed cards could be sent back byte for byte instead of signed again
-- [ ] A single contact larger than the batch budget travels alone; one larger than Binder's buffer still fails, and stops the batches after it
-- [ ] Accounts whose keys an organization manages: validate against a real account
-- [ ] AEAD-encrypted cards: the integrity vectors are made by BouncyCastle; none from OpenPGP.js or a live account
-- [ ] Merge bases saved by 2.6.0 for rows edited during a pull record "no photo" where the photo was not known
+- [ ] Two versions of a contact with the same `ModifyTime`: the pull skips on an equal time. Needs a live test or a guarantee from Proton
+- [ ] A card type this version does not know is dropped when its contact is written back. None is in use today; a write should be refused while such a card is present
+
+## To validate
+
+Built and tested here, not yet against the real thing.
+
+- [ ] Accounts whose keys an organization manages: try a real organization account
+- [ ] AEAD-encrypted cards: the integrity vectors are made by BouncyCastle; add some from OpenPGP.js or a live account
+- [ ] A contact too large for the phone's contacts is skipped and counted as failed: find what size Proton accepts, and name the contact to the user
+
+## Possible improvements
+
+- [ ] Send unchanged signed cards back byte for byte instead of signing them again (Proton's web app signs again too)

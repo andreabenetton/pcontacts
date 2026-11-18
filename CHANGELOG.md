@@ -36,6 +36,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Proton unasked.** The removal looked like no change and Proton's photo
   stayed. The contact is now listed as a conflict: **Use phone version**
   removes the photo on Proton, **Use Proton version** puts it back.
+  This also covers a removal made on 2.6.0 just before updating.
+- **Removing a phone number, address, website or chat handle no longer
+  removes other fields with it.** Some contacts, mostly imported ones, tie
+  several fields into one group. Removing one of them on the phone removed
+  the whole group on Proton, in some cases an email address and its
+  encryption key. Only the removed field goes now; removing an email
+  address still removes its key and send settings, as in Proton's apps.
+- **One contact too large for the phone no longer stops the download.** A
+  contact Android refused to store failed the sync for every contact after
+  it, on every run. It is now skipped and counted as failed, and the
+  others are written.
 
 ## [2.6.0] - 2026-11-17
 
