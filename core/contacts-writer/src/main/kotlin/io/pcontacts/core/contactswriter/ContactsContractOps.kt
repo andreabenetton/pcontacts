@@ -734,7 +734,8 @@ object ContactsContractOps {
             SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
         )
             .withSelection(
-                "${RawContacts.SOURCE_ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+                "${RawContacts.SOURCE_ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND " +
+                    "${RawContacts.ACCOUNT_NAME} = ? AND $NOT_EDITED",
                 arrayOf(sourceId, account.type, account.name)
             )
             .build()
@@ -744,8 +745,18 @@ object ContactsContractOps {
             SyncAdapterUri.decorate(RawContacts.CONTENT_URI, account.name, account.type)
         )
             .withSelection(
-                "${RawContacts._ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND ${RawContacts.ACCOUNT_NAME} = ?",
+                "${RawContacts._ID} = ? AND ${RawContacts.ACCOUNT_TYPE} = ? AND " +
+                    "${RawContacts.ACCOUNT_NAME} = ? AND $NOT_EDITED",
                 arrayOf(rawContactId.toString(), account.type, account.name)
             )
             .build()
+
+    /**
+     * Part of every delete's own selection, so the check and the delete are one statement: a
+     * row the user edited since it was looked at (DIRTY) is not removed, whenever the edit
+     * landed, and the caller finds it still there. A tombstone is the user's own deletion,
+     * dirty by nature, and goes (review 2026-11-18, R2; ADR-0010 amendment). An update guards
+     * the same way with its assert.
+     */
+    private const val NOT_EDITED = "(${RawContacts.DIRTY} = 0 OR ${RawContacts.DELETED} = 1)"
 }

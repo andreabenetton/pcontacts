@@ -167,3 +167,27 @@ on Android 11 (Samsung SM-A405FN), 2026-11-17: without the budget the batch
 was 1,738,548 bytes and failed with `TransactionTooLargeException`; with
 it, all twenty were written. On the CI emulators (Android 8, 13, 15) the
 same test sets the budget above (review of 2026-11-17, F6).
+
+## Amendment (2026-11-18): a delete removes only a row nobody edited
+
+The assert of 2026-11-17 guards an update. A delete had no such guard:
+the pull deleted a contact gone from Proton by `SOURCE_ID`, and an extra
+duplicate row by `_ID`, whatever had happened to the row since the run
+last looked at it. An edit made on the phone in between, a number added
+while the pull was on the network, was deleted with the row and never
+reached the outbox.
+
+Both deletes now carry the condition in their own selection:
+`DIRTY = 0 OR DELETED = 1`. The check and the delete are one statement
+in the provider, so there is no window between them. A row the user
+edited is left where it is and the caller reads it back; a tombstone is
+the user's own deletion, dirty by nature, and is still removed. No batch
+fails because of it: other deletes in the same batch go through.
+
+Validation: `DeleteEditedRowInstrumentedTest` on Android 11 (Samsung
+SM-A405FN), 2026-11-18, the user's edit made through a second
+connection to the provider: without the condition the edited contact
+and the edited duplicate were deleted; with it both stay, a clean row is
+deleted by `SOURCE_ID` and by `_ID`, and a dirty tombstone is removed
+either way (review of 2026-11-18, R2). `[A]` on other providers until
+the CI emulators (Android 8, 13, 15) run the same test.
