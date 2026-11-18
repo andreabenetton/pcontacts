@@ -1775,6 +1775,83 @@ class ContactWriteEngineTest {
         assertEquals(PhotoHash.of(photoC), MergeBaseCodec.load(bases, "ct-1")!!.localPhotoHash)
     }
 
+    @Test fun a_photo_removed_right_after_the_pull_wrote_it_is_not_put_back_without_asking() = runTest {
+        // Review 2026-11-18, R1: Proton has B and the pull writes it; before the base is saved the
+        // user removes the photo. The base then held no phone photo, which read as "the phone never
+        // had one": the removal looked like no change, and the push kept B.
+        val vcard = "BEGIN:VCARD\nVERSION:4.0\nFN:Alice\nEMAIL:alice@proton.me\n" +
+            "PHOTO;MEDIATYPE=image/jpeg:data:image/jpeg;base64,AgIC\nEND:VCARD"
+        val bases = InMemoryMergeBaseStore()
+        val pulled = DetailFakeContactMapDao()
+        var removed = false
+        io.pcontacts.core.sync.contacts.newEngine(
+            DetailFakeApi(listOf(metaPage(meta("ct-1", 100L))), mapOf("ct-1" to contact("ct-1", 100L, vcard))),
+            pulled,
+            DetailFakeApplier(base = 100L),
+            saveMergeBase = { id, base -> MergeBaseCodec.save(bases, id, base) },
+            readLocalPhotoHash = {
+                removed = true
+                null
+            },
+            readDirtyRawIds = { if (removed) setOf(100L) else emptySet() }
+        ).sync(testAccount)
+        val onProton = carrierProcessor.process(contact("ct-1", 100L, vcard))
+        assertNotNull("precondition: Proton's copy has the photo", onProton.photo)
+        val row = DecryptedContactToRow.convert(onProton)!!.copy(sourceId = "ct-1", photo = null)
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        contactMap.upsert(pulled.snapshot()["ct-1"]!!)
+        outbox.enqueue("ct-1", OutboxEntity.OpType.UPDATE, EmailSyncHash.compute(row), 1_000_000L)
+
+        val report = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contactRows = mapOf(100L to row),
+            fetchServerContact = { onProton },
+            mergeBases = bases
+        ).push(testAccount)
+
+        val sent = api.lastUpdateRequest?.cards.orEmpty().let(::unfolded)
+        assertFalse("the photo is not sent back", sent.contains("PHOTO"))
+        assertEquals("the user is asked: removed here, or never arrived?", 1, report.conflicted)
+        assertEquals(ContactMapEntity.Status.CONFLICT, contactMap.findByProtonId("ct-1")!!.syncStatus)
+    }
+
+    @Test fun a_photo_removed_after_a_create_an_earlier_run_sent_is_not_put_back_without_asking() = runTest {
+        // Review 2026-11-18, R1: the create with its photo reached Proton, the run died, and the
+        // user removed the photo before the next run found the copy by its UID.
+        val api = WriteFakeApi()
+        val outbox = WriteFakeOutboxDao()
+        val contactMap = WriteFakeContactMapDao()
+        val bases = InMemoryMergeBaseStore()
+        outbox.enqueue("local-200", OutboxEntity.OpType.CREATE, "h", 1_000_000L)
+        api.listedContacts = listOf(ContactMetadataDto(id = "srv-9", uid = outbox.entries.values.single().createUid!!))
+        val onProton = sampleContact("srv-9").copy(photo = DecryptedPhoto(byteArrayOf(7, 7, 7), "image/jpeg"))
+        val onPhone = sampleContact("local-200")
+        newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("local-200" to onPhone),
+            serverContacts = mapOf("srv-9" to onProton),
+            mergeBases = bases
+        ).push(testAccount)
+
+        val report = newEngine(
+            api,
+            outbox,
+            contactMap,
+            contacts = mapOf("srv-9" to onPhone),
+            serverContacts = mapOf("srv-9" to onProton),
+            mergeBases = bases
+        ).push(testAccount)
+
+        assertFalse(api.lastUpdateRequest?.cards.orEmpty().let(::unfolded).contains("PHOTO"))
+        assertEquals(1, report.conflicted)
+    }
+
     // ---- a contact is fitted to Proton's editor rules before it is sent (ADR-0017, 2026-10-15, third) ----
 
     private val recorded = mutableListOf<Pair<String, Set<ProtonAdjustment>>>()

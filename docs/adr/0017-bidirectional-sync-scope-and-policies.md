@@ -716,3 +716,36 @@ Validation: `ContactDetailSyncEditedDeleteTest` (the row and mapping
 kept, the conflict on the next run, a clean row deleted beside an edited
 one, an edited duplicate kept); the convergence fuzz harness runs with a
 provider that refuses the same deletes (review of 2026-11-18, R2).
+
+## Amendment (2026-11-18, second): the phone's photo baseline has a third state, "not known"
+
+The merge base records the phone's photo as a digest. Since 2026-11-17 a
+row edited before its digest could be read was saved with none, meaning
+"not known". But none already meant "the phone had no photo", and the
+merge read it that way: a photo the user removed right after the pull
+wrote it compared equal to its baseline, counted as unchanged, and
+Proton's photo was kept. The same held for the Proton copy of a create
+an earlier run sent, whose base is saved without a phone digest.
+
+The base now tells three states apart: a digest, no photo, and not
+known. With the baseline not known:
+
+- a photo on the phone counts as changed, as before: at worst it is sent
+  once more;
+- a phone without a photo beside a Proton copy with one is a photo
+  conflict the user settles. A removal cannot be told from a photo that
+  never arrived on the phone (a provider can refuse to store one), so
+  neither is assumed: Proton's photo is not put back, and it is not
+  deleted either;
+- no photo on either side changes nothing.
+
+Bases saved by 2.6.0 for rows edited during a pull carry the old "none"
+and stay ambiguous until the contact is next pulled or pushed.
+
+Validation: `ThreeWayMergerTest` (the three cases above, and a known "no
+photo" baseline still taking Proton's photo);
+`ContactDetailSyncPhotoBaselineTest` (edited row: not known, for a new
+photo and for a removed one; clean row: its digest or none);
+`ContactWriteEngineTest` runs the whole cycle, pull, removal, base saved,
+push, and the same for a create found again by its UID: nothing is sent
+back and the change waits as a conflict (review of 2026-11-18, R1).

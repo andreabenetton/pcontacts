@@ -89,6 +89,44 @@ class ThreeWayMergerTest {
         assertEquals(null, (result as ThreeWayMerger.MergeResult.AutoMerged).merged.photo)
     }
 
+    // ---- the phone's photo at the time of the base is not known (review 2026-11-18, R1) ----
+
+    private val unknownBase = contact(
+        photo = null,
+        serverPhotoHash = hash(serverA),
+        localPhotoHash = ThreeWayMerger.UNKNOWN_LOCAL_PHOTO
+    )
+
+    @Test fun with_the_phone_baseline_unknown_a_missing_phone_photo_is_the_users_call() {
+        // Removed on the phone, or never arrived there: the digests cannot tell, so nothing is
+        // decided for the user, neither putting Proton's photo back nor deleting it.
+        val result = mergePhotos(unknownBase, contact(photo = serverA), contact(photo = null))
+
+        result as ThreeWayMerger.MergeResult.Conflicted
+        assertEquals(listOf("photo"), result.conflicts.map { it.fieldName })
+    }
+
+    @Test fun with_the_phone_baseline_unknown_a_phone_photo_counts_as_changed() {
+        val result = mergePhotos(unknownBase, contact(photo = serverA), contact(photo = localC))
+
+        assertEquals(localC, (result as ThreeWayMerger.MergeResult.AutoMerged).merged.photo)
+    }
+
+    @Test fun with_the_phone_baseline_unknown_and_no_photo_on_either_side_nothing_changes() {
+        val result = mergePhotos(unknownBase, contact(photo = null), contact(photo = null))
+
+        assertEquals(null, (result as ThreeWayMerger.MergeResult.AutoMerged).merged.photo)
+    }
+
+    @Test fun a_phone_known_to_have_had_no_photo_takes_protons_photo() {
+        // The known "no photo" baseline is not the unknown one: here nothing changed on the phone.
+        val base = contact(photo = null, serverPhotoHash = null, localPhotoHash = null)
+
+        val result = mergePhotos(base, contact(photo = serverA), contact(photo = null, notes = listOf("n")))
+
+        assertEquals(serverA, (result as ThreeWayMerger.MergeResult.AutoMerged).merged.photo)
+    }
+
     @Test fun photo_deleted_locally_propagates_when_the_server_kept_its_photo() {
         val base = contact(photo = null, serverPhotoHash = hash(serverA), localPhotoHash = hash(localA))
         val result = mergePhotos(base, contact(photo = serverA), contact(photo = null))

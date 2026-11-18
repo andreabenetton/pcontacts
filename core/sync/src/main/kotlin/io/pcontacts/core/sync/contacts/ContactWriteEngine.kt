@@ -813,13 +813,15 @@ class ContactWriteEngine(
             )
         }
         val nowRow = readContactRow(attempt.rawContactId, localId)
-        // The photo this create was built from; for a copy an earlier run made, none is known, so
-        // the phone's photo counts as a change rather than being taken as synced (review 2026-11-17, F4).
+        // The photo this create was built from; for a copy an earlier run made it is not known, and
+        // is recorded as such: the phone's photo then counts as a change rather than being taken as
+        // synced (review 2026-11-17, F4), and a phone without one is not taken as "never had one"
+        // (review 2026-11-18, R1).
         MergeBaseCodec.save(
             mergeBases,
             serverContact.id,
             base,
-            localPhotoHash = if (created.sentHere) attempt.localPhotoHash else null
+            localPhotoHash = if (created.sentHere) attempt.localPhotoHash else ThreeWayMerger.UNKNOWN_LOCAL_PHOTO
         )
         val nowHash = nowRow?.let(EmailSyncHash::compute)
         if (nowHash != null && nowHash != serverHash) {

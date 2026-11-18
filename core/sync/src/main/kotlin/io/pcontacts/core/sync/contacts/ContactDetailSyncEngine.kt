@@ -25,6 +25,7 @@ import io.pcontacts.core.protoncontacts.DecryptedContact
 import io.pcontacts.core.storage.db.dao.ContactMapDao
 import io.pcontacts.core.storage.db.entity.ContactMapEntity
 import io.pcontacts.core.storage.db.entity.OutboxEntity
+import io.pcontacts.core.sync.contacts.merge.ThreeWayMerger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -748,15 +749,16 @@ class ContactDetailSyncEngine(
     )
 
     /**
-     * The phone's photo digest for a merge base, or null when the row was edited after it was read:
-     * the digest may then be of a new photo, and as the baseline it would make that photo read as
-     * unchanged (review 2026-11-17, F4). Read first, check DIRTY after, so a row still clean proves
-     * the digest predates any edit. An unknown baseline makes the phone's photo count as a change:
-     * at worst it is sent once more, never lost.
+     * The phone's photo digest for a merge base: null when the phone has no photo, and
+     * [ThreeWayMerger.UNKNOWN_LOCAL_PHOTO] when the row was edited after it was read. The digest
+     * may then be of a new photo, and as the baseline it would make that photo read as unchanged
+     * (review 2026-11-17, F4); and null would make a photo just removed read as "never had one"
+     * (review 2026-11-18, R1). Read first, check DIRTY after, so a row still clean proves the
+     * digest predates any edit.
      */
     private suspend fun settledPhotoHash(account: Account, rawContactId: Long): String? {
         val digest = readLocalPhotoHash(rawContactId)
-        return digest.takeIf { rawContactId !in readDirtyRawIds(account) }
+        return if (rawContactId in readDirtyRawIds(account)) ThreeWayMerger.UNKNOWN_LOCAL_PHOTO else digest
     }
 
     private data class PerContactMeta(
