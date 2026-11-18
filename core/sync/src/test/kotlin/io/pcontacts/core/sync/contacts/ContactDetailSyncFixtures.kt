@@ -285,6 +285,14 @@ internal class DetailFakeApplier(base: Long) {
     /** A provider that hides deleted rows in a recycle bin (Samsung) instead of leaving tombstones. */
     var hasRecycleBin = false
 
+    /**
+     * Rows the user edited and the sync has not looked at since (DIRTY). Like the provider, a
+     * delete leaves them, unless they are tombstones (ADR-0010, 2026-11-18).
+     */
+    val editedRawIds = mutableSetOf<Long>()
+
+    private fun deletable(row: ExistingRawContact) = row.deleted || row.rawContactId !in editedRawIds
+
     fun knownState(): ExistingRawContacts =
         ExistingRawContacts(rows.mapValues { (_, list) -> list.toList() }, hasRecycleBin)
 
@@ -313,10 +321,13 @@ internal class DetailFakeApplier(base: Long) {
         lastIntents = intents
         for (intent in intents) when (intent) {
             is RawContactOpIntent.CreateContact -> seedRow(intent.row.sourceId, nextId++)
-            is RawContactOpIntent.DeleteContact -> rows.remove(intent.sourceId)
+            is RawContactOpIntent.DeleteContact -> {
+                rows[intent.sourceId]?.removeAll(::deletable)
+                rows.entries.removeAll { it.value.isEmpty() }
+            }
             is RawContactOpIntent.UpdateContact -> { /* id unchanged */ }
             is RawContactOpIntent.DeleteRawContact -> {
-                rows.values.forEach { list -> list.removeAll { it.rawContactId == intent.rawContactId } }
+                rows.values.forEach { list -> list.removeAll { it.rawContactId == intent.rawContactId && deletable(it) } }
                 rows.entries.removeAll { it.value.isEmpty() }
             }
         }

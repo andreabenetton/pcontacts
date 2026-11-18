@@ -470,7 +470,7 @@ class ContactDetailSyncEngine(
             // 5. A chunked batch that fails leaves the earlier chunks committed; the mappings
             //    of contacts those chunks deleted are dropped so they do not outlive their rows.
             onProgress(SyncPhase.SAVING, 0, 0)
-            applied += try {
+            val result = try {
                 applyIntents(account, deletions)
             } catch (e: CancellationException) {
                 throw e
@@ -478,12 +478,11 @@ class ContactDetailSyncEngine(
                 dropMappingsOfDeletedRows(account, deletions)
                 throw t
             }
-            for (intent in deletions.filterIsInstance<RawContactOpIntent.DeleteContact>()) {
-                contactMapDao.deleteByProtonId(intent.sourceId)
-            }
+            // What was asked is not what was deleted: a row edited meanwhile stays (ADR-0010, 2026-11-18).
+            applied += result.copy(deletedContacts = dropMappingsOfDeletedRows(account, deletions))
         }
 
-        val deletedCount = deletions.count { it is RawContactOpIntent.DeleteContact }
+        val deletedCount = applied.deletedContacts
         val unchanged = (serverSourceIds.size - target.size - fetchFailures).coerceAtLeast(0)
         val unverified = contactMapDao.countUnverified()
         val wrote = target.isNotEmpty() || deletions.isNotEmpty()
@@ -710,12 +709,23 @@ class ContactDetailSyncEngine(
         return stored.copy(androidRawContactId = liveRawId)
     }
 
-    private suspend fun dropMappingsOfDeletedRows(account: Account, intents: List<RawContactOpIntent>) {
+    /**
+     * Drops the mapping of every contact whose row [intents] really deleted, and returns how
+     * many. A delete leaves a row edited on the phone since the run looked at it (ADR-0010,
+     * 2026-11-18): that row keeps its mapping, so the next run finds the edit as a change to a
+     * contact Proton no longer has, which the user settles (review 2026-11-18, R2). It also
+     * serves a batch that failed part-way: only what is gone loses its mapping.
+     */
+    private suspend fun dropMappingsOfDeletedRows(account: Account, intents: List<RawContactOpIntent>): Int {
         val present = readExisting(account).rowsBySourceId.keys
-        val gone = intents.filterIsInstance<RawContactOpIntent.DeleteContact>()
+        val (kept, gone) = intents.filterIsInstance<RawContactOpIntent.DeleteContact>()
             .map { it.sourceId }
-            .filter { it !in present }
+            .partition { it in present }
+        if (kept.isNotEmpty()) {
+            logger.warn { "pull: ${kept.size} row(s) gone from Proton were edited on the phone and kept" }
+        }
         if (gone.isNotEmpty()) contactMapDao.deleteByProtonIds(gone)
+        return gone.size
     }
 
     private suspend fun notEdited(account: Account, rows: List<ContactRow>, existing: Map<String, Long>): List<ContactRow> {

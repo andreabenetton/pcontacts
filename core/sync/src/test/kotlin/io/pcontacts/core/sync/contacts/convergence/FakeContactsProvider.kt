@@ -15,7 +15,7 @@ import kotlin.random.Random
  * The account's RawContacts as ContactsProvider holds them, with the behaviour the engines
  * rely on. `[A]` modelled, not observed here: a sync-adapter write leaves DIRTY alone; a user
  * delete leaves a tombstone that keeps its data; a sync-adapter delete purges the rows of a
- * SOURCE_ID, tombstones included; raw ids are never reused; a batch commits chunk by chunk.
+ * SOURCE_ID, tombstones included, but not a live row that is dirty; raw ids are never reused; a batch commits chunk by chunk.
  */
 internal class FakeContactsProvider(private val faults: Faults, private val rng: Random) {
 
@@ -63,14 +63,19 @@ internal class FakeContactsProvider(private val faults: Faults, private val rng:
                 engineWrites += "update" to (it.sourceId ?: "raw-${it.id}")
             }
             is RawContactOpIntent.DeleteContact -> {
-                rows.values.removeAll { it.sourceId == intent.sourceId }
-                engineWrites += "delete" to intent.sourceId
+                if (rows.values.removeAll { it.sourceId == intent.sourceId && it.deletable() }) {
+                    engineWrites += "delete" to intent.sourceId
+                }
             }
-            is RawContactOpIntent.DeleteRawContact -> rows.remove(intent.rawContactId)?.let {
+            is RawContactOpIntent.DeleteRawContact -> rows[intent.rawContactId]?.takeIf { it.deletable() }?.let {
+                rows.remove(it.id)
                 engineWrites += "delete-raw" to (it.sourceId ?: "raw-${it.id}")
             }
         }
     }
+
+    /** A delete leaves a row the user edited since the sync looked at it; a tombstone goes (ADR-0010, 2026-11-18). */
+    private fun Raw.deletable() = !dirty || deleted
 
     suspend fun readDirty(): List<DirtyContact> = faults.checkpoint(Site.PROVIDER, "read dirty") {
         rows.values.filter { it.dirty || it.deleted }.map { DirtyContact(it.id, it.sourceId, it.dirty, it.deleted) }

@@ -694,3 +694,25 @@ signature failed sends nothing and asks once; "Use phone version" then
 sends it; "Use Proton version" sends nothing; an unsigned contact is
 sent as before (review of 2026-11-17, F3). Not validated live: no
 contact with a failed signature exists on the test account.
+
+## Amendment (2026-11-18): an edit made while the pull runs outlives a deletion on Proton
+
+§3C keeps a contact deleted on Proton when the phone still owns a change
+to it, and asks the user. "Owns a change" was read from the outbox and
+the conflict state, which know only the edits the run found when it
+started. An edit made on the phone while the pull was fetching was in
+neither, so the contact was deleted with the edit in it.
+
+The provider now refuses that delete (ADR-0010, amendment of
+2026-11-18): a row edited since the run looked at it stays. The pull
+drops the mapping only of a contact whose row is really gone, and counts
+only those as deleted. The kept row and its mapping are found by the
+next run like any other edit: the change is queued, the contact is seen
+to be gone from Proton, and it becomes the "deleted on Proton" conflict
+the user settles. The same holds for an extra duplicate row edited
+meanwhile: it is not removed, and the next run follows the edit.
+
+Validation: `ContactDetailSyncEditedDeleteTest` (the row and mapping
+kept, the conflict on the next run, a clean row deleted beside an edited
+one, an edited duplicate kept); the convergence fuzz harness runs with a
+provider that refuses the same deletes (review of 2026-11-18, R2).
