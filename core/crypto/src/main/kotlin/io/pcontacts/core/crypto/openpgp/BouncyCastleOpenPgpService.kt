@@ -144,7 +144,7 @@ class BouncyCastleOpenPgpService : OpenPgpService {
         val (target, clearStream) = open(armoredMessage, decryptionKeys)
         val literal = innerPackets(clearStream).second as? PGPLiteralData ?: error("expected PGPLiteralData")
         val plaintext = literal.inputStream.readBytes()
-        checkIntegrity(target, plaintext)
+        checkIntegrity(target, clearStream, plaintext)
         return plaintext
     }
 
@@ -163,7 +163,7 @@ class BouncyCastleOpenPgpService : OpenPgpService {
         val plaintext = literal.inputStream.readBytes()
         verifier?.let { onePass.update(plaintext) }
         val signature = onePass?.let { (factory.nextObject() as? PGPSignatureList)?.takeIf { !it.isEmpty }?.get(0) }
-        checkIntegrity(target, plaintext)
+        checkIntegrity(target, clearStream, plaintext)
         val status = when {
             onePass == null -> VerificationStatus.NOT_SIGNED
             verifier == null -> VerificationStatus.SIGNED_NO_VERIFIER
@@ -211,15 +211,24 @@ class BouncyCastleOpenPgpService : OpenPgpService {
     }
 
     /**
-     * Reading the literal data does not check the MDC; verify() drains the rest and does. An AEAD
-     * packet checks its tags while it is read, and a bad one has already thrown. On failure the
-     * plaintext is wiped.
+     * Reads the envelope to its end, then checks it. Reading the literal data checks neither the
+     * MDC nor, in an AEAD packet, the chunks after it and the last tag, which covers the whole
+     * message: an AEAD message altered or cut short past the content read so far would otherwise
+     * be returned as good (review 2026-11-18, R4, with vectors in `AeadEnvelopeIntegrityTest`).
+     * An AEAD fault throws while the rest is read; the MDC is compared by verify(), which
+     * BouncyCastle offers for the RFC 9580 layouts only. On any failure the plaintext is wiped.
      */
-    private fun checkIntegrity(target: PGPPublicKeyEncryptedData, plaintext: ByteArray) {
-        if (!target.isAEAD && !target.verify()) {
-            plaintext.fill(0)
-            error("encrypted data failed its integrity check")
+    private fun checkIntegrity(target: PGPPublicKeyEncryptedData, clearStream: InputStream, plaintext: ByteArray) {
+        var intact = false
+        val rest = ByteArray(DRAIN_BUFFER)
+        try {
+            while (clearStream.read(rest) >= 0) Unit
+            intact = target.isAEAD || target.verify()
+        } finally {
+            rest.fill(0)
+            if (!intact) plaintext.fill(0)
         }
+        check(intact) { "encrypted data failed its integrity check" }
     }
 
     private fun parseDetachedSignature(armoredSignature: String): PGPSignature? {
@@ -235,4 +244,8 @@ class BouncyCastleOpenPgpService : OpenPgpService {
 
     @Suppress("unused")
     private val fingerprintCalculator = BcKeyFingerprintCalculator()
+
+    private companion object {
+        const val DRAIN_BUFFER = 4096
+    }
 }

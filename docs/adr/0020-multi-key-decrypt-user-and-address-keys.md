@@ -275,3 +275,27 @@ valid chain, a token signed by another key, an organization key that
 does not open, an ordinary account) and the `member-token-inline-signed`
 vector, made with OpenPGP.js as `encryptMemberToken` makes it and read by
 BouncyCastle (review of 2026-11-17, F8).
+
+## Amendment (2026-11-18): the whole envelope is read before plaintext is returned
+
+The second amendment of 2026-11-17 said an AEAD packet checks its tags
+while it is read. That holds only for the chunks actually read. The
+content this app wants sits at the start of the message; chunks after it
+and the last tag, which covers the whole message, were never read, so an
+AEAD message altered or cut short past that content decrypted as sound.
+Reproduced with BouncyCastle 1.87 before the fix: a message with its
+last tag altered was accepted, in the RFC 9580 layout.
+
+Decryption now reads the decrypted stream to its end before it returns
+anything, for every packet type and on both the detached and the inline
+path, as BouncyCastle's own `PGPEncryptedData.verify()` does before it
+compares the MDC. Then the MDC is compared where there is one. On any
+failure, an exception included, the plaintext read so far is wiped.
+
+Validation: `AeadEnvelopeIntegrityTest` — AEAD messages in both layouts
+BouncyCastle writes (RFC 9580 and LibrePGP), with a trailing packet over
+several later chunks: intact ones decrypt; a last tag altered, a late
+chunk altered and a message cut short are refused, plain, compressed and
+signed inline (review of 2026-11-18, R4). `[A]` Proton's clients are not
+known to send AEAD messages today; the vectors are made by BouncyCastle,
+not by OpenPGP.js.

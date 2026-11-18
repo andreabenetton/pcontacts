@@ -29,7 +29,7 @@ If a decision changes, do not edit the existing ADR — write a new one that sup
 | [0017](0017-bidirectional-sync-scope-and-policies.md) | Bidirectional sync — scope and policies | Accepted (amended 2026-09-22, 2026-10-01, 2026-10-07, 2026-10-14, 2026-10-15, 2026-11-17) |
 | [0018](0018-scope-expansion-bidirectional-sync.md) | Scope expansion — bidirectional sync (supersedes ADR-0006) | Accepted (amended 2026-09-22) |
 | [0019](0019-human-verification-webview-flow.md) | Human-verification (9001) handled via in-app WebView | Accepted |
-| [0020](0020-multi-key-decrypt-user-and-address-keys.md) | Decrypt path tries all unlocked user + address keys | Accepted (amended 2026-09-22, 2026-10-06, 2026-11-17) |
+| [0020](0020-multi-key-decrypt-user-and-address-keys.md) | Decrypt path tries all unlocked user + address keys | Accepted (amended 2026-09-22, 2026-10-06, 2026-11-17, 2026-11-18) |
 | [0021](0021-send-via-proton-mail-chip.md) | "Send via Proton Mail" custom data row + intent contract | Accepted |
 | [0022](0022-contactsprovider-authoritative-self-healing.md) | ContactsProvider is authoritative — sync metadata self-heals | Accepted |
 | [0023](0023-one-way-contact-enrichment-into-proton.md) | One-way contact enrichment — pull linked accounts' fields into Proton | Accepted |
