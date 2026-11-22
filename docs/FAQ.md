@@ -45,7 +45,7 @@ What to do:
   another account", choosing the Proton account. pcontacts pushes it at the
   next sync and confirms the create.
 - For new contacts, set the Proton account as the default for new contacts
-  (see below) and save from the Contacts app. WhatsApp's own picker ignores
+  where the phone allows it (see below) and save from the Contacts app. WhatsApp's own picker ignores
   that default; if it lists the Proton account, choose it there.
 
 Maintainer check: `adb shell content query --uri content://com.android.contacts/raw_contacts --projection _id:account_type:account_name:sourceid:dirty --where "display_name LIKE '%Name%'"`.
@@ -74,10 +74,19 @@ way described above.
 ## How do I make new contacts go to Proton?
 
 The main screen has "Default account for new contacts". On Android 15 and
-later it opens the system page where the Proton account can be chosen; on
-older Android the button says so, and the choice is made in the Contacts
-app when you create a contact. Samsung Contacts has a "Save contact to"
-list at the top of the new-contact screen, where the account appears as
+later it opens Android's "Contacts storage" page; on older Android the
+button says so. That page offers "Device only" and the accounts of the
+types the maker of the system declared eligible, and no app can add itself
+to that list. Plain AOSP and CalyxOS declare none, so the Proton account
+cannot be chosen there (reported on CalyxOS,
+[issue #97](https://github.com/andreabenetton/pcontacts/issues/97)). The
+"Default account for new contacts" setting of the CalyxOS Contacts app
+opens the same page.
+
+Where the default cannot be set, the choice is made in the Contacts app
+each time you create a contact. Android's own Contacts app (AOSP, CalyxOS,
+GrapheneOS) has "Saving to" at the top of the new-contact screen. Samsung
+Contacts has a "Save contact to" list there, where the account appears as
 "PContacts" (pcontacts 2.2.1 and earlier were missing from that list).
 Fossify Contacts has it under "Source", at the bottom of its editor, and
 preselects the account chosen last time.
