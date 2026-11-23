@@ -50,7 +50,7 @@ jsoup                        = "1.24.1"
 # Test
 junit                        = "4.13.2"
 kotest                       = "6.2.7"
-robolectric                  = "4.17"
+robolectric                  = "4.18.1"
 androidx-test-junit          = "1.2.1"
 androidx-test-espresso       = "3.6.1"
 androidx-test-runner         = "1.6.2"
