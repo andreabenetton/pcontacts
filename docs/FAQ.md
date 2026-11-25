@@ -71,6 +71,47 @@ follow the real contact and disappear with it. The real contact is the row
 under the Proton account, or under "Telefono"/"Phone" if it was saved the
 way described above.
 
+## My device contacts show Proton details after the first sync
+
+The device contacts were not changed. pcontacts adds a separate Proton
+account and writes only to the contacts of that account. What changed is
+the display: when a device contact and a Proton contact have the same
+name, the Contacts app shows them as one. A filter such as "Device" only
+decides which contacts are listed; an opened contact shows the details of
+all its sources together, so the Proton details appear next to the device
+ones, and twice when both copies hold the same number or email (reported
+on GrapheneOS,
+[issue #104](https://github.com/andreabenetton/pcontacts/issues/104)).
+
+To see the two copies:
+
+- Android's own Contacts app (AOSP, GrapheneOS): open the contact, then
+  the ⋮ menu → "View linked contacts". It lists one entry per account.
+  "Unlink" there separates them and deletes nothing.
+- Fossify Contacts: the contact sources are listed at the bottom of the
+  contact. Fossify merges contacts of the same name on its own; with
+  Settings → "Merge duplicate contacts" off, the copies are separate
+  entries, each with only its own details. ⋮ → "Filter" chooses which
+  sources are listed.
+
+However they are displayed, the copies stay separate contacts:
+
+- Only the contacts of the Proton account are synced. A device contact is
+  never sent to Proton, even when it is shown merged with a Proton one.
+- Sign-out removes the contacts of the Proton account from the phone and
+  leaves the device contacts as they were (see "What does sign-out
+  delete, and what does it keep?" below).
+- A device contact, or single details of it, reaches Proton only when you
+  import it yourself: *Import details from linked contacts* lists the
+  contacts other accounts hold, you open one, select the details and
+  confirm with **Import**, or **Create** when the contact is not in Proton
+  yet. The device contact stays as it is (ADR-0023). Nothing is imported
+  by default or in the background.
+
+Maintainer check: `adb shell content query --uri content://com.android.contacts/raw_contacts --projection _id:contact_id:account_type:account_name --where "display_name LIKE '%Name%'"`.
+Two rows with the same `contact_id`, one with `account_type=io.pcontacts.account`
+and one of the device storage, are such a linked pair.
+
 ## How do I make new contacts go to Proton?
 
 The main screen has "Default account for new contacts". On Android 15 and
